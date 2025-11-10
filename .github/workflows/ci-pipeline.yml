@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,12 +19,13 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        working-directory: ./Winners-Ecosystem
         run: npm install
+        working-directory: ./   # Ensure package.json is in root
 
       - name: Run tests
         run: npm test
+        working-directory: ./   # Root folder
 
-      - name: Deploy (placeholder)
+      - name: Deploy placeholder
         if: github.ref == 'refs/heads/main'
-        run: echo "🚀 Deployment step will go here."
+        run: echo "🚀 Deployment placeholder — pipeline works!"
