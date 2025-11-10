@@ -24,5 +24,6 @@
   "homepage": "https://github.com/Asdev-star/Winners-Ecosystem#readme",
   "dependencies": {
     "express": "^5.1.0"
-  }
+  },
+  "devDependencies": {}
 }
