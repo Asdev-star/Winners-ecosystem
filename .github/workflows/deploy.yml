@@ -1,13 +1,13 @@
-name: 🚀 Notion Auto-Update Tasks
+name: 🚀 Notion Auto-Update Tasks with Logging
 
 on:
   push:
     branches:
       - main
       - dev
-  workflow_dispatch:  # manual run
+  workflow_dispatch:  # allows manual run
   schedule:
-    - cron: '0 * * * *'  # optional: run hourly
+    - cron: '0 * * * *'  # optional: run every hour
 
 jobs:
   update-notion:
@@ -17,7 +17,7 @@ jobs:
       NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
 
     steps:
-      # 1️⃣ Checkout repository
+      # 1️⃣ Checkout repo
       - name: 🧰 Checkout repository
         uses: actions/checkout@v4
 
@@ -45,19 +45,22 @@ jobs:
           name: notion-query
           path: notion-query.json
 
-      # 5️⃣ Auto-update all tasks with Status "Todo" → "Done"
+      # 5️⃣ Auto-update all tasks with Status "Todo" → "Done" + log task names
       - name: 🔄 Update all pending tasks
         run: |
           echo "Updating all pending tasks to Done..."
           
           # Loop over all pages with Status = Todo
           PAGE_IDS=$(jq -r '.results[] | select(.properties.Status.select.name=="Todo") | .id' notion-query.json)
-          
+          TASK_NAMES=$(jq -r '.results[] | select(.properties.Status.select.name=="Todo") | .properties["Task Name"].title[0].text.content' notion-query.json)
+
           if [ -z "$PAGE_IDS" ]; then
             echo "No tasks with Status 'Todo' found. Nothing to update."
           else
+            i=0
             for PAGE_ID in $PAGE_IDS; do
-              echo "Updating task Page ID: $PAGE_ID"
+              TASK_NAME=$(echo "$TASK_NAMES" | sed -n "$((i+1))p")
+              echo "Updating task: '$TASK_NAME' (Page ID: $PAGE_ID)"
               curl -X PATCH "https://api.notion.com/v1/pages/$PAGE_ID" \
                 -H "Authorization: Bearer ${NOTION_TOKEN}" \
                 -H "Content-Type: application/json" \
@@ -67,7 +70,8 @@ jobs:
                         "Status": { "select": { "name": "Done" } }
                       }
                     }'
-              echo "✅ Updated task $PAGE_ID to Done"
+              echo "✅ Updated task '$TASK_NAME' to Done"
+              i=$((i+1))
             done
           fi
 
@@ -76,3 +80,4 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           echo "Deployment placeholder — pipeline works!"
+
