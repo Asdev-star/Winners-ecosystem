@@ -1,36 +1,36 @@
-name: 🚀 Auto-Update Notion Tasks
+name: 🚀 Notion Auto-Update Tasks
 
 on:
   push:
     branches:
       - main
       - dev
+  workflow_dispatch:  # manual run
+  schedule:
+    - cron: '0 * * * *'  # optional: run hourly
 
 jobs:
   update-notion:
     runs-on: ubuntu-latest
-
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
       NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
 
     steps:
+      # 1️⃣ Checkout repository
       - name: 🧰 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: 🔍 Query Notion database
+      # 2️⃣ Debug secrets
+      - name: 🔍 Debug Notion secrets
         run: |
-          echo "Querying Notion database..."
-          - name: 🧩 Debug env vars (temporary)
-  run: |
-    echo "NOTION_DATABASE_ID=${NOTION_DATABASE_ID}"
-    echo "NOTION_TOKEN is set: ${{ secrets.NOTION_TOKEN != '' }}"
+          echo "Database ID: $NOTION_DATABASE_ID"
+          echo "Token is set: ${NOTION_TOKEN:+Yes}"
 
+      # 3️⃣ Query Notion database
+      - name: 🔎 Query Notion database
+        run: |
+          echo "Querying Notion database ${NOTION_DATABASE_ID}..."
           curl -X POST "https://api.notion.com/v1/databases/${NOTION_DATABASE_ID}/query" \
             -H "Authorization: Bearer ${NOTION_TOKEN}" \
             -H "Content-Type: application/json" \
@@ -38,44 +38,41 @@ jobs:
             -o notion-query.json
           echo "✅ Notion database queried successfully."
 
-      - name: 📦 Save Notion response as artifact
+      # 4️⃣ Save JSON artifact (optional)
+      - name: 📦 Upload Notion query JSON
         uses: actions/upload-artifact@v4
         with:
           name: notion-query
           path: notion-query.json
 
-      - name: 🔄 Update specific Notion task status
+      # 5️⃣ Auto-update all tasks with Status "Todo" → "Done"
+      - name: 🔄 Update all pending tasks
         run: |
-          TASK_NAME="Create project structure"
-          echo "Searching for task: ${TASK_NAME}"
-
-          PAGE_ID=$(jq -r --arg NAME "$TASK_NAME" '.results[] | select(.properties["Task Name"].title[0].text.content==$NAME) | .id' notion-query.json)
-          echo "Found page ID: $PAGE_ID"
-
-          if [ -z "$PAGE_ID" ]; then
-            echo "❌ Task not found in Notion."
-            exit 1
+          echo "Updating all pending tasks to Done..."
+          
+          # Loop over all pages with Status = Todo
+          PAGE_IDS=$(jq -r '.results[] | select(.properties.Status.select.name=="Todo") | .id' notion-query.json)
+          
+          if [ -z "$PAGE_IDS" ]; then
+            echo "No tasks with Status 'Todo' found. Nothing to update."
+          else
+            for PAGE_ID in $PAGE_IDS; do
+              echo "Updating task Page ID: $PAGE_ID"
+              curl -X PATCH "https://api.notion.com/v1/pages/$PAGE_ID" \
+                -H "Authorization: Bearer ${NOTION_TOKEN}" \
+                -H "Content-Type: application/json" \
+                -H "Notion-Version: 2022-06-28" \
+                -d '{
+                      "properties": {
+                        "Status": { "select": { "name": "Done" } }
+                      }
+                    }'
+              echo "✅ Updated task $PAGE_ID to Done"
+            done
           fi
 
-          echo "Updating task status to Done..."
-          curl -X PATCH "https://api.notion.com/v1/pages/${PAGE_ID}" \
-            -H "Authorization: Bearer ${NOTION_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -H "Notion-Version: 2022-06-28" \
-            -d '{
-              "properties": {
-                "Status": {
-                  "select": {
-                    "name": "Done"
-                  }
-                }
-              }
-            }'
-          echo "✅ Task '${TASK_NAME}' updated to Done."
-
-      - name: 🧪 Run tests
-        run: npm test
-
-      - name: 🚀 Deploy placeholder
+      # 6️⃣ Placeholder deploy step
+      - name: 🚀 Deployment placeholder
         if: github.ref == 'refs/heads/main'
-        run: echo "🚀 Deployment placeholder — pipeline works!"
+        run: |
+          echo "Deployment placeholder — pipeline works!"
