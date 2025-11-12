@@ -1,0 +1,63 @@
+name: Notion Auto-update
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    # runs every hour
+    - cron: '0 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  update_notation_export:
+    name: Query Notion and update export
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # allow push using the GITHUB_TOKEN
+          persist-credentials: true
+
+      - name: Query Notion database
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: |
+          set -euo pipefail
+          DB_ID="560a60e853924079925c89c34a4e659d"
+          OUT_FILE="notion-query.json"
+          TMP_FILE=$(mktemp)
+
+          echo "Querying Notion database $DB_ID..."
+          curl -sSf -X POST "https://api.notion.com/v1/databases/$DB_ID/query" \
+            -H "Authorization: Bearer $NOTION_TOKEN" \
+            -H "Notion-Version: 2022-06-28" \
+            -H "Content-Type: application/json" \
+            -d '{}' > "$TMP_FILE"
+
+          # Pretty-check JSON (optional): if jq is available, normalize formatting
+          if command -v jq >/dev/null 2>&1; then
+            jq --sort-keys . "$TMP_FILE" > "${TMP_FILE}.pretty" && mv "${TMP_FILE}.pretty" "$TMP_FILE"
+          fi
+
+          if [ -f "$OUT_FILE" ]; then
+            if cmp -s "$TMP_FILE" "$OUT_FILE"; then
+              echo "No changes to $OUT_FILE"
+              rm "$TMP_FILE"
+              exit 0
+            fi
+          fi
+
+          mv "$TMP_FILE" "$OUT_FILE"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT_FILE"
+          if git commit -m "chore(notions): automated update of notion-query.json"; then
+            echo "Committed updated $OUT_FILE"
+            git push origin HEAD:main
+          else
+            echo "No changes to commit"
+          fi
