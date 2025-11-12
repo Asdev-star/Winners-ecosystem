@@ -26,6 +26,11 @@ jobs:
       - name: 🔍 Query Notion database
         run: |
           echo "Querying Notion database..."
+          - name: 🧩 Debug env vars (temporary)
+  run: |
+    echo "NOTION_DATABASE_ID=${NOTION_DATABASE_ID}"
+    echo "NOTION_TOKEN is set: ${{ secrets.NOTION_TOKEN != '' }}"
+
           curl -X POST "https://api.notion.com/v1/databases/${NOTION_DATABASE_ID}/query" \
             -H "Authorization: Bearer ${NOTION_TOKEN}" \
             -H "Content-Type: application/json" \
