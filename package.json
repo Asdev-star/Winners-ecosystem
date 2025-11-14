@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "winners-ecosystem",
   "version": "1.0.0",
   "description": "Foundation Setup project structure and CI test",
@@ -96,3 +97,34 @@
   },
   "homepage": "https://github.com/Asdev-star/Winners-Ecosystem#readme"
 }
+=======
+  "name": "frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc"
+  },
+  "dependencies": {
+    "@react-router/node": "^7.9.2",
+    "@react-router/serve": "^7.9.2",
+    "isbot": "^5.1.31",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router": "^7.9.2"
+  },
+  "devDependencies": {
+    "@react-router/dev": "^7.9.2",
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/node": "^22",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}
+>>>>>>> adc8c7e5fd42e9e1725c44a8daf141536effc528

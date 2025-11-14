@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -137,3 +138,12 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+=======
+.DS_Store
+.env
+/node_modules/
+
+# React Router
+/.react-router/
+/build/
+>>>>>>> adc8c7e5fd42e9e1725c44a8daf141536effc528
