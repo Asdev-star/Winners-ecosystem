@@ -1,35 +1,43 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuthStore } from "./features/auth/authStore";
+
+import MainLayout from "./components/layout/MainLayout";
+import ProtectedRoute from "./app/ProtectedRoute";
+
+import LoginPage from "./features/auth/LoginPage";
+import DashboardPage from "./features/dashboard/DashboardPage";
+import ProfilePage from "./features/profile/ProfilePage";
+import CoursesPage from "./features/courses/CoursesPage";
+import AnalyticsPage from "./features/analytics/AnalyticsPage";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const restoreSession = useAuthStore((state) => state.restoreSession);
+
+  useEffect(() => {
+    restoreSession();
+  }, []);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Routes>
+      {/* Public */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Protected Layout */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<DashboardPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="courses" element={<CoursesPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
+      </Route>
+    </Routes>
+  );
 }
 
-export default App
+export default App;
