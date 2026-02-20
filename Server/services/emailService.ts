@@ -1,4 +1,4 @@
-// server/services/emailService.ts
+// Server/services/emailService.ts
 
 import { Resend } from "resend";
 import db from "../db.js";
@@ -7,6 +7,7 @@ function getResend() {
   if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY not set");
   return new Resend(process.env.RESEND_API_KEY);
 }
+
 const FROM    = process.env.EMAIL_FROM ?? "Winners Ecosystem <reports@yourdomain.com>";
 const APP_URL = process.env.APP_URL    ?? "http://localhost:5173";
 
@@ -44,32 +45,22 @@ function baseTemplate(title: string, preheader: string, body: string) {
 <title>${title}</title></head>
 <body style="margin:0;padding:0;background:#080B10;font-family:'Helvetica Neue',Arial,sans-serif;color:#E8EDF2">
   <div style="max-width:600px;margin:0 auto;padding:24px 16px">
-
-    <!-- Header -->
     <div style="border-bottom:1px solid #1E2A38;padding-bottom:20px;margin-bottom:28px;display:flex;align-items:center;gap:10px">
       <div style="width:8px;height:8px;border-radius:50%;background:#F5C842;box-shadow:0 0 8px #F5C842;display:inline-block"></div>
       <span style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#F5C842;margin-left:8px">WINNERS ECOSYSTEM</span>
     </div>
-
-    <!-- Preheader (hidden) -->
     <div style="display:none;max-height:0;overflow:hidden">${preheader}</div>
-
-    <!-- Title -->
     <h1 style="font-size:24px;font-weight:800;letter-spacing:-0.5px;margin:0 0 6px">${title}</h1>
     <p style="font-family:'Courier New',monospace;font-size:11px;color:#5A6878;margin:0 0 28px">
       Generated ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
     </p>
-
     ${body}
-
-    <!-- Footer -->
     <div style="border-top:1px solid #1E2A38;padding-top:20px;margin-top:32px">
       <p style="font-family:'Courier New',monospace;font-size:10px;color:#5A6878;margin:0">
         Winners Ecosystem · <a href="${APP_URL}" style="color:#F5C842;text-decoration:none">Open Dashboard</a> ·
         <a href="${APP_URL}/settings" style="color:#5A6878;text-decoration:none">Manage notifications</a>
       </p>
     </div>
-
   </div>
 </body></html>`;
 }
@@ -146,7 +137,6 @@ export async function sendWeeklyRevenueSummary(tenantId: string, to: string[]) {
       ${kpiCard("Weekly Activity", revenue.curTotal > 0 ? activity.curTotal.toLocaleString() : "–", activity.growth)}
       ${kpiCard("Avg Daily Rev",   fmt(Math.round(revenue.curTotal / 7)))}
     </div>
-
     ${sectionTitle("Revenue Breakdown")}
     <table style="width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:11px">
       <tr style="color:#5A6878;border-bottom:1px solid #1E2A38">
@@ -159,7 +149,6 @@ export async function sendWeeklyRevenueSummary(tenantId: string, to: string[]) {
           <td style="padding:8px 4px;text-align:right;color:#F5C842;font-weight:700">${fmt(r.amount)}</td>
         </tr>`).join("")}
     </table>
-
     <div style="margin-top:24px;background:#0D1117;border:1px solid #1E2A38;border-radius:6px;padding:16px">
       <p style="margin:0;font-size:13px;line-height:1.6;color:#5A6878">
         <strong style="color:#E8EDF2">Week in review:</strong>
@@ -187,12 +176,11 @@ export async function sendMonthlyFullReport(tenantId: string, to: string[]) {
 
   const body = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-      ${kpiCard("Monthly Revenue",  fmt(revenue.curTotal),         revenue.growth)}
+      ${kpiCard("Monthly Revenue",  fmt(revenue.curTotal),              revenue.growth)}
       ${kpiCard("Monthly Activity", activity.curTotal.toLocaleString(), activity.growth)}
       ${kpiCard("Team Members",     String(team.length))}
       ${kpiCard("Avg Daily Rev",    fmt(Math.round(revenue.curTotal / 30)))}
     </div>
-
     ${sectionTitle("Team")}
     <table style="width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:11px">
       <tr style="color:#5A6878;border-bottom:1px solid #1E2A38">
@@ -210,14 +198,13 @@ export async function sendMonthlyFullReport(tenantId: string, to: string[]) {
           <td style="padding:8px 4px;text-align:right;color:#5A6878">${u.createdAt.toLocaleDateString()}</td>
         </tr>`).join("")}
     </table>
-
     <div style="margin-top:24px;text-align:center">
       <a href="${APP_URL}/export" style="display:inline-block;background:#F5C842;color:#080B10;text-decoration:none;padding:12px 28px;border-radius:4px;font-weight:700;font-size:13px">
         Download Full Report →
       </a>
     </div>`;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from:    FROM,
     to,
     subject: `📈 Monthly Report — ${tenant?.name ?? "Workspace"} · ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`,
@@ -238,7 +225,6 @@ export async function sendAnomalyAlert(tenantId: string, to: string[]) {
       <div style="font-weight:700;color:#FF5975;margin-bottom:4px">⚠️ ${anomalies.length} anomal${anomalies.length === 1 ? "y" : "ies"} detected in the last 30 days</div>
       <div style="font-family:'Courier New',monospace;font-size:11px;color:#5A6878">These revenue spikes or drops are statistically significant and may warrant investigation.</div>
     </div>
-
     ${sectionTitle("Anomalous Days")}
     <table style="width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:11px">
       <tr style="color:#5A6878;border-bottom:1px solid #1E2A38">
@@ -246,26 +232,22 @@ export async function sendAnomalyAlert(tenantId: string, to: string[]) {
         <td style="padding:6px 4px;text-align:right">Revenue</td>
         <td style="padding:6px 4px;text-align:right">Type</td>
       </tr>
-      ${anomalies.map((a) => {
-        const records = [] as any[];
-        return `
+      ${anomalies.map((a) => `
         <tr style="border-bottom:1px solid #0D1117">
           <td style="padding:8px 4px;color:#E8EDF2">${a.date.toLocaleDateString()}</td>
           <td style="padding:8px 4px;text-align:right;color:#F5C842;font-weight:700">${fmt(a.amount)}</td>
           <td style="padding:8px 4px;text-align:right">
             <span style="color:#FF5975;font-size:10px;text-transform:uppercase;letter-spacing:1px">Anomaly</span>
           </td>
-        </tr>`;
-      }).join("")}
+        </tr>`).join("")}
     </table>
-
     <div style="margin-top:20px;text-align:center">
       <a href="${APP_URL}/analytics" style="display:inline-block;background:#FF5975;color:#fff;text-decoration:none;padding:10px 24px;border-radius:4px;font-weight:700;font-size:13px">
         Investigate Now →
       </a>
     </div>`;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from:    FROM,
     to,
     subject: `⚠️ Revenue Anomaly Alert — ${anomalies.length} spike${anomalies.length > 1 ? "s" : ""} detected · ${tenant?.name}`,
@@ -288,7 +270,6 @@ export async function sendTeamActivityDigest(tenantId: string, to: string[]) {
       ${kpiCard("New Joins",       String(recentJoins.length))}
       ${kpiCard("Weekly Activity", activity.curTotal.toLocaleString(), activity.growth)}
     </div>
-
     ${recentJoins.length > 0 ? `
       ${sectionTitle("New Members This Week")}
       ${recentJoins.map((u) => `
@@ -302,7 +283,6 @@ export async function sendTeamActivityDigest(tenantId: string, to: string[]) {
           </div>
         </div>`).join("")}
     ` : ""}
-
     ${sectionTitle("Full Team")}
     <table style="width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:11px">
       ${team.map((u) => `
@@ -313,7 +293,7 @@ export async function sendTeamActivityDigest(tenantId: string, to: string[]) {
         </tr>`).join("")}
     </table>`;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from:    FROM,
     to,
     subject: `👥 Team Digest — ${tenant?.name} · ${team.length} members`,
@@ -332,29 +312,27 @@ export async function sendBillingInvoiceEmail(tenantId: string, to: string[], in
       <div style="font-size:48px;font-weight:800;color:#F5C842;letter-spacing:-2px">$${amount}</div>
       <div style="font-family:'Courier New',monospace;font-size:11px;color:#5A6878;margin-top:4px">${period}</div>
     </div>
-
     ${sectionTitle("Invoice Details")}
     <table style="width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:11px">
       ${[
-        ["Workspace",   tenant?.name ?? ""],
-        ["Plan",        tenant?.plan ?? ""],
-        ["Period",      period],
-        ["Invoice ID",  invoiceData?.invoiceId ?? `INV-${Date.now()}`],
-        ["Status",      "Paid"],
+        ["Workspace",  tenant?.name ?? ""],
+        ["Plan",       tenant?.plan ?? ""],
+        ["Period",     period],
+        ["Invoice ID", invoiceData?.invoiceId ?? `INV-${Date.now()}`],
+        ["Status",     "Paid"],
       ].map(([label, value]) => `
         <tr style="border-bottom:1px solid #1E2A38">
           <td style="padding:10px 4px;color:#5A6878">${label}</td>
           <td style="padding:10px 4px;text-align:right;color:#E8EDF2;font-weight:700">${value}</td>
         </tr>`).join("")}
     </table>
-
     <div style="margin-top:24px;text-align:center">
       <a href="${APP_URL}/billing" style="display:inline-block;background:#F5C842;color:#080B10;text-decoration:none;padding:12px 28px;border-radius:4px;font-weight:700;font-size:13px">
         View Billing →
       </a>
     </div>`;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from:    FROM,
     to,
     subject: `🧾 Invoice — ${tenant?.name} · $${amount} · ${period}`,
