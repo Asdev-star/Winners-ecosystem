@@ -5,6 +5,8 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { useInviteStore } from "../team/inviteStore";
+import ThemeToggle from "../theme/ThemeToggle";
+
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
@@ -197,6 +199,8 @@ export default function SettingsPage() {
           <h1 className="sp-title">Workspace <span>Settings</span></h1>
           <p className="sp-subtitle">Manage your workspace configuration</p>
         </div>
+        {/* In settings*/}
+<ThemeToggle variant="switch" />
 
         {/* Workspace Name & Currency */}
         <div className="sp-card gold">
