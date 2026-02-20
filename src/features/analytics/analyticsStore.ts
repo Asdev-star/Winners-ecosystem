@@ -1,53 +1,87 @@
-import { create } from "zustand";
+// src/features/analytics/analyticsStore.ts
 
-interface DataPoint {
-  name: string;
-  value: number;
+import { create } from "zustand";
+import { getAuthHeaders } from "../auth/authStore";
+
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
+export type Period = "7d" | "30d" | "90d";
+
+export interface DataPoint {
+  date:     string;
+  revenue:  number;
+  activity: number;
 }
 
-type Period = "7d" | "30d" | "90d";
+export interface AnalyticsSummary {
+  totalRevenue:   number;
+  revenueGrowth:  number;
+  totalActivity:  number;
+  activityGrowth: number;
+}
+
+export interface ForecastPoint {
+  date:            string;
+  forecastRevenue: number;
+  upperBound:      number;
+  lowerBound:      number;
+}
 
 interface AnalyticsState {
-  period: Period;
-  userData: DataPoint[];
-  revenueData: DataPoint[];
-  prevUserData: DataPoint[];
-  prevRevenueData: DataPoint[];
-  isLoading: boolean;
-  setPeriod: (period: Period) => void;
+  data:       DataPoint[];
+  previous:   DataPoint[];
+  summary:    AnalyticsSummary | null;
+  forecast:   ForecastPoint[];
+  period:     Period;
+  isLoading:  boolean;
+  error:      string | null;
+
+  fetchRevenue:  (period?: Period) => Promise<void>;
+  fetchForecast: (period?: Period) => Promise<void>;
+  setPeriod:     (period: Period) => void;
 }
 
-function generateMock(days: number, base = 1): DataPoint[] {
-  return Array.from({ length: days }).map((_, i) => ({
-    name: `Day ${i + 1}`,
-    value:
-      Math.floor(Math.random() * 300 * base) + 50,
-  }));
-}
-
-export const useAnalyticsStore = create<AnalyticsState>((set) => ({
-  period: "7d",
-  userData: generateMock(7, 1.1),
-  revenueData: generateMock(7, 1.2),
-  prevUserData: generateMock(7, 1),
-  prevRevenueData: generateMock(7, 1),
+export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
+  data:      [],
+  previous:  [],
+  summary:   null,
+  forecast:  [],
+  period:    "30d",
   isLoading: false,
+  error:     null,
 
   setPeriod: (period) => {
-    set({ isLoading: true });
+    set({ period });
+    get().fetchRevenue(period);
+    get().fetchForecast(period);
+  },
 
-    const days =
-      period === "7d" ? 7 : period === "30d" ? 30 : 90;
-
-    setTimeout(() => {
-      set({
-        period,
-        userData: generateMock(days, 1.2),
-        revenueData: generateMock(days, 1.3),
-        prevUserData: generateMock(days, 1),
-        prevRevenueData: generateMock(days, 1),
-        isLoading: false,
+  fetchRevenue: async (period) => {
+    const p = period ?? get().period;
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetch(`${API_BASE}/analytics/revenue?period=${p}`, {
+        headers: getAuthHeaders(),
       });
-    }, 800);
+      if (!res.ok) throw new Error("Failed to fetch analytics");
+      const json = await res.json();
+      set({ data: json.data, previous: json.previous, summary: json.summary, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+    }
+  },
+
+  fetchForecast: async (period) => {
+    const p = period ?? get().period;
+    try {
+      const res = await fetch(`${API_BASE}/analytics/forecast?period=${p}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      set({ forecast: json.forecast });
+    } catch (err: any) {
+      set({ error: err.message });
+    }
   },
 }));
