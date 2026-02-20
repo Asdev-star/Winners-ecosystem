@@ -11,8 +11,6 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
   .ml-root {
-    --gold: #F5C842; --bg: #080B10; --surface: #0D1117; --surface2: #141B24;
-    --border: #1E2A38; --text: #E8EDF2; --text-dim: #5A6878;
     display: flex; height: 100vh; background: var(--bg); color: var(--text);
     font-family: 'Syne', sans-serif; overflow: hidden;
   }
