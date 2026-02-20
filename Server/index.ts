@@ -28,6 +28,10 @@ const __dirname  = path.dirname(__filename);
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
 const isProd = process.env.NODE_ENV === "production";
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {   // ← add '0.0.0.0' to bind all interfaces
+  console.log(`✅ Winners API running on port ${PORT}`);
+});
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 
@@ -86,5 +90,8 @@ app.listen(PORT, () => {
   console.log(`✅ Winners API running on port ${PORT} [${process.env.NODE_ENV ?? "development"}]`);
   if (isProd) startEmailScheduler();
 });
+console.log(`Server bound to: ${app.address()?.address}:${app.address()?.port}`);
+console.log('Environment:', process.env.NODE_ENV);
+console.log('PORT from env:', process.env.PORT);
 
 export default app;
