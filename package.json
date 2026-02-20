@@ -7,7 +7,7 @@
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json",
-    "start:prod": "node dist/server/server-index-prod.js",
+    "start:prod": "node dist/server/index.js",
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\""
