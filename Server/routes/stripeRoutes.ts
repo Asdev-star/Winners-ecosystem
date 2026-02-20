@@ -15,26 +15,24 @@ const router = Router();
 
 // ─── Webhook (no auth — Stripe calls this directly) ───────────────────────────
 
-router.post("/webhook",
-  async (req: Request, res: Response) => {
-    const sig = req.headers["stripe-signature"] as string;
-    try {
-      const result = await handleWebhookEvent(req.body, sig);
-      return res.json(result);
-    } catch (err: any) {
-      console.error("Stripe webhook error:", err.message);
-      return res.status(400).json({ message: err.message });
-    }
+router.post("/webhook", async (req: Request, res: Response) => {
+  const sig = req.headers["stripe-signature"] as string;
+  try {
+    const result = await handleWebhookEvent(req.body, sig);
+    return res.json(result);
+  } catch (err: any) {
+    console.error("Stripe webhook error:", err.message);
+    return res.status(400).json({ message: err.message });
   }
-);
+});
 
 // ─── Protected routes ─────────────────────────────────────────────────────────
 
 router.use(authMiddleware);
 router.use(enforceTenant);
 
-// GET /stripe/stats — Stripe dashboard stats
-router.get("/stats", async (req: Request, res: Response) => {
+// GET /stripe/stats
+router.get("/stats", async (_req: Request, res: Response) => {
   try {
     const stats = await getStripeStats();
     return res.json(stats);
@@ -44,7 +42,7 @@ router.get("/stats", async (req: Request, res: Response) => {
   }
 });
 
-// POST /stripe/sync — Sync Stripe charges to revenue table
+// POST /stripe/sync
 router.post("/sync", async (req: Request, res: Response) => {
   try {
     const result = await syncStripeRevenue(req.user!.tenantId);
@@ -55,7 +53,7 @@ router.post("/sync", async (req: Request, res: Response) => {
   }
 });
 
-// POST /stripe/checkout — Create checkout session
+// POST /stripe/checkout
 router.post("/checkout", async (req: Request, res: Response) => {
   try {
     const { plan } = req.body;
@@ -63,11 +61,11 @@ router.post("/checkout", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid plan" });
     }
 
-    const appUrl = process.env.APP_URL ?? "http://localhost:5173";
+    const appUrl  = process.env.APP_URL ?? "http://localhost:5173";
     const session = await createCheckoutSession({
       plan,
       tenantId:   req.user!.tenantId,
-      userId:     req.user!.id,
+      userId:     String(req.user!.id),
       email:      req.user!.email,
       successUrl: `${appUrl}/billing?success=true`,
       cancelUrl:  `${appUrl}/billing?cancelled=true`,
@@ -80,7 +78,7 @@ router.post("/checkout", async (req: Request, res: Response) => {
   }
 });
 
-// POST /stripe/portal — Create billing portal session
+// POST /stripe/portal
 router.post("/portal", async (req: Request, res: Response) => {
   try {
     const { customerId } = req.body;
@@ -95,7 +93,7 @@ router.post("/portal", async (req: Request, res: Response) => {
   }
 });
 
-// GET /stripe/status — Check if Stripe is configured
+// GET /stripe/status
 router.get("/status", (_req: Request, res: Response) => {
   const configured = !!(process.env.STRIPE_SECRET_KEY);
   return res.json({

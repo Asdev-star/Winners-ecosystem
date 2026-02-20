@@ -13,7 +13,6 @@ function getStripe() {
 export async function syncStripeRevenue(tenantId: string) {
   const stripe = getStripe();
 
-  // Fetch last 90 days of successful charges
   const charges = await stripe.charges.list({
     limit: 100,
     created: { gte: Math.floor(Date.now() / 1000) - 90 * 24 * 60 * 60 },
@@ -21,21 +20,28 @@ export async function syncStripeRevenue(tenantId: string) {
 
   const successfulCharges = charges.data.filter((c) => c.paid && !c.refunded);
 
-  // Group charges by date
   const byDate: Record<string, number> = {};
   for (const charge of successfulCharges) {
     const date = new Date(charge.created * 1000).toISOString().split("T")[0];
     byDate[date] = (byDate[date] ?? 0) + charge.amount / 100;
   }
 
-  // Upsert into revenueRecord table
   for (const [dateStr, amount] of Object.entries(byDate)) {
     const date = new Date(dateStr);
-    await db.revenueRecord.upsert({
-      where:  { tenantId_date: { tenantId, date } },
-      update: { amount },
-      create: { tenantId, date, amount, source: "stripe" },
+    // Find existing record and update or create new one
+    const existing = await db.revenueRecord.findFirst({
+      where: { tenantId, date },
     });
+    if (existing) {
+      await db.revenueRecord.update({
+        where: { id: existing.id },
+        data:  { amount, source: "stripe" },
+      });
+    } else {
+      await db.revenueRecord.create({
+        data: { tenantId, date, amount, source: "stripe" },
+      });
+    }
   }
 
   return { synced: Object.keys(byDate).length, total: successfulCharges.length };
@@ -71,10 +77,10 @@ export async function getStripeStats() {
 
   return {
     last30Days: {
-      revenue:       successfulCharges.reduce((s, c) => s + c.amount / 100, 0),
-      transactions:  successfulCharges.length,
-      newCustomers:  customers.data.length,
-      refunds:       charges.data.filter((c) => c.refunded).length,
+      revenue:      successfulCharges.reduce((s, c) => s + c.amount / 100, 0),
+      transactions: successfulCharges.length,
+      newCustomers: customers.data.length,
+      refunds:      charges.data.filter((c) => c.refunded).length,
     },
     subscriptions: {
       active: subscriptions.data.length,
@@ -89,14 +95,14 @@ export async function getStripeStats() {
       amount:      c.amount / 100,
       currency:    c.currency,
       description: c.description ?? c.statement_descriptor ?? "Payment",
-      customer:    typeof c.customer === "string" ? c.customer : c.customer?.id,
+      customer:    typeof c.customer === "string" ? c.customer : (c.customer as any)?.id,
       date:        new Date(c.created * 1000).toISOString(),
       status:      c.status,
     })),
   };
 }
 
-// ─── Create Stripe checkout session for billing plans ─────────────────────────
+// ─── Create Stripe checkout session ──────────────────────────────────────────
 
 export async function createCheckoutSession(params: {
   plan:       "PRO" | "ENTERPRISE";
@@ -117,10 +123,7 @@ export async function createCheckoutSession(params: {
     payment_method_types: ["card"],
     mode:                 "subscription",
     customer_email:       params.email,
-    line_items: [{
-      price:    prices[params.plan],
-      quantity: 1,
-    }],
+    line_items: [{ price: prices[params.plan], quantity: 1 }],
     metadata: {
       tenantId: params.tenantId,
       userId:   params.userId,
@@ -146,8 +149,8 @@ export async function createPortalSession(customerId: string, returnUrl: string)
 // ─── Handle Stripe webhook events ─────────────────────────────────────────────
 
 export async function handleWebhookEvent(payload: Buffer, signature: string) {
-  const stripe          = getStripe();
-  const webhookSecret   = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+  const stripe        = getStripe();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 
   const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
@@ -156,7 +159,6 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
       const session  = event.data.object as Stripe.Checkout.Session;
       const tenantId = session.metadata?.tenantId;
       const plan     = session.metadata?.plan as "PRO" | "ENTERPRISE";
-
       if (tenantId && plan) {
         await db.tenant.update({
           where: { id: tenantId },
@@ -169,34 +171,20 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
       }
       break;
     }
-
     case "customer.subscription.deleted": {
-      const sub      = event.data.object as Stripe.Subscription;
-      const tenant   = await db.tenant.findFirst({
-        where: { stripeSubscriptionId: sub.id },
-      });
+      const sub    = event.data.object as Stripe.Subscription;
+      const tenant = await db.tenant.findFirst({ where: { stripeSubscriptionId: sub.id } });
       if (tenant) {
-        await db.tenant.update({
-          where: { id: tenant.id },
-          data:  { plan: "FREE" },
-        });
+        await db.tenant.update({ where: { id: tenant.id }, data: { plan: "FREE" } });
       }
       break;
     }
-
     case "invoice.payment_succeeded": {
-      const invoice  = event.data.object as Stripe.Invoice;
-      const tenant   = await db.tenant.findFirst({
-        where: { stripeCustomerId: invoice.customer as string },
-      });
+      const invoice = event.data.object as Stripe.Invoice;
+      const tenant  = await db.tenant.findFirst({ where: { stripeCustomerId: invoice.customer as string } });
       if (tenant && invoice.amount_paid > 0) {
         await db.revenueRecord.create({
-          data: {
-            tenantId: tenant.id,
-            date:     new Date(),
-            amount:   invoice.amount_paid / 100,
-            source:   "stripe_subscription",
-          },
+          data: { tenantId: tenant.id, date: new Date(), amount: invoice.amount_paid / 100, source: "stripe_subscription" },
         });
       }
       break;
