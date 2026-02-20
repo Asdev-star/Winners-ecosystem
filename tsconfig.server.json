@@ -4,13 +4,13 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "outDir": "./dist/server",
-    "rootDir": "./server",
+    "rootDir": "./Server",
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["server/**/*"],
+  "include": ["Server/**/*"],
   "exclude": ["node_modules", "dist"]
 }
