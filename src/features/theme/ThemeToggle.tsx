@@ -1,7 +1,7 @@
 // src/features/theme/ThemeToggle.tsx
 
 import { useEffect } from "react";
-import { useThemeStore, applyTheme } from "./themeStore";
+import { useThemeStore, applyTheme } from "../../features/theme/themeStore";
 
 const css = `
   .tt-btn {
