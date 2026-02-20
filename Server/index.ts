@@ -69,6 +69,7 @@ app.use("/notifications", notificationRoutes);
 if (isProd) {
   const distPath = path.join(__dirname, "../../dist");
   app.use(express.static(distPath));
+  app.use(express.static('dist'));
 
   // All non-API routes → React app
   app.get("*", (req, res) => {
@@ -83,12 +84,23 @@ if (isProd) {
     return res.sendFile(path.join(distPath, "index.html"));
   });
 }
-
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV,
+  });
+});
+app.get('*', (req, res) => {
+  res.sendFile('index.html', { root: 'dist' });
+});
 // ── Start ─────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`✅ Winners API running on port ${PORT} [${process.env.NODE_ENV ?? "development"}]`);
-  if (isProd) startEmailScheduler();
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Winners API running on http://0.0.0.0:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`PORT from env: ${process.env.PORT || '(not set)'}`);
 });
 console.log(`Server bound to: ${app.address()?.address}:${app.address()?.port}`);
 console.log('Environment:', process.env.NODE_ENV);
