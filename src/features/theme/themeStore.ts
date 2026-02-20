@@ -62,6 +62,4 @@ export function applyTheme(theme: Theme) {
     root.classList.remove("light");
   }
 }
-
-// Initialize theme on load
-applyTheme(getInitialTheme());
+// ← removed applyTheme(getInitialTheme()) from here to avoid FOUC on initial load
