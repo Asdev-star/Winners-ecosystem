@@ -14,4 +14,4 @@ RUN find dist -name "index.js" || echo "No index.js found"
 
 EXPOSE 3001
 
-CMD ["node", "dist/Server/index.js"]
+CMD ["npm", "run", "start:prod"]
