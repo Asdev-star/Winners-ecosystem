@@ -65,7 +65,7 @@ router.post("/checkout", async (req: Request, res: Response) => {
     const session = await createCheckoutSession({
       plan,
       tenantId:   req.user!.tenantId,
-      userId:     String(req.user!.id),
+      userId: req.user!.tenantId,
       email:      req.user!.email,
       successUrl: `${appUrl}/billing?success=true`,
       cancelUrl:  `${appUrl}/billing?cancelled=true`,
