@@ -37,7 +37,7 @@ router.get("/", requireMinRole("member"), async (req: Request, res: Response) =>
 router.get("/:id", requireMinRole("member"), async (req: Request, res: Response) => {
   try {
     const user = await db.user.findFirst({
-      where:  { id: req.params.id, tenantId: req.user!.tenantId, deletedAt: null },
+      where: { id: String(req.params.id), tenantId: req.user!.tenantId, deletedAt: null },
       select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
 
@@ -106,7 +106,7 @@ router.patch("/:id/role", requirePermission("manageUsers"), async (req: Request,
 
   try {
     const user = await db.user.findFirst({
-      where: { id: req.params.id, tenantId: req.user!.tenantId, deletedAt: null },
+      where: { id: String(req.params.id), tenantId: req.user!.tenantId, deletedAt: null },
     });
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -115,7 +115,7 @@ router.patch("/:id/role", requirePermission("manageUsers"), async (req: Request,
     }
 
     const updated = await db.user.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data:  { role: role.toUpperCase() as Role },
     });
 
@@ -130,14 +130,14 @@ router.patch("/:id/role", requirePermission("manageUsers"), async (req: Request,
 router.delete("/:id", requirePermission("manageUsers"), async (req: Request, res: Response) => {
   try {
     const user = await db.user.findFirst({
-      where: { id: req.params.id, tenantId: req.user!.tenantId, deletedAt: null },
+      where: { id: String(req.params.id), tenantId: req.user!.tenantId, deletedAt: null },
     });
 
     if (!user) return res.status(404).json({ message: "User not found" });
     if (user.role === "OWNER") return res.status(403).json({ message: "Cannot remove tenant owner" });
 
     // Soft delete
-    await db.user.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } });
+    await db.user.update({ where: { id: String(req.params.id) }, data: { deletedAt: new Date() } });
 
     return res.json({ message: "User removed", userId: req.params.id });
   } catch (err) {
