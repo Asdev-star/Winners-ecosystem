@@ -27,7 +27,7 @@ interface AuthState {
 
 const TOKEN_KEY = "winners_token";
 const USER_KEY  = "winners_user";
-const API_BASE  = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+const API_BASE  = import.meta.env.VITE_API_URL ?? "https://winners-empire-eco.up.railway.app";
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
