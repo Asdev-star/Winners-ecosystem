@@ -1,4 +1,4 @@
-// server/routes/emailRoutes.ts
+// Server/routes/emailRoutes.ts
 
 import { Router, Request, Response } from "express";
 import db from "../db.js";
@@ -32,7 +32,7 @@ async function getRecipients(tenantId: string, roles = ["OWNER", "ADMIN"]) {
 router.post("/send/weekly", async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
-    const to       = req.body.to ?? await getRecipients(tenantId);
+    const to       = req.body?.to ?? await getRecipients(tenantId);
     if (!to.length) return res.status(400).json({ message: "No recipients found" });
 
     await sendWeeklyRevenueSummary(tenantId, to);
@@ -48,7 +48,7 @@ router.post("/send/weekly", async (req: Request, res: Response) => {
 router.post("/send/monthly", async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
-    const to       = req.body.to ?? await getRecipients(tenantId);
+    const to       = req.body?.to ?? await getRecipients(tenantId);
     if (!to.length) return res.status(400).json({ message: "No recipients found" });
 
     await sendMonthlyFullReport(tenantId, to);
@@ -64,7 +64,7 @@ router.post("/send/monthly", async (req: Request, res: Response) => {
 router.post("/send/anomaly", async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
-    const to       = req.body.to ?? await getRecipients(tenantId);
+    const to       = req.body?.to ?? await getRecipients(tenantId);
     if (!to.length) return res.status(400).json({ message: "No recipients found" });
 
     const result = await sendAnomalyAlert(tenantId, to);
@@ -82,7 +82,7 @@ router.post("/send/anomaly", async (req: Request, res: Response) => {
 router.post("/send/team", async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
-    const to       = req.body.to ?? await getRecipients(tenantId);
+    const to       = req.body?.to ?? await getRecipients(tenantId);
     if (!to.length) return res.status(400).json({ message: "No recipients found" });
 
     await sendTeamActivityDigest(tenantId, to);
@@ -98,10 +98,10 @@ router.post("/send/team", async (req: Request, res: Response) => {
 router.post("/send/invoice", async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
-    const to       = req.body.to ?? await getRecipients(tenantId, ["OWNER"]);
+    const to       = req.body?.to ?? await getRecipients(tenantId, ["OWNER"]);
     if (!to.length) return res.status(400).json({ message: "No recipients found" });
 
-    await sendBillingInvoiceEmail(tenantId, to, req.body.invoiceData);
+    await sendBillingInvoiceEmail(tenantId, to, req.body?.invoiceData);
     return res.json({ message: "Invoice sent", recipients: to.length });
   } catch (err: any) {
     console.error("Invoice email error:", err);
@@ -109,9 +109,9 @@ router.post("/send/invoice", async (req: Request, res: Response) => {
   }
 });
 
-// ─── GET /email/preview ───────────────────────────────────────────────────────
+// ─── GET /email/status ────────────────────────────────────────────────────────
 
-router.get("/status", async (req: Request, res: Response) => {
+router.get("/status", async (_req: Request, res: Response) => {
   const hasKey = !!(process.env.RESEND_API_KEY);
   return res.json({
     configured: hasKey,
