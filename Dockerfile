@@ -10,8 +10,8 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build:client
 RUN npx tsc -p tsconfig.server.json
-RUN ls -la dist/ && ls -la dist/server/ || echo "dist/server not found"
+RUN find dist -name "index.js" || echo "No index.js found"
 
 EXPOSE 3001
 
-CMD ["node", "dist/server/index.js"]
+CMD ["node", "dist/Server/index.js"]
