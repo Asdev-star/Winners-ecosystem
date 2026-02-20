@@ -3,7 +3,10 @@
 import { Resend } from "resend";
 import db from "../db.js";
 
-const resend  = new Resend(process.env.RESEND_API_KEY ?? "");
+function getResend() {
+  if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY not set");
+  return new Resend(process.env.RESEND_API_KEY);
+}
 const FROM    = process.env.EMAIL_FROM ?? "Winners Ecosystem <reports@yourdomain.com>";
 const APP_URL = process.env.APP_URL    ?? "http://localhost:5173";
 
@@ -166,7 +169,7 @@ export async function sendWeeklyRevenueSummary(tenantId: string, to: string[]) {
       </p>
     </div>`;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from:    FROM,
     to,
     subject: `📊 Weekly Report — ${tenant?.name ?? "Workspace"} · ${fmt(revenue.curTotal)}`,
