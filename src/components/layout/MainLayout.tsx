@@ -115,6 +115,7 @@ const NAV = [
   { path: "/billing",       icon: "💳", label: "Billing",       notif: false },
   { path: "/email",         icon: "📧", label: "Email Reports", notif: false },
   { path: "/notifications", icon: "🔔", label: "Notifications", notif: true  },
+  { path: "/stripe", icon: "💳", label: "Stripe" }
 ];
 
 const WORKSPACE_NAV = [

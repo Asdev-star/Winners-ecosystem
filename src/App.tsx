@@ -20,7 +20,7 @@ import ExportPage        from "./features/export/ExportPage";
 import BillingPage       from "./features/billing/BillingPage";
 import EmailReportsPage  from "./features/email/EmailReportsPage";
 import NotificationsPage from "./features/notifications/NotificationsPage";
-
+import StripeDashboard from "./features/stripe/StripeDashboard";
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
 
@@ -55,6 +55,7 @@ function App() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="settings"      element={<SettingsPage />} />
         <Route path="profile"       element={<ProfilePage />} />
+        <Route path="stripe" element={<StripeDashboard />} />
       </Route>
 
     </Routes>

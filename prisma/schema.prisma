@@ -22,6 +22,8 @@ model Tenant {
   timezone    String    @default("UTC")
   currency    String    @default("USD")
   fiscalMonth Int       @default(1)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
 
   users           User[]
   invites         Invite[]

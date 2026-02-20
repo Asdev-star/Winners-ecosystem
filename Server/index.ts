@@ -17,6 +17,7 @@ import aiRoutes           from "./routes/aiRoutes.js";
 import profileRoutes      from "./routes/profileRoutes.js";
 import emailRoutes        from "./routes/emailRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import stripeRoutes from "./routes/stripeRoutes.js";;
 
 // Scheduler
 import { startEmailScheduler } from "./services/emailScheduler.js";
@@ -58,7 +59,7 @@ app.use("/ai",            aiRoutes);
 app.use("/profile",       profileRoutes);
 app.use("/email",         emailRoutes);
 app.use("/notifications", notificationRoutes);
-
+app.use("/stripe", stripeRoutes);
 // ── Serve React frontend in production ────────────────────────────────────────
 
 if (isProd) {
