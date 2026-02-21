@@ -157,7 +157,7 @@ export default function LoginPage() {
   };
 
   const handleGoogle = () => {
-  const clientId    = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const clientId    = "148507996421-uc3cr1npihhme71avlmh76dll3jqktcv.apps.googleusercontent.com";
   const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
   const scope       = encodeURIComponent("openid email profile");
   const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
