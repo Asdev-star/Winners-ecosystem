@@ -178,7 +178,7 @@ export default function LoginPage() {
   };
 
   const handleGoogle = () => {
-    const clientId    = "148507996421-uc3cr1npihhme71avlmh76dll3jqktcv.apps.googleusercontent.com";
+    const clientId    = "148507996421-2di0upcp6d7fi4gojr8d74n5l3udk9tu.apps.googleusercontent.com";
     const redirectUri = encodeURIComponent("https://winners-empire-eco.up.railway.app/login");
     const scope       = encodeURIComponent("openid email profile");
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
