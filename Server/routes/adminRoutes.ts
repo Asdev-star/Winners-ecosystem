@@ -25,9 +25,9 @@ router.get("/stats", authMiddleware, requireSuperAdmin, async (_req: Request, re
       db.tenant.groupBy({ by: ["plan"], _count: { id: true } }),
     ]);
 
-    const now       = new Date();
-    const day30     = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const day7      = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+    const now   = new Date();
+    const day30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const day7  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
 
     const newTenantsMonth = tenants.filter((t) => new Date(t.createdAt) >= day30).length;
     const newTenantsWeek  = tenants.filter((t) => new Date(t.createdAt) >= day7).length;
@@ -40,7 +40,6 @@ router.get("/stats", authMiddleware, requireSuperAdmin, async (_req: Request, re
 
     const planDist = plans.map((p) => ({ plan: p.plan, count: p._count.id }));
 
-    // Revenue last 30 days
     const recentRevenue = await db.revenueRecord.findMany({
       where: { date: { gte: day30 } }, orderBy: { date: "asc" },
     });
@@ -70,10 +69,10 @@ router.get("/stats", authMiddleware, requireSuperAdmin, async (_req: Request, re
 // GET /admin/tenants — all tenants with details
 router.get("/tenants", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const page  = parseInt(req.query.page as string ?? "1");
-    const limit = parseInt(req.query.limit as string ?? "20");
+    const page  = parseInt(String(req.query.page  ?? "1"));
+    const limit = parseInt(String(req.query.limit ?? "20"));
     const skip  = (page - 1) * limit;
-    const q     = (req.query.q as string ?? "").trim();
+    const q     = String(req.query.q ?? "").trim();
 
     const where = q ? { name: { contains: q, mode: "insensitive" as const }, deletedAt: null } : { deletedAt: null };
 
@@ -104,10 +103,10 @@ router.get("/tenants", authMiddleware, requireSuperAdmin, async (req: Request, r
 // GET /admin/users — all users
 router.get("/users", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const page  = parseInt(req.query.page as string ?? "1");
-    const limit = parseInt(req.query.limit as string ?? "20");
+    const page  = parseInt(String(req.query.page  ?? "1"));
+    const limit = parseInt(String(req.query.limit ?? "20"));
     const skip  = (page - 1) * limit;
-    const q     = (req.query.q as string ?? "").trim();
+    const q     = String(req.query.q ?? "").trim();
 
     const where = q ? {
       deletedAt: null,
