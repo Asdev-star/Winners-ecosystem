@@ -75,14 +75,13 @@ export default function LoginPage() {
   const navigate       = useNavigate();
   const login          = useAuthStore((s) => s.login);
   const user           = useAuthStore((s) => s.user);
-  const restoreSession = useAuthStore((s) => s.restoreSession);
 
-  const [email, setEmail]             = useState("");
-  const [password, setPassword]       = useState("");
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState("");
-  const [fieldErr, setFieldErr]       = useState({ email: false, password: false });
-  const [oauthDone, setOauthDone]     = useState(false);
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [fieldErr, setFieldErr] = useState({ email: false, password: false });
+  const [oauthDone, setOauthDone] = useState(false);
 
   useEffect(() => {
     const id = "lp-styles";
@@ -96,57 +95,64 @@ export default function LoginPage() {
 
   // Handle Google OAuth callback
   useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const code       = params.get("code");
-  const token      = params.get("token");
-  const userJson   = params.get("user");
-  const oauthError = params.get("error");
+    const params     = new URLSearchParams(window.location.search);
+    const code       = params.get("code");
+    const token      = params.get("token");
+    const userJson   = params.get("user");
+    const oauthError = params.get("error");
 
-  if (oauthError) {
-    setError("Google sign-in failed.");
-    window.history.replaceState({}, "", "/login");
-    return;
-  }
-
-  // Case 1: Google returned a code — send to backend
-  if (code) {
-    window.history.replaceState({}, "", "/login");
-    const API = import.meta.env.VITE_API_URL ?? "";
-    fetch(`${API}/auth/google/exchange`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, redirectUri: `${window.location.origin}/login` }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-  if (data.token && data.user) {
-    localStorage.setItem("winners_token", data.token);
-    localStorage.setItem("winners_user", JSON.stringify(data.user));
-    window.location.replace(data.isNewUser ? "/onboarding" : "/");
-  } else {
-    setError(data.message ?? "Google sign-in failed.");
-  }
-})
-.catch(() => setError("Google sign-in failed."));
-return;
-  }
-
-  // Case 2: Backend already exchanged and returned token+user
-  if (token && userJson) {
-    try {
-      const userData = JSON.parse(decodeURIComponent(userJson));
-      localStorage.setItem("winners_token", token);
-      localStorage.setItem("winners_user", JSON.stringify(userData));
-      window.location.replace("/");
-    } catch {
-      setError("Failed to complete Google sign-in.");
+    if (oauthError) {
+      setError("Google sign-in failed.");
+      window.history.replaceState({}, "", "/login");
+      return;
     }
-  }
-}, []);
 
-  // Only redirect if already logged in AND not processing OAuth
+    // Case 1: Google returned a code — send to backend
+    if (code) {
+      setOauthDone(true);
+      window.history.replaceState({}, "", "/login");
+      const API = import.meta.env.VITE_API_URL ?? "";
+      fetch(`${API}/auth/google/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, redirectUri: `${window.location.origin}/login` }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.token && data.user) {
+            localStorage.setItem("winners_token", data.token);
+            localStorage.setItem("winners_user", JSON.stringify(data.user));
+            window.location.replace(data.isNewUser ? "/onboarding" : "/dashboard");
+          } else {
+            setError(data.message ?? "Google sign-in failed.");
+            setOauthDone(false);
+          }
+        })
+        .catch(() => {
+          setError("Google sign-in failed.");
+          setOauthDone(false);
+        });
+      return;
+    }
+
+    // Case 2: Backend already exchanged and returned token+user
+    if (token && userJson) {
+      setOauthDone(true);
+      try {
+        const userData = JSON.parse(decodeURIComponent(userJson));
+        localStorage.setItem("winners_token", token);
+        localStorage.setItem("winners_user", JSON.stringify(userData));
+        window.location.replace("/dashboard");
+      } catch {
+        setError("Failed to complete Google sign-in.");
+        setOauthDone(false);
+      }
+    }
+  }, []);
+
+  // Redirect if already logged in (but not mid-OAuth)
   useEffect(() => {
-    if (user && !oauthDone) navigate("/", { replace: true });
+    if (user && !oauthDone) navigate("/dashboard", { replace: true });
   }, [user, navigate, oauthDone]);
 
   const validate = () => {
@@ -162,7 +168,7 @@ return;
     setLoading(true);
     try {
       await login(email, password);
-      navigate("/", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err: any) {
       setError(err?.message ?? "Invalid credentials. Please try again.");
     } finally {
@@ -179,7 +185,7 @@ return;
 
   const handleGoogle = () => {
     const clientId    = "148507996421-2di0upcp6d7fi4gojr8d74n5l3udk9tu.apps.googleusercontent.com";
-    const redirectUri = encodeURIComponent("https://winners-empire-eco.up.railway.app/login");
+    const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
     const scope       = encodeURIComponent("openid email profile");
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
     window.location.href = url;
@@ -239,16 +245,17 @@ return;
             />
             {fieldErr.password && <div className="lp-error">› Minimum 6 characters</div>}
           </div>
-                    <div style={{ textAlign: "right", marginTop: -8, marginBottom: 16 }}>
-  <span
-    onClick={() => navigate("/forgot-password")}
-    style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)", cursor: "pointer" }}
-    onMouseOver={(e) => (e.currentTarget.style.color = "#F5C842")}
-    onMouseOut={(e) => (e.currentTarget.style.color = "var(--text-dim)")}
-  >
-    Forgot password?
-  </span>
-</div>
+
+          <div style={{ textAlign: "right", marginTop: -8, marginBottom: 16 }}>
+            <span
+              onClick={() => navigate("/forgot-password")}
+              style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)", cursor: "pointer" }}
+              onMouseOver={(e) => (e.currentTarget.style.color = "#F5C842")}
+              onMouseOut={(e) => (e.currentTarget.style.color = "var(--text-dim)")}
+            >
+              Forgot password?
+            </span>
+          </div>
 
           <button type="submit" className="lp-submit" disabled={loading}>
             {loading

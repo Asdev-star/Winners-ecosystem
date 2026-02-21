@@ -9,9 +9,6 @@ import { useNotificationStore } from "../../features/notifications/notificationS
 import ThemeToggle from "../../features/theme/ThemeToggle";
 import GlobalSearch from "../../features/search/GlobalSearch";
 
-// Inside .ml-header-right:
-
-
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
@@ -159,17 +156,17 @@ const css = `
 `;
 
 const NAV = [
-  { path: "/search", icon: "🔍", label: "Search", notif: false },
-  { path: "/",               icon: "▦",  label: "Dashboard",     notif: false },
+  { path: "/dashboard",     icon: "▦",  label: "Dashboard",     notif: false },
   { path: "/analytics",     icon: "📈", label: "Analytics",     notif: false },
+  { path: "/search",        icon: "🔍", label: "Search",        notif: false },
+  { path: "/stripe",        icon: "💰", label: "Stripe",        notif: false },
   { path: "/export",        icon: "↓",  label: "Export",        notif: false },
   { path: "/team",          icon: "👥", label: "Team",          notif: false },
   { path: "/billing",       icon: "💳", label: "Billing",       notif: false },
   { path: "/email",         icon: "📧", label: "Email Reports", notif: false },
   { path: "/notifications", icon: "🔔", label: "Notifications", notif: true  },
-  { path: "/stripe",        icon: "💳", label: "Stripe",        notif: false },
   { path: "/slack",         icon: "💬", label: "Slack",         notif: false },
-  { path: "/activity", icon: "📋", label: "Activity" }
+  { path: "/activity",      icon: "📋", label: "Activity",      notif: false },
 ];
 
 const WORKSPACE_NAV = [
@@ -179,11 +176,11 @@ const WORKSPACE_NAV = [
 
 const ALL_NAV = [...NAV, ...WORKSPACE_NAV];
 
-// Bottom nav shows only the most important 5 items
+// Bottom nav — most important 5
 const BOTTOM_NAV = [
-  { path: "/",               icon: "▦",  label: "Home",    notif: false },
+  { path: "/dashboard",     icon: "▦",  label: "Home",    notif: false },
   { path: "/analytics",     icon: "📈", label: "Stats",   notif: false },
-  { path: "/stripe",        icon: "💳", label: "Stripe",  notif: false },
+  { path: "/stripe",        icon: "💰", label: "Stripe",  notif: false },
   { path: "/notifications", icon: "🔔", label: "Alerts",  notif: true  },
   { path: "/settings",      icon: "⚙️", label: "Settings",notif: false },
 ];
@@ -231,7 +228,6 @@ export default function MainLayout() {
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path === "/"}
               className={({ isActive }) => `ml-nav-link${isActive ? " active" : ""}`}
               onClick={closeSidebar}
             >
@@ -251,8 +247,6 @@ export default function MainLayout() {
               className={({ isActive }) => `ml-nav-link${isActive ? " active" : ""}`}
               onClick={closeSidebar}
             >
-        
-
               <span className="ml-nav-icon">{item.icon}</span>
               {item.label}
             </NavLink>
@@ -276,7 +270,6 @@ export default function MainLayout() {
       <div className="ml-main">
         <header className="ml-header">
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* Hamburger — mobile only */}
             <button
               className={`ml-hamburger${sidebarOpen ? " open" : ""}`}
               onClick={() => setSidebarOpen((v) => !v)}
@@ -309,7 +302,6 @@ export default function MainLayout() {
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path === "/"}
               className={({ isActive }) => `ml-bottom-link${isActive ? " active" : ""}`}
             >
               <span className="ml-bottom-link-icon">{item.icon}</span>

@@ -19,15 +19,14 @@ import ExportPage        from "./features/export/ExportPage";
 import BillingPage       from "./features/billing/BillingPage";
 import EmailReportsPage  from "./features/email/EmailReportsPage";
 import NotificationsPage from "./features/notifications/NotificationsPage";
-import StripeDashboard from "./features/stripe/StripeDashboard";
+import StripeDashboard   from "./features/stripe/StripeDashboard";
 import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import ResetPasswordPage  from "./features/auth/ResetPasswordPage";
-import OnboardingPage from "./features/onboarding/OnboardingPage";
+import OnboardingPage    from "./features/onboarding/OnboardingPage";
 import SlackSettingsPage from "./features/slack/SlackSettingsPage";
-import SearchPage   from "./features/search/SearchPage";
-import ActivityPage from "./features/activity/ActivityPage";
+import SearchPage        from "./features/search/SearchPage";
+import ActivityPage      from "./features/activity/ActivityPage";
 
-// Outside ProtectedRoute:
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
 
@@ -39,15 +38,14 @@ function App() {
     <Routes>
 
       {/* ── Public routes ── */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login"        element={<LoginPage />} />
-      <Route path="/landing"      element={<LandingPage />} />
-      <Route path="/invite/accept" element={<AcceptInvitePage />} />
-      <Route path="/onboarding"   element={<OnboardingPage />} />
-      <Route path="/architecture" element={<ArchitectureDiagram />} />
-      <Route path="forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="reset-password"  element={<ResetPasswordPage />} />
-      
+      <Route path="/"               element={<LandingPage />} />
+      <Route path="/landing"        element={<LandingPage />} />
+      <Route path="/login"          element={<LoginPage />} />
+      <Route path="/invite/accept"  element={<AcceptInvitePage />} />
+      <Route path="/onboarding"     element={<OnboardingPage />} />
+      <Route path="/architecture"   element={<ArchitectureDiagram />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
       {/* ── Protected routes (inside MainLayout) ── */}
       <Route
@@ -56,9 +54,9 @@ function App() {
             <MainLayout />
           </ProtectedRoute>
         }
-      >;
-        <Route path="search" element={<SearchPage />} />
-        <Route index             element={<DashboardPage />} />
+      >
+        <Route path="dashboard"     element={<DashboardPage />} />
+        <Route path="search"        element={<SearchPage />} />
         <Route path="analytics"     element={<AnalyticsPage />} />
         <Route path="team"          element={<TeamPage />} />
         <Route path="export"        element={<ExportPage />} />
@@ -67,9 +65,9 @@ function App() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="settings"      element={<SettingsPage />} />
         <Route path="profile"       element={<ProfilePage />} />
-        <Route path="slack" element={<SlackSettingsPage />} />
-        <Route path="stripe" element={<StripeDashboard />} />
-        <Route path="activity" element={<ActivityPage />} />
+        <Route path="slack"         element={<SlackSettingsPage />} />
+        <Route path="stripe"        element={<StripeDashboard />} />
+        <Route path="activity"      element={<ActivityPage />} />
       </Route>
 
     </Routes>
