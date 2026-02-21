@@ -9,7 +9,7 @@ const router = Router();
 // GET /referral/stats — get referral stats for current user
 router.get("/stats", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const stats = await getReferralStats(req.user!.id, req.user!.tenantId);
+    const stats = await getReferralStats(req.user!.userId, req.user!.tenantId);
     res.json(stats);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -19,7 +19,7 @@ router.get("/stats", authMiddleware, async (req: Request, res: Response) => {
 // GET /referral/code — get or create referral code
 router.get("/code", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const code = await getOrCreateReferralCode(req.user!.id);
+    const code = await getOrCreateReferralCode(req.user!.userId);
     const APP_URL = process.env.APP_URL ?? "https://winners-empire-eco.up.railway.app";
     res.json({ code, url: `${APP_URL}/signup?ref=${code}` });
   } catch (err: any) {
