@@ -96,35 +96,53 @@ export default function LoginPage() {
 
   // Handle Google OAuth callback
   useEffect(() => {
-    const params       = new URLSearchParams(window.location.search);
-    const token        = params.get("token");
-    const refreshToken = params.get("refreshToken");
-    const userJson     = params.get("user");
-    const oauthError   = params.get("error");
+  const params = new URLSearchParams(window.location.search);
+  const code       = params.get("code");
+  const token      = params.get("token");
+  const userJson   = params.get("user");
+  const oauthError = params.get("error");
 
-    if (oauthError) {
-      setError("Google sign-in failed. Please try again.");
-      window.history.replaceState({}, "", "/login");
-      return;
-    }
+  if (oauthError) {
+    setError("Google sign-in failed.");
+    window.history.replaceState({}, "", "/login");
+    return;
+  }
 
-    if (token && userJson) {
-      setOauthDone(true); // prevent the user redirect from interfering
-      try {
-        const userData = JSON.parse(decodeURIComponent(userJson));
-        localStorage.setItem("winners_token", token);
-        if (refreshToken) localStorage.setItem("winners_refresh_token", refreshToken);
-        localStorage.setItem("winners_user", JSON.stringify(userData));
-        // Clean URL then go to dashboard
-        window.history.replaceState({}, "", "/login");
-        restoreSession();
-        setTimeout(() => { window.location.replace("/"); }, 100);
-      } catch {
-        setError("Failed to complete Google sign-in.");
-        setOauthDone(false);
-      }
+  // Case 1: Google returned a code — send to backend
+  if (code) {
+    window.history.replaceState({}, "", "/login");
+    const API = import.meta.env.VITE_API_URL ?? "";
+    fetch(`${API}/auth/google/exchange`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, redirectUri: `${window.location.origin}/login` }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.token && data.user) {
+          localStorage.setItem("winners_token", data.token);
+          localStorage.setItem("winners_user", JSON.stringify(data.user));
+          window.location.replace("/");
+        } else {
+          setError(data.message ?? "Google sign-in failed.");
+        }
+      })
+      .catch(() => setError("Google sign-in failed."));
+    return;
+  }
+
+  // Case 2: Backend already exchanged and returned token+user
+  if (token && userJson) {
+    try {
+      const userData = JSON.parse(decodeURIComponent(userJson));
+      localStorage.setItem("winners_token", token);
+      localStorage.setItem("winners_user", JSON.stringify(userData));
+      window.location.replace("/");
+    } catch {
+      setError("Failed to complete Google sign-in.");
     }
-  }, []);
+  }
+}, []);
 
   // Only redirect if already logged in AND not processing OAuth
   useEffect(() => {

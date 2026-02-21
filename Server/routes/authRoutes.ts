@@ -142,6 +142,38 @@ router.get("/google", (_req: Request, res: Response) => {
   return res.redirect(url.toString());
 });
 
+router.post("/google/exchange", async (req: Request, res: Response) => {
+  const { code, redirectUri } = req.body;
+  try {
+    const client  = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, redirectUri);
+    const { tokens } = await client.getToken(code);
+    const ticket = await client.verifyIdToken({ idToken: tokens.id_token!, audience: GOOGLE_CLIENT_ID });
+    const payload = ticket.getPayload();
+    if (!payload?.email) return res.status(400).json({ message: "No email from Google" });
+
+    const { email, name, sub: googleId } = payload;
+    let user = await db.user.findFirst({ where: { email: email.toLowerCase(), deletedAt: null }, include: { tenant: true } });
+
+    if (!user) {
+      const tenant = await db.tenant.create({ data: { name: name ? `${name}'s Workspace` : "My Workspace" } });
+      user = await db.user.create({
+        data: { tenantId: tenant.id, email: email.toLowerCase(), name: name ?? email.split("@")[0], password: await bcrypt.hash(googleId, 10), role: "OWNER" },
+        include: { tenant: true },
+      });
+    }
+
+    const jwtPayload = buildPayload(user);
+    const token      = signToken(jwtPayload, JWT_EXPIRES_IN);
+    return res.json({
+      token,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
+    });
+  } catch (err: any) {
+    console.error("Google exchange error:", err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 // GET /auth/google/callback — handle Google response
 const redirectUri = `${APP_URL}/login`; async (req: Request, res: Response) => {
   const { code } = req.query;
