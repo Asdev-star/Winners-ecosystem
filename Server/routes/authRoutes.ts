@@ -143,7 +143,7 @@ router.get("/google", (_req: Request, res: Response) => {
 });
 
 // GET /auth/google/callback — handle Google response
-router.get("/google/callback", async (req: Request, res: Response) => {
+const redirectUri = `${APP_URL}/login`; async (req: Request, res: Response) => {
   const { code } = req.query;
   if (!code) return res.redirect(`${APP_URL}/login?error=no_code`);
 
@@ -200,6 +200,6 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     console.error("Google OAuth error:", err);
     return res.redirect(`${APP_URL}/login?error=oauth_failed`);
   }
-});
+};
 
 export default router;
