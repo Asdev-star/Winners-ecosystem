@@ -7,6 +7,7 @@ import { OAuth2Client } from "google-auth-library";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import type { JwtPayload } from "../middleware/authMiddleware.js";
+import { logActivity, ACTIONS } from "../services/activityService.js";
 
 const router = Router();
 
@@ -53,6 +54,17 @@ router.post("/login", async (req: Request, res: Response) => {
     const payload      = buildPayload(user);
     const token        = signToken(payload, JWT_EXPIRES_IN);
     const refreshToken = signToken(payload, JWT_REFRESH_EXPIRES);
+
+    // ── Log login activity ──
+    await logActivity({
+      tenantId:  user.tenantId,
+      userId:    user.id,
+      userEmail: user.email,
+      userName:  user.name,
+      action:    ACTIONS.LOGIN,
+      category:  "auth",
+      ip:        req.ip,
+    });
 
     return res.json({
       token, refreshToken,
@@ -113,6 +125,18 @@ router.post("/accept-invite", async (req: Request, res: Response) => {
 
     await db.invite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
 
+    // ── Log team member joined ──
+    await logActivity({
+      tenantId:  invite.tenantId,
+      userId:    user.id,
+      userEmail: user.email,
+      userName:  user.name,
+      action:    ACTIONS.MEMBER_INVITED,
+      category:  "team",
+      metadata:  { role: invite.role },
+      ip:        req.ip,
+    });
+
     const payload      = buildPayload(user);
     const jwtToken     = signToken(payload, JWT_EXPIRES_IN);
     const refreshToken = signToken(payload, JWT_REFRESH_EXPIRES);
@@ -142,18 +166,20 @@ router.get("/google", (_req: Request, res: Response) => {
   return res.redirect(url.toString());
 });
 
+// POST /auth/google/exchange — frontend sends code, we return token
 router.post("/google/exchange", async (req: Request, res: Response) => {
   const { code, redirectUri } = req.body;
   try {
-    const client  = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, redirectUri);
+    const client     = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, redirectUri);
     const { tokens } = await client.getToken(code);
-    const ticket = await client.verifyIdToken({ idToken: tokens.id_token!, audience: GOOGLE_CLIENT_ID });
-    const payload = ticket.getPayload();
+    const ticket     = await client.verifyIdToken({ idToken: tokens.id_token!, audience: GOOGLE_CLIENT_ID });
+    const payload    = ticket.getPayload();
     if (!payload?.email) return res.status(400).json({ message: "No email from Google" });
 
     const { email, name, sub: googleId } = payload;
     let user = await db.user.findFirst({ where: { email: email.toLowerCase(), deletedAt: null }, include: { tenant: true } });
 
+    const isNewUser = !user;
     if (!user) {
       const tenant = await db.tenant.create({ data: { name: name ? `${name}'s Workspace` : "My Workspace" } });
       user = await db.user.create({
@@ -161,6 +187,17 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
         include: { tenant: true },
       });
     }
+
+    // ── Log Google login ──
+    await logActivity({
+      tenantId:  user.tenantId,
+      userId:    user.id,
+      userEmail: user.email,
+      userName:  user.name,
+      action:    isNewUser ? "New account created via Google" : ACTIONS.GOOGLE_LOGIN,
+      category:  "auth",
+      ip:        req.ip,
+    });
 
     const jwtPayload = buildPayload(user);
     const token      = signToken(jwtPayload, JWT_EXPIRES_IN);
@@ -174,19 +211,19 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
   }
 });
 
-// GET /auth/google/callback — handle Google response
-const redirectUri = `${APP_URL}/login`; async (req: Request, res: Response) => {
+// GET /auth/google/callback — server-side OAuth callback
+router.get("/google/callback", async (req: Request, res: Response) => {
   const { code } = req.query;
   if (!code) return res.redirect(`${APP_URL}/login?error=no_code`);
 
   try {
-    const redirectUri = `${SERVER_URL}/auth/google/callback`;
-    const client      = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, redirectUri);
+    const cbRedirectUri = `${SERVER_URL}/auth/google/callback`;
+    const client        = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, cbRedirectUri);
 
     const { tokens } = await client.getToken(code as string);
     client.setCredentials(tokens);
 
-    const ticket = await client.verifyIdToken({ idToken: tokens.id_token!, audience: GOOGLE_CLIENT_ID });
+    const ticket        = await client.verifyIdToken({ idToken: tokens.id_token!, audience: GOOGLE_CLIENT_ID });
     const googlePayload = ticket.getPayload();
     if (!googlePayload?.email) return res.redirect(`${APP_URL}/login?error=no_email`);
 
@@ -198,21 +235,23 @@ const redirectUri = `${APP_URL}/login`; async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      // New user — create tenant + user
-      const tenant = await db.tenant.create({
-        data: { name: name ? `${name}'s Workspace` : "My Workspace" },
-      });
+      const tenant = await db.tenant.create({ data: { name: name ? `${name}'s Workspace` : "My Workspace" } });
       user = await db.user.create({
-        data: {
-          tenantId: tenant.id,
-          email:    email.toLowerCase(),
-          name:     name ?? email.split("@")[0],
-          password: await bcrypt.hash(googleId, 10),
-          role:     "OWNER",
-        },
+        data: { tenantId: tenant.id, email: email.toLowerCase(), name: name ?? email.split("@")[0], password: await bcrypt.hash(googleId, 10), role: "OWNER" },
         include: { tenant: true },
       });
     }
+
+    // ── Log Google login ──
+    await logActivity({
+      tenantId:  user.tenantId,
+      userId:    user.id,
+      userEmail: user.email,
+      userName:  user.name,
+      action:    ACTIONS.GOOGLE_LOGIN,
+      category:  "auth",
+      ip:        req.ip,
+    });
 
     const jwtPayload   = buildPayload(user);
     const token        = signToken(jwtPayload, JWT_EXPIRES_IN);
@@ -232,6 +271,6 @@ const redirectUri = `${APP_URL}/login`; async (req: Request, res: Response) => {
     console.error("Google OAuth error:", err);
     return res.redirect(`${APP_URL}/login?error=oauth_failed`);
   }
-};
+});
 
 export default router;

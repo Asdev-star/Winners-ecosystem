@@ -25,7 +25,7 @@ import ResetPasswordPage  from "./features/auth/ResetPasswordPage";
 import OnboardingPage from "./features/onboarding/OnboardingPage";
 import SlackSettingsPage from "./features/slack/SlackSettingsPage";
 import SearchPage   from "./features/search/SearchPage";
-
+import ActivityPage from "./features/activity/ActivityPage";
 
 // Outside ProtectedRoute:
 function App() {
@@ -68,6 +68,7 @@ function App() {
         <Route path="profile"       element={<ProfilePage />} />
         <Route path="slack" element={<SlackSettingsPage />} />
         <Route path="stripe" element={<StripeDashboard />} />
+        <Route path="activity" element={<ActivityPage />} />
       </Route>
 
     </Routes>

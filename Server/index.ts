@@ -23,6 +23,7 @@ import passwordResetRoutes from "./routes/passwordResetRoutes.js";
 // Scheduler
 import { startEmailScheduler } from "./services/emailScheduler.js";
 import slackRoutes from "./routes/slackRoutes.js";
+import activityRoutes from "./routes/activityRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -65,6 +66,7 @@ app.use("/email",         emailRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/stripe", stripeRoutes);
 app.use("/search", searchRoutes);
+app.use("/activity", activityRoutes);
 // ── Serve React frontend in production ────────────────────────────────────────
 
 if (isProd) {

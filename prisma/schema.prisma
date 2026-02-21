@@ -130,3 +130,19 @@ model AnalyticsEvent {
   @@index([tenantId, date])
   @@map("analytics_events")
 }
+model ActivityLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  userEmail String?
+  userName  String?
+  action    String
+  category  String
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt(sort: Desc)])
+  @@map("activity_logs")
+}

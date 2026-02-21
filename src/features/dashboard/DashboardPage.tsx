@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useDashboardStore } from "./dashboardStore";
 import AIRecommendationCard from "../ai/AIRecommendationCard";
+import ActivityWidget from "../activity/ActivityWidget";
 
 const css = `
   .dash-root {
@@ -171,6 +172,7 @@ export default function DashboardPage() {
       {/* AI Card */}
       <div className="dash-grid">
         <AIRecommendationCard />
+        <ActivityWidget />
       </div>
 
     </div>
