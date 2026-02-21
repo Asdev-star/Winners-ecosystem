@@ -7,6 +7,10 @@ import TenantSwitcher from "../ui/TenantSwitcher";
 import NotificationBell from "../../features/notifications/NotificationBell";
 import { useNotificationStore } from "../../features/notifications/notificationStore";
 import ThemeToggle from "../../features/theme/ThemeToggle";
+import GlobalSearch from "../../features/search/GlobalSearch";
+
+// Inside .ml-header-right:
+
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -155,6 +159,7 @@ const css = `
 `;
 
 const NAV = [
+  { path: "/search", icon: "🔍", label: "Search", notif: false },
   { path: "/",               icon: "▦",  label: "Dashboard",     notif: false },
   { path: "/analytics",     icon: "📈", label: "Analytics",     notif: false },
   { path: "/export",        icon: "↓",  label: "Export",        notif: false },
@@ -278,6 +283,7 @@ export default function MainLayout() {
             >
               <span /><span /><span />
             </button>
+            <GlobalSearch />
             <div className="ml-breadcrumb">
               Winners · <span>{pageName}</span>
             </div>

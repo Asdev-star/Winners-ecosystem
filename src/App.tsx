@@ -24,6 +24,7 @@ import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import ResetPasswordPage  from "./features/auth/ResetPasswordPage";
 import OnboardingPage from "./features/onboarding/OnboardingPage";
 import SlackSettingsPage from "./features/slack/SlackSettingsPage";
+import SearchPage   from "./features/search/SearchPage";
 
 
 // Outside ProtectedRoute:
@@ -54,7 +55,8 @@ function App() {
             <MainLayout />
           </ProtectedRoute>
         }
-      >
+      >;
+        <Route path="search" element={<SearchPage />} />
         <Route index             element={<DashboardPage />} />
         <Route path="analytics"     element={<AnalyticsPage />} />
         <Route path="team"          element={<TeamPage />} />

@@ -5,6 +5,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import searchRoutes from "./routes/searchRoutes.js";
 
 // Routes
 import authRoutes         from "./routes/authRoutes.js";
@@ -63,6 +64,7 @@ app.use("/slack", slackRoutes);
 app.use("/email",         emailRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/stripe", stripeRoutes);
+app.use("/search", searchRoutes);
 // ── Serve React frontend in production ────────────────────────────────────────
 
 if (isProd) {
