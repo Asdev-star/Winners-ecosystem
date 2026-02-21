@@ -14,7 +14,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
   if (!q || q.length < 2) return res.json({ members: [], transactions: [], notifications: [] });
 
   try {
-    const [members, transactions, notifications] = await Promise.all([
+    const [members, transactions] = await Promise.all([
       // Team members
       db.user.findMany({
         where: {
@@ -40,20 +40,10 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
         orderBy: { date: "desc" },
         take: 5,
       }),
-
-      // Notifications
-      db.notification?.findMany({
-        where: {
-          tenantId,
-          OR: [
-            { title:   { contains: q, mode: "insensitive" } },
-            { message: { contains: q, mode: "insensitive" } },
-          ],
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }).catch(() => []),
     ]);
+
+    // Notifications not stored in DB — return empty array
+    const notifications: any[] = [];
 
     return res.json({ members, transactions, notifications });
   } catch (err: any) {
