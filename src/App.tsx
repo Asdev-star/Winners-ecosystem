@@ -8,7 +8,6 @@ import ProtectedRoute    from "./app/ProtectedRoute";
 import LoginPage         from "./features/auth/LoginPage";
 import LandingPage       from "./features/landing/LandingPage";
 import AcceptInvitePage  from "./features/team/AcceptInvitePage";
-import OnboardingPage    from "./features/team/OnboardingPage";
 import ArchitectureDiagram from "./components/docs/ArchitectureDiagram";
 
 import DashboardPage     from "./features/dashboard/DashboardPage";
@@ -23,6 +22,7 @@ import NotificationsPage from "./features/notifications/NotificationsPage";
 import StripeDashboard from "./features/stripe/StripeDashboard";
 import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import ResetPasswordPage  from "./features/auth/ResetPasswordPage";
+import OnboardingPage from "./features/onboarding/OnboardingPage";
 
 // Outside ProtectedRoute:
 function App() {
@@ -43,6 +43,7 @@ function App() {
       <Route path="/architecture" element={<ArchitectureDiagram />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="reset-password"  element={<ResetPasswordPage />} />
+      <Route path="onboarding" element={<OnboardingPage />} />
 
       {/* ── Protected routes (inside MainLayout) ── */}
       <Route

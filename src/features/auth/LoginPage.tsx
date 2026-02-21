@@ -119,16 +119,16 @@ export default function LoginPage() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.token && data.user) {
-          localStorage.setItem("winners_token", data.token);
-          localStorage.setItem("winners_user", JSON.stringify(data.user));
-          window.location.replace("/");
-        } else {
-          setError(data.message ?? "Google sign-in failed.");
-        }
-      })
-      .catch(() => setError("Google sign-in failed."));
-    return;
+  if (data.token && data.user) {
+    localStorage.setItem("winners_token", data.token);
+    localStorage.setItem("winners_user", JSON.stringify(data.user));
+    window.location.replace(data.isNewUser ? "/onboarding" : "/");
+  } else {
+    setError(data.message ?? "Google sign-in failed.");
+  }
+})
+.catch(() => setError("Google sign-in failed."));
+return;
   }
 
   // Case 2: Backend already exchanged and returned token+user
