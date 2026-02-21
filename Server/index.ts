@@ -21,6 +21,7 @@ import stripeRoutes from "./routes/stripeRoutes.js";;
 import passwordResetRoutes from "./routes/passwordResetRoutes.js";
 // Scheduler
 import { startEmailScheduler } from "./services/emailScheduler.js";
+import slackRoutes from "./routes/slackRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -58,6 +59,7 @@ app.use("/export",        exportRoutes);
 app.use("/billing",       billingRoutes);
 app.use("/ai",            aiRoutes);
 app.use("/profile",       profileRoutes);
+app.use("/slack", slackRoutes);
 app.use("/email",         emailRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/stripe", stripeRoutes);

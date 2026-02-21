@@ -163,6 +163,7 @@ const NAV = [
   { path: "/email",         icon: "📧", label: "Email Reports", notif: false },
   { path: "/notifications", icon: "🔔", label: "Notifications", notif: true  },
   { path: "/stripe",        icon: "💳", label: "Stripe",        notif: false },
+  { path: "/slack",         icon: "💬", label: "Slack",         notif: false },
 ];
 
 const WORKSPACE_NAV = [
@@ -244,6 +245,8 @@ export default function MainLayout() {
               className={({ isActive }) => `ml-nav-link${isActive ? " active" : ""}`}
               onClick={closeSidebar}
             >
+        
+
               <span className="ml-nav-icon">{item.icon}</span>
               {item.label}
             </NavLink>

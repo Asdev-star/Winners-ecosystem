@@ -140,52 +140,62 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
   const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
   switch (event.type) {
+
     case "checkout.session.completed": {
       const session  = event.data.object as Stripe.Checkout.Session;
       const tenantId = session.metadata?.tenantId;
       const plan     = session.metadata?.plan as "PRO" | "ENTERPRISE";
-      if (tenantId && plan) {
-  const tenant = await db.tenant.update({
-    where: { id: tenantId },
-    data: {
-      plan,
-      stripeCustomerId:     session.customer as string,
-      stripeSubscriptionId: session.subscription as string,
-    },
-  });
 
-  // Notify Slack
-  const { notifyPlanUpgraded } = await import("./slackService.js");
-  await notifyPlanUpgraded({
-    fromPlan:   "FREE",
-    toPlan:     plan,
-    upgradedBy: session.customer_email ?? "Customer",
-    tenantName: tenant.name,
-  }).catch(() => {});
-}
+      if (tenantId && plan) {
+        const tenant = await db.tenant.update({
+          where: { id: tenantId },
+          data: {
+            plan,
+            stripeCustomerId:     session.customer as string,
+            stripeSubscriptionId: session.subscription as string,
+          },
+        });
+
+        // Notify Slack — plan upgraded
+        await notifyPlanUpgraded({
+          fromPlan:   "FREE",
+          toPlan:     plan,
+          upgradedBy: session.customer_email ?? "Customer",
+          tenantName: tenant.name,
+        }).catch(() => {});
+      }
       break;
     }
+
     case "customer.subscription.deleted": {
       const sub    = event.data.object as Stripe.Subscription;
       const tenant = await db.tenant.findFirst({ where: { stripeSubscriptionId: sub.id } });
       if (tenant) await db.tenant.update({ where: { id: tenant.id }, data: { plan: "FREE" } });
       break;
     }
+
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
       const tenant  = await db.tenant.findFirst({ where: { stripeCustomerId: invoice.customer as string } });
+
       if (tenant && invoice.amount_paid > 0) {
         await db.revenueRecord.create({
-          data: { tenantId: tenant.id, date: new Date(), amount: invoice.amount_paid / 100, source: "stripe_subscription" },
+          data: {
+            tenantId: tenant.id,
+            date:     new Date(),
+            amount:   invoice.amount_paid / 100,
+            source:   "stripe_subscription",
+          },
         });
-        const { notifyNewRevenue } = await import("./slackService.js");
-await notifyNewRevenue({
-  amount:     invoice.amount_paid / 100,
-  currency:   invoice.currency.toUpperCase(),
-  customer:   invoice.customer_email ?? undefined,
-  source:     "Stripe",
-  tenantName: tenant.name,
-}).catch(() => {});
+
+        // Notify Slack — new revenue
+        await notifyNewRevenue({
+          amount:     invoice.amount_paid / 100,
+          currency:   invoice.currency.toUpperCase(),
+          customer:   invoice.customer_email ?? undefined,
+          source:     "Stripe",
+          tenantName: tenant.name,
+        }).catch(() => {});
       }
       break;
     }

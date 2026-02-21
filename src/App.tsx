@@ -23,6 +23,8 @@ import StripeDashboard from "./features/stripe/StripeDashboard";
 import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import ResetPasswordPage  from "./features/auth/ResetPasswordPage";
 import OnboardingPage from "./features/onboarding/OnboardingPage";
+import SlackSettingsPage from "./features/slack/SlackSettingsPage";
+
 
 // Outside ProtectedRoute:
 function App() {
@@ -43,7 +45,7 @@ function App() {
       <Route path="/architecture" element={<ArchitectureDiagram />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="reset-password"  element={<ResetPasswordPage />} />
-      <Route path="onboarding" element={<OnboardingPage />} />
+      
 
       {/* ── Protected routes (inside MainLayout) ── */}
       <Route
@@ -62,6 +64,7 @@ function App() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="settings"      element={<SettingsPage />} />
         <Route path="profile"       element={<ProfilePage />} />
+        <Route path="slack" element={<SlackSettingsPage />} />
         <Route path="stripe" element={<StripeDashboard />} />
       </Route>
 
