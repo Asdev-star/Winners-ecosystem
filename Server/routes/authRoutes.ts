@@ -35,6 +35,53 @@ function buildPayload(user: { id: string; email: string; role: string; tenantId:
   };
 }
 
+async function handleReferral(refCode: string | undefined, userId: string, email: string, name: string) {
+  if (!refCode) return;
+  try {
+    const { processReferral } = await import("../services/referralService.js");
+    await processReferral(refCode, userId, email, name);
+  } catch { /* silent — referral failure should never block signup */ }
+}
+
+// ─── POST /auth/register ──────────────────────────────────────────────────────
+
+router.post("/register", async (req: Request, res: Response) => {
+  const { email, password, name, refCode } = req.body;
+  if (!email || !password || !name) return res.status(400).json({ message: "Email, password and name are required" });
+
+  try {
+    const existing = await db.user.findFirst({ where: { email: email.toLowerCase().trim() } });
+    if (existing) return res.status(409).json({ message: "Email already in use" });
+
+    const tenant = await db.tenant.create({ data: { name: `${name}'s Workspace` } });
+    const hashed = await bcrypt.hash(password, 10);
+    const user   = await db.user.create({
+      data:    { tenantId: tenant.id, email: email.toLowerCase().trim(), name, password: hashed, role: "OWNER" },
+      include: { tenant: true },
+    });
+
+    // Process referral if code present
+    await handleReferral(refCode, user.id, user.email, user.name);
+
+    await logActivity({
+      tenantId: user.tenantId, userId: user.id, userEmail: user.email,
+      userName: user.name, action: "Account registered", category: "auth", ip: req.ip,
+    });
+
+    const payload      = buildPayload(user);
+    const token        = signToken(payload, JWT_EXPIRES_IN);
+    const refreshToken = signToken(payload, JWT_REFRESH_EXPIRES);
+
+    return res.status(201).json({
+      token, refreshToken, isNewUser: true,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
+    });
+  } catch (err) {
+    console.error("Register error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // ─── POST /auth/login ─────────────────────────────────────────────────────────
 
 router.post("/login", async (req: Request, res: Response) => {
@@ -55,15 +102,9 @@ router.post("/login", async (req: Request, res: Response) => {
     const token        = signToken(payload, JWT_EXPIRES_IN);
     const refreshToken = signToken(payload, JWT_REFRESH_EXPIRES);
 
-    // ── Log login activity ──
     await logActivity({
-      tenantId:  user.tenantId,
-      userId:    user.id,
-      userEmail: user.email,
-      userName:  user.name,
-      action:    ACTIONS.LOGIN,
-      category:  "auth",
-      ip:        req.ip,
+      tenantId: user.tenantId, userId: user.id, userEmail: user.email,
+      userName: user.name, action: ACTIONS.LOGIN, category: "auth", ip: req.ip,
     });
 
     return res.json({
@@ -108,7 +149,7 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
 // ─── POST /auth/accept-invite ─────────────────────────────────────────────────
 
 router.post("/accept-invite", async (req: Request, res: Response) => {
-  const { token, name, password } = req.body;
+  const { token, name, password, refCode } = req.body;
   if (!token || !name || !password) return res.status(400).json({ message: "token, name and password are required" });
 
   try {
@@ -119,22 +160,19 @@ router.post("/accept-invite", async (req: Request, res: Response) => {
 
     const hashed = await bcrypt.hash(password, 10);
     const user   = await db.user.create({
-      data: { tenantId: invite.tenantId, email: invite.email, name, password: hashed, role: invite.role },
+      data:    { tenantId: invite.tenantId, email: invite.email, name, password: hashed, role: invite.role },
       include: { tenant: true },
     });
 
     await db.invite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
 
-    // ── Log team member joined ──
+    // Process referral if code present
+    await handleReferral(refCode, user.id, user.email, user.name);
+
     await logActivity({
-      tenantId:  invite.tenantId,
-      userId:    user.id,
-      userEmail: user.email,
-      userName:  user.name,
-      action:    ACTIONS.MEMBER_INVITED,
-      category:  "team",
-      metadata:  { role: invite.role },
-      ip:        req.ip,
+      tenantId: invite.tenantId, userId: user.id, userEmail: user.email,
+      userName: user.name, action: ACTIONS.MEMBER_INVITED, category: "team",
+      metadata: { role: invite.role }, ip: req.ip,
     });
 
     const payload      = buildPayload(user);
@@ -153,7 +191,6 @@ router.post("/accept-invite", async (req: Request, res: Response) => {
 
 // ─── Google OAuth ─────────────────────────────────────────────────────────────
 
-// GET /auth/google — redirect to Google
 router.get("/google", (_req: Request, res: Response) => {
   const redirectUri = `${SERVER_URL}/auth/google/callback`;
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -166,9 +203,8 @@ router.get("/google", (_req: Request, res: Response) => {
   return res.redirect(url.toString());
 });
 
-// POST /auth/google/exchange — frontend sends code, we return token
 router.post("/google/exchange", async (req: Request, res: Response) => {
-  const { code, redirectUri } = req.body;
+  const { code, redirectUri, refCode } = req.body;
   try {
     const client     = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, redirectUri);
     const { tokens } = await client.getToken(code);
@@ -183,26 +219,24 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
     if (!user) {
       const tenant = await db.tenant.create({ data: { name: name ? `${name}'s Workspace` : "My Workspace" } });
       user = await db.user.create({
-        data: { tenantId: tenant.id, email: email.toLowerCase(), name: name ?? email.split("@")[0], password: await bcrypt.hash(googleId, 10), role: "OWNER" },
+        data:    { tenantId: tenant.id, email: email.toLowerCase(), name: name ?? email.split("@")[0], password: await bcrypt.hash(googleId, 10), role: "OWNER" },
         include: { tenant: true },
       });
+
+      // Process referral for new Google users
+      await handleReferral(refCode, user.id, user.email, user.name);
     }
 
-    // ── Log Google login ──
     await logActivity({
-      tenantId:  user.tenantId,
-      userId:    user.id,
-      userEmail: user.email,
-      userName:  user.name,
-      action:    isNewUser ? "New account created via Google" : ACTIONS.GOOGLE_LOGIN,
-      category:  "auth",
-      ip:        req.ip,
+      tenantId: user.tenantId, userId: user.id, userEmail: user.email,
+      userName: user.name, action: isNewUser ? "New account created via Google" : ACTIONS.GOOGLE_LOGIN,
+      category: "auth", ip: req.ip,
     });
 
     const jwtPayload = buildPayload(user);
     const token      = signToken(jwtPayload, JWT_EXPIRES_IN);
     return res.json({
-      token,
+      token, isNewUser,
       user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
     });
   } catch (err: any) {
@@ -211,7 +245,6 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
   }
 });
 
-// GET /auth/google/callback — server-side OAuth callback
 router.get("/google/callback", async (req: Request, res: Response) => {
   const { code } = req.query;
   if (!code) return res.redirect(`${APP_URL}/login?error=no_code`);
@@ -219,8 +252,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
   try {
     const cbRedirectUri = `${SERVER_URL}/auth/google/callback`;
     const client        = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, cbRedirectUri);
-
-    const { tokens } = await client.getToken(code as string);
+    const { tokens }    = await client.getToken(code as string);
     client.setCredentials(tokens);
 
     const ticket        = await client.verifyIdToken({ idToken: tokens.id_token!, audience: GOOGLE_CLIENT_ID });
@@ -228,42 +260,27 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     if (!googlePayload?.email) return res.redirect(`${APP_URL}/login?error=no_email`);
 
     const { email, name, sub: googleId } = googlePayload;
-
-    let user = await db.user.findFirst({
-      where:   { email: email.toLowerCase(), deletedAt: null },
-      include: { tenant: true },
-    });
+    let user = await db.user.findFirst({ where: { email: email.toLowerCase(), deletedAt: null }, include: { tenant: true } });
 
     if (!user) {
       const tenant = await db.tenant.create({ data: { name: name ? `${name}'s Workspace` : "My Workspace" } });
       user = await db.user.create({
-        data: { tenantId: tenant.id, email: email.toLowerCase(), name: name ?? email.split("@")[0], password: await bcrypt.hash(googleId, 10), role: "OWNER" },
+        data:    { tenantId: tenant.id, email: email.toLowerCase(), name: name ?? email.split("@")[0], password: await bcrypt.hash(googleId, 10), role: "OWNER" },
         include: { tenant: true },
       });
     }
 
-    // ── Log Google login ──
     await logActivity({
-      tenantId:  user.tenantId,
-      userId:    user.id,
-      userEmail: user.email,
-      userName:  user.name,
-      action:    ACTIONS.GOOGLE_LOGIN,
-      category:  "auth",
-      ip:        req.ip,
+      tenantId: user.tenantId, userId: user.id, userEmail: user.email,
+      userName: user.name, action: ACTIONS.GOOGLE_LOGIN, category: "auth", ip: req.ip,
     });
 
     const jwtPayload   = buildPayload(user);
     const token        = signToken(jwtPayload, JWT_EXPIRES_IN);
     const refreshToken = signToken(jwtPayload, JWT_REFRESH_EXPIRES);
-
-    const userJson = encodeURIComponent(JSON.stringify({
-      id:         user.id,
-      email:      user.email,
-      name:       user.name,
-      role:       user.role.toLowerCase(),
-      tenantId:   user.tenantId,
-      tenantName: user.tenant.name,
+    const userJson     = encodeURIComponent(JSON.stringify({
+      id: user.id, email: user.email, name: user.name,
+      role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name,
     }));
 
     return res.redirect(`${APP_URL}/login?token=${token}&refreshToken=${refreshToken}&user=${userJson}`);

@@ -26,6 +26,7 @@ import OnboardingPage    from "./features/onboarding/OnboardingPage";
 import SlackSettingsPage from "./features/slack/SlackSettingsPage";
 import SearchPage        from "./features/search/SearchPage";
 import ActivityPage      from "./features/activity/ActivityPage";
+import ReferralPage from "./features/referral/ReferralPage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -68,6 +69,7 @@ function App() {
         <Route path="slack"         element={<SlackSettingsPage />} />
         <Route path="stripe"        element={<StripeDashboard />} />
         <Route path="activity"      element={<ActivityPage />} />
+        <Route path="referral" element={<ReferralPage />} />
       </Route>
 
     </Routes>

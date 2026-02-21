@@ -167,6 +167,7 @@ const NAV = [
   { path: "/notifications", icon: "🔔", label: "Notifications", notif: true  },
   { path: "/slack",         icon: "💬", label: "Slack",         notif: false },
   { path: "/activity",      icon: "📋", label: "Activity",      notif: false },
+  { path: "/referral", icon: "🎁", label: "Referral", notif: false },
 ];
 
 const WORKSPACE_NAV = [
