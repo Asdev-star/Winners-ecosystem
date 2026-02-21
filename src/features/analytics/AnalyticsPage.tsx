@@ -318,6 +318,18 @@ const css = `
   @media (max-width: 480px) {
     .an-kpis { grid-template-columns: 1fr; }
   }
+    @media (max-width: 768px) {
+  .an-root { padding: 16px 14px 80px; }
+  .an-kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .an-grid { grid-template-columns: 1fr; }
+  .an-title { font-size: 22px; }
+  .an-header { flex-direction: column; gap: 12px; }
+  .an-chart-card { padding: 16px; }
+}
+@media (max-width: 480px) {
+  .an-insight-grid { grid-template-columns: 1fr; gap: 8px; }
+  .an-kpi-value { font-size: 20px; }
+}
 `;
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────

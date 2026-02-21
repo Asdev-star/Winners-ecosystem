@@ -115,6 +115,18 @@ const css = `
 
   @keyframes tm-fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .tm-root { animation: tm-fadeIn 0.4s ease forwards; }
+  @media (max-width: 768px) {
+  .tm-root { padding: 16px 14px 80px; }
+  .tm-title { font-size: 22px; }
+  .tm-table th:nth-child(3), .tm-table td:nth-child(3) { display: none; }
+  .tm-invite-row { flex-direction: column; }
+  .tm-input { min-width: unset; width: 100%; }
+  .tm-header { flex-direction: column; gap: 12px; }
+}
+@media (max-width: 480px) {
+  .tm-table th:nth-child(4), .tm-table td:nth-child(4) { display: none; }
+  .tm-avatar { width: 26px; height: 26px; font-size: 10px; }
+}
 `;
 
 const AVATAR_COLORS = ["#F5C842", "#4A9EFF", "#2DD4A0", "#9B6FFF", "#FF5975"];
