@@ -1,14 +1,14 @@
 // Server/routes/slackRoutes.ts
 
 import { Router, Request, Response } from "express";
-import { authenticateToken } from "../middleware/auth.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import { notifyDailySummary, notifyWeeklyReport } from "../services/slackService.js";
 import db from "../db.js";
 
 const router = Router();
 
 // GET /slack/status — check which webhooks are configured
-router.get("/status", authenticateToken, (_req: Request, res: Response) => {
+router.get("/status", authMiddleware, (_req: Request, res: Response) => {
   res.json({
     revenue: !!process.env.SLACK_WEBHOOK_REVENUE,
     team:    !!process.env.SLACK_WEBHOOK_TEAM,
@@ -18,7 +18,7 @@ router.get("/status", authenticateToken, (_req: Request, res: Response) => {
 });
 
 // POST /slack/test — send a test message to all configured channels
-router.post("/test", authenticateToken, async (req: Request, res: Response) => {
+router.post("/test", authMiddleware, async (req: Request, res: Response) => {
   const { channel } = req.body;
   const tenantName  = req.user!.tenantName ?? "Winners Ecosystem";
 
@@ -45,7 +45,7 @@ router.post("/test", authenticateToken, async (req: Request, res: Response) => {
 });
 
 // POST /slack/daily — manually trigger daily summary
-router.post("/daily", authenticateToken, async (req: Request, res: Response) => {
+router.post("/daily", authMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId   = req.user!.tenantId;
     const tenantName = req.user!.tenantName ?? "Winners Ecosystem";
@@ -74,7 +74,7 @@ router.post("/daily", authenticateToken, async (req: Request, res: Response) => 
 });
 
 // POST /slack/weekly — manually trigger weekly report
-router.post("/weekly", authenticateToken, async (req: Request, res: Response) => {
+router.post("/weekly", authMiddleware, async (req: Request, res: Response) => {
   try {
     const tenantId   = req.user!.tenantId;
     const tenantName = req.user!.tenantName ?? "Winners Ecosystem";
