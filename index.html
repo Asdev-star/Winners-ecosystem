@@ -11,6 +11,24 @@
       /* Prevent flash of white before React loads */
       body { background: #080B10; margin: 0; }
     </style>
+    <script>
+  (function() {
+    try {
+      var t = localStorage.getItem("winners_theme") || "dark";
+      var r = document.documentElement;
+      r.classList.add(t);
+      if (t === "light") {
+        r.style.setProperty("--bg", "#F4F6FA");
+        r.style.setProperty("--surface", "#FFFFFF");
+        r.style.setProperty("--surface2", "#EDF0F7");
+        r.style.setProperty("--border", "#D8DEE9");
+        r.style.setProperty("--text", "#0F1923");
+        r.style.setProperty("--text-dim", "#6B7A99");
+        r.style.setProperty("--gold", "#C9960A");
+      }
+    } catch(e) {}
+  })();
+</script>
   </head>
   <body>
     <div id="root"></div>

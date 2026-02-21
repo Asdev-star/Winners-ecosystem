@@ -66,3 +66,168 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+/* src/index.css */
+
+/* ── Base reset ───────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  /* Default dark theme vars — overridden by themeStore.ts on load */
+  --bg:        #080B10;
+  --surface:   #0D1117;
+  --surface2:  #141B24;
+  --border:    #1E2A38;
+  --text:      #E8EDF2;
+  --text-dim:  #5A6878;
+  --gold:      #F5C842;
+  --gold-dim:  rgba(245,200,66,0.12);
+  --gold-glow: rgba(245,200,66,0.25);
+  --red:       #FF5975;
+  --green:     #2DD4A0;
+  --blue:      #4A9EFF;
+  --purple:    #9B6FFF;
+
+  /* Smooth theme transitions on all elements */
+  color-scheme: dark;
+}
+
+html.light { color-scheme: light; }
+
+/* Apply transitions to common properties globally */
+body, .ml-sidebar, .ml-header, .ml-content, .ml-bottom-nav,
+[class*="-card"], [class*="-section"], [class*="-input"],
+[class*="-select"], [class*="-btn"], [class*="-nav-link"] {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+/* ── Selection ────────────────────────────────────────────────────────────── */
+::selection { background: var(--gold-dim); color: var(--gold); }
+
+/* ── Light mode overrides — fix hardcoded rgba values in components ───────── */
+html.light {
+  /* Override any hardcoded dark rgba values used in component CSS */
+  --grid-line: rgba(0,0,0,0.04);
+  --card-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --modal-overlay: rgba(0,0,0,0.4);
+}
+
+html.dark {
+  --grid-line: rgba(245,200,66,0.03);
+  --card-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  --modal-overlay: rgba(0,0,0,0.7);
+}
+
+/* Fix components that use hardcoded dark backgrounds */
+html.light .ml-root::before,
+html.light .ob-root::before,
+html.light .fp-root::before,
+html.light .rp-root::before {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) !important;
+}
+
+/* Light mode — fix gold glow dots */
+html.light .ml-logo-dot,
+html.light .ob-logo-dot,
+html.light .fp-logo-dot {
+  box-shadow: 0 0 6px var(--gold);
+}
+
+/* Light mode — fix status dot */
+html.light .ml-status-dot {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
+
+/* Light mode — fix nav active state */
+html.light .ml-nav-link.active {
+  background: var(--gold-dim);
+  color: var(--gold);
+}
+
+/* Light mode — fix card top border gradient */
+html.light [class*="-card"]::before {
+  background: linear-gradient(90deg, var(--gold), var(--gold-dim)) !important;
+}
+
+/* Light mode — bottom nav shadow */
+html.light .ml-bottom-nav {
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+}
+
+/* Light mode — modal overlay */
+html.light .gs-modal-overlay {
+  background: var(--modal-overlay) !important;
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────── */
+.text-gold   { color: var(--gold); }
+.text-dim    { color: var(--text-dim); }
+.text-green  { color: var(--green); }
+.text-red    { color: var(--red); }
+.text-blue   { color: var(--blue); }
+.text-purple { color: var(--purple); }
+
+.bg-surface  { background: var(--surface); }
+.bg-surface2 { background: var(--surface2); }
+
+.border-default { border: 1px solid var(--border); }
+.rounded { border-radius: 4px; }
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-fade-up { animation: fadeUp 0.35s ease forwards; }
+.animate-pulse   { animation: pulse 1.5s ease infinite; }
+.animate-spin    { animation: spin 0.8s linear infinite; }
+
+/* ── Skeleton loader ─────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface2) 25%,
+    var(--border) 50%,
+    var(--surface2) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: 3px;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
