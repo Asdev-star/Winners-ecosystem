@@ -5,8 +5,6 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "./authStore";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
@@ -97,32 +95,34 @@ export default function LoginPage() {
 
   // Handle Google OAuth callback — token comes in URL params
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token        = params.get("token");
-    const refreshToken = params.get("refreshToken");
-    const userJson     = params.get("user");
-    const oauthError   = params.get("error");
+  const params = new URLSearchParams(window.location.search);
+  const token        = params.get("token");
+  const refreshToken = params.get("refreshToken");
+  const userJson     = params.get("user");
+  const oauthError   = params.get("error");
 
-    if (oauthError) {
-      setError("Google sign-in failed. Please try again.");
+  if (oauthError) {
+    setError("Google sign-in failed. Please try again.");
+    window.history.replaceState({}, "", "/login");
+    return;
+  }
+
+  if (token && userJson) {
+    try {
+      const userData = JSON.parse(decodeURIComponent(userJson));
+      localStorage.setItem("winners_token", token);
+      if (refreshToken) localStorage.setItem("winners_refresh_token", refreshToken);
+      localStorage.setItem("winners_user", JSON.stringify(userData));
+      restoreSession();
+      // Force navigate immediately
+      window.history.replaceState({}, "", "/");
+      window.location.href = "/";
+    } catch {
+      setError("Failed to complete Google sign-in.");
       window.history.replaceState({}, "", "/login");
-      return;
     }
-
-    if (token && userJson) {
-      try {
-        const userData = JSON.parse(decodeURIComponent(userJson));
-        localStorage.setItem("winners_token", token);
-        if (refreshToken) localStorage.setItem("winners_refresh_token", refreshToken);
-        localStorage.setItem("winners_user", JSON.stringify(userData));
-        restoreSession();
-        navigate("/", { replace: true });
-      } catch {
-        setError("Failed to complete Google sign-in.");
-        window.history.replaceState({}, "", "/login");
-      }
-    }
-  }, []);
+  }
+}, []);
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
