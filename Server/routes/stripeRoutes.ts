@@ -61,8 +61,8 @@ router.post("/checkout", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid plan" });
     }
 
-    const appUrl  = process.env.APP_URL ?? "http://localhost:5173";
-    const session = await createCheckoutSession({
+    const appUrl = "https://winners-empire-eco.up.railway.app";
+const session = await createCheckoutSession({
       plan,
       tenantId:   req.user!.tenantId,
       userId: req.user!.tenantId,
