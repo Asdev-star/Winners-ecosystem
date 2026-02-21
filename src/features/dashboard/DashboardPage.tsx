@@ -6,9 +6,6 @@ import AIRecommendationCard from "../ai/AIRecommendationCard";
 
 const css = `
   .dash-root {
-    --gold: #F5C842; --bg: #080B10; --surface: #0D1117; --surface2: #141B24;
-    --border: #1E2A38; --text: #E8EDF2; --text-dim: #5A6878;
-    --green: #2DD4A0; --red: #FF5975; --blue: #4A9EFF;
     padding: 28px 24px 60px; font-family: 'Syne', sans-serif; color: var(--text);
   }
 
@@ -25,21 +22,20 @@ const css = `
   }
   .dash-kpi:hover { border-color: rgba(245,200,66,0.2); }
   .dash-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-  .dash-kpi.gold::before   { background: var(--gold); }
-  .dash-kpi.green::before  { background: var(--green); }
-  .dash-kpi.blue::before   { background: var(--blue); }
-  .dash-kpi.red::before    { background: var(--red); }
+  .dash-kpi.gold::before  { background: var(--gold); }
+  .dash-kpi.green::before { background: #2DD4A0; }
+  .dash-kpi.blue::before  { background: #4A9EFF; }
+  .dash-kpi.red::before   { background: #FF5975; }
 
   .dash-kpi-label { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
   .dash-kpi-value { font-size: 26px; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
   .dash-kpi-delta { font-family: 'Space Mono', monospace; font-size: 10px; }
-  .dash-kpi-delta.up   { color: var(--green); }
-  .dash-kpi-delta.down { color: var(--red); }
+  .dash-kpi-delta.up   { color: #2DD4A0; }
+  .dash-kpi-delta.down { color: #FF5975; }
   .dash-kpi-delta.flat { color: var(--text-dim); }
 
-  /* Skeleton loader */
   .dash-skeleton {
-    background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%);
+    background: linear-gradient(90deg, var(--surface2, #141B24) 25%, var(--surface) 50%, var(--surface2, #141B24) 75%);
     background-size: 200% 100%; border-radius: 3px;
     animation: dash-shimmer 1.4s infinite;
   }
@@ -56,8 +52,27 @@ const css = `
 
   .dash-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 
-  @media (max-width: 900px) { .dash-kpis { grid-template-columns: 1fr 1fr; } }
-  @media (max-width: 480px) { .dash-kpis { grid-template-columns: 1fr; } }
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .dash-kpis { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .dash-kpi-value { font-size: 22px; }
+  }
+
+  @media (max-width: 600px) {
+    .dash-root { padding: 16px 14px 80px; }
+    .dash-kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .dash-kpi { padding: 14px; }
+    .dash-kpi-value { font-size: 20px; }
+    .dash-kpi-label { font-size: 8px; }
+    .dash-title { font-size: 20px; }
+    .dash-subtitle { font-size: 10px; }
+    .dash-insight { padding: 12px 14px; }
+    .dash-insight-text { font-size: 12px; }
+  }
+
+  @media (max-width: 380px) {
+    .dash-kpis { grid-template-columns: 1fr; }
+  }
 `;
 
 function fmt(n: number) {
@@ -66,12 +81,9 @@ function fmt(n: number) {
   return `$${n.toLocaleString()}`;
 }
 
-function deltaClass(n: number) {
-  return n > 0 ? "up" : n < 0 ? "down" : "flat";
-}
-
-function deltaLabel(n: number, suffix = "%") {
-  return `${n > 0 ? "▲" : n < 0 ? "▼" : "–"} ${Math.abs(n).toFixed(1)}${suffix} vs last period`;
+function deltaClass(n: number) { return n > 0 ? "up" : n < 0 ? "down" : "flat"; }
+function deltaLabel(n: number) {
+  return `${n > 0 ? "▲" : n < 0 ? "▼" : "–"} ${Math.abs(n).toFixed(1)}% vs last period`;
 }
 
 export default function DashboardPage() {
@@ -138,7 +150,7 @@ export default function DashboardPage() {
           {loading
             ? <><div className="dash-skeleton" style={{ height: 32, width: "50%", marginBottom: 8 }} /><div className="dash-skeleton" style={{ height: 14, width: "70%" }} /></>
             : <>
-                <div className="dash-kpi-value" style={{ color: stats.trend === "up" ? "var(--green)" : stats.trend === "down" ? "var(--red)" : "var(--text)" }}>
+                <div className="dash-kpi-value" style={{ color: stats.trend === "up" ? "#2DD4A0" : stats.trend === "down" ? "#FF5975" : "var(--text)" }}>
                   {stats.trend === "up" ? "↑ Up" : stats.trend === "down" ? "↓ Down" : "→ Stable"}
                 </div>
                 <div className="dash-kpi-delta flat">vs previous period</div>
