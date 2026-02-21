@@ -2,6 +2,7 @@
 
 import Stripe from "stripe";
 import db from "../db.js";
+import { notifyNewRevenue, notifyPlanUpgraded } from "./slackService.js";
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY not set");
@@ -144,15 +145,24 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
       const tenantId = session.metadata?.tenantId;
       const plan     = session.metadata?.plan as "PRO" | "ENTERPRISE";
       if (tenantId && plan) {
-        await db.tenant.update({
-          where: { id: tenantId },
-          data: {
-            plan,
-            stripeCustomerId:     session.customer as string,
-            stripeSubscriptionId: session.subscription as string,
-          },
-        });
-      }
+  const tenant = await db.tenant.update({
+    where: { id: tenantId },
+    data: {
+      plan,
+      stripeCustomerId:     session.customer as string,
+      stripeSubscriptionId: session.subscription as string,
+    },
+  });
+
+  // Notify Slack
+  const { notifyPlanUpgraded } = await import("./slackService.js");
+  await notifyPlanUpgraded({
+    fromPlan:   "FREE",
+    toPlan:     plan,
+    upgradedBy: session.customer_email ?? "Customer",
+    tenantName: tenant.name,
+  }).catch(() => {});
+}
       break;
     }
     case "customer.subscription.deleted": {
@@ -168,6 +178,14 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
         await db.revenueRecord.create({
           data: { tenantId: tenant.id, date: new Date(), amount: invoice.amount_paid / 100, source: "stripe_subscription" },
         });
+        const { notifyNewRevenue } = await import("./slackService.js");
+await notifyNewRevenue({
+  amount:     invoice.amount_paid / 100,
+  currency:   invoice.currency.toUpperCase(),
+  customer:   invoice.customer_email ?? undefined,
+  source:     "Stripe",
+  tenantName: tenant.name,
+}).catch(() => {});
       }
       break;
     }
