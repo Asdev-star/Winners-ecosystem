@@ -1,0 +1,340 @@
+// src/features/admin/AdminPage.tsx
+
+import { useState, useEffect } from "react";
+import { useAuthStore } from "../auth/authStore";
+
+const API = import.meta.env.VITE_API_URL ?? "";
+
+const css = `
+  .adm-root { padding: 28px 24px 80px; font-family: 'Syne', sans-serif; color: var(--text); max-width: 1100px; }
+  .adm-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .adm-title span { color: var(--gold); }
+  .adm-subtitle { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 28px; }
+  .adm-badge { font-family: 'Space Mono', monospace; font-size: 9px; padding: 2px 8px; border-radius: 2px; background: rgba(255,89,117,0.1); color: #FF5975; border: 1px solid rgba(255,89,117,0.2); margin-left: 10px; vertical-align: middle; }
+
+  /* Tabs */
+  .adm-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .adm-tab { padding: 10px 18px; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; color: var(--text-dim); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; }
+  .adm-tab:hover { color: var(--text); }
+  .adm-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* KPI grid */
+  .adm-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .adm-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 18px; }
+  .adm-kpi-label { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+  .adm-kpi-value { font-size: 26px; font-weight: 800; letter-spacing: -1px; color: var(--gold); }
+  .adm-kpi-sub { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); margin-top: 4px; }
+
+  /* Charts row */
+  .adm-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .adm-chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 20px; }
+  .adm-chart-title { font-size: 13px; font-weight: 700; margin-bottom: 16px; }
+
+  /* Plan dist bars */
+  .adm-plan-bar { margin-bottom: 12px; }
+  .adm-plan-bar-label { display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); margin-bottom: 5px; }
+  .adm-plan-bar-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .adm-plan-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+  /* Revenue sparkline */
+  .adm-sparkline { height: 80px; display: flex; align-items: flex-end; gap: 2px; }
+  .adm-spark-bar { flex: 1; border-radius: 2px 2px 0 0; background: rgba(245,200,66,0.4); transition: background 0.15s; min-height: 2px; }
+  .adm-spark-bar:hover { background: var(--gold); }
+
+  /* Table */
+  .adm-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 16px; }
+  .adm-table-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .adm-table-title { font-size: 13px; font-weight: 700; }
+  .adm-search { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 7px 12px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text); outline: none; width: 200px; }
+  .adm-search:focus { border-color: var(--gold); }
+  .adm-search::placeholder { color: var(--text-dim); }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); padding: 10px 20px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  td { padding: 12px 20px; font-size: 12px; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(245,200,66,0.02); }
+
+  .adm-plan-tag { font-family: 'Space Mono', monospace; font-size: 9px; padding: 2px 7px; border-radius: 2px; }
+  .adm-plan-tag.FREE       { background: rgba(90,104,120,0.15); color: var(--text-dim); }
+  .adm-plan-tag.PRO        { background: rgba(245,200,66,0.12); color: var(--gold); }
+  .adm-plan-tag.ENTERPRISE { background: rgba(155,111,255,0.12); color: #9B6FFF; }
+
+  .adm-action-btn { background: transparent; border: 1px solid var(--border); border-radius: 3px; padding: 4px 10px; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); cursor: pointer; transition: all 0.15s; margin-right: 4px; }
+  .adm-action-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .adm-action-btn.danger:hover { border-color: #FF5975; color: #FF5975; }
+
+  .adm-pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); border-top: 1px solid var(--border); }
+  .adm-page-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 5px 12px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); cursor: pointer; transition: all 0.15s; }
+  .adm-page-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+  .adm-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .adm-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+  .adm-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 28px; width: 360px; }
+  .adm-modal-title { font-size: 16px; font-weight: 800; margin-bottom: 16px; }
+  .adm-modal-select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 10px 12px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text); outline: none; margin-bottom: 16px; }
+  .adm-modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .adm-btn { background: var(--gold); color: #080B10; border: none; border-radius: 3px; padding: 9px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .adm-btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+
+  .adm-empty { padding: 32px; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
+  .adm-loading { padding: 40px; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
+  .adm-error { padding: 14px 18px; background: rgba(255,89,117,0.08); border: 1px solid rgba(255,89,117,0.2); border-radius: 4px; font-family: 'Space Mono', monospace; font-size: 11px; color: #FF5975; margin-bottom: 16px; }
+
+  @media (max-width: 900px) {
+    .adm-kpis  { grid-template-columns: repeat(3, 1fr); }
+    .adm-charts { grid-template-columns: 1fr; }
+    .adm-root  { padding: 16px 14px 80px; }
+  }
+  @media (max-width: 600px) {
+    .adm-kpis { grid-template-columns: repeat(2, 1fr); }
+    .adm-search { width: 140px; }
+  }
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("adm-styles")) {
+  const tag = document.createElement("style");
+  tag.id = "adm-styles"; tag.textContent = css;
+  document.head.appendChild(tag);
+}
+
+function fmt(n: number) { return `$${(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
+
+const PLAN_COLORS: Record<string, string> = { FREE: "#5A6878", PRO: "#F5C842", ENTERPRISE: "#9B6FFF" };
+
+export default function AdminPage() {
+  const token = useAuthStore((s) => s.token);
+  const user  = useAuthStore((s) => s.user);
+
+  const [tab, setTab]         = useState<"overview" | "tenants" | "users">("overview");
+  const [stats, setStats]     = useState<any>(null);
+  const [tenants, setTenants] = useState<any>(null);
+  const [users, setUsers]     = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
+  const [search, setSearch]   = useState("");
+  const [page, setPage]       = useState(1);
+  const [modal, setModal]     = useState<{ tenantId: string; name: string; plan: string } | null>(null);
+  const [newPlan, setNewPlan] = useState("PRO");
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    if (tab === "overview" && !stats) loadStats();
+    if (tab === "tenants") loadTenants();
+    if (tab === "users")   loadUsers();
+  }, [tab, page, search]);
+
+  const loadStats = async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await fetch(`${API}/admin/stats`, { headers });
+      if (res.status === 403) { setError("Superadmin access required. Add your email to ADMIN_EMAILS in Railway."); return; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setStats(await res.json());
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const loadTenants = async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await fetch(`${API}/admin/tenants?page=${page}&q=${encodeURIComponent(search)}`, { headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setTenants(await res.json());
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const loadUsers = async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await fetch(`${API}/admin/users?page=${page}&q=${encodeURIComponent(search)}`, { headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setUsers(await res.json());
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const changePlan = async () => {
+    if (!modal) return;
+    await fetch(`${API}/admin/tenants/${modal.tenantId}/plan`, {
+      method: "PATCH", headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: newPlan }),
+    });
+    setModal(null);
+    loadTenants();
+  };
+
+  const deleteTenant = async (id: string) => {
+    if (!confirm("Are you sure? This will soft-delete the tenant.")) return;
+    await fetch(`${API}/admin/tenants/${id}`, { method: "DELETE", headers });
+    loadTenants();
+  };
+
+  const maxRevenue = stats ? Math.max(...(stats.revenueByDay?.map((d: any) => d.amount) ?? [1])) : 1;
+  const totalPlanCount = stats ? stats.planDistribution.reduce((s: number, p: any) => s + p.count, 0) : 1;
+
+  return (
+    <div className="adm-root">
+      <h1 className="adm-title">Admin <span>Super Dashboard</span> <span className="adm-badge">SUPERADMIN</span></h1>
+      <p className="adm-subtitle">Platform-wide visibility across all tenants, users and revenue</p>
+
+      {error && <div className="adm-error">⚠ {error}</div>}
+
+      {/* Tabs */}
+      <div className="adm-tabs">
+        {(["overview", "tenants", "users"] as const).map((t) => (
+          <button key={t} className={`adm-tab${tab === t ? " active" : ""}`} onClick={() => { setTab(t); setPage(1); setSearch(""); }}>
+            {t === "overview" ? "📊 Overview" : t === "tenants" ? "🏢 Tenants" : "👥 Users"}
+          </button>
+        ))}
+      </div>
+
+      {loading && <div className="adm-loading">Loading…</div>}
+
+      {/* ── Overview ── */}
+      {!loading && tab === "overview" && stats && (
+        <>
+          <div className="adm-kpis">
+            {[
+              { label: "Total Tenants",   value: stats.totals.tenants,      sub: `+${stats.totals.newThisWeek} this week` },
+              { label: "Total Users",     value: stats.totals.users,        sub: "across all workspaces" },
+              { label: "Total Revenue",   value: fmt(stats.totals.revenue), sub: "all time" },
+              { label: "New This Month",  value: stats.totals.newThisMonth, sub: "new workspaces" },
+              { label: "New This Week",   value: stats.totals.newThisWeek,  sub: "new workspaces" },
+            ].map((k) => (
+              <div className="adm-kpi" key={k.label}>
+                <div className="adm-kpi-label">{k.label}</div>
+                <div className="adm-kpi-value">{k.value}</div>
+                <div className="adm-kpi-sub">{k.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="adm-charts">
+            {/* Revenue sparkline */}
+            <div className="adm-chart-card">
+              <div className="adm-chart-title">Revenue — Last 30 Days</div>
+              <div className="adm-sparkline">
+                {stats.revenueByDay.map((d: any) => (
+                  <div key={d.date} className="adm-spark-bar" style={{ height: `${Math.max(4, (d.amount / maxRevenue) * 100)}%` }} title={`${d.date}: ${fmt(d.amount)}`} />
+                ))}
+              </div>
+            </div>
+
+            {/* Plan distribution */}
+            <div className="adm-chart-card">
+              <div className="adm-chart-title">Plan Distribution</div>
+              {stats.planDistribution.map((p: any) => (
+                <div className="adm-plan-bar" key={p.plan}>
+                  <div className="adm-plan-bar-label">
+                    <span>{p.plan}</span>
+                    <span>{p.count} workspace{p.count !== 1 ? "s" : ""} ({Math.round((p.count / totalPlanCount) * 100)}%)</span>
+                  </div>
+                  <div className="adm-plan-bar-track">
+                    <div className="adm-plan-bar-fill" style={{ width: `${(p.count / totalPlanCount) * 100}%`, background: PLAN_COLORS[p.plan] ?? "#5A6878" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Tenants ── */}
+      {!loading && tab === "tenants" && tenants && (
+        <div className="adm-table-wrap">
+          <div className="adm-table-header">
+            <div className="adm-table-title">🏢 All Tenants ({tenants.total})</div>
+            <input className="adm-search" placeholder="Search tenants…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Workspace</th><th>Plan</th><th>Users</th><th>Revenue</th><th>Created</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tenants.tenants.length === 0 ? (
+                <tr><td colSpan={6}><div className="adm-empty">No tenants found</div></td></tr>
+              ) : tenants.tenants.map((t: any) => (
+                <tr key={t.id}>
+                  <td><strong>{t.name}</strong><br /><span style={{ fontFamily: "Space Mono, monospace", fontSize: 9, color: "var(--text-dim)" }}>{t.id}</span></td>
+                  <td><span className={`adm-plan-tag ${t.plan}`}>{t.plan}</span></td>
+                  <td>{t._count.users}</td>
+                  <td>{fmt(t.totalRevenue)}</td>
+                  <td style={{ fontFamily: "Space Mono, monospace", fontSize: 10 }}>{new Date(t.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <button className="adm-action-btn" onClick={() => { setModal({ tenantId: t.id, name: t.name, plan: t.plan }); setNewPlan(t.plan); }}>Change Plan</button>
+                    <button className="adm-action-btn danger" onClick={() => deleteTenant(t.id)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="adm-pagination">
+            <span>Page {tenants.page} of {tenants.pages}</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="adm-page-btn" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Prev</button>
+              <button className="adm-page-btn" disabled={page >= tenants.pages} onClick={() => setPage((p) => p + 1)}>Next →</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Users ── */}
+      {!loading && tab === "users" && users && (
+        <div className="adm-table-wrap">
+          <div className="adm-table-header">
+            <div className="adm-table-title">👥 All Users ({users.total})</div>
+            <input className="adm-search" placeholder="Search users…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+          </div>
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Role</th><th>Workspace</th><th>Plan</th><th>Joined</th></tr>
+            </thead>
+            <tbody>
+              {users.users.length === 0 ? (
+                <tr><td colSpan={6}><div className="adm-empty">No users found</div></td></tr>
+              ) : users.users.map((u: any) => (
+                <tr key={u.id}>
+                  <td><strong>{u.name}</strong></td>
+                  <td style={{ fontFamily: "Space Mono, monospace", fontSize: 10 }}>{u.email}</td>
+                  <td style={{ fontFamily: "Space Mono, monospace", fontSize: 10 }}>{u.role}</td>
+                  <td>{u.tenant?.name ?? "—"}</td>
+                  <td><span className={`adm-plan-tag ${u.tenant?.plan ?? "FREE"}`}>{u.tenant?.plan ?? "—"}</span></td>
+                  <td style={{ fontFamily: "Space Mono, monospace", fontSize: 10 }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="adm-pagination">
+            <span>Page {users.page} of {users.pages}</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="adm-page-btn" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Prev</button>
+              <button className="adm-page-btn" disabled={page >= users.pages} onClick={() => setPage((p) => p + 1)}>Next →</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Plan Modal */}
+      {modal && (
+        <div className="adm-modal-overlay" onClick={() => setModal(null)}>
+          <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="adm-modal-title">Change Plan — {modal.name}</div>
+            <select className="adm-modal-select" value={newPlan} onChange={(e) => setNewPlan(e.target.value)}>
+              <option value="FREE">FREE</option>
+              <option value="PRO">PRO</option>
+              <option value="ENTERPRISE">ENTERPRISE</option>
+            </select>
+            <div className="adm-modal-btns">
+              <button className="adm-btn ghost" onClick={() => setModal(null)}>Cancel</button>
+              <button className="adm-btn" onClick={changePlan}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

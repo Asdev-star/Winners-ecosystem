@@ -184,6 +184,7 @@ const BOTTOM_NAV = [
   { path: "/stripe",        icon: "💰", label: "Stripe",  notif: false },
   { path: "/notifications", icon: "🔔", label: "Alerts",  notif: true  },
   { path: "/settings",      icon: "⚙️", label: "Settings",notif: false },
+  { path: "/admin", icon: "🛡️", label: "Admin", notif: false },
 ];
 
 export default function MainLayout() {

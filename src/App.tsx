@@ -27,6 +27,9 @@ import SlackSettingsPage from "./features/slack/SlackSettingsPage";
 import SearchPage        from "./features/search/SearchPage";
 import ActivityPage      from "./features/activity/ActivityPage";
 import ReferralPage from "./features/referral/ReferralPage";
+import AdminPage from "./features/admin/AdminPage";
+
+
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -70,6 +73,7 @@ function App() {
         <Route path="stripe"        element={<StripeDashboard />} />
         <Route path="activity"      element={<ActivityPage />} />
         <Route path="referral" element={<ReferralPage />} />
+        <Route path="admin" element={<AdminPage />} />
       </Route>
 
     </Routes>

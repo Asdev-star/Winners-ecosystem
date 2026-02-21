@@ -6,6 +6,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import searchRoutes from "./routes/searchRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 // Routes
 import authRoutes         from "./routes/authRoutes.js";
@@ -69,6 +70,7 @@ app.use("/stripe", stripeRoutes);
 app.use("/search", searchRoutes);
 app.use("/activity", activityRoutes);
 app.use("/referral", referralRoutes);
+app.use("/admin", adminRoutes);
 // ── Serve React frontend in production ────────────────────────────────────────
 
 if (isProd) {
