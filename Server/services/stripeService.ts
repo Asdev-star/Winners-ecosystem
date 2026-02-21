@@ -28,19 +28,11 @@ export async function syncStripeRevenue(tenantId: string) {
 
   for (const [dateStr, amount] of Object.entries(byDate)) {
     const date = new Date(dateStr);
-    // Find existing record and update or create new one
-    const existing = await db.revenueRecord.findFirst({
-      where: { tenantId, date },
-    });
+    const existing = await db.revenueRecord.findFirst({ where: { tenantId, date } });
     if (existing) {
-      await db.revenueRecord.update({
-        where: { id: existing.id },
-        data:  { amount, source: "stripe" },
-      });
+      await db.revenueRecord.update({ where: { id: existing.id }, data: { amount, source: "stripe" } });
     } else {
-      await db.revenueRecord.create({
-        data: { tenantId, date, amount, source: "stripe" },
-      });
+      await db.revenueRecord.create({ data: { tenantId, date, amount, source: "stripe" } });
     }
   }
 
@@ -66,14 +58,9 @@ export async function getStripeStats() {
     const item  = sub.items.data[0];
     const price = item?.price;
     if (!price?.unit_amount) return sum;
-    const monthly = price.recurring?.interval === "year"
-      ? price.unit_amount / 12
-      : price.unit_amount;
+    const monthly = price.recurring?.interval === "year" ? price.unit_amount / 12 : price.unit_amount;
     return sum + monthly / 100;
   }, 0);
-
-  const availableBalance = balance.available.reduce((s, b) => s + b.amount, 0) / 100;
-  const pendingBalance   = balance.pending.reduce((s, b) => s + b.amount, 0) / 100;
 
   return {
     last30Days: {
@@ -82,13 +69,10 @@ export async function getStripeStats() {
       newCustomers: customers.data.length,
       refunds:      charges.data.filter((c) => c.refunded).length,
     },
-    subscriptions: {
-      active: subscriptions.data.length,
-      mrr:    Math.round(mrr),
-    },
+    subscriptions: { active: subscriptions.data.length, mrr: Math.round(mrr) },
     balance: {
-      available: availableBalance,
-      pending:   pendingBalance,
+      available: balance.available.reduce((s, b) => s + b.amount, 0) / 100,
+      pending:   balance.pending.reduce((s, b) => s + b.amount, 0) / 100,
     },
     recentCharges: successfulCharges.slice(0, 10).map((c) => ({
       id:          c.id,
@@ -114,16 +98,19 @@ export async function createCheckoutSession(params: {
 }) {
   const stripe = getStripe();
 
-  const prices: Record<string, string> = {
-    PRO:        process.env.STRIPE_PRO_PRICE_ID        ?? "",
-    ENTERPRISE: process.env.STRIPE_ENTERPRISE_PRICE_ID ?? "",
-  };
+  const priceId = params.plan === "PRO"
+    ? process.env.STRIPE_PRO_PRICE_ID
+    : process.env.STRIPE_ENTERPRISE_PRICE_ID;
+
+  if (!priceId) {
+    throw new Error(`Price ID for ${params.plan} not set. Add STRIPE_PRO_PRICE_ID or STRIPE_ENTERPRISE_PRICE_ID to environment variables.`);
+  }
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     mode:                 "subscription",
     customer_email:       params.email,
-    line_items: [{ price: prices[params.plan], quantity: 1 }],
+    line_items: [{ price: priceId, quantity: 1 }],
     metadata: {
       tenantId: params.tenantId,
       userId:   params.userId,
@@ -140,10 +127,7 @@ export async function createCheckoutSession(params: {
 
 export async function createPortalSession(customerId: string, returnUrl: string) {
   const stripe = getStripe();
-  return stripe.billingPortal.sessions.create({
-    customer:   customerId,
-    return_url: returnUrl,
-  });
+  return stripe.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
 }
 
 // ─── Handle Stripe webhook events ─────────────────────────────────────────────
@@ -162,7 +146,7 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
       if (tenantId && plan) {
         await db.tenant.update({
           where: { id: tenantId },
-          data:  {
+          data: {
             plan,
             stripeCustomerId:     session.customer as string,
             stripeSubscriptionId: session.subscription as string,
@@ -174,9 +158,7 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
     case "customer.subscription.deleted": {
       const sub    = event.data.object as Stripe.Subscription;
       const tenant = await db.tenant.findFirst({ where: { stripeSubscriptionId: sub.id } });
-      if (tenant) {
-        await db.tenant.update({ where: { id: tenant.id }, data: { plan: "FREE" } });
-      }
+      if (tenant) await db.tenant.update({ where: { id: tenant.id }, data: { plan: "FREE" } });
       break;
     }
     case "invoice.payment_succeeded": {
