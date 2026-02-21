@@ -239,6 +239,16 @@ export default function LoginPage() {
             />
             {fieldErr.password && <div className="lp-error">› Minimum 6 characters</div>}
           </div>
+                    <div style={{ textAlign: "right", marginTop: -8, marginBottom: 16 }}>
+  <span
+    onClick={() => navigate("/forgot-password")}
+    style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)", cursor: "pointer" }}
+    onMouseOver={(e) => (e.currentTarget.style.color = "#F5C842")}
+    onMouseOut={(e) => (e.currentTarget.style.color = "var(--text-dim)")}
+  >
+    Forgot password?
+  </span>
+</div>
 
           <button type="submit" className="lp-submit" disabled={loading}>
             {loading

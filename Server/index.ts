@@ -18,7 +18,7 @@ import profileRoutes      from "./routes/profileRoutes.js";
 import emailRoutes        from "./routes/emailRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import stripeRoutes from "./routes/stripeRoutes.js";;
-
+import passwordResetRoutes from "./routes/passwordResetRoutes.js";
 // Scheduler
 import { startEmailScheduler } from "./services/emailScheduler.js";
 
@@ -50,6 +50,7 @@ app.get("/health", (_req, res) => {
 // ── API Routes ─────────────────────────────────────────────────────────────────
 
 app.use("/auth",          authRoutes);
+app.use("/auth", passwordResetRoutes);
 app.use("/tenants",       tenantsRoutes);
 app.use("/users",         usersRoutes);
 app.use("/analytics",     analyticsRoutes);

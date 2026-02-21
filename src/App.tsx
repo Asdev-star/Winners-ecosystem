@@ -21,6 +21,10 @@ import BillingPage       from "./features/billing/BillingPage";
 import EmailReportsPage  from "./features/email/EmailReportsPage";
 import NotificationsPage from "./features/notifications/NotificationsPage";
 import StripeDashboard from "./features/stripe/StripeDashboard";
+import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
+import ResetPasswordPage  from "./features/auth/ResetPasswordPage";
+
+// Outside ProtectedRoute:
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
 
@@ -37,6 +41,8 @@ function App() {
       <Route path="/invite/accept" element={<AcceptInvitePage />} />
       <Route path="/onboarding"   element={<OnboardingPage />} />
       <Route path="/architecture" element={<ArchitectureDiagram />} />
+      <Route path="forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="reset-password"  element={<ResetPasswordPage />} />
 
       {/* ── Protected routes (inside MainLayout) ── */}
       <Route
