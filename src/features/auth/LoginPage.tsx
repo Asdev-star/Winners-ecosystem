@@ -72,16 +72,17 @@ const css = `
 `;
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const login    = useAuthStore((s) => s.login);
-  const user     = useAuthStore((s) => s.user);
+  const navigate       = useNavigate();
+  const login          = useAuthStore((s) => s.login);
+  const user           = useAuthStore((s) => s.user);
   const restoreSession = useAuthStore((s) => s.restoreSession);
 
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
-  const [fieldErr, setFieldErr] = useState({ email: false, password: false });
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState("");
+  const [fieldErr, setFieldErr]       = useState({ email: false, password: false });
+  const [oauthDone, setOauthDone]     = useState(false);
 
   useEffect(() => {
     const id = "lp-styles";
@@ -93,40 +94,42 @@ export default function LoginPage() {
     return () => { document.getElementById(id)?.remove(); };
   }, []);
 
-  // Handle Google OAuth callback — token comes in URL params
+  // Handle Google OAuth callback
   useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const token        = params.get("token");
-  const refreshToken = params.get("refreshToken");
-  const userJson     = params.get("user");
-  const oauthError   = params.get("error");
+    const params       = new URLSearchParams(window.location.search);
+    const token        = params.get("token");
+    const refreshToken = params.get("refreshToken");
+    const userJson     = params.get("user");
+    const oauthError   = params.get("error");
 
-  if (oauthError) {
-    setError("Google sign-in failed. Please try again.");
-    window.history.replaceState({}, "", "/login");
-    return;
-  }
-
-  if (token && userJson) {
-    try {
-      const userData = JSON.parse(decodeURIComponent(userJson));
-      localStorage.setItem("winners_token", token);
-      if (refreshToken) localStorage.setItem("winners_refresh_token", refreshToken);
-      localStorage.setItem("winners_user", JSON.stringify(userData));
-      restoreSession();
-      // Force navigate immediately
-      window.history.replaceState({}, "", "/");
-      window.location.href = "/";
-    } catch {
-      setError("Failed to complete Google sign-in.");
+    if (oauthError) {
+      setError("Google sign-in failed. Please try again.");
       window.history.replaceState({}, "", "/login");
+      return;
     }
-  }
-}, []);
 
+    if (token && userJson) {
+      setOauthDone(true); // prevent the user redirect from interfering
+      try {
+        const userData = JSON.parse(decodeURIComponent(userJson));
+        localStorage.setItem("winners_token", token);
+        if (refreshToken) localStorage.setItem("winners_refresh_token", refreshToken);
+        localStorage.setItem("winners_user", JSON.stringify(userData));
+        // Clean URL then go to dashboard
+        window.history.replaceState({}, "", "/login");
+        restoreSession();
+        setTimeout(() => { window.location.replace("/"); }, 100);
+      } catch {
+        setError("Failed to complete Google sign-in.");
+        setOauthDone(false);
+      }
+    }
+  }, []);
+
+  // Only redirect if already logged in AND not processing OAuth
   useEffect(() => {
-    if (user) navigate("/", { replace: true });
-  }, [user, navigate]);
+    if (user && !oauthDone) navigate("/", { replace: true });
+  }, [user, navigate, oauthDone]);
 
   const validate = () => {
     const errs = { email: !email.includes("@"), password: password.length < 6 };
@@ -157,12 +160,13 @@ export default function LoginPage() {
   };
 
   const handleGoogle = () => {
-  const clientId    = "148507996421-uc3cr1npihhme71avlmh76dll3jqktcv.apps.googleusercontent.com";
-  const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
-  const scope       = encodeURIComponent("openid email profile");
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
-  window.location.href = url;
-};
+    const clientId    = "148507996421-uc3cr1npihhme71avlmh76dll3jqktcv.apps.googleusercontent.com";
+    const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
+    const scope       = encodeURIComponent("openid email profile");
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
+    window.location.href = url;
+  };
+
   return (
     <div className="lp-root">
       <div className="lp-glow" />
@@ -177,7 +181,6 @@ export default function LoginPage() {
 
         {error && <div className="lp-alert">{error}</div>}
 
-        {/* Google Sign In */}
         <button className="lp-google" onClick={handleGoogle}>
           <svg className="lp-google-icon" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
