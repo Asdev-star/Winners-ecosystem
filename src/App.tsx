@@ -9,6 +9,9 @@ import LoginPage         from "./features/auth/LoginPage";
 import LandingPage       from "./features/landing/LandingPage";
 import AcceptInvitePage  from "./features/team/AcceptInvitePage";
 import ArchitectureDiagram from "./components/docs/ArchitectureDiagram";
+import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
+import ResetPasswordPage  from "./features/auth/ResetPasswordPage";
+import OnboardingPage    from "./features/onboarding/OnboardingPage";
 
 import DashboardPage     from "./features/dashboard/DashboardPage";
 import ProfilePage       from "./features/profile/ProfilePage";
@@ -20,16 +23,11 @@ import BillingPage       from "./features/billing/BillingPage";
 import EmailReportsPage  from "./features/email/EmailReportsPage";
 import NotificationsPage from "./features/notifications/NotificationsPage";
 import StripeDashboard   from "./features/stripe/StripeDashboard";
-import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
-import ResetPasswordPage  from "./features/auth/ResetPasswordPage";
-import OnboardingPage    from "./features/onboarding/OnboardingPage";
 import SlackSettingsPage from "./features/slack/SlackSettingsPage";
 import SearchPage        from "./features/search/SearchPage";
 import ActivityPage      from "./features/activity/ActivityPage";
-import ReferralPage from "./features/referral/ReferralPage";
-import AdminPage from "./features/admin/AdminPage";
-
-
+import ReferralPage      from "./features/referral/ReferralPage";
+import AdminPage         from "./features/admin/AdminPage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -40,14 +38,13 @@ function App() {
 
   return (
     <Routes>
-
       {/* ── Public routes ── */}
-      <Route path="/"               element={<LandingPage />} />
-      <Route path="/landing"        element={<LandingPage />} />
-      <Route path="/login"          element={<LoginPage />} />
-      <Route path="/invite/accept"  element={<AcceptInvitePage />} />
-      <Route path="/onboarding"     element={<OnboardingPage />} />
-      <Route path="/architecture"   element={<ArchitectureDiagram />} />
+      <Route path="/"                element={<LandingPage />} />
+      <Route path="/landing"         element={<LandingPage />} />
+      <Route path="/login"           element={<LoginPage />} />
+      <Route path="/invite/accept"   element={<AcceptInvitePage />} />
+      <Route path="/onboarding"      element={<OnboardingPage />} />
+      <Route path="/architecture"    element={<ArchitectureDiagram />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
@@ -72,10 +69,9 @@ function App() {
         <Route path="slack"         element={<SlackSettingsPage />} />
         <Route path="stripe"        element={<StripeDashboard />} />
         <Route path="activity"      element={<ActivityPage />} />
-        <Route path="referral" element={<ReferralPage />} />
-        <Route path="admin" element={<AdminPage />} />
+        <Route path="referral"      element={<ReferralPage />} />
+        <Route path="admin"         element={<AdminPage />} />
       </Route>
-
     </Routes>
   );
 }
