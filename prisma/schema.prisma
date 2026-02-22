@@ -1,4 +1,4 @@
-// prisma/schema.prisma
+// prisma/schema.prisma — Full schema including Community Layer V1
 
 generator client {
   provider = "prisma-client-js"
@@ -9,15 +9,15 @@ datasource db {
 }
 
 model Tenant {
-  id          String    @id @default(cuid())
-  name        String
-  plan        Plan      @default(FREE)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-  timezone    String    @default("UTC")
-  currency    String    @default("USD")
-  fiscalMonth Int       @default(1)
+  id                   String    @id @default(cuid())
+  name                 String
+  plan                 Plan      @default(FREE)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+  timezone             String    @default("UTC")
+  currency             String    @default("USD")
+  fiscalMonth          Int       @default(1)
   stripeCustomerId     String?
   stripeSubscriptionId String?
 
@@ -26,6 +26,7 @@ model Tenant {
   revenueRecords  RevenueRecord[]
   analyticsEvents AnalyticsEvent[]
   referralCredits ReferralCredit[]
+  posts           Post[]
 
   @@map("tenants")
 }
@@ -57,6 +58,11 @@ model User {
   referralsReceived   Referral[]           @relation("ReferredRelation")
   referralCredits     ReferralCredit[]
   twoFactorOTPs       TwoFactorOTP[]
+  posts               Post[]               @relation("PostAuthor")
+  comments            Comment[]            @relation("CommentAuthor")
+  likes               Like[]
+  followers           Follow[]             @relation("Followers")
+  following           Follow[]             @relation("Following")
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -231,4 +237,107 @@ enum ChangelogType {
   BUGFIX
   IMPROVEMENT
   COMING_SOON
+}
+
+// ─── COMMUNITY LAYER V1 ───────────────────────────────────────────────────────
+
+model Post {
+  id        String    @id @default(cuid())
+  tenantId  String
+  authorId  String
+  content   String
+  mediaUrl  String?
+  mediaType String?
+  linkUrl   String?
+  linkTitle String?
+  edited    Boolean   @default(false)
+  pinned    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  author   User      @relation("PostAuthor", fields: [authorId], references: [id])
+  comments Comment[]
+  likes    Like[]
+  tags     PostTag[]
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([authorId])
+  @@index([tenantId, pinned])
+  @@map("posts")
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  parentId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author   User      @relation("CommentAuthor", fields: [authorId], references: [id])
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+  likes    Like[]
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String?
+  commentId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@index([postId])
+  @@index([commentId])
+  @@map("likes")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId String
+  tagId  String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
 }

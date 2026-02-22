@@ -22,6 +22,7 @@ import emailRoutes        from "./routes/emailRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import stripeRoutes from "./routes/stripeRoutes.js";;
 import passwordResetRoutes from "./routes/passwordResetRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
 // Scheduler
 import { startEmailScheduler } from "./services/emailScheduler.js";
 import slackRoutes from "./routes/slackRoutes.js";
@@ -75,6 +76,7 @@ app.use("/referral", referralRoutes);
 app.use("/admin", adminRoutes);
 app.use("/changelog", changelogRoutes);
 app.use("/2fa", twoFactorRoutes);
+app.use("/posts", postRoutes);
 // ── Serve React frontend in production ────────────────────────────────────────
 
 if (isProd) {
