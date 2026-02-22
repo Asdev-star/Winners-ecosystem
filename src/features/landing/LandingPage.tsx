@@ -611,7 +611,10 @@ export default function LandingPage() {
         {/* ── NAV ── */}
         <nav className="lp-nav">
           <a href="#" className="lp-nav-logo">
-            <div className="lp-nav-logo-icon">✦</div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
+  <img src="/logo.jpg" alt="Winners Empire" style={{ width: 80, height: 80, borderRadius: 16, objectFit: "cover", marginBottom: 12, border: "2px solid #F5C842" }} />
+  <div style={{ fontFamily: "Space Mono, monospace", fontSize: 10, letterSpacing: 3, color: "#F5C842" }}>● WINNERS ECOSYSTEM</div>
+</div>
             WINNERS
           </a>
           <ul className="lp-nav-links">
@@ -627,6 +630,9 @@ export default function LandingPage() {
 
         {/* ── HERO ── */}
         <section className="lp-hero">
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
+  <img src="/logo.jpg" alt="Winners Empire" style={{ width: 120, height: 120, borderRadius: 24, objectFit: "cover", border: "3px solid #F5C842", boxShadow: "0 0 40px rgba(245,200,66,0.3)" }} />
+</div>
           <div className="lp-hero-eyebrow">The Intelligence Layer for Serious Operators</div>
           <h1 className="lp-hero-title">
             Revenue <em>Intelligence</em>

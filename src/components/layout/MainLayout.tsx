@@ -217,10 +217,8 @@ export default function MainLayout() {
 
       <aside className={`ml-sidebar${sidebarOpen ? " open" : ""}`}>
         <div className="ml-logo">
-          <div className="ml-logo-text">
-            <div className="ml-logo-dot" />
-            Winners Ecosystem
-          </div>
+          <img src="/logo.jpg" alt="Winners Empire" style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover" }} />
+<span className="ml-logo-text">Winners Ecosystem</span>
         </div>
 
         <div className="ml-switcher-wrap">

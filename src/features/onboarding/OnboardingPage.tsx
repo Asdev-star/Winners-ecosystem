@@ -281,7 +281,7 @@ export default function OnboardingPage() {
         {STEPS.map((s, i) => (
           <>
             <div key={s.label} className={`ob-step-dot${i < step ? " done" : i === step ? " active" : ""}`}>
-              {i < step ? "✓" : i + 1}
+              <img src="/logo.jpg" alt="Winners Empire" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", border: "2px solid #F5C842" }} />
             </div>
             {i < STEPS.length - 1 && <div key={`line-${i}`} className={`ob-step-line${i < step ? " done" : ""}`} />}
           </>
