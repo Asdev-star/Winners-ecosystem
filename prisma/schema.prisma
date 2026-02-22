@@ -191,3 +191,25 @@ model ActivityLog {
   @@index([createdAt(sort: Desc)])
   @@map("activity_logs")
 }
+
+model ChangelogEntry {
+  id          String        @id @default(cuid())
+  title       String
+  description String
+  type        ChangelogType @default(FEATURE)
+  version     String?
+  publishedAt DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  published   Boolean       @default(true)
+
+  @@index([publishedAt(sort: Desc)])
+  @@map("changelog_entries")
+}
+
+enum ChangelogType {
+  FEATURE
+  BUGFIX
+  IMPROVEMENT
+  COMING_SOON
+}

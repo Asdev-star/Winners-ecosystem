@@ -28,6 +28,7 @@ import SearchPage        from "./features/search/SearchPage";
 import ActivityPage      from "./features/activity/ActivityPage";
 import ReferralPage      from "./features/referral/ReferralPage";
 import AdminPage         from "./features/admin/AdminPage";
+import ChangelogPage from "./features/changelog/ChangelogPage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -71,6 +72,7 @@ function App() {
         <Route path="activity"      element={<ActivityPage />} />
         <Route path="referral"      element={<ReferralPage />} />
         <Route path="admin"         element={<AdminPage />} />
+        <Route path="changelog" element={<ChangelogPage />} />
       </Route>
     </Routes>
   );

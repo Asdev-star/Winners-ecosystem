@@ -26,6 +26,7 @@ import { startEmailScheduler } from "./services/emailScheduler.js";
 import slackRoutes from "./routes/slackRoutes.js";
 import activityRoutes from "./routes/activityRoutes.js";
 import referralRoutes from "./routes/referralRoutes.js";
+import changelogRoutes from "./routes/changelogRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -71,6 +72,7 @@ app.use("/search", searchRoutes);
 app.use("/activity", activityRoutes);
 app.use("/referral", referralRoutes);
 app.use("/admin", adminRoutes);
+app.use("/changelog", changelogRoutes);
 // ── Serve React frontend in production ────────────────────────────────────────
 
 if (isProd) {
