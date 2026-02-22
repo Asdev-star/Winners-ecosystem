@@ -10,7 +10,6 @@ import { useAuthStore } from "../auth/authStore";
 const css = `
   .dash-root { padding: 24px 24px 80px; font-family: 'Syne', sans-serif; color: var(--text); max-width: 1400px; }
 
-  /* ── Header ── */
   .dash-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
   .dash-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
   .dash-title span { color: var(--gold); }
@@ -24,7 +23,6 @@ const css = `
   }
   .dash-live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: dash-pulse 2s ease infinite; }
 
-  /* ── AI Command Bar ── */
   .dash-ai-bar {
     background: linear-gradient(135deg, rgba(43,95,142,0.12), rgba(201,168,76,0.06));
     border: 1px solid rgba(43,95,142,0.25); border-radius: 8px;
@@ -46,12 +44,10 @@ const css = `
   .dash-ai-btn.primary { background: var(--gold); color: #080B10; border-color: var(--gold); font-weight: 700; }
   .dash-ai-btn.primary:hover { opacity: 0.88; }
 
-  /* ── KPI Grid ── */
   .dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
   .dash-kpi {
     background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
     padding: 16px 18px; position: relative; overflow: hidden; transition: border-color 0.15s;
-    cursor: default;
   }
   .dash-kpi:hover { border-color: rgba(201,168,76,0.25); }
   .dash-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
@@ -66,7 +62,6 @@ const css = `
   .dash-kpi-delta.down { color: var(--red); }
   .dash-kpi-delta.flat { color: var(--text-dim); }
 
-  /* ── Ecosystem Platforms Grid ── */
   .dash-section-title {
     font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px;
     text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px;
@@ -78,9 +73,9 @@ const css = `
   .dash-platform {
     background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
     padding: 14px 16px; display: flex; align-items: center; gap: 12px;
-    transition: all 0.15s; text-decoration: none; color: var(--text);
-    cursor: pointer; position: relative; overflow: hidden;
+    transition: all 0.15s; color: var(--text); position: relative; overflow: hidden;
   }
+  .dash-platform.clickable { cursor: pointer; }
   .dash-platform.clickable:hover { border-color: rgba(201,168,76,0.3); background: rgba(201,168,76,0.03); transform: translateY(-1px); }
   .dash-platform.disabled { opacity: 0.5; cursor: not-allowed; }
   .dash-platform-icon { font-size: 22px; flex-shrink: 0; }
@@ -94,10 +89,8 @@ const css = `
   .dash-platform-status.planned { background: rgba(155,111,255,0.08); color: var(--purple); border: 1px solid rgba(155,111,255,0.15); }
   .dash-platform-phase { font-family: 'Space Mono', monospace; font-size: 7px; color: var(--text-dim); }
 
-  /* ── Bottom grid ── */
   .dash-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
 
-  /* ── Quick stats row ── */
   .dash-quick-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
   .dash-quick-stat {
     background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
@@ -105,9 +98,11 @@ const css = `
   }
   .dash-quick-stat-icon { font-size: 18px; flex-shrink: 0; }
   .dash-quick-stat-label { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
-  .dash-quick-stat-value { font-size: 16px; font-weight: 800; margin-top: 2px; }
+  .dash-quick-stat-link { font-size: 13px; font-weight: 700; margin-top: 2px; cursor: pointer; }
+  .dash-quick-stat-link.gold   { color: var(--gold); }
+  .dash-quick-stat-link.ice    { color: var(--ice); }
+  .dash-quick-stat-link.purple { color: var(--purple); }
 
-  /* ── Insight bar ── */
   .dash-insight {
     background: var(--surface); border: 1px solid rgba(201,168,76,0.15);
     border-radius: 6px; padding: 12px 16px; margin-bottom: 20px;
@@ -117,17 +112,11 @@ const css = `
   .dash-insight-text { font-size: 12px; line-height: 1.55; color: var(--text-dim); }
   .dash-insight-text strong { color: var(--text); }
 
-  /* ── Roadmap progress ── */
   .dash-roadmap { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px 18px; margin-bottom: 20px; }
   .dash-roadmap-title { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; }
-  .dash-roadmap-phases { display: flex; align-items: center; gap: 0; }
-  .dash-phase {
-    flex: 1; text-align: center; position: relative;
-  }
-  .dash-phase::after {
-    content: ''; position: absolute; top: 10px; left: 50%; right: -50%;
-    height: 2px; background: var(--border); z-index: 0;
-  }
+  .dash-roadmap-phases { display: flex; align-items: center; }
+  .dash-phase { flex: 1; text-align: center; position: relative; }
+  .dash-phase::after { content: ''; position: absolute; top: 10px; left: 50%; right: -50%; height: 2px; background: var(--border); z-index: 0; }
   .dash-phase:last-child::after { display: none; }
   .dash-phase-dot {
     width: 20px; height: 20px; border-radius: 50%; margin: 0 auto 6px;
@@ -141,34 +130,23 @@ const css = `
   .dash-phase.done-phase .dash-phase-label   { color: var(--gold); }
   .dash-phase.active-phase .dash-phase-label { color: var(--ice); }
 
-  /* ── Skeleton ── */
   .dash-skeleton {
     background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
     background-size: 200% 100%; border-radius: 3px;
     animation: dash-shimmer 1.4s infinite;
   }
   @keyframes dash-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-  @keyframes dash-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes dash-pulse   { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-  /* ── Responsive ── */
-  @media (max-width: 1100px) {
-    .dash-platforms { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 900px) {
-    .dash-kpis { grid-template-columns: 1fr 1fr; }
-    .dash-bottom { grid-template-columns: 1fr; }
-    .dash-quick-stats { grid-template-columns: 1fr 1fr; }
-  }
-  @media (max-width: 600px) {
+  @media (max-width: 1100px) { .dash-platforms { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 900px)  { .dash-kpis { grid-template-columns: 1fr 1fr; } .dash-bottom { grid-template-columns: 1fr; } .dash-quick-stats { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px)  {
     .dash-root { padding: 14px 12px 80px; }
     .dash-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .dash-kpi { padding: 12px 14px; }
-    .dash-kpi-value { font-size: 20px; }
+    .dash-kpi { padding: 12px 14px; } .dash-kpi-value { font-size: 20px; }
     .dash-platforms { grid-template-columns: 1fr; }
     .dash-quick-stats { grid-template-columns: 1fr; }
-    .dash-bottom { grid-template-columns: 1fr; }
     .dash-ai-actions { display: none; }
-    .dash-roadmap-phases { gap: 0; }
     .dash-header { flex-direction: column; gap: 8px; }
     .dash-title { font-size: 18px; }
   }
@@ -185,12 +163,12 @@ function deltaLabel(n: number) {
 }
 
 const PLATFORMS = [
-  { icon: "⬡",  name: "Core Engine",         desc: "Auth · Billing · Analytics · API",    status: "live",    phase: "Phase 1", path: "/dashboard" },
-  { icon: "🧑‍🤝‍🧑", name: "Winners Community",   desc: "Social feed · Chat · Profiles",        status: "live",    phase: "Phase 2", path: "/community" },
-  { icon: "🎓", name: "Winners Academy",      desc: "Courses · Certificates · AI Tutor",   status: "soon",    phase: "Phase 3", path: null },
-  { icon: "🛒", name: "Winners Market",       desc: "Products · Dropshipping · Vendors",   status: "soon",    phase: "Phase 4", path: null },
-  { icon: "🤖", name: "Winners Intelligence", desc: "Agentic AI · Smart Automation",       status: "planned", phase: "Phase 5", path: null },
-  { icon: "💼", name: "Winners Work",         desc: "Freelance · Jobs · Escrow",           status: "planned", phase: "Phase 6", path: null },
+  { icon: "⬡",  name: "Core Engine",         desc: "Auth · Billing · Analytics · API",  status: "live",    phase: "Phase 1", path: "/dashboard" },
+  { icon: "🧑‍🤝‍🧑", name: "Winners Community",   desc: "Social feed · Chat · Profiles",      status: "live",    phase: "Phase 2", path: "/community" },
+  { icon: "🎓", name: "Winners Academy",      desc: "Courses · Certificates · AI Tutor", status: "soon",    phase: "Phase 3", path: null },
+  { icon: "🛒", name: "Winners Market",       desc: "Products · Dropshipping · Vendors", status: "soon",    phase: "Phase 4", path: null },
+  { icon: "🤖", name: "Winners Intelligence", desc: "Agentic AI · Smart Automation",     status: "planned", phase: "Phase 5", path: null },
+  { icon: "💼", name: "Winners Work",         desc: "Freelance · Jobs · Escrow",         status: "planned", phase: "Phase 6", path: null },
 ];
 
 const PHASES = [
@@ -206,7 +184,7 @@ const PHASES = [
 
 export default function DashboardPage() {
   const { stats, isLoading, fetchStats } = useDashboardStore();
-  const user    = useAuthStore((s) => s.user);
+  const user     = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
 
@@ -269,41 +247,29 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPIs */}
       <div className="dash-kpis">
         <div className="dash-kpi gold">
           <div className="dash-kpi-label">Total Revenue</div>
           {loading
             ? <><div className="dash-skeleton" style={{ height: 28, width: "70%", marginBottom: 8 }} /><div className="dash-skeleton" style={{ height: 12, width: "50%" }} /></>
-            : <>
-                <div className="dash-kpi-value">{fmt(stats.totalRevenue)}</div>
-                <div className={`dash-kpi-delta ${deltaClass(stats.revenueGrowth)}`}>{deltaLabel(stats.revenueGrowth)}</div>
-              </>
+            : <><div className="dash-kpi-value">{fmt(stats.totalRevenue)}</div><div className={`dash-kpi-delta ${deltaClass(stats.revenueGrowth)}`}>{deltaLabel(stats.revenueGrowth)}</div></>
           }
         </div>
-
         <div className="dash-kpi green">
           <div className="dash-kpi-label">Total Activity</div>
           {loading
             ? <><div className="dash-skeleton" style={{ height: 28, width: "70%", marginBottom: 8 }} /><div className="dash-skeleton" style={{ height: 12, width: "50%" }} /></>
-            : <>
-                <div className="dash-kpi-value">{stats.totalActivity.toLocaleString()}</div>
-                <div className={`dash-kpi-delta ${deltaClass(stats.activityGrowth)}`}>{deltaLabel(stats.activityGrowth)}</div>
-              </>
+            : <><div className="dash-kpi-value">{stats.totalActivity.toLocaleString()}</div><div className={`dash-kpi-delta ${deltaClass(stats.activityGrowth)}`}>{deltaLabel(stats.activityGrowth)}</div></>
           }
         </div>
-
         <div className="dash-kpi blue">
           <div className="dash-kpi-label">Team Members</div>
           {loading
             ? <><div className="dash-skeleton" style={{ height: 28, width: "40%", marginBottom: 8 }} /><div className="dash-skeleton" style={{ height: 12, width: "60%" }} /></>
-            : <>
-                <div className="dash-kpi-value">{stats.teamMembers}</div>
-                <div className="dash-kpi-delta flat">Active workspace members</div>
-              </>
+            : <><div className="dash-kpi-value">{stats.teamMembers}</div><div className="dash-kpi-delta flat">Active workspace members</div></>
           }
         </div>
-
         <div className="dash-kpi purple">
           <div className="dash-kpi-label">Revenue Trend</div>
           {loading
@@ -326,9 +292,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Ecosystem Roadmap Progress */}
+      {/* Roadmap Progress */}
       <div className="dash-roadmap">
-        <div className="dash-roadmap-title">Ecosystem Build Progress</div>
+        <div className="dash-roadmap-title">Ecosystem Build Progress · Phase 2 of 8</div>
         <div className="dash-roadmap-phases">
           {PHASES.map((p) => (
             <div key={p.label} className={`dash-phase ${p.state === "done" ? "done-phase" : p.state === "active" ? "active-phase" : ""}`}>
@@ -341,7 +307,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Platform Layers */}
+      {/* Ecosystem Platforms */}
       <div className="dash-section-title">Ecosystem Platforms</div>
       <div className="dash-platforms">
         {PLATFORMS.map((p) => (
@@ -366,36 +332,27 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="dash-section-title">Quick Stats</div>
+      <div className="dash-section-title">Quick Access</div>
       <div className="dash-quick-stats">
         <div className="dash-quick-stat">
           <div className="dash-quick-stat-icon">🎁</div>
           <div>
-            <div className="dash-quick-stat-label">Referral Credits</div>
-            <div className="dash-quick-stat-value" style={{ color: "var(--gold)" }}
-              onClick={() => navigate("/referral")} style={{ cursor: "pointer", color: "var(--gold)" }}>
-              View Program →
-            </div>
+            <div className="dash-quick-stat-label">Referral Program</div>
+            <div className="dash-quick-stat-link gold" onClick={() => navigate("/referral")}>View Program →</div>
           </div>
         </div>
         <div className="dash-quick-stat">
           <div className="dash-quick-stat-icon">🔐</div>
           <div>
             <div className="dash-quick-stat-label">Security</div>
-            <div className="dash-quick-stat-value" onClick={() => navigate("/2fa")}
-              style={{ cursor: "pointer", color: "var(--ice)", fontSize: 13, fontWeight: 700 }}>
-              Manage 2FA →
-            </div>
+            <div className="dash-quick-stat-link ice" onClick={() => navigate("/2fa")}>Manage 2FA →</div>
           </div>
         </div>
         <div className="dash-quick-stat">
           <div className="dash-quick-stat-icon">📋</div>
           <div>
             <div className="dash-quick-stat-label">What's New</div>
-            <div className="dash-quick-stat-value" onClick={() => navigate("/changelog")}
-              style={{ cursor: "pointer", color: "var(--purple)", fontSize: 13, fontWeight: 700 }}>
-              See Updates →
-            </div>
+            <div className="dash-quick-stat-link purple" onClick={() => navigate("/changelog")}>See Updates →</div>
           </div>
         </div>
       </div>
