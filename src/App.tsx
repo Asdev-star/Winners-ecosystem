@@ -32,7 +32,6 @@ import ChangelogPage from "./features/changelog/ChangelogPage";
 import TwoFactorPage from "./features/security/TwoFactorPage";
 import CommunityPage from "./features/community/CommunityPage";
 
-
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
 
