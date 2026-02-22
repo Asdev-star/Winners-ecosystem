@@ -7,332 +7,202 @@ import {
   Tooltip, ResponsiveContainer, ReferenceDot,
 } from "recharts";
 import {
-  getMockData,
-  getPreviousPeriodData,
-  generateForecast,
-  generateInsights,
-  calcTotal,
-  calcGrowth,
-  calcAverage,
-  detectAnomalies,
+  getMockData, getPreviousPeriodData, generateForecast,
+  generateInsights, calcTotal, calcGrowth, calcAverage, detectAnomalies,
 } from "../../lib/analyticsEngine";
 import type { Period, ForecastPoint } from "../../lib/analyticsEngine";
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
   .an-root {
-    --gold: #F5C842;
-    --bg: #080B10;
-    --surface: #0D1117;
-    --surface2: #141B24;
-    --border: #1E2A38;
-    --text: #E8EDF2;
-    --text-dim: #5A6878;
-    --green: #2DD4A0;
-    --blue: #4A9EFF;
-    --red: #FF5975;
-    --purple: #9B6FFF;
-    background: var(--bg);
-    color: var(--text);
+    --gold:     #C9A84C;
+    --gold2:    #E8C97A;
+    --bg:       #0D1520;
+    --surface:  #111D2E;
+    --surface2: #172335;
+    --border:   #1E3248;
+    --text:     #E8EEF5;
+    --text-dim: #5A7A96;
+    --green:    #2DD4A0;
+    --blue:     #2B5F8E;
+    --ice:      #89C4E1;
+    --red:      #E05A4E;
+    --purple:   #9B6FFF;
+    background: var(--bg); color: var(--text);
     font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-    padding: 32px 24px 80px;
+    min-height: 100vh; padding: 28px 24px 80px;
   }
 
   .an-inner { max-width: 1200px; margin: 0 auto; }
 
-  /* Header */
+  /* ── Header ── */
   .an-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 32px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px; margin-bottom: 28px;
   }
-
-  .an-title {
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-
+  .an-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
   .an-title span { color: var(--gold); }
-  .an-subtitle { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+  .an-subtitle { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 4px; }
 
-  /* Controls */
-  .an-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-
+  /* ── Controls ── */
+  .an-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .an-period-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 7px 16px;
-    border-radius: 3px;
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 1px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 7px 14px; border-radius: 3px; font-family: 'Space Mono', monospace;
+    font-size: 10px; cursor: pointer; transition: all 0.15s; letter-spacing: 1px;
   }
-
   .an-period-btn:hover { border-color: var(--gold); color: var(--gold); }
-  .an-period-btn.active { background: rgba(245,200,66,0.1); border-color: var(--gold); color: var(--gold); }
+  .an-period-btn.active { background: rgba(201,168,76,0.1); border-color: var(--gold); color: var(--gold); }
 
   .an-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    padding: 7px 14px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    background: var(--surface);
-    transition: all 0.15s;
-    user-select: none;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim);
+    padding: 7px 12px; border: 1px solid var(--border); border-radius: 3px;
+    background: var(--surface); transition: all 0.15s; user-select: none;
   }
-
-  .an-toggle:hover { border-color: var(--purple); color: var(--purple); }
+  .an-toggle:hover { border-color: var(--ice); color: var(--ice); }
   .an-toggle.on { border-color: var(--purple); color: var(--purple); background: rgba(155,111,255,0.08); }
-
   .an-toggle-dot {
-    width: 28px; height: 16px;
-    border-radius: 8px;
-    background: var(--border);
-    position: relative;
-    transition: background 0.2s;
+    width: 26px; height: 14px; border-radius: 7px; background: var(--border);
+    position: relative; transition: background 0.2s; flex-shrink: 0;
   }
-
   .an-toggle.on .an-toggle-dot { background: var(--purple); }
-
   .an-toggle-dot::after {
-    content: '';
-    position: absolute;
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: white;
-    top: 3px; left: 3px;
-    transition: left 0.2s;
+    content: ''; position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    background: white; top: 3px; left: 3px; transition: left 0.2s;
   }
-
   .an-toggle.on .an-toggle-dot::after { left: 15px; }
 
-  /* KPI Cards */
-  .an-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-
+  /* ── KPI Cards ── */
+  .an-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
   .an-kpi {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 18px 20px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.2s;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 16px 18px; position: relative; overflow: hidden; transition: border-color 0.15s;
   }
-
-  .an-kpi::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-  }
-
-  .an-kpi.gold::before   { background: var(--gold); }
-  .an-kpi.green::before  { background: var(--green); }
-  .an-kpi.blue::before   { background: var(--blue); }
-  .an-kpi.purple::before { background: var(--purple); }
-
-  .an-kpi-label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-  .an-kpi-value { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .an-kpi:hover { border-color: rgba(201,168,76,0.2); }
+  .an-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .an-kpi.gold::before   { background: linear-gradient(90deg, var(--gold), var(--gold2)); }
+  .an-kpi.green::before  { background: linear-gradient(90deg, var(--green), #6EE7C7); }
+  .an-kpi.blue::before   { background: linear-gradient(90deg, var(--blue), var(--ice)); }
+  .an-kpi.purple::before { background: linear-gradient(90deg, var(--purple), #C4A8FF); }
+  .an-kpi-label { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .an-kpi-value { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
   .an-kpi.gold .an-kpi-value   { color: var(--gold); }
   .an-kpi.green .an-kpi-value  { color: var(--green); }
-  .an-kpi.blue .an-kpi-value   { color: var(--blue); }
+  .an-kpi.blue .an-kpi-value   { color: var(--ice); }
   .an-kpi.purple .an-kpi-value { color: var(--purple); }
-
   .an-kpi-growth {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 7px;
-    border-radius: 2px;
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px; border-radius: 2px;
   }
+  .an-kpi-growth.up   { background: rgba(45,212,160,0.1);  color: var(--green); }
+  .an-kpi-growth.down { background: rgba(224,90,78,0.1);   color: var(--red); }
+  .an-kpi-growth.flat { background: rgba(90,122,150,0.12); color: var(--text-dim); }
 
-  .an-kpi-growth.up   { background: rgba(45,212,160,0.1); color: var(--green); }
-  .an-kpi-growth.down { background: rgba(255,89,117,0.1); color: var(--red); }
-  .an-kpi-growth.flat { background: rgba(90,104,120,0.15); color: var(--text-dim); }
-
-  /* Chart Card */
+  /* ── Chart Card ── */
   .an-chart-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 24px;
-    margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 20px 22px; margin-bottom: 16px;
   }
-
   .an-chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px; flex-wrap: wrap; gap: 8px;
   }
+  .an-chart-title { font-size: 13px; font-weight: 700; }
+  .an-chart-meta  { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); margin-top: 2px; }
+  .an-legend { display: flex; gap: 14px; flex-wrap: wrap; }
+  .an-legend-item { display: flex; align-items: center; gap: 5px; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); }
+  .an-legend-dot  { width: 7px; height: 7px; border-radius: 50%; }
+  .an-legend-line { width: 14px; height: 2px; border-radius: 1px; }
+  .an-legend-dash { width: 14px; height: 2px; border-top: 2px dashed; }
 
-  .an-chart-title {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-  }
-
-  .an-chart-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
-
-  .an-legend { display: flex; gap: 16px; flex-wrap: wrap; }
-  .an-legend-item { display: flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
-  .an-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .an-legend-line { width: 16px; height: 2px; border-radius: 1px; }
-  .an-legend-dash { width: 16px; height: 2px; border-top: 2px dashed; }
-
-  /* Anomaly badge */
+  /* ── Anomaly badge ── */
   .an-spike-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 9px;
-    border-radius: 2px;
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 1px;
-    background: rgba(255,89,117,0.1);
-    color: var(--red);
-    border: 1px solid rgba(255,89,117,0.25);
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px; border-radius: 2px; font-family: 'Space Mono', monospace;
+    font-size: 8px; letter-spacing: 1px;
+    background: rgba(224,90,78,0.1); color: var(--red); border: 1px solid rgba(224,90,78,0.2);
   }
-
   .an-spike-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--red); }
 
-  /* AI Insight Card */
+  /* ── AI Insight ── */
   .an-insight {
-    background: var(--surface);
-    border: 1px solid rgba(245,200,66,0.2);
-    border-radius: 4px;
-    padding: 22px 24px;
-    margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
+    background: var(--surface); border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 6px; padding: 20px 22px; margin-bottom: 16px;
+    position: relative; overflow: hidden;
   }
-
   .an-insight::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--gold), var(--purple));
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--purple), var(--ice));
   }
-
-  .an-insight-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
+  .an-insight-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .an-insight-badge {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--gold);
-    background: rgba(245,200,66,0.08);
-    border: 1px solid rgba(245,200,66,0.2);
-    padding: 3px 9px;
-    border-radius: 2px;
+    font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--gold);
+    background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2);
+    padding: 3px 9px; border-radius: 2px;
   }
-
-  .an-insight-trend {
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    padding: 3px 9px;
-    border-radius: 2px;
-  }
-
-  .an-insight-trend.up     { background: rgba(45,212,160,0.1);  color: var(--green); }
-  .an-insight-trend.down   { background: rgba(255,89,117,0.1);  color: var(--red); }
-  .an-insight-trend.flat   { background: rgba(90,104,120,0.15); color: var(--text-dim); }
-
-  .an-insight-primary {
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    line-height: 1.4;
-  }
-
-  .an-insight-secondary {
-    font-size: 13px;
-    color: var(--text-dim);
-    line-height: 1.5;
-  }
-
+  .an-insight-trend { font-family: 'Space Mono', monospace; font-size: 9px; padding: 2px 8px; border-radius: 2px; }
+  .an-insight-trend.up   { background: rgba(45,212,160,0.1);  color: var(--green); }
+  .an-insight-trend.down { background: rgba(224,90,78,0.1);   color: var(--red); }
+  .an-insight-trend.flat { background: rgba(90,122,150,0.12); color: var(--text-dim); }
+  .an-insight-primary   { font-size: 14px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+  .an-insight-secondary { font-size: 12px; color: var(--text-dim); line-height: 1.55; }
   .an-insight-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-top: 18px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);
   }
-
   .an-insight-stat { text-align: center; }
   .an-insight-stat-val { font-size: 18px; font-weight: 800; color: var(--gold); }
-  .an-insight-stat-lbl { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; }
+  .an-insight-stat-lbl { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--text-dim); margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; }
 
-  /* Activity Chart */
-  .an-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  /* ── Grid ── */
+  .an-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
 
-  /* Tooltip */
-  .an-tooltip {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 12px 14px;
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
+  /* ── Ecosystem context bar ── */
+  .an-eco-bar {
+    background: linear-gradient(135deg, rgba(43,95,142,0.1), rgba(201,168,76,0.05));
+    border: 1px solid rgba(43,95,142,0.2); border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
   }
+  .an-eco-label { font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--ice); flex-shrink: 0; }
+  .an-eco-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .an-eco-chip {
+    font-family: 'Space Mono', monospace; font-size: 8px; padding: 3px 10px;
+    border-radius: 12px; border: 1px solid var(--border); color: var(--text-dim);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .an-eco-chip.active { border-color: rgba(45,212,160,0.3); color: var(--green); background: rgba(45,212,160,0.06); }
+  .an-eco-chip.soon   { border-color: rgba(137,196,225,0.2); color: var(--ice); }
 
+  /* ── Tooltip ── */
+  .an-tooltip {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 14px; font-family: 'Space Mono', monospace; font-size: 10px;
+  }
   .an-tooltip-label { color: var(--gold); font-weight: 700; margin-bottom: 6px; }
   .an-tooltip-row   { display: flex; justify-content: space-between; gap: 16px; color: var(--text-dim); margin-top: 3px; }
   .an-tooltip-val   { color: var(--text); font-weight: 700; }
 
-  @media (max-width: 768px) {
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
     .an-kpis { grid-template-columns: repeat(2, 1fr); }
     .an-grid  { grid-template-columns: 1fr; }
   }
-
-  @media (max-width: 480px) {
-    .an-kpis { grid-template-columns: 1fr; }
+  @media (max-width: 600px) {
+    .an-root  { padding: 14px 12px 80px; }
+    .an-kpis  { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .an-kpi   { padding: 12px 14px; }
+    .an-kpi-value { font-size: 18px; }
+    .an-title { font-size: 20px; }
+    .an-header { flex-direction: column; gap: 12px; }
+    .an-chart-card { padding: 14px 16px; }
+    .an-insight-grid { grid-template-columns: 1fr; gap: 8px; }
   }
-    @media (max-width: 768px) {
-  .an-root { padding: 16px 14px 80px; }
-  .an-kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .an-grid { grid-template-columns: 1fr; }
-  .an-title { font-size: 22px; }
-  .an-header { flex-direction: column; gap: 12px; }
-  .an-chart-card { padding: 16px; }
-}
-@media (max-width: 480px) {
-  .an-insight-grid { grid-template-columns: 1fr; gap: 8px; }
-  .an-kpi-value { font-size: 20px; }
-}
 `;
-
-// ─── Custom Tooltip ───────────────────────────────────────────────────────────
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -345,8 +215,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           <span>{p.name}</span>
           <span className="an-tooltip-val">
             {p.dataKey.toLowerCase().includes("revenue") || p.dataKey.toLowerCase().includes("bound") || p.dataKey.toLowerCase().includes("forecast")
-              ? `$${p.value.toLocaleString()}`
-              : p.value.toLocaleString()}
+              ? `$${Number(p.value).toLocaleString()}`
+              : Number(p.value).toLocaleString()}
           </span>
         </div>
       ))}
@@ -354,15 +224,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
-
-interface KpiProps {
-  label: string;
-  value: string;
-  growth: number;
-  color: "gold" | "green" | "blue" | "purple";
-}
-
+interface KpiProps { label: string; value: string; growth: number; color: "gold" | "green" | "blue" | "purple"; }
 const KpiCard = ({ label, value, growth, color }: KpiProps) => {
   const dir = growth > 1 ? "up" : growth < -1 ? "down" : "flat";
   return (
@@ -375,8 +237,6 @@ const KpiCard = ({ label, value, growth, color }: KpiProps) => {
     </div>
   );
 };
-
-// ─── Section wrapper ──────────────────────────────────────────────────────────
 
 const ChartCard = ({ title, meta, legend, children }: { title: string; meta?: ReactNode; legend?: ReactNode; children: ReactNode }) => (
   <div className="an-chart-card">
@@ -391,20 +251,16 @@ const ChartCard = ({ title, meta, legend, children }: { title: string; meta?: Re
   </div>
 );
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function AnalyticsPage() {
-  const [period, setPeriod]           = useState<Period>("30d");
-  const [showForecast, setForecast]   = useState(false);
-  const [showComparison, setComparison] = useState(false);
+  const [period, setPeriod]         = useState<Period>("30d");
+  const [showForecast, setForecast] = useState(false);
+  const [showComparison, setComp]   = useState(false);
 
-  // Inject styles
   useState(() => {
     const id = "an-styles";
     if (!document.getElementById(id)) {
       const tag = document.createElement("style");
-      tag.id = id;
-      tag.textContent = css;
+      tag.id = id; tag.textContent = css;
       document.head.appendChild(tag);
     }
   });
@@ -421,22 +277,14 @@ export default function AnalyticsPage() {
   const prevActTotal = calcTotal(previousData, "activity");
   const avgRevenue   = calcAverage(currentData, "revenue");
 
-  // Merge comparison data (align by index, label by current date)
-  const comparisonData = currentData.map((d, i) => ({
-    ...d,
-    prevRevenue: previousData[i]?.revenue ?? 0,
-  }));
+  const comparisonData = currentData.map((d, i) => ({ ...d, prevRevenue: previousData[i]?.revenue ?? 0 }));
 
-  // Chart data: use forecast when toggled, else current
   const revenueChartData: ForecastPoint[] = showForecast
     ? forecastData
     : currentData.map((d, i) => ({ ...d, isAnomaly: anomalySet.has(i) }));
 
-  const anomalyPoints = revenueChartData
-    .map((d, i) => ({ ...d, index: i }))
-    .filter((d) => d.isAnomaly);
-
-  const periodLabel = period === "7d" ? "7 Days" : period === "30d" ? "30 Days" : "90 Days";
+  const anomalyPoints = revenueChartData.map((d, i) => ({ ...d, index: i })).filter((d) => d.isAnomaly);
+  const periodLabel   = period === "7d" ? "7 Days" : period === "30d" ? "30 Days" : "90 Days";
 
   return (
     <div className="an-root">
@@ -446,70 +294,43 @@ export default function AnalyticsPage() {
         <div className="an-header">
           <div>
             <h1 className="an-title">Analytics <span>Intelligence</span></h1>
-            <p className="an-subtitle">Winners Ecosystem · {periodLabel} · {currentData.length} data points</p>
+            <p className="an-subtitle">Winners Ecosystem · Core Engine · {periodLabel} · {currentData.length} data points</p>
           </div>
-
           <div className="an-controls">
-            {/* Period Selector */}
             {(["7d", "30d", "90d"] as Period[]).map((p) => (
-              <button
-                key={p}
-                className={`an-period-btn${period === p ? " active" : ""}`}
-                onClick={() => setPeriod(p)}
-              >
-                {p}
-              </button>
+              <button key={p} className={`an-period-btn${period === p ? " active" : ""}`} onClick={() => setPeriod(p)}>{p}</button>
             ))}
-
-            {/* Forecast Toggle */}
-            <div
-              className={`an-toggle${showForecast ? " on" : ""}`}
-              onClick={() => setForecast((v) => !v)}
-            >
-              <div className="an-toggle-dot" />
-              Forecast
+            <div className={`an-toggle${showForecast ? " on" : ""}`} onClick={() => setForecast((v) => !v)}>
+              <div className="an-toggle-dot" /> Forecast
             </div>
-
-            {/* Comparison Toggle */}
-            <div
-              className={`an-toggle${showComparison ? " on" : ""}`}
-              onClick={() => setComparison((v) => !v)}
-            >
-              <div className="an-toggle-dot" />
-              Compare
+            <div className={`an-toggle${showComparison ? " on" : ""}`} onClick={() => setComp((v) => !v)}>
+              <div className="an-toggle-dot" /> Compare
             </div>
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="an-kpis">
-          <KpiCard
-            label="Total Revenue"
-            value={`$${curRevTotal.toLocaleString()}`}
-            growth={calcGrowth(curRevTotal, prevRevTotal)}
-            color="gold"
-          />
-          <KpiCard
-            label="Avg Daily Revenue"
-            value={`$${avgRevenue.toLocaleString()}`}
-            growth={calcGrowth(avgRevenue, calcAverage(previousData, "revenue"))}
-            color="green"
-          />
-          <KpiCard
-            label="Total Activity"
-            value={curActTotal.toLocaleString()}
-            growth={calcGrowth(curActTotal, prevActTotal)}
-            color="blue"
-          />
-          <KpiCard
-            label="Forecast Growth"
-            value={`${insights.forecastGrowth > 0 ? "+" : ""}${insights.forecastGrowth}%`}
-            growth={insights.forecastGrowth}
-            color="purple"
-          />
+        {/* Ecosystem context bar */}
+        <div className="an-eco-bar">
+          <div className="an-eco-label">Ecosystem Layers</div>
+          <div className="an-eco-chips">
+            <div className="an-eco-chip active">⬡ Core · Live</div>
+            <div className="an-eco-chip active">🧑‍🤝‍🧑 Community · Live</div>
+            <div className="an-eco-chip soon">🎓 Academy · Soon</div>
+            <div className="an-eco-chip soon">🛒 Market · Soon</div>
+            <div className="an-eco-chip">🤖 AI · Planned</div>
+            <div className="an-eco-chip">💼 Work · Planned</div>
+          </div>
         </div>
 
-        {/* AI Insight Summary Card */}
+        {/* KPIs */}
+        <div className="an-kpis">
+          <KpiCard label="Total Revenue"      value={`$${curRevTotal.toLocaleString()}`} growth={calcGrowth(curRevTotal, prevRevTotal)} color="gold" />
+          <KpiCard label="Avg Daily Revenue"  value={`$${avgRevenue.toLocaleString()}`}  growth={calcGrowth(avgRevenue, calcAverage(previousData, "revenue"))} color="green" />
+          <KpiCard label="Total Activity"     value={curActTotal.toLocaleString()}        growth={calcGrowth(curActTotal, prevActTotal)} color="blue" />
+          <KpiCard label="Forecast Growth"    value={`${insights.forecastGrowth > 0 ? "+" : ""}${insights.forecastGrowth}%`} growth={insights.forecastGrowth} color="purple" />
+        </div>
+
+        {/* AI Insight */}
         <div className="an-insight">
           <div className="an-insight-header">
             <span className="an-insight-badge">🧠 AI Insight</span>
@@ -544,115 +365,78 @@ export default function AnalyticsPage() {
           meta={showForecast ? `${currentData.length} actual + 7 forecast days` : `${currentData.length} days actual`}
           legend={
             <div className="an-legend">
-              <div className="an-legend-item"><div className="an-legend-dot" style={{ background: "#F5C842" }} />Revenue</div>
+              <div className="an-legend-item"><div className="an-legend-dot" style={{ background: "#C9A84C" }} />Revenue</div>
               {showForecast && <>
                 <div className="an-legend-item"><div className="an-legend-line" style={{ background: "#9B6FFF" }} />Forecast</div>
-                <div className="an-legend-item"><div className="an-legend-line" style={{ background: "rgba(155,111,255,0.3)" }} />Confidence Band</div>
+                <div className="an-legend-item"><div className="an-legend-line" style={{ background: "rgba(155,111,255,0.3)" }} />Confidence</div>
               </>}
-              {showComparison && <div className="an-legend-item"><div className="an-legend-dash" style={{ borderColor: "#4A9EFF" }} />Prev Period</div>}
-              <div className="an-legend-item"><div className="an-legend-dot" style={{ background: "#FF5975" }} />Spike</div>
+              {showComparison && <div className="an-legend-item"><div className="an-legend-dash" style={{ borderColor: "#89C4E1" }} />Prev Period</div>}
+              <div className="an-legend-item"><div className="an-legend-dot" style={{ background: "#E05A4E" }} />Spike</div>
             </div>
           }
         >
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={showComparison ? comparisonData : revenueChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F5C842" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#F5C842" stopOpacity={0} />
+                  <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#9B6FFF" stopOpacity={0.12} />
+                  <stop offset="5%"  stopColor="#9B6FFF" stopOpacity={0.1} />
                   <stop offset="95%" stopColor="#9B6FFF" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E2A38" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: "#5A6878", fontSize: 10, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: "#5A6878", fontSize: 10, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1E3248" vertical={false} />
+              <XAxis dataKey="date" tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip content={<CustomTooltip />} />
-
-              {/* Confidence Band */}
-              {showForecast && (
-                <>
-                  <Area dataKey="upperBound" fill="url(#bandGrad)" stroke="none" name="Upper Bound" />
-                  <Area dataKey="lowerBound" fill="#080B10" stroke="none" name="Lower Bound" />
-                </>
-              )}
-
-              {/* Previous Period Overlay */}
-              {showComparison && (
-                <Line dataKey="prevRevenue" stroke="#4A9EFF" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Prev Revenue" />
-              )}
-
-              {/* Actual Revenue */}
-              <Area
-                dataKey="revenue"
-                stroke="#F5C842"
-                strokeWidth={2}
-                fill="url(#revGrad)"
-                dot={false}
-                activeDot={{ r: 4, fill: "#F5C842" }}
-                name="Revenue"
-              />
-
-              {/* Forecast Line */}
-              {showForecast && (
-                <Line dataKey="forecastRevenue" stroke="#9B6FFF" strokeWidth={2} strokeDasharray="6 3" dot={false} name="Forecast" />
-              )}
-
-              {/* Anomaly Spike Dots */}
+              {showForecast && <>
+                <Area dataKey="upperBound" fill="url(#bandGrad)" stroke="none" name="Upper Bound" />
+                <Area dataKey="lowerBound" fill="#0D1520" stroke="none" name="Lower Bound" />
+              </>}
+              {showComparison && <Line dataKey="prevRevenue" stroke="#89C4E1" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Prev Revenue" />}
+              <Area dataKey="revenue" stroke="#C9A84C" strokeWidth={2} fill="url(#revGrad)" dot={false} activeDot={{ r: 4, fill: "#C9A84C" }} name="Revenue" />
+              {showForecast && <Line dataKey="forecastRevenue" stroke="#9B6FFF" strokeWidth={2} strokeDasharray="6 3" dot={false} name="Forecast" />}
               {anomalyPoints.map((point) => (
-                <ReferenceDot
-                  key={point.date}
-                  x={point.date}
-                  y={point.revenue}
-                  r={5}
-                  fill="#FF5975"
-                  stroke="#FF5975"
-                  strokeOpacity={0.3}
-                  strokeWidth={6}
-                />
+                <ReferenceDot key={point.date} x={point.date} y={point.revenue} r={5} fill="#E05A4E" stroke="#E05A4E" strokeOpacity={0.3} strokeWidth={6} />
               ))}
             </ComposedChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Activity + Comparison Grid */}
+        {/* Activity + Comparison */}
         <div className="an-grid">
-
-          {/* Activity Chart */}
           <ChartCard title="Activity" meta="Daily engagement events">
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={200}>
               <ComposedChart data={currentData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="actGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4A9EFF" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#4A9EFF" stopOpacity={0} />
+                    <stop offset="5%"  stopColor="#2B5F8E" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#2B5F8E" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E2A38" vertical={false} />
-                <XAxis dataKey="date" tick={{ fill: "#5A6878", fontSize: 10, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: "#5A6878", fontSize: 10, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E3248" vertical={false} />
+                <XAxis dataKey="date" tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area dataKey="activity" stroke="#4A9EFF" strokeWidth={2} fill="url(#actGrad)" dot={false} name="Activity" />
+                <Area dataKey="activity" stroke="#89C4E1" strokeWidth={2} fill="url(#actGrad)" dot={false} name="Activity" />
               </ComposedChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          {/* Period Comparison Bar Chart */}
           <ChartCard title="Period Comparison" meta="Current vs previous period revenue">
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={200}>
               <ComposedChart data={comparisonData.slice(0, 14)} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E2A38" vertical={false} />
-                <XAxis dataKey="date" tick={{ fill: "#5A6878", fontSize: 10, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: "#5A6878", fontSize: 10, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E3248" vertical={false} />
+                <XAxis dataKey="date" tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="revenue"     fill="rgba(245,200,66,0.7)"  radius={[2, 2, 0, 0]} name="Current" />
-                <Bar dataKey="prevRevenue" fill="rgba(74,158,255,0.35)" radius={[2, 2, 0, 0]} name="Previous" />
+                <Bar dataKey="revenue"     fill="rgba(201,168,76,0.65)"  radius={[2, 2, 0, 0]} name="Current" />
+                <Bar dataKey="prevRevenue" fill="rgba(43,95,142,0.4)"    radius={[2, 2, 0, 0]} name="Previous" />
               </ComposedChart>
             </ResponsiveContainer>
           </ChartCard>
-
         </div>
 
       </div>
