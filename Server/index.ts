@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import searchRoutes from "./routes/searchRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import twoFactorRoutes from "./routes/twoFactorRoutes.js";
 
 // Routes
 import authRoutes         from "./routes/authRoutes.js";
@@ -73,6 +74,7 @@ app.use("/activity", activityRoutes);
 app.use("/referral", referralRoutes);
 app.use("/admin", adminRoutes);
 app.use("/changelog", changelogRoutes);
+app.use("/2fa", twoFactorRoutes);
 // ── Serve React frontend in production ────────────────────────────────────────
 
 if (isProd) {

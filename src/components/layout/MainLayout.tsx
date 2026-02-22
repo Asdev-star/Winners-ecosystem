@@ -173,6 +173,7 @@ const NAV = [
 
 const WORKSPACE_NAV = [
   { path: "/settings", icon: "⚙️", label: "Settings" },
+  { path: "/2fa", icon: "🔐", label: "Security", notif: false },
   { path: "/profile",  icon: "👤", label: "Profile"  },
   { path: "/admin", icon: "🛡️", label: "Admin", notif: false },
 ];

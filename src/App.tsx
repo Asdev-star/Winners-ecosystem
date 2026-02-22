@@ -29,6 +29,7 @@ import ActivityPage      from "./features/activity/ActivityPage";
 import ReferralPage      from "./features/referral/ReferralPage";
 import AdminPage         from "./features/admin/AdminPage";
 import ChangelogPage from "./features/changelog/ChangelogPage";
+import TwoFactorPage from "./features/security/TwoFactorPage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -56,7 +57,8 @@ function App() {
             <MainLayout />
           </ProtectedRoute>
         }
-      >
+      > 
+        <Route path="2fa" element={<TwoFactorPage />} />
         <Route path="dashboard"     element={<DashboardPage />} />
         <Route path="search"        element={<SearchPage />} />
         <Route path="analytics"     element={<AnalyticsPage />} />

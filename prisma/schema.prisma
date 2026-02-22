@@ -37,21 +37,26 @@ enum Plan {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  tenantId  String
-  email     String
-  name      String
-  password  String
-  role      Role      @default(MEMBER)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id               String    @id @default(cuid())
+  tenantId         String
+  email            String
+  name             String
+  password         String
+  role             Role      @default(MEMBER)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorMethod  String?
+  twoFactorBackup  String[]  @default([])
 
   tenant              Tenant               @relation(fields: [tenantId], references: [id])
   passwordResetTokens PasswordResetToken[]
   referralsGiven      Referral[]           @relation("ReferrerRelation")
   referralsReceived   Referral[]           @relation("ReferredRelation")
   referralCredits     ReferralCredit[]
+  twoFactorOTPs       TwoFactorOTP[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -63,6 +68,20 @@ enum Role {
   ADMIN
   MEMBER
   VIEWER
+}
+
+model TwoFactorOTP {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("two_factor_otps")
 }
 
 model PasswordResetToken {
