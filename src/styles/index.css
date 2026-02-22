@@ -1,107 +1,59 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
 /* src/index.css */
 
 /* ── Base reset ───────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
-  /* Default dark theme vars — overridden by themeStore.ts on load */
-  --bg:        #080B10;
-  --surface:   #0D1117;
-  --surface2:  #141B24;
-  --border:    #1E2A38;
-  --text:      #E8EDF2;
-  --text-dim:  #5A6878;
-  --gold:      #F5C842;
-  --gold-dim:  rgba(245,200,66,0.12);
-  --gold-glow: rgba(245,200,66,0.25);
-  --red:       #FF5975;
+  /* Default dark theme — Winners Empire palette */
+  --bg:        #0D1520;
+  --surface:   #111D2E;
+  --surface2:  #172335;
+  --border:    #1E3248;
+  --text:      #E8EEF5;
+  --text-dim:  #5A7A96;
+
+  /* Logo colors */
+  --gold:      #C9A84C;   /* Bronze gold from star + banner */
+  --gold-dim:  rgba(201,168,76,0.12);
+  --gold-glow: rgba(201,168,76,0.25);
+  --blue:      #2B5F8E;   /* Steel blue from buildings */
+  --blue-dim:  rgba(43,95,142,0.15);
+  --ice:       #89C4E1;   /* Ice blue from glass panels */
+  --navy:      #1A2B3C;   /* Deep navy shadows */
+
+  /* Status colors */
+  --red:       #E05A4E;
   --green:     #2DD4A0;
-  --blue:      #4A9EFF;
   --purple:    #9B6FFF;
 
-  /* Smooth theme transitions on all elements */
   color-scheme: dark;
 }
 
-html.light { color-scheme: light; }
+html.light {
+  --bg:        #EEF2F7;
+  --surface:   #FFFFFF;
+  --surface2:  #E4EBF4;
+  --border:    #C2D0E0;
+  --text:      #1A2B3C;
+  --text-dim:  #5A7A96;
+  --gold:      #B8912A;
+  --gold-dim:  rgba(184,145,42,0.12);
+  --gold-glow: rgba(184,145,42,0.25);
+  --blue:      #2B5F8E;
+  --blue-dim:  rgba(43,95,142,0.12);
+  --ice:       #89C4E1;
+  --navy:      #1A2B3C;
+  --red:       #C0392B;
+  --green:     #1A7A5E;
+  --purple:    #6B4FA0;
+  color-scheme: light;
+}
 
-/* Apply transitions to common properties globally */
+/* Smooth theme transitions */
 body, .ml-sidebar, .ml-header, .ml-content, .ml-bottom-nav,
 [class*="-card"], [class*="-section"], [class*="-input"],
 [class*="-select"], [class*="-btn"], [class*="-nav-link"] {
-  transition:
-    background-color 0.25s ease,
-    border-color 0.25s ease,
-    color 0.25s ease,
-    box-shadow 0.25s ease;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 body {
@@ -109,125 +61,79 @@ body {
   color: var(--text);
   font-family: 'Syne', sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
 }
 
-/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 
-/* ── Selection ────────────────────────────────────────────────────────────── */
+/* ── Selection ─────────────────────────────────────────────────────────────── */
 ::selection { background: var(--gold-dim); color: var(--gold); }
 
-/* ── Light mode overrides — fix hardcoded rgba values in components ───────── */
+/* ── Light mode overrides ──────────────────────────────────────────────────── */
 html.light {
-  /* Override any hardcoded dark rgba values used in component CSS */
-  --grid-line: rgba(0,0,0,0.04);
-  --card-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  --modal-overlay: rgba(0,0,0,0.4);
+  --grid-line:    rgba(43,95,142,0.06);
+  --card-shadow:  0 2px 12px rgba(26,43,60,0.08);
+  --modal-overlay: rgba(13,21,32,0.5);
 }
-
 html.dark {
-  --grid-line: rgba(245,200,66,0.03);
-  --card-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  --grid-line:    rgba(43,95,142,0.04);
+  --card-shadow:  0 2px 20px rgba(0,0,0,0.4);
   --modal-overlay: rgba(0,0,0,0.7);
 }
 
-/* Fix components that use hardcoded dark backgrounds */
-html.light .ml-root::before,
-html.light .ob-root::before,
-html.light .fp-root::before,
-html.light .rp-root::before {
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) !important;
-}
-
-/* Light mode — fix gold glow dots */
-html.light .ml-logo-dot,
-html.light .ob-logo-dot,
-html.light .fp-logo-dot {
-  box-shadow: 0 0 6px var(--gold);
-}
-
-/* Light mode — fix status dot */
-html.light .ml-status-dot {
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-}
-
-/* Light mode — fix nav active state */
-html.light .ml-nav-link.active {
-  background: var(--gold-dim);
-  color: var(--gold);
-}
-
-/* Light mode — fix card top border gradient */
-html.light [class*="-card"]::before {
-  background: linear-gradient(90deg, var(--gold), var(--gold-dim)) !important;
-}
-
-/* Light mode — bottom nav shadow */
-html.light .ml-bottom-nav {
-  box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
-}
-
-/* Light mode — modal overlay */
-html.light .gs-modal-overlay {
-  background: var(--modal-overlay) !important;
-}
-
-/* ── Utility classes ─────────────────────────────────────────────────────── */
+/* ── Utility classes ───────────────────────────────────────────────────────── */
 .text-gold   { color: var(--gold); }
+.text-blue   { color: var(--blue); }
+.text-ice    { color: var(--ice); }
 .text-dim    { color: var(--text-dim); }
 .text-green  { color: var(--green); }
 .text-red    { color: var(--red); }
-.text-blue   { color: var(--blue); }
 .text-purple { color: var(--purple); }
 
 .bg-surface  { background: var(--surface); }
 .bg-surface2 { background: var(--surface2); }
-
 .border-default { border: 1px solid var(--border); }
 .rounded { border-radius: 4px; }
 
-/* ── Animations ──────────────────────────────────────────────────────────── */
+/* ── Animations ────────────────────────────────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
+@keyframes pulse  { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin   { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
 .animate-fade-up { animation: fadeUp 0.35s ease forwards; }
 .animate-pulse   { animation: pulse 1.5s ease infinite; }
 .animate-spin    { animation: spin 0.8s linear infinite; }
 
-/* ── Skeleton loader ─────────────────────────────────────────────────────── */
+/* ── Skeleton loader ───────────────────────────────────────────────────────── */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--surface2) 25%,
-    var(--border) 50%,
-    var(--surface2) 75%
-  );
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s ease infinite;
+  animation: shimmer 1.4s ease infinite;
   border-radius: 3px;
 }
 
-@keyframes skeleton-shimmer {
-  from { background-position: 200% 0; }
-  to   { background-position: -200% 0; }
+/* ── Winners Empire accent gradients ───────────────────────────────────────── */
+.gradient-gold { background: linear-gradient(135deg, #C9A84C, #E8C97A, #C9A84C); }
+.gradient-blue { background: linear-gradient(135deg, #1A2B3C, #2B5F8E, #89C4E1); }
+.gradient-empire { background: linear-gradient(135deg, #1A2B3C 0%, #2B5F8E 50%, #C9A84C 100%); }
+
+/* ── Card accent border (top gold line) ────────────────────────────────────── */
+.card-accent {
+  position: relative;
+  overflow: hidden;
+}
+.card-accent::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), var(--ice), transparent);
 }
