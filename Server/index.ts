@@ -22,7 +22,20 @@ import emailRoutes        from "./routes/emailRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import stripeRoutes from "./routes/stripeRoutes.js";;
 import passwordResetRoutes from "./routes/passwordResetRoutes.js";
-import postRoutes from "./routes/postRoutes.js";
+// ADD alongside your existing imports at the top:
+import {
+  helmetConfig,
+  globalLimiter,
+  authLimiter,
+  postLimiter,
+  xssSanitizer,
+  requestLogger,
+} from "../Server/middleware/rateLimitMiddleware.js";
+
+import { initWebSocketServer } from "./services/wsService.js";
+   // may already exist
+import groupRoutes from "./routes/groupRoutes.js";  // new
+import postRoutes from "./routes/postRoutes.js";    // new
 // Scheduler
 import { startEmailScheduler } from "./services/emailScheduler.js";
 import slackRoutes from "./routes/slackRoutes.js";
@@ -41,6 +54,10 @@ const isProd = process.env.NODE_ENV === "production";
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use(helmetConfig);    // security headers (XSS, clickjacking, etc.)
+app.use(globalLimiter);   // 200 requests/15min per IP
+app.use(xssSanitizer);    // strips <script> and javascript: from all body fields
+app.use(requestLogger);   // logs METHOD /path STATUS ms in terminal
 
 app.use(cors({
   origin: isProd
@@ -56,7 +73,9 @@ app.get("/health", (_req, res) => {
 });
 
 // ── API Routes ─────────────────────────────────────────────────────────────────
-
+app.use("/auth/login",    authLimiter);   // 10 attempts per 15 min — stops brute force
+app.use("/auth/register", authLimiter);
+app.use("/auth", authRoutes);
 app.use("/auth",          authRoutes);
 app.use("/auth", passwordResetRoutes);
 app.use("/tenants",       tenantsRoutes);
@@ -77,6 +96,8 @@ app.use("/admin", adminRoutes);
 app.use("/changelog", changelogRoutes);
 app.use("/2fa", twoFactorRoutes);
 app.use("/posts", postRoutes);
+app.use("/posts",  postLimiter, postRoutes);   // 30 posts/hour per user
+app.use("/groups", groupRoutes);               // NEW — Groups V1.2
 // ── Serve React frontend in production ────────────────────────────────────────
 
 if (isProd) {
@@ -91,9 +112,11 @@ if (isProd) {
 
 // ── Start ──────────────────────────────────────────────────────────────────────
 
-app.listen(Number(PORT), "0.0.0.0", () => {
-  console.log(`✅ Winners API running on port ${PORT} [${process.env.NODE_ENV ?? "development"}]`);
-  if (isProd) startEmailScheduler();
+// REPLACE WITH:
+const server = app.listen(PORT, () => {
+  console.log(`✅ Winners Ecosystem Server on port ${PORT}`);
 });
+
+initWebSocketServer(server);  // attaches WebSocket to same server;
 
 export default app;

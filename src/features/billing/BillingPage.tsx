@@ -1,423 +1,651 @@
 // src/features/billing/BillingPage.tsx
-// FULLY SELF-CONTAINED — no billingStore import, no external dependencies that can crash
-// CSS via JSX <style> tag — StrictMode safe
+// Phase 1 — Core Engine · Billing & Subscription Management
+// Ecosystem design: CSS variables, card pattern, context bar, no Tailwind
 
-import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
-import { useAuthStore } from "../auth/authStore";
+import { useState, useEffect } from "react";
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-type PlanId = "free" | "pro" | "enterprise";
-
-interface Plan {
-  id: PlanId; name: string; price: number;
-  seats: number; highlighted: boolean; features: string[];
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 }
 
-interface Subscription {
-  id: string; planId: PlanId;
-  status: "active" | "cancelled" | "past_due" | "trialing";
-  currentPeriodEnd: string; cancelAtPeriodEnd: boolean;
-}
-
-interface UsageSummary {
-  seats:   { used: number; limit: number };
-  exports: { used: number; limit: number };
-  storage: { used: number; limit: number };
-}
-
-// ── Plans config ───────────────────────────────────────────────────────────────
-const PLANS: Plan[] = [
+const PLANS = [
   {
-    id: "free", name: "Free", price: 0, seats: 3, highlighted: false,
-    features: ["Up to 3 seats", "30-day analytics", "CSV & JSON export", "Basic AI insights", "Community access"],
+    id:       "free",
+    name:     "Starter",
+    price:    0,
+    period:   "forever",
+    color:    "var(--text-dim)",
+    features: [
+      "1 workspace",
+      "3 team members",
+      "Community access",
+      "Basic analytics",
+      "1,000 API calls/mo",
+    ],
   },
   {
-    id: "pro", name: "Pro", price: 99, seats: 10, highlighted: true,
-    features: ["Up to 10 seats", "90-day analytics", "All export formats", "AI insights + forecasting", "Community — full creator tools", "Academy enrollment", "Priority support"],
+    id:       "pro",
+    name:     "Pro",
+    price:    49,
+    period:   "per month",
+    color:    "var(--gold)",
+    popular:  true,
+    features: [
+      "5 workspaces",
+      "25 team members",
+      "All platform layers",
+      "Advanced analytics + AI",
+      "50,000 API calls/mo",
+      "Priority support",
+      "Academy access",
+      "Market vendor access",
+    ],
   },
   {
-    id: "enterprise", name: "Enterprise", price: 299, seats: 999, highlighted: false,
-    features: ["Unlimited seats", "Unlimited analytics", "All export formats", "AI agents + automation", "Full ecosystem access", "Custom integrations + API", "Dedicated account manager", "SLA guarantee"],
+    id:       "enterprise",
+    name:     "Enterprise",
+    price:    199,
+    period:   "per month",
+    color:    "var(--purple)",
+    features: [
+      "Unlimited workspaces",
+      "Unlimited members",
+      "All platform layers",
+      "Custom AI agents",
+      "Unlimited API calls",
+      "Dedicated support",
+      "SLA guarantee",
+      "White-label option",
+      "SSO + SAML",
+    ],
   },
 ];
 
-const PLAN_ORDER: PlanId[] = ["free", "pro", "enterprise"];
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-async function safeFetch(url: string, headers: Record<string, string>) {
-  try {
-    const res = await fetch(url, { headers });
-    if (!res.ok) { console.warn(`[Billing] ${url} → ${res.status}`); return null; }
-    return await res.json();
-  } catch (e) { console.warn(`[Billing] ${url} → network error`, e); return null; }
-}
-
-function usageColor(used: number, limit: number) {
-  const p = limit > 0 ? used / limit : 0;
-  return p > 0.85 ? "high" : p > 0.6 ? "medium" : "low";
-}
-function usagePct(used: number, limit: number) {
-  if (limit >= 999999) return 5;
-  return Math.min(100, Math.round((used / limit) * 100));
-}
-
-// ── Component ──────────────────────────────────────────────────────────────────
 export default function BillingPage() {
-  const [searchParams]  = useSearchParams();
-  const token           = useAuthStore((s) => s.token);
-  const user            = useAuthStore((s) => s.user);
-
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [usage, setUsage]               = useState<UsageSummary | null>(null);
+  const [currentPlan, setCurrentPlan]   = useState("free");
+  const [usage, setUsage]               = useState<any>(null);
+  const [invoices, setInvoices]         = useState<any[]>([]);
   const [loading, setLoading]           = useState(true);
-  const [upgrading, setUpgrading]       = useState<PlanId | null>(null);
-  const [portalLoading, setPortalLoading] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [upgrading, setUpgrading]       = useState<string | null>(null);
 
-  const showSuccess  = searchParams.get("success") === "true";
-  const headers      = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  const canManage    = user?.role === "owner";
-  const currentPlanId: PlanId = subscription?.planId ?? "free";
-  const currentPlan  = PLANS.find((p) => p.id === currentPlanId) ?? PLANS[0];
-  const isPaid       = currentPlanId !== "free";
-  const planIcon     = currentPlanId === "enterprise" ? "🏢" : currentPlanId === "pro" ? "⚡" : "🌱";
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res  = await fetch(`${API}/billing/status`, { headers: authHeaders() });
+        const data = await res.json();
+        setCurrentPlan(data.plan ?? "free");
+        setUsage(data.usage ?? null);
+        setInvoices(data.invoices ?? []);
+      } catch {}
+      setLoading(false);
+    };
+    load();
+  }, []);
 
-  const showToast = (msg: string, type: "success" | "error") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
-  };
-
-  const fetchBilling = useCallback(async () => {
-    setLoading(true);
-    const [sub, use] = await Promise.all([
-      safeFetch(`${API}/billing/subscription`, headers),
-      safeFetch(`${API}/billing/usage`, headers),
-    ]);
-    // Fallback mock so page always renders something
-    setSubscription(sub ?? {
-      id: "mock", planId: "free", status: "active",
-      currentPeriodEnd: "", cancelAtPeriodEnd: false,
-    });
-    setUsage(use ?? {
-      seats:   { used: 1, limit: 3    },
-      exports: { used: 0, limit: 30   },
-      storage: { used: 0, limit: 1000 },
-    });
-    setLoading(false);
-  }, [token]);
-
-  useEffect(() => { fetchBilling(); }, [fetchBilling]);
-
-  const handleUpgrade = async (planId: PlanId) => {
-    if (planId === "free") { await handleCancel(); return; }
+  const handleUpgrade = async (planId: string) => {
+    if (planId === currentPlan) return;
     setUpgrading(planId);
     try {
-      const res = await fetch(`${API}/billing/checkout`, {
-        method: "POST", headers,
-        body: JSON.stringify({
-          planId,
-          successUrl: `${window.location.origin}/billing?success=true`,
-          cancelUrl:  `${window.location.origin}/billing`,
-        }),
+      const res  = await fetch(`${API}/billing/checkout`, {
+        method:  "POST",
+        headers: authHeaders(),
+        body:    JSON.stringify({ plan: planId }),
       });
-      if (!res.ok) throw new Error("Checkout failed");
-      const { url } = await res.json();
-      window.location.href = url;
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
     } catch {
-      showToast("Failed to start checkout. Please try again.", "error");
-    } finally { setUpgrading(null); }
+      alert("Failed to start checkout. Please try again.");
+    }
+    setUpgrading(null);
   };
 
-  const handlePortal = async () => {
-    setPortalLoading(true);
+  const openPortal = async () => {
     try {
-      const res = await fetch(`${API}/billing/portal`, {
-        method: "POST", headers,
-        body: JSON.stringify({ returnUrl: `${window.location.origin}/billing` }),
-      });
-      if (!res.ok) throw new Error();
-      const { url } = await res.json();
-      window.location.href = url;
-    } catch { showToast("Failed to open billing portal.", "error"); }
-    finally  { setPortalLoading(false); }
+      const res  = await fetch(`${API}/billing/portal`, { method: "POST", headers: authHeaders() });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {}
   };
 
-  const handleCancel = async () => {
-    if (!confirm("Cancel subscription? You'll be downgraded to Free at period end.")) return;
-    const res = await fetch(`${API}/billing/cancel`, { method: "POST", headers });
-    if (res.ok) {
-      setSubscription((s) => s ? { ...s, cancelAtPeriodEnd: true } : s);
-      showToast("Subscription cancelled. Downgrade takes effect at period end.", "success");
-    } else { showToast("Cancellation failed.", "error"); }
-  };
-
-  const handleResume = async () => {
-    const res = await fetch(`${API}/billing/resume`, { method: "POST", headers });
-    if (res.ok) {
-      setSubscription((s) => s ? { ...s, cancelAtPeriodEnd: false } : s);
-      showToast("Subscription resumed!", "success");
-    } else { showToast("Resume failed.", "error"); }
-  };
+  const platformLayers = [
+    { name: "Core", status: "live" },
+    { name: "Community", status: "live" },
+    { name: "Academy", status: "soon" },
+    { name: "Market", status: "soon" },
+    { name: "Intelligence", status: "planned" },
+    { name: "Work", status: "planned" },
+  ];
 
   return (
-    <>
-      <style>{CSS}</style>
-      <div className="bp-root">
-        <div className="bp-inner">
-
-          <div className="bp-header">
-            <h1 className="bp-title">Billing & <span>Plans</span></h1>
-            <p className="bp-subtitle">Manage your subscription, usage and payment details</p>
+    <div style={s.page}>
+      {/* Ecosystem context bar */}
+      <div style={s.contextBar}>
+        {platformLayers.map((p) => (
+          <div key={p.name} style={s.contextItem}>
+            <div style={{
+              ...s.contextDot,
+              background: p.status === "live" ? "var(--green)" : p.status === "soon" ? "var(--gold)" : "var(--border)",
+            }} />
+            <span style={{ color: p.name === "Core" ? "var(--gold)" : "var(--text-dim)" }}>{p.name}</span>
           </div>
+        ))}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}>
+          <div style={{ ...s.contextDot, background: "var(--green)", animation: "pulse 2s infinite" }} />
+          <span style={{ fontFamily: "Space Mono, monospace", fontSize: "9px", color: "var(--green)", letterSpacing: "1px" }}>
+            CORE ENGINE LIVE
+          </span>
+        </div>
+      </div>
 
-          {showSuccess && (
-            <div className="bp-success-banner">✓ Plan upgraded successfully! Welcome to {currentPlan.name}.</div>
-          )}
+      {/* Header */}
+      <div style={s.header}>
+        <div>
+          <div style={s.pageLabel}>Core Engine · Billing</div>
+          <h1 style={s.pageTitle}>Subscription & Billing</h1>
+          <p style={s.pageDesc}>Manage your plan, usage, and payment history.</p>
+        </div>
+        {currentPlan !== "free" && (
+          <button style={s.portalBtn} onClick={openPortal}>Manage Billing →</button>
+        )}
+      </div>
 
-          {/* Current plan */}
-          <div className="bp-current">
-            <div className="bp-current-left">
-              <div className="bp-icon">{planIcon}</div>
-              <div>
-                <div className="bp-current-name">{currentPlan.name} Plan</div>
-                <div className="bp-current-meta">
-                  {currentPlan.price === 0 ? "Free forever" : `$${currentPlan.price}/month`}
-                  {subscription?.currentPeriodEnd && ` · Renews ${subscription.currentPeriodEnd}`}
+      {/* Current plan banner */}
+      <div style={s.currentBanner}>
+        <div style={{ ...s.bannerBorder, background: "linear-gradient(90deg, var(--gold), var(--ice))" }} />
+        <div style={s.bannerInner}>
+          <div>
+            <div style={s.bannerLabel}>Current Plan</div>
+            <div style={s.bannerPlan}>
+              {PLANS.find(p => p.id === currentPlan)?.name ?? "Starter"}
+            </div>
+          </div>
+          <div style={s.bannerStats}>
+            <div style={s.statBox}>
+              <div style={{ ...s.statVal, color: "var(--green)" }}>{usage?.apiCalls?.toLocaleString() ?? "—"}</div>
+              <div style={s.statLabel}>API Calls This Month</div>
+            </div>
+            <div style={s.statBox}>
+              <div style={{ ...s.statVal, color: "var(--ice)" }}>{usage?.members ?? "—"}</div>
+              <div style={s.statLabel}>Team Members</div>
+            </div>
+            <div style={s.statBox}>
+              <div style={{ ...s.statVal, color: "var(--gold)" }}>{usage?.workspaces ?? "—"}</div>
+              <div style={s.statLabel}>Workspaces</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Plans grid */}
+      <div style={s.sectionHeader}>
+        <div style={s.sectionLabel}>Available Plans</div>
+        <div style={s.sectionLine} />
+      </div>
+
+      <div style={s.plansGrid}>
+        {PLANS.map((plan) => {
+          const isCurrent = plan.id === currentPlan;
+          return (
+            <div key={plan.id} style={{
+              ...s.planCard,
+              ...(plan.popular ? s.planCardPopular : {}),
+              ...(isCurrent ? s.planCardCurrent : {}),
+            }}>
+              <div style={{ ...s.planBorder, background: isCurrent
+                ? "linear-gradient(90deg, var(--green), var(--ice))"
+                : plan.popular
+                ? "linear-gradient(90deg, var(--gold), var(--ice))"
+                : "var(--border)" }} />
+
+              {plan.popular && !isCurrent && (
+                <div style={s.popularBadge}>MOST POPULAR</div>
+              )}
+              {isCurrent && (
+                <div style={{ ...s.popularBadge, background: "rgba(45,212,160,0.15)", borderColor: "rgba(45,212,160,0.3)", color: "var(--green)" }}>
+                  CURRENT PLAN
+                </div>
+              )}
+
+              <div style={s.planHead}>
+                <div style={{ ...s.planName, color: plan.color }}>{plan.name}</div>
+                <div style={s.planPrice}>
+                  <span style={s.planPriceNum}>${plan.price}</span>
+                  <span style={s.planPeriod}>/{plan.period}</span>
                 </div>
               </div>
-            </div>
-            <div className="bp-current-right">
-              {subscription?.cancelAtPeriodEnd
-                ? <span className="bp-badge cancelled">Cancels at period end</span>
-                : <span className={`bp-badge ${subscription?.status === "trialing" ? "trialing" : subscription?.status === "past_due" ? "pastdue" : "active"}`}>
-                    {subscription?.status === "trialing" ? "Trial" : subscription?.status === "past_due" ? "Past due" : "Active"}
-                  </span>
-              }
-              {subscription?.cancelAtPeriodEnd && canManage && (
-                <button className="bp-resume-btn" onClick={handleResume}>Resume</button>
-              )}
-              {isPaid && canManage && (
-                <button className="bp-portal-btn" onClick={handlePortal} disabled={portalLoading}>
-                  {portalLoading ? "Opening…" : "↗ Manage Billing"}
-                </button>
-              )}
-            </div>
-          </div>
 
-          {/* Usage */}
-          {usage && !loading && (
-            <>
-              <div className="bp-section">Usage This Month</div>
-              <div className="bp-usage-grid">
-                {[
-                  { label: "Seats",   ...usage.seats,   unit: "users"   },
-                  { label: "Exports", ...usage.exports, unit: "exports" },
-                  { label: "Records", ...usage.storage, unit: "records" },
-                ].map((m) => (
-                  <div className="bp-usage-card" key={m.label}>
-                    <div className="bp-usage-label">{m.label}</div>
-                    <div className="bp-usage-value" style={{ color: usageColor(m.used, m.limit) === "high" ? "#f87171" : "#E8EEF5" }}>
-                      {m.used.toLocaleString()}
-                      <span style={{ fontSize: 12, fontWeight: 400, color: "#5A7A96", marginLeft: 4 }}>
-                        / {m.limit >= 999999 ? "∞" : m.limit.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="bp-bar-track">
-                      <div className={`bp-bar-fill ${usageColor(m.used, m.limit)}`} style={{ width: `${usagePct(m.used, m.limit)}%` }} />
-                    </div>
-                    <div className="bp-usage-unit">{m.unit}</div>
+              <div style={s.planFeatures}>
+                {plan.features.map((f) => (
+                  <div key={f} style={s.featureRow}>
+                    <span style={{ color: "var(--green)" }}>✓</span>
+                    <span style={s.featureText}>{f}</span>
                   </div>
                 ))}
               </div>
-            </>
-          )}
 
-          {/* Plans */}
-          <div className="bp-section">Available Plans</div>
-          <div className="bp-plans">
-            {PLANS.map((plan) => {
-              const isCurrent = plan.id === currentPlanId;
-              const isUpgrade = PLAN_ORDER.indexOf(plan.id) > PLAN_ORDER.indexOf(currentPlanId);
-              const isPending = upgrading === plan.id;
-              return (
-                <div key={plan.id} className={`bp-plan ${plan.id}${isCurrent ? " current" : ""}${plan.highlighted ? " highlighted" : ""}`}>
-                  {plan.highlighted && !isCurrent && <div className="bp-plan-badge popular">Most Popular</div>}
-                  {isCurrent && <div className="bp-plan-badge active">Current</div>}
-                  <div className="bp-plan-name">{plan.name}</div>
-                  <div className="bp-plan-price">
-                    <span className="bp-plan-amount">{plan.price === 0 ? "Free" : `$${plan.price}`}</span>
-                    {plan.price > 0 && <span className="bp-plan-per">/mo</span>}
-                  </div>
-                  <div className="bp-plan-features">
-                    {plan.features.map((f) => (
-                      <div className="bp-feature" key={f}><span className="bp-check">✓</span>{f}</div>
-                    ))}
-                  </div>
-                  {isCurrent ? (
-                    <button className="bp-btn dim" disabled>Current Plan</button>
-                  ) : isUpgrade && canManage ? (
-                    <button className={`bp-btn gold${plan.id === "enterprise" ? " ice" : ""}`} onClick={() => handleUpgrade(plan.id)} disabled={!!upgrading}>
-                      {isPending ? "Redirecting…" : `Upgrade to ${plan.name}`}
-                    </button>
-                  ) : canManage ? (
-                    <button className="bp-btn dim outline" onClick={() => handleUpgrade(plan.id)} disabled={!!upgrading}>Downgrade</button>
-                  ) : (
-                    <button className="bp-btn dim" disabled>Contact Owner</button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Portal row */}
-          {isPaid && canManage && (
-            <div className="bp-manage-row">
-              <div>
-                <div className="bp-manage-title">Payment & Invoices</div>
-                <div className="bp-manage-desc">Update payment method, download invoices, manage Stripe billing.</div>
-              </div>
-              <button className="bp-manage-btn" onClick={handlePortal} disabled={portalLoading}>
-                {portalLoading ? "Opening portal…" : "↗ Open Stripe Portal"}
+              <button
+                style={{
+                  ...s.planBtn,
+                  ...(isCurrent ? s.planBtnCurrent : plan.popular ? s.planBtnPrimary : {}),
+                }}
+                onClick={() => handleUpgrade(plan.id)}
+                disabled={isCurrent || upgrading !== null}
+              >
+                {upgrading === plan.id ? "Redirecting..." :
+                 isCurrent       ? "Current Plan" :
+                 plan.price === 0 ? "Downgrade" :
+                 currentPlan === "free" ? "Upgrade" : "Switch Plan"}
               </button>
             </div>
-          )}
+          );
+        })}
+      </div>
 
-          {/* Danger zone */}
-          {canManage && isPaid && !subscription?.cancelAtPeriodEnd && (
-            <div className="bp-danger">
-              <div>
-                <div className="bp-danger-title">Cancel Subscription</div>
-                <div className="bp-danger-desc">Downgrade to Free at end of billing period.</div>
-              </div>
-              <button className="bp-danger-btn" onClick={handleCancel}>Cancel Plan</button>
-            </div>
-          )}
+      {/* Invoice history */}
+      <div style={s.sectionHeader}>
+        <div style={s.sectionLabel}>Invoice History</div>
+        <div style={s.sectionLine} />
+      </div>
 
-        </div>
-
-        {toast && (
-          <div className={`bp-toast ${toast.type}`}>
-            {toast.type === "success" ? "✓" : "✗"} {toast.msg}
+      <div style={s.invoiceCard}>
+        <div style={s.invoiceBorder} />
+        {loading ? (
+          <div style={s.loadWrap}>
+            <div style={s.spinner} />
           </div>
+        ) : invoices.length === 0 ? (
+          <div style={s.emptyInvoice}>
+            <div style={{ fontSize: "28px", marginBottom: "8px" }}>🧾</div>
+            <div style={{ color: "var(--text-dim)", fontFamily: "Space Mono, monospace", fontSize: "11px" }}>
+              No invoices yet
+            </div>
+          </div>
+        ) : (
+          <table style={s.invoiceTable}>
+            <thead>
+              <tr>
+                {["Date", "Description", "Amount", "Status", ""].map((h) => (
+                  <th key={h} style={s.th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((inv: any, i: number) => (
+                <tr key={i} style={i % 2 === 0 ? {} : { background: "var(--surface2)" }}>
+                  <td style={s.td}>
+                    {new Date(inv.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </td>
+                  <td style={s.td}>{inv.description}</td>
+                  <td style={{ ...s.td, color: "var(--gold)", fontWeight: 600 }}>
+                    ${(inv.amount / 100).toFixed(2)}
+                  </td>
+                  <td style={s.td}>
+                    <span style={{
+                      ...s.statusBadge,
+                      background: inv.status === "paid" ? "rgba(45,212,160,0.1)" : "rgba(224,90,78,0.1)",
+                      borderColor: inv.status === "paid" ? "rgba(45,212,160,0.25)" : "rgba(224,90,78,0.25)",
+                      color: inv.status === "paid" ? "var(--green)" : "var(--red)",
+                    }}>
+                      {inv.status}
+                    </span>
+                  </td>
+                  <td style={s.td}>
+                    {inv.pdf && (
+                      <a href={inv.pdf} target="_blank" rel="noopener noreferrer" style={s.downloadLink}>
+                        PDF ↗
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
-    </>
+
+      {/* Security note */}
+      <div style={s.securityNote}>
+        <span style={{ color: "var(--gold)", marginRight: "6px" }}>🔒</span>
+        Payments are processed securely by Stripe. Your card details are never stored on our servers.
+      </div>
+    </div>
   );
 }
 
-// ── CSS — placed at bottom, JSX <style> tag, StrictMode safe ──────────────────
-const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
-
-  .bp-root  { background: #0D1520; color: #E8EEF5; font-family: 'Syne', sans-serif; min-height: 100vh; padding: 32px 24px 80px; }
-  .bp-inner { max-width: 1000px; margin: 0 auto; }
-
-  .bp-header  { margin-bottom: 36px; }
-  .bp-title   { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: #E8EEF5; margin: 0 0 4px; }
-  .bp-title span { color: #C9A84C; }
-  .bp-subtitle { font-family: 'Space Mono', monospace; font-size: 11px; color: #5A7A96; }
-
-  .bp-success-banner { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; font-family: 'Space Mono', monospace; font-size: 11px; color: #4ade80; }
-
-  .bp-current { background: linear-gradient(135deg, #0f1923, #111D2E); border: 1px solid rgba(201,168,76,0.2); border-radius: 16px; padding: 20px 24px; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; position: relative; overflow: hidden; }
-  .bp-current::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #C9A84C, #89C4E1, transparent); }
-  .bp-current-left  { display: flex; align-items: center; gap: 14px; }
-  .bp-current-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .bp-icon { font-size: 32px; }
-  .bp-current-name { font-size: 18px; font-weight: 800; }
-  .bp-current-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; margin-top: 3px; }
-
-  .bp-badge { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; }
-  .bp-badge.active   { background: rgba(74,222,128,0.1);  color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
-  .bp-badge.cancelled{ background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
-  .bp-badge.trialing { background: rgba(137,196,225,0.1); color: #89C4E1; border: 1px solid rgba(137,196,225,0.2); }
-  .bp-badge.pastdue  { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
-
-  .bp-portal-btn { background: transparent; border: 1px solid rgba(137,196,225,0.25); color: #89C4E1; border-radius: 8px; padding: 8px 14px; font-family: 'Space Mono', monospace; font-size: 9px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .bp-portal-btn:hover:not(:disabled) { border-color: #89C4E1; background: rgba(137,196,225,0.06); }
-  .bp-portal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .bp-resume-btn { background: #C9A84C; color: #0D1520; border: none; border-radius: 8px; padding: 8px 16px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
-  .bp-resume-btn:hover { opacity: 0.88; }
-
-  .bp-section { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #C9A84C; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
-  .bp-section::after { content: ''; flex: 1; height: 1px; background: #1E3248; }
-
-  .bp-usage-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 36px; }
-  .bp-usage-card { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(137,196,225,0.1); border-radius: 12px; padding: 16px 18px; }
-  .bp-usage-label { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-  .bp-usage-value { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
-  .bp-bar-track   { height: 4px; background: rgba(137,196,225,0.08); border-radius: 2px; overflow: hidden; }
-  .bp-bar-fill    { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
-  .bp-bar-fill.low    { background: #4ade80; }
-  .bp-bar-fill.medium { background: #C9A84C; }
-  .bp-bar-fill.high   { background: #f87171; }
-  .bp-usage-unit { font-family: 'Space Mono', monospace; font-size: 9px; color: #5A7A96; margin-top: 5px; }
-
-  .bp-plans { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
-  .bp-plan  { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 24px; position: relative; overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
-  .bp-plan:hover { transform: translateY(-2px); }
-  .bp-plan::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: rgba(137,196,225,0.15); }
-  .bp-plan.pro::before        { background: linear-gradient(90deg, transparent, #C9A84C, transparent); }
-  .bp-plan.enterprise::before { background: linear-gradient(90deg, transparent, #89C4E1, transparent); }
-  .bp-plan.current { border-color: rgba(74,222,128,0.3); }
-  .bp-plan.highlighted:not(.current) { border-color: rgba(201,168,76,0.25); }
-
-  .bp-plan-badge { position: absolute; top: 14px; right: 14px; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
-  .bp-plan-badge.popular { background: rgba(201,168,76,0.15); color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }
-  .bp-plan-badge.active  { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
-
-  .bp-plan-name { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
-  .bp-plan.pro .bp-plan-name        { color: #C9A84C; }
-  .bp-plan.enterprise .bp-plan-name { color: #89C4E1; }
-  .bp-plan-price  { margin-bottom: 16px; }
-  .bp-plan-amount { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
-  .bp-plan-per    { font-family: 'Space Mono', monospace; font-size: 11px; color: #5A7A96; }
-
-  .bp-plan-features { margin-bottom: 20px; }
-  .bp-feature { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #5A7A96; margin-bottom: 8px; line-height: 1.4; }
-  .bp-check   { color: #4ade80; flex-shrink: 0; font-size: 11px; margin-top: 1px; }
-
-  .bp-btn { width: 100%; padding: 11px; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; border: none; }
-  .bp-btn.gold { background: #C9A84C; color: #0D1520; }
-  .bp-btn.gold:hover:not(:disabled) { background: #E8C97A; transform: translateY(-1px); }
-  .bp-btn.gold.ice { background: #89C4E1; color: #0D1520; }
-  .bp-btn.dim  { background: transparent; border: 1px solid #1E3248; color: #5A7A96; cursor: default; }
-  .bp-btn.dim.outline { cursor: pointer; }
-  .bp-btn.dim.outline:hover { border-color: #f87171; color: #f87171; }
-  .bp-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-
-  .bp-manage-row { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 18px 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .bp-manage-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
-  .bp-manage-desc  { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; }
-  .bp-manage-btn   { background: transparent; border: 1px solid rgba(137,196,225,0.2); color: #89C4E1; border-radius: 8px; padding: 10px 20px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .bp-manage-btn:hover:not(:disabled) { border-color: #89C4E1; background: rgba(137,196,225,0.06); }
-  .bp-manage-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .bp-danger { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(248,113,113,0.15); border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .bp-danger-title { font-size: 13px; font-weight: 700; color: #f87171; margin-bottom: 4px; }
-  .bp-danger-desc  { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; }
-  .bp-danger-btn   { background: transparent; border: 1px solid rgba(248,113,113,0.25); color: #f87171; border-radius: 8px; padding: 8px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .bp-danger-btn:hover { background: rgba(248,113,113,0.08); }
-
-  .bp-toast { position: fixed; bottom: 24px; right: 24px; background: #111D2E; border: 1px solid #1E3248; border-radius: 12px; padding: 12px 18px; font-family: 'Space Mono', monospace; font-size: 11px; display: flex; align-items: center; gap: 10px; z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,0.5); animation: bp-slide 0.3s ease; }
-  .bp-toast.success { border-color: rgba(74,222,128,0.3);  color: #4ade80; }
-  .bp-toast.error   { border-color: rgba(248,113,113,0.3); color: #f87171; }
-
-  @keyframes bp-slide { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
-
-  @media (max-width: 768px) {
-    .bp-root   { padding: 16px 14px 80px; }
-    .bp-plans  { grid-template-columns: 1fr; gap: 12px; }
-    .bp-usage-grid { grid-template-columns: 1fr 1fr; }
-    .bp-plan:hover { transform: none; }
-    .bp-toast  { bottom: 70px; left: 14px; right: 14px; }
-  }
-  @media (max-width: 480px) {
-    .bp-usage-grid { grid-template-columns: 1fr; }
-    .bp-plan-amount { font-size: 26px; }
-  }
-`;
+const s: Record<string, React.CSSProperties> = {
+  page: {
+    maxWidth:  "1000px",
+    margin:    "0 auto",
+    padding:   "24px 20px 60px",
+    fontFamily: "Syne, sans-serif",
+  },
+  contextBar: {
+    display:      "flex",
+    alignItems:   "center",
+    gap:          "16px",
+    padding:      "8px 14px",
+    background:   "var(--surface)",
+    border:       "1px solid var(--border)",
+    borderRadius: "6px",
+    marginBottom: "24px",
+    overflowX:    "auto",
+  },
+  contextItem: {
+    display:    "flex",
+    alignItems: "center",
+    gap:        "5px",
+    fontFamily: "Space Mono, monospace",
+    fontSize:   "9px",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+  },
+  contextDot: {
+    width:        "5px",
+    height:       "5px",
+    borderRadius: "50%",
+  },
+  header: {
+    display:        "flex",
+    justifyContent: "space-between",
+    alignItems:     "flex-start",
+    marginBottom:   "24px",
+  },
+  pageLabel: {
+    fontFamily:    "Space Mono, monospace",
+    fontSize:      "10px",
+    letterSpacing: "2px",
+    textTransform: "uppercase",
+    color:         "var(--gold)",
+    marginBottom:  "6px",
+  },
+  pageTitle: {
+    fontSize:     "26px",
+    fontWeight:   800,
+    letterSpacing: "-0.5px",
+    marginBottom: "6px",
+    margin:       0,
+  },
+  pageDesc: {
+    fontSize: "13px",
+    color:    "var(--text-dim)",
+    margin:   "6px 0 0",
+  },
+  portalBtn: {
+    padding:      "9px 18px",
+    background:   "transparent",
+    border:       "1px solid var(--border)",
+    borderRadius: "6px",
+    color:        "var(--ice)",
+    fontFamily:   "Space Mono, monospace",
+    fontSize:     "10px",
+    letterSpacing: "0.5px",
+    cursor:       "pointer",
+    whiteSpace:   "nowrap",
+  },
+  currentBanner: {
+    background:   "var(--surface)",
+    border:       "1px solid var(--border)",
+    borderRadius: "10px",
+    overflow:     "hidden",
+    position:     "relative",
+    marginBottom: "28px",
+  },
+  bannerBorder: {
+    position: "absolute",
+    top: 0, left: 0, right: 0,
+    height: "2px",
+  },
+  bannerInner: {
+    display:        "flex",
+    justifyContent: "space-between",
+    alignItems:     "center",
+    padding:        "20px 24px",
+    flexWrap:       "wrap",
+    gap:            "16px",
+  },
+  bannerLabel: {
+    fontFamily:    "Space Mono, monospace",
+    fontSize:      "9px",
+    letterSpacing: "2px",
+    textTransform: "uppercase",
+    color:         "var(--text-dim)",
+    marginBottom:  "4px",
+  },
+  bannerPlan: {
+    fontSize:   "22px",
+    fontWeight: 800,
+    color:      "var(--gold)",
+    letterSpacing: "-0.5px",
+  },
+  bannerStats: {
+    display: "flex",
+    gap:     "20px",
+    flexWrap: "wrap",
+  },
+  statBox: {
+    textAlign: "center",
+  },
+  statVal: {
+    fontSize:   "22px",
+    fontWeight: 800,
+    lineHeight: 1,
+  },
+  statLabel: {
+    fontFamily:    "Space Mono, monospace",
+    fontSize:      "9px",
+    color:         "var(--text-dim)",
+    letterSpacing: "0.5px",
+    marginTop:     "3px",
+  },
+  sectionHeader: {
+    display:      "flex",
+    alignItems:   "center",
+    gap:          "12px",
+    marginBottom: "16px",
+    marginTop:    "8px",
+  },
+  sectionLabel: {
+    fontFamily:    "Space Mono, monospace",
+    fontSize:      "10px",
+    letterSpacing: "3px",
+    textTransform: "uppercase",
+    color:         "var(--gold)",
+    whiteSpace:    "nowrap",
+  },
+  sectionLine: {
+    flex:       1,
+    height:     "1px",
+    background: "var(--border)",
+  },
+  plansGrid: {
+    display:             "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap:                 "14px",
+    marginBottom:        "32px",
+  },
+  planCard: {
+    background:   "var(--surface)",
+    border:       "1px solid var(--border)",
+    borderRadius: "10px",
+    overflow:     "hidden",
+    position:     "relative",
+    padding:      "20px",
+    display:      "flex",
+    flexDirection: "column",
+    gap:          "0",
+  },
+  planCardPopular: {
+    borderColor: "rgba(201,168,76,0.3)",
+    background:  "var(--surface2)",
+  },
+  planCardCurrent: {
+    borderColor: "rgba(45,212,160,0.3)",
+  },
+  planBorder: {
+    position: "absolute",
+    top: 0, left: 0, right: 0,
+    height: "2px",
+  },
+  popularBadge: {
+    position:      "absolute",
+    top:           "14px",
+    right:         "14px",
+    fontFamily:    "Space Mono, monospace",
+    fontSize:      "8px",
+    letterSpacing: "1.5px",
+    padding:       "3px 8px",
+    background:    "rgba(201,168,76,0.12)",
+    border:        "1px solid rgba(201,168,76,0.3)",
+    borderRadius:  "3px",
+    color:         "var(--gold)",
+  },
+  planHead: {
+    marginBottom: "16px",
+    paddingTop:   "8px",
+  },
+  planName: {
+    fontFamily:    "Space Mono, monospace",
+    fontSize:      "11px",
+    letterSpacing: "2px",
+    textTransform: "uppercase",
+    marginBottom:  "6px",
+  },
+  planPrice: {
+    display:    "flex",
+    alignItems: "baseline",
+    gap:        "4px",
+  },
+  planPriceNum: {
+    fontSize:   "32px",
+    fontWeight: 800,
+    letterSpacing: "-1px",
+    color:      "var(--text)",
+  },
+  planPeriod: {
+    fontFamily: "Space Mono, monospace",
+    fontSize:   "10px",
+    color:      "var(--text-dim)",
+    letterSpacing: "0.3px",
+  },
+  planFeatures: {
+    flex:         1,
+    display:      "flex",
+    flexDirection: "column",
+    gap:          "7px",
+    marginBottom: "20px",
+  },
+  featureRow: {
+    display:    "flex",
+    alignItems: "flex-start",
+    gap:        "8px",
+    fontFamily: "Space Mono, monospace",
+    fontSize:   "10px",
+    lineHeight: "1.4",
+  },
+  featureText: {
+    color: "var(--text-dim)",
+  },
+  planBtn: {
+    padding:      "10px",
+    border:       "1px solid var(--border)",
+    borderRadius: "6px",
+    background:   "transparent",
+    color:        "var(--text-dim)",
+    fontFamily:   "Syne, sans-serif",
+    fontWeight:   600,
+    fontSize:     "13px",
+    cursor:       "pointer",
+    width:        "100%",
+  },
+  planBtnPrimary: {
+    background:  "var(--gold)",
+    borderColor: "var(--gold)",
+    color:       "#0D1520",
+    cursor:      "pointer",
+  },
+  planBtnCurrent: {
+    background:  "rgba(45,212,160,0.08)",
+    borderColor: "rgba(45,212,160,0.2)",
+    color:       "var(--green)",
+    cursor:      "default",
+  },
+  invoiceCard: {
+    background:   "var(--surface)",
+    border:       "1px solid var(--border)",
+    borderRadius: "10px",
+    overflow:     "hidden",
+    position:     "relative",
+    marginBottom: "20px",
+  },
+  invoiceBorder: {
+    position:   "absolute",
+    top: 0, left: 0, right: 0,
+    height:     "2px",
+    background: "linear-gradient(90deg, var(--gold), var(--ice))",
+  },
+  invoiceTable: {
+    width:          "100%",
+    borderCollapse: "collapse",
+  },
+  th: {
+    padding:       "12px 16px",
+    fontFamily:    "Space Mono, monospace",
+    fontSize:      "9px",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    color:         "var(--text-dim)",
+    textAlign:     "left",
+    borderBottom:  "1px solid var(--border)",
+    fontWeight:    400,
+  },
+  td: {
+    padding:    "12px 16px",
+    fontFamily: "Space Mono, monospace",
+    fontSize:   "11px",
+    color:      "var(--text-dim)",
+  },
+  statusBadge: {
+    padding:       "2px 8px",
+    borderRadius:  "3px",
+    border:        "1px solid",
+    fontSize:      "9px",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+  },
+  downloadLink: {
+    color:          "var(--ice)",
+    textDecoration: "none",
+    fontFamily:     "Space Mono, monospace",
+    fontSize:       "10px",
+    letterSpacing:  "0.5px",
+  },
+  loadWrap: {
+    display:        "flex",
+    justifyContent: "center",
+    padding:        "40px",
+  },
+  spinner: {
+    width:        "28px",
+    height:       "28px",
+    border:       "2px solid var(--border)",
+    borderTop:    "2px solid var(--gold)",
+    borderRadius: "50%",
+    animation:    "spin 0.8s linear infinite",
+  },
+  emptyInvoice: {
+    textAlign: "center",
+    padding:   "40px",
+    color:     "var(--text-dim)",
+  },
+  securityNote: {
+    fontFamily: "Space Mono, monospace",
+    fontSize:   "10px",
+    color:      "var(--text-dim)",
+    lineHeight: "1.6",
+    letterSpacing: "0.3px",
+  },
+};

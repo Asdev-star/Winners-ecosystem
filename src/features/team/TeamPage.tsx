@@ -1,415 +1,339 @@
 // src/features/team/TeamPage.tsx
-// Phase 1 — Core Engine | UI Layer
-// Full rebuild: ecosystem card pattern, CSS variables only, no Tailwind, no hex colors
+// Phase 1 — Core Engine · Team Management
+// Ecosystem design: CSS variables, card pattern, context bar, no Tailwind
 
-import { useState, useEffect, FormEvent } from "react";
-import { useAuthStore } from "../auth/authStore";
-import { useInviteStore, Role } from "./inviteStore";
+import { useState, useEffect } from "react";
 
-const css = `
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
+const API = import.meta.env.VITE_API_URL ?? "";
 
-.tm-root {
-  min-height: 100vh; background: var(--bg); color: var(--text);
-  font-family: 'Syne', sans-serif; padding: 32px 32px 80px; max-width: 960px;
-  animation: tm-fadeIn 0.35s ease forwards;
-}
-@keyframes tm-fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-
-/* Context Bar */
-.tm-context-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
-.tm-context-item {
-  font-family: 'Space Mono', monospace; font-size: 9px;
-  letter-spacing: 0.15em; text-transform: uppercase;
-  padding: 4px 10px; border-radius: 2px;
-}
-.tm-context-item.live    { background: rgba(45,212,160,0.1); color: var(--green); border: 1px solid rgba(45,212,160,0.2); }
-.tm-context-item.planned { background: rgba(90,122,150,0.08); color: var(--text-dim); border: 1px solid var(--border); }
-.tm-context-sep { color: var(--border); font-size: 10px; }
-
-/* Page Header */
-.tm-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
-.tm-eyebrow { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
-.tm-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(26px, 4vw, 38px); font-weight: 300; color: var(--text);
-  line-height: 1.1; margin: 0;
-}
-.tm-title em { font-style: italic; color: var(--gold); }
-.tm-subtitle { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 0.05em; margin-top: 5px; }
-.tm-member-count {
-  font-family: 'Cormorant Garamond', serif; font-size: 42px; font-weight: 600;
-  color: var(--gold); line-height: 1;
-}
-.tm-member-count-label { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; }
-
-/* Stats Strip */
-.tm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 20px; }
-.tm-stat { background: var(--surface); padding: 14px 18px; text-align: center; }
-.tm-stat-value { font-size: 20px; font-weight: 800; margin-bottom: 3px; }
-.tm-stat-label { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; }
-
-/* Card */
-.tm-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 6px; margin-bottom: 16px;
-  position: relative; overflow: hidden;
-}
-.tm-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-.tm-card.gold::before   { background: linear-gradient(90deg, var(--gold), transparent); }
-.tm-card.blue::before   { background: linear-gradient(90deg, var(--blue), transparent); }
-.tm-card.green::before  { background: linear-gradient(90deg, var(--green), transparent); }
-.tm-card.purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
-
-.tm-card-header {
-  padding: 18px 24px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-}
-.tm-card-title { font-size: 14px; font-weight: 700; }
-.tm-card-meta  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
-.tm-card-body  { padding: 24px; }
-
-/* Invite Form */
-.tm-invite-row { display: flex; gap: 10px; flex-wrap: wrap; }
-.tm-input {
-  flex: 1; min-width: 200px; background: var(--surface2);
-  border: 1px solid var(--border); border-radius: 4px;
-  padding: 10px 14px; font-family: 'Space Mono', monospace; font-size: 12px;
-  color: var(--text); outline: none; transition: border-color 0.15s;
-}
-.tm-input:focus { border-color: var(--gold); }
-.tm-input::placeholder { color: var(--text-dim); }
-.tm-select {
-  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
-  padding: 10px 14px; font-family: 'Space Mono', monospace; font-size: 12px;
-  color: var(--text); outline: none; cursor: pointer;
-}
-.tm-select:focus { border-color: var(--gold); }
-
-/* Buttons */
-.tm-btn {
-  background: var(--gold); color: #080B10; border: none; border-radius: 4px;
-  padding: 10px 20px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
-}
-.tm-btn:hover:not(:disabled) { opacity: 0.85; }
-.tm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.tm-btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-size: 11px; padding: 6px 12px; }
-.tm-btn.ghost:hover { border-color: var(--red); color: var(--red); }
-.tm-btn.small { font-size: 11px; padding: 5px 12px; }
-
-.tm-success { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--green); margin-top: 10px; }
-.tm-error-msg { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--red); margin-top: 10px; }
-
-/* Table */
-.tm-table { width: 100%; border-collapse: collapse; }
-.tm-table th {
-  padding: 10px 20px; text-align: left;
-  font-family: 'Space Mono', monospace; font-size: 9px;
-  color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
-}
-.tm-table td { padding: 14px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
-.tm-table tr:last-child td { border-bottom: none; }
-.tm-table tr:hover td { background: rgba(137,196,225,0.03); transition: background 0.15s; }
-
-/* Avatar */
-.tm-avatar {
-  width: 34px; height: 34px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; margin-right: 10px; flex-shrink: 0;
-}
-.tm-member-cell { display: flex; align-items: center; }
-.tm-member-name  { font-weight: 700; font-size: 13px; }
-.tm-member-email { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 2px; }
-
-/* Role Badges */
-.tm-role-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; border-radius: 2px;
-  font-family: 'Space Mono', monospace; font-size: 9px;
-  font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-}
-.tm-role-badge.owner  { background: rgba(201,168,76,0.1);  color: var(--gold);     border: 1px solid rgba(201,168,76,0.25); }
-.tm-role-badge.admin  { background: rgba(43,95,142,0.15);  color: var(--ice);      border: 1px solid rgba(43,95,142,0.3);  }
-.tm-role-badge.member { background: rgba(45,212,160,0.1);  color: var(--green);    border: 1px solid rgba(45,212,160,0.2); }
-.tm-role-badge.viewer { background: rgba(90,122,150,0.08); color: var(--text-dim); border: 1px solid var(--border);        }
-
-/* Role Select */
-.tm-role-select {
-  background: var(--surface2); border: 1px solid var(--border); border-radius: 3px;
-  padding: 4px 8px; font-family: 'Space Mono', monospace; font-size: 10px;
-  color: var(--text); outline: none; cursor: pointer;
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 }
 
-.tm-actions { display: flex; gap: 8px; align-items: center; }
+const ROLES = ["owner", "admin", "member", "viewer"] as const;
+type Role = typeof ROLES[number];
 
-/* Pending Invites */
-.tm-pending-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 24px; border-bottom: 1px solid var(--border);
-}
-.tm-pending-row:last-child { border-bottom: none; }
-.tm-pending-email { font-family: 'Space Mono', monospace; font-size: 12px; }
-.tm-pending-meta  { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-.tm-pending-badge {
-  font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--gold);
-  background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2);
-  padding: 2px 8px; border-radius: 2px;
+interface Member {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  joinedAt: string;
+  lastActive?: string;
 }
 
-/* Loading */
-.tm-loading {
-  padding: 40px; text-align: center;
-  font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim);
-  letter-spacing: 0.1em;
+const ROLE_META: Record<Role, { label: string; color: string; bg: string; border: string; desc: string }> = {
+  owner:  { label: "Owner",  color: "var(--gold)",    bg: "rgba(201,168,76,0.1)",  border: "rgba(201,168,76,0.25)",  desc: "Full access, billing, delete workspace" },
+  admin:  { label: "Admin",  color: "var(--purple)",  bg: "rgba(155,111,255,0.1)", border: "rgba(155,111,255,0.2)", desc: "Manage team, settings, all features" },
+  member: { label: "Member", color: "var(--green)",   bg: "rgba(45,212,160,0.08)", border: "rgba(45,212,160,0.15)", desc: "Access all features, post & collaborate" },
+  viewer: { label: "Viewer", color: "var(--ice)",     bg: "rgba(137,196,225,0.08)", border: "rgba(137,196,225,0.15)", desc: "Read-only access to all content" },
+};
+
+function initials(name: string, email: string) {
+  const src = name || email;
+  return src.split(/\s|@/)[0].slice(0, 2).toUpperCase();
 }
 
-@media (max-width: 768px) {
-  .tm-root { padding: 16px 14px 80px; }
-  .tm-stats { grid-template-columns: 1fr 1fr; }
-  .tm-table th:nth-child(3), .tm-table td:nth-child(3) { display: none; }
-  .tm-invite-row { flex-direction: column; }
-  .tm-input { min-width: unset; width: 100%; }
-  .tm-header { flex-direction: column; }
-}
-@media (max-width: 480px) {
-  .tm-table th:nth-child(4), .tm-table td:nth-child(4) { display: none; }
-  .tm-avatar { width: 28px; height: 28px; font-size: 10px; }
-  .tm-stats { grid-template-columns: 1fr; }
-}
-`;
-
-const AVATAR_COLORS = [
-  "var(--gold)", "var(--ice)", "var(--green)", "var(--purple)", "var(--red)",
-];
-const AVATAR_BG = [
-  "rgba(201,168,76,0.15)", "rgba(43,95,142,0.2)", "rgba(45,212,160,0.15)",
-  "rgba(155,111,255,0.15)", "rgba(224,90,78,0.15)",
-];
-
-function avatar(name: string, index: number) {
-  return {
-    initials: name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase(),
-    color: AVATAR_COLORS[index % AVATAR_COLORS.length],
-    bg:    AVATAR_BG[index % AVATAR_BG.length],
-  };
+function timeAgo(iso: string) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const d = Math.floor(diff / 86400000);
+  if (d === 0) return "today";
+  if (d === 1) return "yesterday";
+  if (d < 30) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function TeamPage() {
-  const { members, pendingInvites, isLoading, fetchTeam, inviteMember, removeMember, updateRole } = useInviteStore();
-  const currentUser = useAuthStore((s) => s.user);
-
-  const [email, setEmail]       = useState("");
-  const [role,  setRole]        = useState<Role>("member");
-  const [inviting, setInviting] = useState(false);
-  const [success,  setSuccess]  = useState("");
-  const [err,      setErr]      = useState("");
+  const [members, setMembers]         = useState<Member[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole]   = useState<Role>("member");
+  const [inviting, setInviting]       = useState(false);
+  const [inviteMsg, setInviteMsg]     = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [search, setSearch]           = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const id = "tm-styles";
-    if (!document.getElementById(id)) {
-      const tag = document.createElement("style");
-      tag.id = id; tag.textContent = css;
-      document.head.appendChild(tag);
-    }
-    return () => { document.getElementById(id)?.remove(); };
+    setCurrentUser(JSON.parse(localStorage.getItem("user") ?? "{}"));
+    loadMembers();
   }, []);
 
-  useEffect(() => { fetchTeam(); }, []);
-
-  const canManage = currentUser?.role === "owner" || currentUser?.role === "admin";
-
-  const handleInvite = async (e: FormEvent) => {
-    e.preventDefault();
-    setErr(""); setSuccess("");
-    if (!email.includes("@")) { setErr("Valid email required"); return; }
-    setInviting(true);
+  const loadMembers = async () => {
+    setLoading(true);
     try {
-      await inviteMember(email, role);
-      setSuccess(`Invite sent to ${email}`);
-      setEmail("");
-    } catch (e: any) {
-      setErr(e?.message ?? "Failed to send invite");
-    } finally {
-      setInviting(false);
-      setTimeout(() => { setSuccess(""); setErr(""); }, 4000);
-    }
+      const res  = await fetch(`${API}/team/members`, { headers: authHeaders() });
+      const data = await res.json();
+      setMembers(Array.isArray(data) ? data : []);
+    } catch {}
+    setLoading(false);
   };
 
-  const ownerCount  = members.filter((m) => m.role === "owner").length;
-  const adminCount  = members.filter((m) => m.role === "admin").length;
-  const memberCount = members.filter((m) => m.role === "member" || m.role === "viewer").length;
+  const sendInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true); setInviteMsg(null);
+    try {
+      const res  = await fetch(`${API}/team/invite`, {
+        method:  "POST",
+        headers: authHeaders(),
+        body:    JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to send invite");
+      setInviteMsg({ type: "ok", text: `Invite sent to ${inviteEmail}` });
+      setInviteEmail("");
+    } catch (e: any) {
+      setInviteMsg({ type: "err", text: e.message });
+    }
+    setInviting(false);
+  };
+
+  const changeRole = async (memberId: string, newRole: Role) => {
+    await fetch(`${API}/team/members/${memberId}/role`, {
+      method:  "PATCH",
+      headers: authHeaders(),
+      body:    JSON.stringify({ role: newRole }),
+    });
+    setMembers((prev) => prev.map((m) => m.id === memberId ? { ...m, role: newRole } : m));
+  };
+
+  const removeMember = async (member: Member) => {
+    if (!confirm(`Remove ${member.name || member.email} from your team?`)) return;
+    await fetch(`${API}/team/members/${member.id}`, { method: "DELETE", headers: authHeaders() });
+    setMembers((prev) => prev.filter((m) => m.id !== member.id));
+  };
+
+  const filtered = members.filter((m) =>
+    !search || m.name?.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const canManage = ["owner", "admin"].includes(currentUser?.role ?? "");
+
+  const platformLayers = [
+    { name: "Core", status: "live" },
+    { name: "Community", status: "live" },
+    { name: "Academy", status: "soon" },
+    { name: "Market", status: "soon" },
+    { name: "Intelligence", status: "planned" },
+    { name: "Work", status: "planned" },
+  ];
 
   return (
-    <div className="tm-root">
-      {/* Context Bar */}
-      <div className="tm-context-bar">
-        <span className="tm-context-item live">⬡ Core Engine</span>
-        <span className="tm-context-sep">›</span>
-        <span className="tm-context-item live">Team Management</span>
-        <span className="tm-context-sep">›</span>
-        <span className="tm-context-item planned">Phase 1</span>
+    <div style={s.page}>
+      {/* Context bar */}
+      <div style={s.contextBar}>
+        {platformLayers.map((p) => (
+          <div key={p.name} style={s.contextItem}>
+            <div style={{ ...s.contextDot, background: p.status === "live" ? "var(--green)" : p.status === "soon" ? "var(--gold)" : "var(--border)" }} />
+            <span style={{ color: p.name === "Core" ? "var(--gold)" : "var(--text-dim)" }}>{p.name}</span>
+          </div>
+        ))}
       </div>
 
       {/* Header */}
-      <div className="tm-header">
+      <div style={s.header}>
         <div>
-          <div className="tm-eyebrow">Organization</div>
-          <h1 className="tm-title">Your <em>Team</em></h1>
-          <div className="tm-subtitle">Manage members, roles, and access across your workspace</div>
+          <div style={s.pageLabel}>Core Engine · Team</div>
+          <h1 style={s.pageTitle}>Team Management</h1>
+          <p style={s.pageDesc}>Invite members, manage roles, and control workspace access.</p>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div className="tm-member-count">{members.length}</div>
-          <div className="tm-member-count-label">Active Members</div>
-        </div>
-      </div>
-
-      {/* Stats Strip */}
-      <div className="tm-stats">
-        <div className="tm-stat">
-          <div className="tm-stat-value" style={{ color: "var(--gold)" }}>{ownerCount}</div>
-          <div className="tm-stat-label">Owners</div>
-        </div>
-        <div className="tm-stat">
-          <div className="tm-stat-value" style={{ color: "var(--ice)" }}>{adminCount}</div>
-          <div className="tm-stat-label">Admins</div>
-        </div>
-        <div className="tm-stat">
-          <div className="tm-stat-value" style={{ color: "var(--green)" }}>{memberCount}</div>
-          <div className="tm-stat-label">Members</div>
-        </div>
-        <div className="tm-stat">
-          <div className="tm-stat-value" style={{ color: "var(--gold)" }}>{pendingInvites.length}</div>
-          <div className="tm-stat-label">Pending</div>
+        <div style={s.memberCount}>
+          <span style={{ ...s.countNum, color: "var(--gold)" }}>{members.length}</span>
+          <span style={s.countLabel}>Members</span>
         </div>
       </div>
 
-      {/* Invite Form */}
+      {/* Invite card */}
       {canManage && (
-        <div className="tm-card gold">
-          <div className="tm-card-header">
-            <div className="tm-card-title">Invite a Member</div>
-            <div className="tm-card-meta">An email invite will be sent with a signup link</div>
-          </div>
-          <div className="tm-card-body">
-            <form onSubmit={handleInvite}>
-              <div className="tm-invite-row">
-                <input
-                  className="tm-input" type="email" value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="colleague@company.com"
-                />
-                <select
-                  className="tm-select" value={role}
-                  onChange={(e) => setRole(e.target.value as Role)}
-                >
-                  <option value="admin">Admin</option>
-                  <option value="member">Member</option>
-                  <option value="viewer">Viewer</option>
-                </select>
-                <button type="submit" className="tm-btn" disabled={inviting}>
-                  {inviting ? "Sending…" : "Send Invite"}
-                </button>
+        <div style={s.inviteCard}>
+          <div style={s.cardBorder} />
+          <div style={{ padding: "20px 24px" }}>
+            <div style={s.cardTitle}>Invite Team Member</div>
+
+            {inviteMsg && (
+              <div style={{ ...s.msgBox, ...(inviteMsg.type === "ok" ? s.msgOk : s.msgErr) }}>
+                {inviteMsg.type === "ok" ? "✓" : "✕"} {inviteMsg.text}
               </div>
-              {success && <div className="tm-success">✓ {success}</div>}
-              {err     && <div className="tm-error-msg">✗ {err}</div>}
-            </form>
+            )}
+
+            <div style={s.inviteRow}>
+              <input
+                style={{ ...s.input, flex: 1 }}
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="colleague@company.com"
+                type="email"
+                onKeyDown={(e) => e.key === "Enter" && sendInvite()}
+              />
+              <select
+                style={s.roleSelect}
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as Role)}
+              >
+                {ROLES.filter(r => r !== "owner").map(r => (
+                  <option key={r} value={r}>{ROLE_META[r].label}</option>
+                ))}
+              </select>
+              <button style={s.inviteBtn} onClick={sendInvite} disabled={inviting || !inviteEmail.trim()}>
+                {inviting ? "Sending..." : "Send Invite"}
+              </button>
+            </div>
+
+            {/* Role guide */}
+            <div style={s.roleGuide}>
+              {ROLES.map((r) => (
+                <div key={r} style={s.roleGuideItem}>
+                  <span style={{ ...s.roleBadge, color: ROLE_META[r].color, background: ROLE_META[r].bg, borderColor: ROLE_META[r].border }}>
+                    {ROLE_META[r].label}
+                  </span>
+                  <span style={s.roleDesc}>{ROLE_META[r].desc}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Active Members */}
-      <div className="tm-card blue">
-        <div className="tm-card-header">
-          <div className="tm-card-title">Active Members</div>
-          <div className="tm-card-meta">{members.length} total · RBAC enforced</div>
-        </div>
-        {isLoading ? (
-          <div className="tm-loading">Loading members…</div>
+      {/* Member list */}
+      <div style={s.sectionHeader}>
+        <div style={s.sectionLabel}>Members</div>
+        <div style={s.sectionLine} />
+        <input
+          style={s.searchInput}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search members..."
+        />
+      </div>
+
+      <div style={s.memberCard}>
+        <div style={s.cardBorder} />
+        {loading ? (
+          <div style={s.loadWrap}><div style={s.spinner} /></div>
+        ) : filtered.length === 0 ? (
+          <div style={s.emptyState}>
+            <div style={{ fontSize: "28px", marginBottom: "8px" }}>👥</div>
+            <div style={{ color: "var(--text-dim)", fontFamily: "Space Mono, monospace", fontSize: "11px" }}>
+              {search ? "No members match your search" : "No team members yet"}
+            </div>
+          </div>
         ) : (
-          <table className="tm-table">
-            <thead>
-              <tr>
-                <th>Member</th>
-                <th>Role</th>
-                <th>Joined</th>
-                {canManage && <th>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m, i) => {
-                const { initials, color, bg } = avatar(m.name, i);
-                const isCurrentUser = m.id === currentUser?.id;
-                const isOwner       = m.role === "owner";
-                return (
-                  <tr key={m.id}>
-                    <td>
-                      <div className="tm-member-cell">
-                        <div className="tm-avatar" style={{ background: bg, color }}>{initials}</div>
-                        <div>
-                          <div className="tm-member-name">{m.name}{isCurrentUser && " (you)"}</div>
-                          <div className="tm-member-email">{m.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td><span className={`tm-role-badge ${m.role}`}>{m.role}</span></td>
-                    <td style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)" }}>
-                      {m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "—"}
-                    </td>
-                    {canManage && (
-                      <td>
-                        {!isOwner && !isCurrentUser ? (
-                          <div className="tm-actions">
-                            <select
-                              className="tm-role-select"
-                              value={m.role}
-                              onChange={(e) => updateRole(m.id, e.target.value as Role)}
-                            >
-                              <option value="admin">Admin</option>
-                              <option value="member">Member</option>
-                              <option value="viewer">Viewer</option>
-                            </select>
-                            <button className="tm-btn ghost" onClick={() => removeMember(m.id)}>
-                              Remove
-                            </button>
-                          </div>
-                        ) : (
-                          <span style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)" }}>
-                            {isOwner ? "— Owner" : "— You"}
-                          </span>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          filtered.map((member, i) => {
+            const rm = ROLE_META[member.role] ?? ROLE_META.member;
+            const isMe = member.id === currentUser?.id;
+            const isOwner = member.role === "owner";
+            return (
+              <div key={member.id} style={{ ...s.memberRow, ...(i === filtered.length - 1 ? { borderBottom: "none" } : {}) }}>
+                {/* Avatar */}
+                <div style={{
+                  ...s.avatar,
+                  background: member.role === "owner" ? "linear-gradient(135deg, var(--gold), var(--blue))" :
+                               member.role === "admin" ? "linear-gradient(135deg, var(--purple), var(--blue))" :
+                               "linear-gradient(135deg, var(--blue), var(--ice))",
+                }}>
+                  {initials(member.name, member.email)}
+                </div>
+
+                {/* Info */}
+                <div style={s.memberInfo}>
+                  <div style={s.memberName}>
+                    {member.name || member.email}
+                    {isMe && <span style={s.youBadge}>you</span>}
+                  </div>
+                  <div style={s.memberEmail}>{member.email}</div>
+                </div>
+
+                {/* Role */}
+                <div style={s.memberRole}>
+                  {canManage && !isOwner && !isMe ? (
+                    <select
+                      style={{ ...s.roleSelectSmall, color: rm.color, borderColor: rm.border, background: rm.bg }}
+                      value={member.role}
+                      onChange={(e) => changeRole(member.id, e.target.value as Role)}
+                    >
+                      {ROLES.filter(r => r !== "owner").map(r => (
+                        <option key={r} value={r}>{ROLE_META[r].label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span style={{ ...s.roleBadge, color: rm.color, background: rm.bg, borderColor: rm.border }}>
+                      {rm.label}
+                    </span>
+                  )}
+                </div>
+
+                {/* Last active */}
+                <div style={s.lastActive}>
+                  <div style={s.lastActiveLabel}>Last active</div>
+                  <div style={s.lastActiveVal}>{timeAgo(member.lastActive ?? member.joinedAt)}</div>
+                </div>
+
+                {/* Joined */}
+                <div style={s.lastActive}>
+                  <div style={s.lastActiveLabel}>Joined</div>
+                  <div style={s.lastActiveVal}>{timeAgo(member.joinedAt)}</div>
+                </div>
+
+                {/* Remove */}
+                {canManage && !isOwner && !isMe && (
+                  <button style={s.removeBtn} onClick={() => removeMember(member)} title="Remove member">
+                    ✕
+                  </button>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
-
-      {/* Pending Invites */}
-      {pendingInvites.length > 0 && (
-        <div className="tm-card purple">
-          <div className="tm-card-header">
-            <div className="tm-card-title">Pending Invites</div>
-            <div className="tm-card-meta">{pendingInvites.length} awaiting acceptance</div>
-          </div>
-          {pendingInvites.map((inv) => (
-            <div className="tm-pending-row" key={inv.id}>
-              <div>
-                <div className="tm-pending-email">{inv.email}</div>
-                <div className="tm-pending-meta">
-                  Role: {inv.role} · Sent {inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : "—"}
-                </div>
-              </div>
-              <span className="tm-pending-badge">● Pending</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
+
+const s: Record<string, React.CSSProperties> = {
+  page: { maxWidth: "1000px", margin: "0 auto", padding: "24px 20px 60px", fontFamily: "Syne, sans-serif" },
+  contextBar: { display: "flex", alignItems: "center", gap: "16px", padding: "8px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px", marginBottom: "24px", overflowX: "auto" },
+  contextItem: { display: "flex", alignItems: "center", gap: "5px", fontFamily: "Space Mono, monospace", fontSize: "9px", letterSpacing: "1px", textTransform: "uppercase", whiteSpace: "nowrap" },
+  contextDot: { width: "5px", height: "5px", borderRadius: "50%" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" },
+  pageLabel: { fontFamily: "Space Mono, monospace", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--gold)", marginBottom: "6px" },
+  pageTitle: { fontSize: "26px", fontWeight: 800, letterSpacing: "-0.5px", margin: 0 },
+  pageDesc: { fontSize: "13px", color: "var(--text-dim)", margin: "6px 0 0" },
+  memberCount: { display: "flex", flexDirection: "column", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px 20px" },
+  countNum: { fontSize: "28px", fontWeight: 800, lineHeight: 1 },
+  countLabel: { fontFamily: "Space Mono, monospace", fontSize: "9px", color: "var(--text-dim)", letterSpacing: "1px", marginTop: "2px" },
+  inviteCard: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", overflow: "hidden", position: "relative", marginBottom: "24px" },
+  cardBorder: { position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg, var(--gold), var(--ice))" },
+  cardTitle: { fontFamily: "Space Mono, monospace", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", color: "var(--gold)", marginBottom: "16px" },
+  msgBox: { padding: "10px 12px", borderRadius: "6px", fontFamily: "Space Mono, monospace", fontSize: "11px", marginBottom: "14px", border: "1px solid" },
+  msgOk: { background: "rgba(45,212,160,0.08)", borderColor: "rgba(45,212,160,0.2)", color: "var(--green)" },
+  msgErr: { background: "rgba(224,90,78,0.08)", borderColor: "rgba(224,90,78,0.2)", color: "var(--red)" },
+  inviteRow: { display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" },
+  input: { padding: "10px 12px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "6px", color: "var(--text)", fontFamily: "Syne, sans-serif", fontSize: "13px", outline: "none" },
+  roleSelect: { padding: "10px 12px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "6px", color: "var(--text)", fontFamily: "Space Mono, monospace", fontSize: "11px", outline: "none", cursor: "pointer" },
+  inviteBtn: { padding: "10px 18px", background: "var(--gold)", border: "none", borderRadius: "6px", color: "#0D1520", fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap" },
+  roleGuide: { display: "flex", flexDirection: "column", gap: "6px" },
+  roleGuideItem: { display: "flex", alignItems: "center", gap: "10px" },
+  roleBadge: { fontFamily: "Space Mono, monospace", fontSize: "9px", letterSpacing: "1px", textTransform: "uppercase", padding: "2px 8px", borderRadius: "3px", border: "1px solid", whiteSpace: "nowrap" },
+  roleDesc: { fontFamily: "Space Mono, monospace", fontSize: "10px", color: "var(--text-dim)" },
+  sectionHeader: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" },
+  sectionLabel: { fontFamily: "Space Mono, monospace", fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", color: "var(--gold)", whiteSpace: "nowrap" },
+  sectionLine: { flex: 1, height: "1px", background: "var(--border)" },
+  searchInput: { padding: "8px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "6px", color: "var(--text)", fontFamily: "Syne, sans-serif", fontSize: "12px", outline: "none", width: "180px" },
+  memberCard: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", overflow: "hidden", position: "relative" },
+  memberRow: { display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" },
+  avatar: { width: "36px", height: "36px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Space Mono, monospace", fontSize: "11px", fontWeight: 700, color: "#fff", flexShrink: 0 },
+  memberInfo: { flex: 1, minWidth: "140px" },
+  memberName: { fontWeight: 600, fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" },
+  youBadge: { fontFamily: "Space Mono, monospace", fontSize: "8px", padding: "1px 5px", background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: "3px", color: "var(--gold)", letterSpacing: "0.5px" },
+  memberEmail: { fontFamily: "Space Mono, monospace", fontSize: "9px", color: "var(--text-dim)", marginTop: "2px" },
+  memberRole: { minWidth: "90px" },
+  roleSelectSmall: { fontFamily: "Space Mono, monospace", fontSize: "9px", letterSpacing: "0.5px", padding: "3px 6px", borderRadius: "3px", border: "1px solid", outline: "none", cursor: "pointer" },
+  lastActive: { textAlign: "center", minWidth: "70px" },
+  lastActiveLabel: { fontFamily: "Space Mono, monospace", fontSize: "8px", color: "var(--text-dim)", letterSpacing: "0.5px", textTransform: "uppercase" },
+  lastActiveVal: { fontFamily: "Space Mono, monospace", fontSize: "10px", color: "var(--text-dim)", marginTop: "2px" },
+  removeBtn: { background: "transparent", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text-dim)", width: "26px", height: "26px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", flexShrink: 0 },
+  loadWrap: { display: "flex", justifyContent: "center", padding: "40px" },
+  spinner: { width: "28px", height: "28px", border: "2px solid var(--border)", borderTop: "2px solid var(--gold)", borderRadius: "50%", animation: "spin 0.8s linear infinite" },
+  emptyState: { textAlign: "center", padding: "40px", color: "var(--text-dim)" },
+};

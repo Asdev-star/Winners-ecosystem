@@ -1,4 +1,7 @@
-// prisma/schema.prisma — Full schema including Community Layer V1
+// prisma/schema.prisma
+// Winners Ecosystem — Complete Schema
+// Phase 1: Core Engine + Phase 2: Community Layer V1.2 (Groups)
+// Run: npx prisma db push && npx prisma generate
 
 generator client {
   provider = "prisma-client-js"
@@ -6,7 +9,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CORE ENGINE — PHASE 1
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Tenant {
   id                   String    @id @default(cuid())
@@ -27,6 +35,7 @@ model Tenant {
   analyticsEvents AnalyticsEvent[]
   referralCredits ReferralCredit[]
   posts           Post[]
+  groups          Group[]
 
   @@map("tenants")
 }
@@ -63,6 +72,8 @@ model User {
   likes               Like[]
   followers           Follow[]             @relation("Followers")
   following           Follow[]             @relation("Following")
+  createdGroups       Group[]              @relation("GroupCreator")
+  groupMemberships    GroupMember[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -105,6 +116,56 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+model Invite {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  role      Role     @default(MEMBER)
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  accepted  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([token])
+  @@map("invites")
+}
+
+model RevenueRecord {
+  id          String   @id @default(cuid())
+  tenantId    String
+  amount      Float
+  currency    String   @default("USD")
+  source      String
+  description String?
+  recordedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([recordedAt])
+  @@map("revenue_records")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  event     String
+  userId    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([event])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
 model Referral {
   id            String         @id @default(cuid())
   referrerId    String
@@ -123,12 +184,18 @@ model Referral {
   @@map("referrals")
 }
 
+enum ReferralStatus {
+  PENDING
+  CONVERTED
+  EXPIRED
+}
+
 model ReferralCredit {
   id        String   @id @default(cuid())
   tenantId  String
   userId    String
   amount    Float
-  reason    String
+  reason    String?
   createdAt DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
@@ -137,67 +204,6 @@ model ReferralCredit {
   @@index([tenantId])
   @@index([userId])
   @@map("referral_credits")
-}
-
-enum ReferralStatus {
-  PENDING
-  CONVERTED
-  EXPIRED
-}
-
-model Invite {
-  id        String       @id @default(cuid())
-  tenantId  String
-  email     String
-  role      Role         @default(MEMBER)
-  token     String       @unique @default(cuid())
-  status    InviteStatus @default(PENDING)
-  invitedBy String
-  expiresAt DateTime
-  createdAt DateTime     @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-  @@index([token])
-  @@map("invites")
-}
-
-enum InviteStatus {
-  PENDING
-  ACCEPTED
-  EXPIRED
-}
-
-model RevenueRecord {
-  id        String   @id @default(cuid())
-  tenantId  String
-  date      DateTime
-  amount    Float
-  source    String?
-  createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-  @@index([tenantId, date])
-  @@map("revenue_records")
-}
-
-model AnalyticsEvent {
-  id        String   @id @default(cuid())
-  tenantId  String
-  date      DateTime
-  eventType String
-  count     Int      @default(1)
-  metadata  Json?
-  createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-  @@index([tenantId, date])
-  @@map("analytics_events")
 }
 
 model ActivityLog {
@@ -239,7 +245,9 @@ enum ChangelogType {
   COMING_SOON
 }
 
-// ─── COMMUNITY LAYER V1 ───────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY LAYER — PHASE 2 V1.0
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Post {
   id        String    @id @default(cuid())
@@ -251,20 +259,23 @@ model Post {
   linkUrl   String?
   linkTitle String?
   edited    Boolean   @default(false)
-  pinned    Boolean   @default(false)
+  isPinned  Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+  groupId   String?
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id])
   author   User      @relation("PostAuthor", fields: [authorId], references: [id])
   comments Comment[]
   likes    Like[]
   tags     PostTag[]
+  group    Group?    @relation("GroupPosts", fields: [groupId], references: [id])
 
   @@index([tenantId, createdAt(sort: Desc)])
   @@index([authorId])
-  @@index([tenantId, pinned])
+  @@index([tenantId, isPinned])
+  @@index([groupId])
   @@map("posts")
 }
 
@@ -278,11 +289,11 @@ model Comment {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author   User      @relation("CommentAuthor", fields: [authorId], references: [id])
-  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies  Comment[] @relation("CommentReplies")
-  likes    Like[]
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User      @relation("CommentAuthor", fields: [authorId], references: [id])
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentReplies")
+  likes   Like[]
 
   @@index([postId])
   @@index([authorId])
@@ -340,4 +351,52 @@ model PostTag {
 
   @@id([postId, tagId])
   @@map("post_tags")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY LAYER — PHASE 2 V1.2: GROUPS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Group {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  slug        String
+  description String?
+  coverImage  String?
+  isPrivate   Boolean  @default(false)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  createdBy User          @relation("GroupCreator", fields: [createdById], references: [id])
+  members   GroupMember[]
+  posts     Post[]        @relation("GroupPosts")
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String          @id @default(cuid())
+  groupId  String
+  userId   String
+  role     GroupMemberRole @default(MEMBER)
+  joinedAt DateTime        @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+enum GroupMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
 }
