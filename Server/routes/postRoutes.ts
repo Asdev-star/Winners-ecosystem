@@ -1,242 +1,440 @@
 // Server/routes/postRoutes.ts
+// FIXED: pinned is the correct field name (schema uses pinned, not isPinned)
+// FIXED: all req.params cast with String()
 
 import { Router, Request, Response } from "express";
-import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { enforceTenant } from "../middleware/rbacMiddleware.js";
 
 const router = Router();
+router.use(authMiddleware);
+router.use(enforceTenant);
 
-// ─── POSTS ────────────────────────────────────────────────────────────────────
+// ─── GET /posts — feed ────────────────────────────────────────────────────────
 
-// GET /posts — feed (paginated, tenant-scoped)
-router.get("/", authMiddleware, async (req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
+  const page     = parseInt(String(req.query.page  ?? "1"));
+  const limit    = parseInt(String(req.query.limit ?? "20"));
+  const tag      = String(req.query.tag ?? "").trim();
+
   try {
-    const page     = parseInt(String(req.query.page  ?? "0"));
-    const limit    = parseInt(String(req.query.limit ?? "10"));
-    const skip     = page * limit;
-    const tenantId = req.user!.tenantId;
+    const where: any = { tenantId, deletedAt: null };
+    if (tag) where.tags = { some: { tag: { name: tag } } };
 
-    const posts = await db.post.findMany({
-      where:   { tenantId, deletedAt: null },
-      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-      skip, take: limit,
-      include: {
-        author: { select: { id: true, name: true, email: true } },
-        tags:   { include: { tag: true } },
-        _count: { select: { comments: true, likes: true } },
-      },
-    });
+    const [posts, total, pinned] = await Promise.all([
+      db.post.findMany({
+        where,
+        orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],  // FIXED: pinned
+        skip:    (page - 1) * limit,
+        take:    limit,
+        include: {
+          author:   { select: { id: true, name: true, email: true } },
+          _count:   { select: { likes: true, comments: true } },
+          likes:    { where: { userId }, select: { id: true } },
+          tags:     { include: { tag: true } },
+        },
+      }),
+      db.post.count({ where }),
+      db.post.findMany({
+        where:   { tenantId, pinned: true, deletedAt: null },  // FIXED: pinned
+        orderBy: { createdAt: "desc" },
+        include: {
+          author: { select: { id: true, name: true, email: true } },
+          _count: { select: { likes: true, comments: true } },
+          likes:  { where: { userId }, select: { id: true } },
+          tags:   { include: { tag: true } },
+        },
+      }),
+    ]);
 
-    const postIds   = posts.map((p) => p.id);
-    const userLikes = await db.like.findMany({
-      where:  { userId: req.user!.userId, postId: { in: postIds } },
-      select: { postId: true },
+    return res.json({
+      posts: posts.map((p) => ({
+        ...p,
+        likeCount:    p._count.likes,
+        commentCount: p._count.comments,
+        liked:        p.likes.length > 0,
+        tags:         p.tags.map((t) => t.tag.name),
+      })),
+      pinned: pinned.map((p) => ({
+        ...p,
+        likeCount:    p._count.likes,
+        commentCount: p._count.comments,
+        liked:        p.likes.length > 0,
+        tags:         p.tags.map((t) => t.tag.name),
+      })),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
     });
-    const likedSet = new Set(userLikes.map((l) => l.postId));
-    const total    = await db.post.count({ where: { tenantId, deletedAt: null } });
-
-    res.json({
-      posts:   posts.map((p) => ({ ...p, liked: likedSet.has(p.id) })),
-      total, page,
-      hasMore: skip + limit < total,
-    });
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+  } catch (err: any) {
+    console.error("Get posts error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-// POST /posts — create post
-router.post("/", authMiddleware, async (req: Request, res: Response) => {
-  const { content, mediaUrl, mediaType, linkUrl, linkTitle, tags } = req.body;
-  if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+// ─── POST /posts — create post ────────────────────────────────────────────────
+
+router.post("/", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const authorId = req.user!.userId;
+  const { content, mediaUrl, mediaType, linkUrl, linkTitle, tags, groupId } = req.body;
+
+  if (!content?.trim()) {
+    return res.status(400).json({ message: "Content is required" });
+  }
 
   try {
+    const tagRecords = await Promise.all(
+      (tags ?? []).map((name: string) =>
+        db.tag.upsert({
+          where:  { name: name.toLowerCase().trim() },
+          update: {},
+          create: { name: name.toLowerCase().trim() },
+        })
+      )
+    );
+
     const post = await db.post.create({
       data: {
-        tenantId:  req.user!.tenantId,
-        authorId:  req.user!.userId,
-        content:   content.trim(),
-        mediaUrl,  mediaType, linkUrl, linkTitle,
-        tags: tags?.length
-          ? {
-              create: await Promise.all(
-                (tags as string[]).map(async (name: string) => {
-                  const tag = await db.tag.upsert({
-                    where:  { name: name.toLowerCase() },
-                    update: {},
-                    create: { name: name.toLowerCase() },
-                  });
-                  return { tagId: tag.id };
-                })
-              ),
-            }
-          : undefined,
+        tenantId,
+        authorId,
+        content: content.trim(),
+        mediaUrl:  mediaUrl  ?? null,
+        mediaType: mediaType ?? null,
+        linkUrl:   linkUrl   ?? null,
+        linkTitle: linkTitle ?? null,
+        groupId:   groupId   ?? null,
+        tags: {
+          create: tagRecords.map((tag) => ({ tagId: tag.id })),
+        },
       },
       include: {
-        author: { select: { id: true, name: true, email: true } },
-        tags:   { include: { tag: true } },
-        _count: { select: { comments: true, likes: true } },
+        author:   { select: { id: true, name: true, email: true } },
+        _count:   { select: { likes: true, comments: true } },
+        tags:     { include: { tag: true } },
       },
     });
-    res.status(201).json({ ...post, liked: false });
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+
+    return res.status(201).json({
+      ...post,
+      likeCount:    post._count.likes,
+      commentCount: post._count.comments,
+      liked:        false,
+      tags:         post.tags.map((t) => t.tag.name),
+    });
+  } catch (err: any) {
+    console.error("Create post error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-// GET /posts/:id — single post with comments
-router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
-  const id = String(req.params.id);
+// ─── GET /posts/:id ───────────────────────────────────────────────────────────
+
+router.get("/:id", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
+  const postId   = String(req.params.id);
+
   try {
     const post = await db.post.findFirst({
-      where: { id, tenantId: req.user!.tenantId, deletedAt: null },
+      where:   { id: postId, tenantId, deletedAt: null },
       include: {
-        author: { select: { id: true, name: true, email: true } },
-        tags:   { include: { tag: true } },
-        _count: { select: { comments: true, likes: true } },
+        author:   { select: { id: true, name: true, email: true } },
+        _count:   { select: { likes: true, comments: true } },
+        likes:    { where: { userId }, select: { id: true } },
+        tags:     { include: { tag: true } },
         comments: {
           where:   { deletedAt: null, parentId: null },
           orderBy: { createdAt: "asc" },
           include: {
-            author:  { select: { id: true, name: true, email: true } },
+            author:   { select: { id: true, name: true, email: true } },
+            _count:   { select: { likes: true, replies: true } },
+            likes:    { where: { userId }, select: { id: true } },
             replies: {
               where:   { deletedAt: null },
               orderBy: { createdAt: "asc" },
-              include: { author: { select: { id: true, name: true, email: true } } },
+              include: {
+                author: { select: { id: true, name: true, email: true } },
+                _count: { select: { likes: true } },
+                likes:  { where: { userId }, select: { id: true } },
+              },
             },
-            _count: { select: { likes: true } },
           },
         },
       },
     });
+
     if (!post) return res.status(404).json({ message: "Post not found" });
 
-    const userLike = await db.like.findUnique({
-      where: { userId_postId: { userId: req.user!.userId, postId: id } },
+    return res.json({
+      ...post,
+      likeCount:    post._count.likes,
+      commentCount: post._count.comments,
+      liked:        post.likes.length > 0,
+      tags:         post.tags.map((t) => t.tag.name),
     });
-    res.json({ ...post, liked: !!userLike });
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+  } catch (err: any) {
+    console.error("Get post error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-// PATCH /posts/:id — edit post
-router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
-  const id = String(req.params.id);
+// ─── PATCH /posts/:id — edit post ────────────────────────────────────────────
+
+router.patch("/:id", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
+  const postId   = String(req.params.id);
   const { content } = req.body;
-  if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+
+  if (!content?.trim()) return res.status(400).json({ message: "Content is required" });
+
   try {
-    const post = await db.post.findFirst({ where: { id, authorId: req.user!.userId, deletedAt: null } });
-    if (!post) return res.status(404).json({ message: "Post not found or not yours" });
+    const post = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+    });
+
+    if (!post) return res.status(404).json({ message: "Post not found" });
+    if (post.authorId !== userId) return res.status(403).json({ message: "Not your post" });
 
     const updated = await db.post.update({
-      where:   { id },
-      data:    { content: content.trim(), edited: true },
-      include: { author: { select: { id: true, name: true, email: true } }, _count: { select: { comments: true, likes: true } } },
+      where: { id: postId },
+      data:  { content: content.trim(), edited: true },
+      include: {
+        author: { select: { id: true, name: true, email: true } },
+        _count: { select: { likes: true, comments: true } },
+        tags:   { include: { tag: true } },
+      },
     });
-    res.json(updated);
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+
+    return res.json({
+      ...updated,
+      likeCount:    updated._count.likes,
+      commentCount: updated._count.comments,
+      tags:         updated.tags.map((t) => t.tag.name),
+    });
+  } catch (err: any) {
+    console.error("Edit post error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-// DELETE /posts/:id — soft delete
-router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
-  const id = String(req.params.id);
-  try {
-    const post = await db.post.findFirst({ where: { id, authorId: req.user!.userId, deletedAt: null } });
-    if (!post) return res.status(404).json({ message: "Post not found or not yours" });
+// ─── DELETE /posts/:id ────────────────────────────────────────────────────────
 
-    await db.post.update({ where: { id }, data: { deletedAt: new Date() } });
-    res.json({ message: "Post deleted" });
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+router.delete("/:id", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
+  const postId   = String(req.params.id);
+  const role     = req.user!.role;
+
+  try {
+    const post = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+    });
+
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    const canDelete = post.authorId === userId || ["owner", "admin"].includes(role);
+    if (!canDelete) return res.status(403).json({ message: "Cannot delete this post" });
+
+    await db.post.update({
+      where: { id: postId },
+      data:  { deletedAt: new Date() },
+    });
+
+    return res.json({ message: "Post deleted" });
+  } catch (err: any) {
+    console.error("Delete post error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-// ─── LIKES ────────────────────────────────────────────────────────────────────
+// ─── POST /posts/:id/like — toggle like ──────────────────────────────────────
 
-router.post("/:id/like", authMiddleware, async (req: Request, res: Response) => {
-  const postId = String(req.params.id);
-  const userId = req.user!.userId;
+router.post("/:id/like", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
+  const postId   = String(req.params.id);
+
   try {
-    const existing = await db.like.findUnique({ where: { userId_postId: { userId, postId } } });
+    const post = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+    });
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    const existing = await db.like.findUnique({
+      where: { userId_postId: { userId, postId } },
+    });
+
     if (existing) {
-      await db.like.delete({ where: { id: existing.id } });
+      await db.like.delete({ where: { userId_postId: { userId, postId } } });
       const count = await db.like.count({ where: { postId } });
-      return res.json({ liked: false, count });
+      return res.json({ liked: false, likeCount: count });
     } else {
       await db.like.create({ data: { userId, postId } });
       const count = await db.like.count({ where: { postId } });
-      return res.json({ liked: true, count });
+      return res.json({ liked: true, likeCount: count });
     }
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+  } catch (err: any) {
+    console.error("Like post error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-// ─── COMMENTS ─────────────────────────────────────────────────────────────────
+// ─── GET /posts/:id/comments ──────────────────────────────────────────────────
 
-router.post("/:id/comments", authMiddleware, async (req: Request, res: Response) => {
-  const postId = String(req.params.id);
-  const { content, parentId } = req.body;
-  if (!content?.trim()) return res.status(400).json({ message: "Content required" });
+router.get("/:id/comments", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
+  const postId   = String(req.params.id);
+
   try {
-    const comment = await db.comment.create({
-      data: { postId, authorId: req.user!.userId, content: content.trim(), parentId: parentId ?? null },
+    const post = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+    });
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    const comments = await db.comment.findMany({
+      where:   { postId, parentId: null, deletedAt: null },
+      orderBy: { createdAt: "asc" },
       include: {
-        author:  { select: { id: true, name: true, email: true } },
-        replies: { include: { author: { select: { id: true, name: true, email: true } } } },
-        _count:  { select: { likes: true } },
+        author:   { select: { id: true, name: true, email: true } },
+        _count:   { select: { likes: true, replies: true } },
+        likes:    { where: { userId }, select: { id: true } },
+        replies: {
+          where:   { deletedAt: null },
+          orderBy: { createdAt: "asc" },
+          include: {
+            author: { select: { id: true, name: true, email: true } },
+            _count: { select: { likes: true } },
+            likes:  { where: { userId }, select: { id: true } },
+          },
+        },
       },
     });
-    res.status(201).json(comment);
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+
+    return res.json(
+      comments.map((c) => ({
+        ...c,
+        likeCount:   c._count.likes,
+        replyCount:  c._count.replies,
+        liked:       c.likes.length > 0,
+        replies:     c.replies.map((r) => ({
+          ...r,
+          likeCount: r._count.likes,
+          liked:     r.likes.length > 0,
+        })),
+      }))
+    );
+  } catch (err: any) {
+    console.error("Get comments error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-router.delete("/:id/comments/:commentId", authMiddleware, async (req: Request, res: Response) => {
-  const id        = String(req.params.commentId);
-  const authorId  = req.user!.userId;
-  try {
-    const comment = await db.comment.findFirst({ where: { id, authorId, deletedAt: null } });
-    if (!comment) return res.status(404).json({ message: "Comment not found or not yours" });
+// ─── POST /posts/:id/comments — add comment ───────────────────────────────────
 
-    await db.comment.update({ where: { id }, data: { deletedAt: new Date() } });
-    res.json({ message: "Comment deleted" });
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+router.post("/:id/comments", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const authorId = req.user!.userId;
+  const postId   = String(req.params.id);
+  const { content, parentId } = req.body;
+
+  if (!content?.trim()) return res.status(400).json({ message: "Content is required" });
+
+  try {
+    const post = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+    });
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    const comment = await db.comment.create({
+      data: {
+        postId,
+        authorId,
+        content:  content.trim(),
+        parentId: parentId ?? null,
+      },
+      include: {
+        author: { select: { id: true, name: true, email: true } },
+        _count: { select: { likes: true, replies: true } },
+      },
+    });
+
+    return res.status(201).json({
+      ...comment,
+      likeCount:  comment._count.likes,
+      replyCount: comment._count.replies,
+      liked:      false,
+    });
+  } catch (err: any) {
+    console.error("Add comment error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-// ─── FOLLOWS ──────────────────────────────────────────────────────────────────
+// ─── DELETE /posts/:id/comments/:commentId ────────────────────────────────────
 
-router.post("/users/:id/follow", authMiddleware, async (req: Request, res: Response) => {
-  const followingId = String(req.params.id);
-  const followerId  = req.user!.userId;
-  if (followerId === followingId) return res.status(400).json({ message: "Cannot follow yourself" });
+router.delete("/:id/comments/:commentId", async (req: Request, res: Response) => {
+  const tenantId   = req.user!.tenantId;
+  const userId     = req.user!.userId;
+  const role       = req.user!.role;
+  const postId     = String(req.params.id);
+  const commentId  = String(req.params.commentId);
+
   try {
-    const existing = await db.follow.findUnique({ where: { followerId_followingId: { followerId, followingId } } });
+    const post = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+    });
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    const comment = await db.comment.findFirst({
+      where: { id: commentId, postId, deletedAt: null },
+    });
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
+
+    const canDelete = comment.authorId === userId || ["owner", "admin"].includes(role);
+    if (!canDelete) return res.status(403).json({ message: "Cannot delete this comment" });
+
+    await db.comment.update({
+      where: { id: commentId },
+      data:  { deletedAt: new Date() },
+    });
+
+    return res.json({ message: "Comment deleted" });
+  } catch (err: any) {
+    console.error("Delete comment error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ─── POST /posts/:id/comments/:commentId/like ─────────────────────────────────
+
+router.post("/:id/comments/:commentId/like", async (req: Request, res: Response) => {
+  const userId    = req.user!.userId;
+  const commentId = String(req.params.commentId);
+
+  try {
+    const existing = await db.like.findUnique({
+      where: { userId_commentId: { userId, commentId } },
+    });
+
     if (existing) {
-      await db.follow.delete({ where: { id: existing.id } });
-      return res.json({ following: false });
+      await db.like.delete({ where: { userId_commentId: { userId, commentId } } });
+      const count = await db.like.count({ where: { commentId } });
+      return res.json({ liked: false, likeCount: count });
     } else {
-      await db.follow.create({ data: { followerId, followingId } });
-      return res.json({ following: true });
+      await db.like.create({ data: { userId, commentId } });
+      const count = await db.like.count({ where: { commentId } });
+      return res.json({ liked: true, likeCount: count });
     }
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
-});
-
-router.get("/users/:id/profile", authMiddleware, async (req: Request, res: Response) => {
-  const userId = String(req.params.id);
-  try {
-    const profile = await db.user.findUnique({
-      where:  { id: userId },
-      select: {
-        id: true, name: true, email: true, role: true, createdAt: true,
-        _count: { select: { followers: true, following: true, posts: true } },
-      },
-    });
-    if (!profile) return res.status(404).json({ message: "User not found" });
-
-    const isFollowing = await db.follow.findUnique({
-      where: { followerId_followingId: { followerId: req.user!.userId, followingId: userId } },
-    });
-
-    const posts = await db.post.findMany({
-      where:   { authorId: userId, deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      take:    20,
-      include: { _count: { select: { comments: true, likes: true } } },
-    });
-
-    res.json({ ...profile, isFollowing: !!isFollowing, posts });
-  } catch (err: any) { res.status(500).json({ message: err.message }); }
+  } catch (err: any) {
+    console.error("Like comment error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 export default router;
