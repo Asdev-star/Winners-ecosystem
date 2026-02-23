@@ -1,5 +1,4 @@
 // src/features/billing/BillingPage.tsx
-// Changes: Added mobile responsive CSS for plans grid, usage grid, danger zone, current plan banner
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -11,41 +10,61 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
   .bp-root {
+    --gold: #C9A84C; --gold2: #E8C97A;
+    --bg: #0D1520; --surface: #111D2E; --surface2: #172335;
+    --border: #1E3248; --text: #E8EEF5; --text-dim: #5A7A96;
+    --green: #4ade80; --red: #f87171; --ice: #89C4E1; --blue: #2B5F8E;
     background: var(--bg); color: var(--text);
     font-family: 'Syne', sans-serif; min-height: 100vh; padding: 32px 24px 80px;
   }
   .bp-inner { max-width: 1000px; margin: 0 auto; }
+
+  /* Header */
   .bp-header { margin-bottom: 36px; }
-  .bp-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+  .bp-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
   .bp-title span { color: var(--gold); }
   .bp-subtitle { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 
+  /* Current plan banner */
   .bp-current {
-    background: var(--surface); border: 1px solid rgba(245,200,66,0.2);
-    border-radius: 4px; padding: 20px 24px; margin-bottom: 28px;
+    background: linear-gradient(135deg, #0f1923 0%, #111D2E 100%);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 16px; padding: 20px 24px; margin-bottom: 28px;
     display: flex; align-items: center; justify-content: space-between;
     flex-wrap: wrap; gap: 16px; position: relative; overflow: hidden;
   }
-  .bp-current::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--gold), #9B6FFF); }
+  .bp-current::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), #89C4E1, transparent);
+  }
   .bp-current-left { display: flex; align-items: center; gap: 14px; }
   .bp-current-icon { font-size: 32px; }
-  .bp-current-name { font-size: 18px; font-weight: 800; }
+  .bp-current-name { font-size: 18px; font-weight: 800; color: var(--text); }
   .bp-current-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 3px; }
-  .bp-status-badge { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 2px; }
-  .bp-status-badge.active    { background: rgba(45,212,160,0.1); color: #2DD4A0; border: 1px solid rgba(45,212,160,0.2); }
-  .bp-status-badge.cancelled { background: rgba(255,89,117,0.1); color: #FF5975; border: 1px solid rgba(255,89,117,0.2); }
 
+  .bp-status-badge { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; }
+  .bp-status-badge.active    { background: rgba(74,222,128,0.1);  color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+  .bp-status-badge.cancelled { background: rgba(248,113,113,0.1); color: var(--red);   border: 1px solid rgba(248,113,113,0.2); }
+
+  /* Usage */
   .bp-usage-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 36px; }
-  .bp-usage-card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 16px 18px; }
+  .bp-usage-card {
+    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    border: 1px solid rgba(137,196,225,0.1);
+    border-radius: 12px; padding: 16px 18px;
+    transition: border-color 0.2s;
+  }
+  .bp-usage-card:hover { border-color: rgba(137,196,225,0.2); }
   .bp-usage-label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-  .bp-usage-value { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
-  .bp-usage-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .bp-usage-value { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: var(--text); }
+  .bp-usage-bar-track { height: 4px; background: rgba(137,196,225,0.08); border-radius: 2px; overflow: hidden; }
   .bp-usage-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
-  .bp-usage-bar-fill.low    { background: #2DD4A0; }
+  .bp-usage-bar-fill.low    { background: var(--green); }
   .bp-usage-bar-fill.medium { background: var(--gold); }
-  .bp-usage-bar-fill.high   { background: #FF5975; }
+  .bp-usage-bar-fill.high   { background: var(--red); }
   .bp-usage-caption { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); margin-top: 5px; }
 
+  /* Section label */
   .bp-section-label {
     font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px;
     text-transform: uppercase; color: var(--gold); margin-bottom: 16px;
@@ -53,73 +72,90 @@ const css = `
   }
   .bp-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+  /* Plans grid */
   .bp-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
   .bp-plan {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 6px; padding: 24px; position: relative; overflow: hidden;
-    transition: border-color 0.2s;
+    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    border: 1px solid rgba(137,196,225,0.1);
+    border-radius: 16px; padding: 24px; position: relative; overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
   }
-  .bp-plan::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--border); }
-  .bp-plan.pro::before        { background: var(--gold); }
-  .bp-plan.enterprise::before { background: #9B6FFF; }
-  .bp-plan.current  { border-color: rgba(45,212,160,0.4); }
-  .bp-plan.highlighted:not(.current) { border-color: rgba(245,200,66,0.3); }
+  .bp-plan:hover { transform: translateY(-2px); }
+  .bp-plan::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: rgba(137,196,225,0.1); }
+  .bp-plan.pro::before        { background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  .bp-plan.enterprise::before { background: linear-gradient(90deg, transparent, #89C4E1, transparent); }
+  .bp-plan.free::before       { background: linear-gradient(90deg, transparent, rgba(137,196,225,0.3), transparent); }
+  .bp-plan.current            { border-color: rgba(74,222,128,0.3); }
+  .bp-plan.highlighted:not(.current) { border-color: rgba(201,168,76,0.25); }
 
-  .bp-plan-badge { position: absolute; top: 14px; right: 14px; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border-radius: 2px; }
-  .bp-plan-badge.popular { background: rgba(245,200,66,0.15); color: var(--gold); border: 1px solid rgba(245,200,66,0.3); }
-  .bp-plan-badge.current { background: rgba(45,212,160,0.12); color: #2DD4A0; border: 1px solid rgba(45,212,160,0.25); }
+  .bp-plan-badge { position: absolute; top: 14px; right: 14px; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
+  .bp-plan-badge.popular { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); }
+  .bp-plan-badge.current { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
 
-  .bp-plan-name { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+  .bp-plan-name { font-size: 16px; font-weight: 800; margin-bottom: 6px; color: var(--text); }
   .bp-plan.pro .bp-plan-name        { color: var(--gold); }
-  .bp-plan.enterprise .bp-plan-name { color: #9B6FFF; }
+  .bp-plan.enterprise .bp-plan-name { color: var(--ice); }
+
   .bp-plan-price { margin-bottom: 16px; }
-  .bp-plan-amount { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+  .bp-plan-amount { font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--text); }
   .bp-plan-interval { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
 
   .bp-plan-features { margin-bottom: 20px; }
   .bp-plan-feature { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.4; }
-  .bp-plan-feature-check { color: #2DD4A0; flex-shrink: 0; font-size: 11px; margin-top: 1px; }
+  .bp-plan-feature-check { color: var(--green); flex-shrink: 0; font-size: 11px; margin-top: 1px; }
 
-  .bp-plan-btn { width: 100%; padding: 11px; border-radius: 3px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; border: none; }
-  .bp-plan-btn.upgrade { background: var(--gold); color: #080B10; }
-  .bp-plan-btn.upgrade:hover { opacity: 0.88; transform: translateY(-1px); }
-  .bp-plan-btn.upgrade.purple { background: #9B6FFF; color: white; }
+  .bp-plan-btn { width: 100%; padding: 11px; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; border: none; }
+  .bp-plan-btn.upgrade { background: var(--gold); color: #0D1520; }
+  .bp-plan-btn.upgrade:hover:not(:disabled) { background: var(--gold2); transform: translateY(-1px); }
+  .bp-plan-btn.upgrade.ice { background: var(--ice); color: #0D1520; }
+  .bp-plan-btn.upgrade.ice:hover:not(:disabled) { opacity: 0.9; }
   .bp-plan-btn.current-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: default; }
   .bp-plan-btn.downgrade { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
-  .bp-plan-btn.downgrade:hover { border-color: #FF5975; color: #FF5975; }
+  .bp-plan-btn.downgrade:hover { border-color: var(--red); color: var(--red); }
   .bp-plan-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
+  /* Danger zone */
   .bp-danger {
-    background: var(--surface); border: 1px solid rgba(255,89,117,0.2);
-    border-radius: 4px; padding: 20px 24px;
+    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    border: 1px solid rgba(248,113,113,0.15);
+    border-radius: 16px; padding: 20px 24px;
     display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
   }
-  .bp-danger-title { font-size: 13px; font-weight: 700; color: #FF5975; margin-bottom: 4px; }
+  .bp-danger-title { font-size: 13px; font-weight: 700; color: var(--red); margin-bottom: 4px; }
   .bp-danger-desc  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
-  .bp-danger-btn { background: transparent; border: 1px solid rgba(255,89,117,0.3); color: #FF5975; border-radius: 3px; padding: 8px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .bp-danger-btn:hover { background: rgba(255,89,117,0.08); }
+  .bp-danger-btn { background: transparent; border: 1px solid rgba(248,113,113,0.25); color: var(--red); border-radius: 8px; padding: 8px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .bp-danger-btn:hover { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.4); }
 
+  /* Toast */
   .bp-toast {
     position: fixed; bottom: 24px; right: 24px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    background: #111D2E; border: 1px solid var(--border); border-radius: 12px;
     padding: 12px 18px; font-family: 'Space Mono', monospace; font-size: 11px;
     display: flex; align-items: center; gap: 10px;
     animation: bp-slide 0.3s ease forwards; z-index: 999;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   }
-  .bp-toast.success { border-color: rgba(45,212,160,0.3); color: #2DD4A0; }
-  .bp-toast.error   { border-color: rgba(255,89,117,0.3); color: #FF5975; }
+  .bp-toast.success { border-color: rgba(74,222,128,0.3);  color: var(--green); }
+  .bp-toast.error   { border-color: rgba(248,113,113,0.3); color: var(--red); }
 
+  /* Success banner */
   .bp-success-banner {
-    background: rgba(45,212,160,0.08); border: 1px solid rgba(45,212,160,0.25);
-    border-radius: 4px; padding: 14px 18px; margin-bottom: 24px;
-    font-family: 'Space Mono', monospace; font-size: 11px; color: #2DD4A0;
+    background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 12px; padding: 14px 18px; margin-bottom: 24px;
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--green);
     display: flex; align-items: center; gap: 10px;
   }
 
+  /* Resume button inline */
+  .bp-resume-btn {
+    background: var(--gold); color: #0D1520; border: none; border-radius: 8px;
+    padding: 8px 16px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .bp-resume-btn:hover { opacity: 0.88; }
+
   @keyframes bp-slide { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* ── Responsive ── */
   @media (max-width: 768px) {
     .bp-root { padding: 16px 14px 80px; }
     .bp-plans { grid-template-columns: 1fr; gap: 12px; }
@@ -129,8 +165,8 @@ const css = `
     .bp-current-icon { font-size: 24px; }
     .bp-current-name { font-size: 15px; }
     .bp-toast { bottom: 70px; right: 14px; left: 14px; }
+    .bp-plan:hover { transform: none; }
   }
-
   @media (max-width: 480px) {
     .bp-usage-grid { grid-template-columns: 1fr; }
     .bp-plan { padding: 18px; }
@@ -149,9 +185,10 @@ function usagePct(used: number, limit: number) {
 }
 
 export default function BillingPage() {
-  const [searchParams]  = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { subscription, usage, isLoading, fetchBilling, createCheckout, cancelPlan, resumePlan } = useBillingStore();
-  const user            = useAuthStore((s) => s.user);
+  const user           = useAuthStore((s) => s.user);
+
   const [upgrading, setUpgrading] = useState<PlanId | null>(null);
   const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const showSuccess = searchParams.get("success") === "true";
@@ -187,7 +224,7 @@ export default function BillingPage() {
   };
 
   const handleCancel = async () => {
-    if (!confirm("Are you sure you want to cancel? You will be downgraded to Free at period end.")) return;
+    if (!confirm("Cancel subscription? You'll be downgraded to Free at period end.")) return;
     try {
       await cancelPlan();
       showToast("Subscription cancelled. Downgrade takes effect at period end.", "success");
@@ -213,15 +250,21 @@ export default function BillingPage() {
   return (
     <div className="bp-root">
       <div className="bp-inner">
+
+        {/* Header */}
         <div className="bp-header">
           <h1 className="bp-title">Billing & <span>Plans</span></h1>
           <p className="bp-subtitle">Manage your subscription and usage</p>
         </div>
 
+        {/* Upgrade success */}
         {showSuccess && (
-          <div className="bp-success-banner">✓ Your plan has been upgraded successfully! Welcome to {currentPlan.name}.</div>
+          <div className="bp-success-banner">
+            ✓ Plan upgraded successfully! Welcome to {currentPlan.name}.
+          </div>
         )}
 
+        {/* Current plan */}
         <div className="bp-current">
           <div className="bp-current-left">
             <div className="bp-current-icon">{planIcon}</div>
@@ -239,11 +282,12 @@ export default function BillingPage() {
               : <span className="bp-status-badge active">Active</span>
             }
             {subscription?.cancelAtPeriodEnd && canManage && (
-              <button className="bp-plan-btn upgrade" style={{ width: "auto", padding: "8px 16px" }} onClick={handleResume}>Resume</button>
+              <button className="bp-resume-btn" onClick={handleResume}>Resume</button>
             )}
           </div>
         </div>
 
+        {/* Usage */}
         {usage && (
           <>
             <div className="bp-section-label">Usage This Month</div>
@@ -255,7 +299,7 @@ export default function BillingPage() {
               ].map((m) => (
                 <div className="bp-usage-card" key={m.label}>
                   <div className="bp-usage-label">{m.label}</div>
-                  <div className="bp-usage-value" style={{ color: usageColor(m.used, m.limit) === "high" ? "#FF5975" : "var(--text)" }}>
+                  <div className="bp-usage-value" style={{ color: usageColor(m.used, m.limit) === "high" ? "#f87171" : "var(--text)" }}>
                     {m.used.toLocaleString()}
                     <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-dim)", marginLeft: 4 }}>
                       / {m.limit >= 999999 ? "∞" : m.limit.toLocaleString()}
@@ -271,6 +315,7 @@ export default function BillingPage() {
           </>
         )}
 
+        {/* Plans */}
         <div className="bp-section-label">Available Plans</div>
         <div className="bp-plans">
           {PLANS.map((plan) => {
@@ -282,11 +327,13 @@ export default function BillingPage() {
               <div key={plan.id} className={`bp-plan ${plan.id}${isCurrent ? " current" : ""}${plan.highlighted ? " highlighted" : ""}`}>
                 {plan.highlighted && !isCurrent && <div className="bp-plan-badge popular">Most Popular</div>}
                 {isCurrent && <div className="bp-plan-badge current">Current</div>}
+
                 <div className="bp-plan-name">{plan.name}</div>
                 <div className="bp-plan-price">
                   <span className="bp-plan-amount">{plan.price === 0 ? "Free" : `$${plan.price}`}</span>
                   {plan.price > 0 && <span className="bp-plan-interval">/mo</span>}
                 </div>
+
                 <div className="bp-plan-features">
                   {plan.features.map((f) => (
                     <div className="bp-plan-feature" key={f}>
@@ -294,14 +341,21 @@ export default function BillingPage() {
                     </div>
                   ))}
                 </div>
+
                 {isCurrent ? (
                   <button className="bp-plan-btn current-btn" disabled>Current Plan</button>
                 ) : isUpgrade && canManage ? (
-                  <button className={`bp-plan-btn upgrade${plan.id === "enterprise" ? " purple" : ""}`} onClick={() => handleUpgrade(plan.id)} disabled={!!upgrading}>
+                  <button
+                    className={`bp-plan-btn upgrade${plan.id === "enterprise" ? " ice" : ""}`}
+                    onClick={() => handleUpgrade(plan.id)}
+                    disabled={!!upgrading}
+                  >
                     {isPending ? "Redirecting…" : `Upgrade to ${plan.name}`}
                   </button>
                 ) : canManage ? (
-                  <button className="bp-plan-btn downgrade" onClick={() => handleUpgrade(plan.id)} disabled={!!upgrading}>Downgrade</button>
+                  <button className="bp-plan-btn downgrade" onClick={() => handleUpgrade(plan.id)} disabled={!!upgrading}>
+                    Downgrade
+                  </button>
                 ) : (
                   <button className="bp-plan-btn current-btn" disabled>Contact Owner</button>
                 )}
@@ -310,6 +364,7 @@ export default function BillingPage() {
           })}
         </div>
 
+        {/* Danger zone */}
         {canManage && currentPlanId !== "free" && !subscription?.cancelAtPeriodEnd && (
           <div className="bp-danger">
             <div>
@@ -319,10 +374,13 @@ export default function BillingPage() {
             <button className="bp-danger-btn" onClick={handleCancel}>Cancel Plan</button>
           </div>
         )}
+
       </div>
 
       {toast && (
-        <div className={`bp-toast ${toast.type}`}>{toast.type === "success" ? "✓" : "✗"} {toast.msg}</div>
+        <div className={`bp-toast ${toast.type}`}>
+          {toast.type === "success" ? "✓" : "✗"} {toast.msg}
+        </div>
       )}
     </div>
   );
