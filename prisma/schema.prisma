@@ -1,7 +1,6 @@
 // prisma/schema.prisma
 // Winners Ecosystem — Complete Schema
 // Phase 1: Core Engine + Phase 2: Community Layer V1.2 (Groups)
-// Run: npx prisma db push && npx prisma generate
 
 generator client {
   provider = "prisma-client-js"
@@ -9,7 +8,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
