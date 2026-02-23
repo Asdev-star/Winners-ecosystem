@@ -20,6 +20,25 @@ const VARIANT_IDS: Record<string, string> = {
   enterprise: process.env.LS_ENTERPRISE_VARIANT_ID ?? "",
 };
 
+// ─── GET /billing/ ────────────────────────────────────────────────────────────
+// Base billing endpoint summary for route discovery and diagnostics.
+router.get("/", (_req: Request, res: Response) => {
+  res.json({
+    service: "billing",
+    version: "v1",
+    endpoints: {
+      subscription: "GET /api/v1/billing/subscription",
+      usage: "GET /api/v1/billing/usage",
+      checkout: "POST /api/v1/billing/checkout",
+      cancel: "POST /api/v1/billing/cancel",
+      resume: "POST /api/v1/billing/resume",
+      webhook: "POST /api/v1/billing/webhook",
+    },
+    note: "Most endpoints require Authorization bearer token.",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function lsRequest(path: string, options: RequestInit = {}) {
