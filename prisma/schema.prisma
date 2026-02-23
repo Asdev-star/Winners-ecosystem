@@ -34,6 +34,8 @@ model Tenant {
   referralCredits ReferralCredit[]
   posts           Post[]
   groups          Group[]
+  privacyAcknowledgments PrivacyAcknowledgment[]
+  courses         Course[]
 
   @@map("tenants")
 }
@@ -72,10 +74,33 @@ model User {
   following           Follow[]             @relation("Following")
   createdGroups       Group[]              @relation("GroupCreator")
   groupMemberships    GroupMember[]
+  privacyAcknowledgment PrivacyAcknowledgment?
+  instructedCourses    Course[]         @relation("CourseInstructor")
+  courseEnrollments    Enrollment[]     @relation("CourseEnrollment")
+  lessonProgress       LessonProgress[] @relation("LessonProgress")
+  courseCertificates   Certificate[]    @relation("CourseCertificate")
+  courseReviews        Review[]         @relation("CourseReview")
 
   @@unique([email, tenantId])
   @@index([tenantId])
   @@map("users")
+}
+
+model PrivacyAcknowledgment {
+  id             String   @id @default(cuid())
+  tenantId       String
+  userId         String   @unique
+  policyVersion  String
+  acknowledgedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([acknowledgedAt(sort: Desc)])
+  @@map("privacy_acknowledgments")
 }
 
 enum Role {
@@ -397,4 +422,165 @@ enum GroupMemberRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+// PHASE 3 - WINNERS ACADEMY
+
+model Course {
+  id           String      @id @default(cuid())
+  tenantId     String
+  instructorId String
+  title        String
+  slug         String
+  description  String
+  about        String?
+  thumbnail    String?
+  previewVideo String?
+  category     String
+  level        CourseLevel @default(BEGINNER)
+  price        Float       @default(0)
+  currency     String      @default("USD")
+  published    Boolean     @default(false)
+  featured     Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  instructor   User          @relation("CourseInstructor", fields: [instructorId], references: [id])
+  modules      Module[]
+  enrollments  Enrollment[]
+  reviews      Review[]
+  certificates Certificate[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, published])
+  @@index([instructorId])
+  @@index([category])
+  @@map("courses")
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([courseId, order])
+  @@map("modules")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  moduleId    String
+  title       String
+  description String?
+  content     String?
+  videoUrl    String?
+  duration    Int?
+  order       Int      @default(0)
+  isFree      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  module   Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+
+  @@index([moduleId, order])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id              String           @id @default(cuid())
+  courseId        String
+  userId          String
+  status          EnrollmentStatus @default(ACTIVE)
+  paidAmount      Float            @default(0)
+  stripePaymentId String?
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  course      Course           @relation(fields: [courseId], references: [id])
+  user        User             @relation("CourseEnrollment", fields: [userId], references: [id])
+  progress    LessonProgress[]
+  certificate Certificate?
+
+  @@unique([courseId, userId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  REFUNDED
+  CANCELLED
+}
+
+model LessonProgress {
+  id           String    @id @default(cuid())
+  enrollmentId String
+  lessonId     String
+  userId       String
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  watchedSecs  Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user       User       @relation("LessonProgress", fields: [userId], references: [id])
+
+  @@unique([enrollmentId, lessonId])
+  @@index([userId])
+  @@map("lesson_progress")
+}
+
+model Certificate {
+  id           String   @id @default(cuid())
+  enrollmentId String   @unique
+  courseId     String
+  userId       String
+  verifyToken  String   @unique @default(cuid())
+  issuedAt     DateTime @default(now())
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  course     Course     @relation(fields: [courseId], references: [id])
+  user       User       @relation("CourseCertificate", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([courseId])
+  @@map("certificates")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  courseId  String
+  userId    String
+  rating    Int
+  body      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation("CourseReview", fields: [userId], references: [id])
+
+  @@unique([courseId, userId])
+  @@index([courseId])
+  @@map("reviews")
 }

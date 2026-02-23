@@ -84,7 +84,7 @@ const css = `
   .ml-nav-link.active .ml-nav-icon { filter: none; }
   .ml-nav-label { flex: 1; }
   .ml-nav-badge {
-    background: #E05A4E; color: white;
+    background: var(--red); color: var(--text);
     font-family: 'Space Mono', monospace; font-size: 8px; font-weight: 700;
     padding: 1px 5px; border-radius: 8px; min-width: 14px; text-align: center;
   }
@@ -137,7 +137,7 @@ const css = `
     font-size: 10px; color: var(--text-dim); cursor: pointer;
     transition: all 0.15s; margin-top: 8px; letter-spacing: 1px;
   }
-  .ml-logout:hover { border-color: #E05A4E; color: #E05A4E; }
+  .ml-logout:hover { border-color: var(--red); color: var(--red); }
 
   /* ── Main area ── */
   .ml-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
@@ -190,7 +190,7 @@ const css = `
   .ml-bottom-link-icon { font-size: 18px; }
   .ml-bottom-badge {
     position: absolute; top: 4px; right: 8px;
-    background: #E05A4E; color: white; font-size: 7px; font-weight: 700;
+    background: var(--red); color: var(--text); font-size: 7px; font-weight: 700;
     padding: 1px 4px; border-radius: 8px; min-width: 13px; text-align: center;
   }
 
@@ -230,12 +230,12 @@ const PLATFORMS = [
     tag:    "v1.0",
   },
   {
-    path:   "/learn",
+    path:   "/academy",
     icon:   "🎓",
     name:   "Winners Academy",
     desc:   "Courses · Certificates · AI Tutor",
-    status: "soon",
-    tag:    "v2.0",
+    status: "live",
+    tag:    "v1.0",
   },
   {
     path:   "/shop",
@@ -296,6 +296,14 @@ const BOTTOM_NAV = [
 const ALL_NAV = [...CORE_NAV, ...TOOLS_NAV, ...WORKSPACE_NAV,
   ...PLATFORMS.map((p) => ({ path: p.path, label: p.name }))];
 
+type NavEntry = {
+  path: string;
+  icon: string;
+  label: string;
+  tag?: string | null;
+  notif?: boolean;
+};
+
 export default function MainLayout() {
   const user        = useAuthStore((s) => s.user);
   const logout      = useAuthStore((s) => s.logout);
@@ -304,17 +312,11 @@ export default function MainLayout() {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (typeof document !== "undefined" && !document.getElementById("ml-styles")) {
-    const tag = document.createElement("style");
-    tag.id = "ml-styles"; tag.textContent = css;
-    document.head.appendChild(tag);
-  }
-
   const initials = user?.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() ?? "??";
   const pageName = ALL_NAV.find((n) => location.pathname.startsWith(n.path))?.label ?? "Dashboard";
   const closeSidebar = () => setSidebarOpen(false);
 
-  const NavItem = ({ item }: { item: any }) => (
+  const NavItem = ({ item }: { item: NavEntry }) => (
     <NavLink
       to={item.path}
       className={({ isActive }) => `ml-nav-link${isActive ? " active" : ""}`}
@@ -331,6 +333,7 @@ export default function MainLayout() {
 
   return (
     <div className="ml-root">
+      <style>{css}</style>
       <div className={`ml-overlay${sidebarOpen ? " open" : ""}`} onClick={closeSidebar} />
 
       <aside className={`ml-sidebar${sidebarOpen ? " open" : ""}`}>

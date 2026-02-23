@@ -1,45 +1,30 @@
-// Server/index.ts — production-ready version
+// Server/index.ts — Core Infrastructure V1.1 (Hardened)
+// ─── Block 1 Complete: Security + API Gateway + Health + GDPR + Registry ──────
 
 import "dotenv/config";
-import express from "express";
-import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
-import searchRoutes from "./routes/searchRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import twoFactorRoutes from "./routes/twoFactorRoutes.js";
+import express                from "express";
+import cors                   from "cors";
+import path                   from "path";
+import { fileURLToPath }      from "url";
 
-// Routes
-import authRoutes         from "./routes/authRoutes.js";
-import tenantsRoutes      from "./routes/tenantsRoutes.js";
-import usersRoutes        from "./routes/usersRoutes.js";
-import analyticsRoutes    from "./routes/analyticsRoutes.js";
-import exportRoutes       from "./routes/exportRoutes.js";
-import billingRoutes      from "./routes/billingRoutes.js";
-import aiRoutes           from "./routes/aiRoutes.js";
-import profileRoutes      from "./routes/profileRoutes.js";
-import emailRoutes        from "./routes/emailRoutes.js";
-import notificationRoutes from "./routes/notificationRoutes.js";
-import stripeRoutes from "./routes/stripeRoutes.js";;
-import passwordResetRoutes from "./routes/passwordResetRoutes.js";
+// ── Core Infrastructure: Security Layer (Block 1 — Item 1) ─────────────────────
 import {
-  helmetConfig,
-  globalLimiter,
-  authLimiter,
-  postLimiter,
+  helmetMiddleware,
+  globalRateLimiter,
   xssSanitizer,
-  requestLogger,
-} from "./middleware/rateLimitMiddleware.js";
+  requestSizeGuard,
+} from "./middleware/securityMiddleware.js";
 
-import { initWebSocketServer } from "./services/wsService.js";
-import groupRoutes from "./routes/groupRoutes.js";  // new
-import postRoutes from "./routes/postRoutes.js";    // new
-// Scheduler
+// ── Core Infrastructure: App Registry (Block 1 — Item 2) ──────────────────────
+import "./services/appRegistry.js"; // Self-registers all platform modules at startup
+
+// ── Core Infrastructure: Versioned API Gateway (Block 1 — Item 5) ─────────────
+import v1Router from "./routes/apiRouter.js";
+
+// ── Scheduler ─────────────────────────────────────────────────────────────────
 import { startEmailScheduler } from "./services/emailScheduler.js";
-import slackRoutes from "./routes/slackRoutes.js";
-import activityRoutes from "./routes/activityRoutes.js";
-import referralRoutes from "./routes/referralRoutes.js";
-import changelogRoutes from "./routes/changelogRoutes.js";
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -48,70 +33,139 @@ const app    = express();
 const PORT   = process.env.PORT ?? 3001;
 const isProd = process.env.NODE_ENV === "production";
 
-// ── Middleware ─────────────────────────────────────────────────────────────────
+type ErrorWithMeta = Error & {
+  status?: number;
+  statusCode?: number;
+  code?: string;
+  requestId?: string;
+};
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
-app.use(helmetConfig);    // security headers (XSS, clickjacking, etc.)
-app.use(globalLimiter);   // 200 requests/15min per IP
-app.use(xssSanitizer);    // strips <script> and javascript: from all body fields
-app.use(requestLogger);   // logs METHOD /path STATUS ms in terminal
+// ─────────────────────────────────────────────────────────────────────────────
+// MIDDLEWARE STACK (Order is critical — security layers must be first)
+// ─────────────────────────────────────────────────────────────────────────────
 
+// 1. HTTP Security Headers — XSS, clickjacking, MIME sniffing
+app.use(helmetMiddleware);
+
+// 2. Request Size Guard — reject oversized payloads early
+app.use(requestSizeGuard);
+
+// 3. CORS — scoped to known origins only
 app.use(cors({
   origin: isProd
-    ? [process.env.APP_URL ?? "", /\.railway\.app$/]
+    ? [process.env.APP_URL ?? "", /\.railway\.app$/, /\.winnersempire\.io$/]
     : ["http://localhost:5173", "http://localhost:3000"],
   credentials: true,
+  methods:     ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID", "X-Tenant-ID"],
+  exposedHeaders: ["X-Request-ID", "X-API-Version", "X-RateLimit-Remaining"],
 }));
 
-// ── Health check ───────────────────────────────────────────────────────────────
+// 4. Body Parsing
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// 5. XSS Sanitization — strip dangerous patterns from all string inputs
+app.use(xssSanitizer);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LIVENESS PROBE — Must be outside the rate limiter and auth for container health
+// (Block 1 — Item 8: Service health monitoring)
+// ─────────────────────────────────────────────────────────────────────────────
 
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", env: process.env.NODE_ENV, ts: new Date().toISOString() });
+  res.json({
+    status:    "ok",
+    version:   "1.1.0",
+    env:       process.env.NODE_ENV ?? "development",
+    timestamp: new Date().toISOString(),
+    uptime:    Math.round(process.uptime()),
+  });
 });
 
-// ── API Routes ─────────────────────────────────────────────────────────────────
-app.use("/auth/login",    authLimiter);   // 10 attempts per 15 min — stops brute force
-app.use("/auth/register", authLimiter);
-app.use("/auth", authRoutes);
-app.use("/auth", passwordResetRoutes);
-app.use("/tenants",       tenantsRoutes);
-app.use("/users",         usersRoutes);
-app.use("/analytics",     analyticsRoutes);
-app.use("/export",        exportRoutes);
-app.use("/billing",       billingRoutes);
-app.use("/ai",            aiRoutes);
-app.use("/profile",       profileRoutes);
-app.use("/slack", slackRoutes);
-app.use("/email",         emailRoutes);
-app.use("/notifications", notificationRoutes);
-app.use("/stripe", stripeRoutes);
-app.use("/search", searchRoutes);
-app.use("/activity", activityRoutes);
-app.use("/referral", referralRoutes);
-app.use("/admin", adminRoutes);
-app.use("/changelog", changelogRoutes);
-app.use("/2fa", twoFactorRoutes);
-app.use("/posts", postLimiter, postRoutes);   // 30 posts/hour per user
-app.use("/groups", groupRoutes);               // NEW — Groups V1.2
-// ── Serve React frontend in production ────────────────────────────────────────
+// 6. Global Rate Limiting — 500 req/15min per IP
+app.use(globalRateLimiter);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VERSIONED API GATEWAY — All routes under /api/v1/*
+// (Block 1 — Item 5: Internal API Gateway)
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.use("/api/v1", v1Router);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEGACY ROUTE COMPATIBILITY — Redirect old unversioned routes to v1
+// Allows frontend to migrate gradually without breaking changes
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LEGACY_ROUTES = [
+  "/auth", "/tenants", "/users", "/analytics", "/export", "/billing",
+  "/ai", "/profile", "/email", "/notifications", "/stripe", "/search",
+  "/activity", "/referral", "/admin", "/changelog", "/2fa", "/posts", "/groups",
+  "/gdpr", "/registry", "/slack",
+];
+
+for (const route of LEGACY_ROUTES) {
+  app.use(route, (req, res) => {
+    res.redirect(307, `/api/v1${route}${req.url === "/" ? "" : req.url}`);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REACT FRONTEND (Production)
+// ─────────────────────────────────────────────────────────────────────────────
 
 if (isProd) {
   const distPath = path.join(__dirname, "../../dist");
   app.use(express.static(distPath));
 
-  // Express v5 compatible wildcard
-  app.get("/{*path}", (_req, res) => {
+  // Express v5 compatible wildcard — serve SPA for all non-API routes
+  app.get("/{*path}", (req, res) => {
+    if (req.path.startsWith("/api/")) {
+      res.status(404).json({ error: "API endpoint not found", path: req.path });
+      return;
+    }
     res.sendFile(path.join(distPath, "index.html"));
   });
 }
 
-// ── Start ──────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// GLOBAL ERROR HANDLER
+// ─────────────────────────────────────────────────────────────────────────────
 
-const server = app.listen(PORT, () => {
-  console.log(`✅ Winners Ecosystem Server on port ${PORT}`);
+app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  void next;
+  const normalized: ErrorWithMeta =
+    err instanceof Error ? (err as ErrorWithMeta) : new Error("Unknown error");
+  const status = normalized.status ?? normalized.statusCode ?? 500;
+  const message = isProd && status === 500 ? "Internal server error" : normalized.message;
+
+  console.error(`[ERROR] ${status} — ${normalized.message}`, {
+    stack: normalized.stack,
+    code: normalized.code,
+  });
+
+  res.status(status).json({
+    error:     message,
+    code:      normalized.code ?? "INTERNAL_ERROR",
+    requestId: normalized.requestId,
+    timestamp: new Date().toISOString(),
+  });
 });
 
-initWebSocketServer(server);  // attaches WebSocket to same server;
+// ─────────────────────────────────────────────────────────────────────────────
+// SERVER STARTUP
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`\n✅ Winners Ecosystem API — v1.1.0`);
+  console.log(`   Port:        ${PORT}`);
+  console.log(`   Environment: ${process.env.NODE_ENV ?? "development"}`);
+  console.log(`   API Gateway: http://localhost:${PORT}/api/v1`);
+  console.log(`   Health:      http://localhost:${PORT}/health`);
+  console.log(`   Ready:       http://localhost:${PORT}/api/v1/health/ready\n`);
+
+  if (isProd) startEmailScheduler();
+});
 
 export default app;

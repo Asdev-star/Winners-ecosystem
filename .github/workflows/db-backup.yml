@@ -1,0 +1,34 @@
+name: Database Backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Create backup archive
+        run: |
+          test -n "$DATABASE_URL"
+          mkdir -p backups
+          TS="$(date -u +%Y%m%dT%H%M%SZ)"
+          FILE="backups/winners_ecosystem_${TS}.sql.gz"
+          pg_dump "$DATABASE_URL" --no-owner --no-privileges | gzip > "$FILE"
+          echo "BACKUP_FILE=$FILE" >> "$GITHUB_ENV"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 14

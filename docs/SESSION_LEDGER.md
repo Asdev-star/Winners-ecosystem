@@ -1,0 +1,60 @@
+# Winners Ecosystem Session Ledger
+
+## Current Session
+
+- `Session #1` (tracking initialized)
+- Date: `2026-02-23`
+- Vision Status: `Stabilization-first active`
+
+## Session Update Rule
+
+At the end of every build session:
+
+1. Increment session number (`Session #N -> Session #N+1`).
+2. Add a new entry under `Session History`.
+3. Record what was completed, what is blocked, and next actions.
+4. Keep alignment with `VISION_GUARDS.md` and `docs/WINNERS_ECOSYSTEM_MASTER_V3.md`.
+
+## No-Skip Policy (Mandatory)
+
+- Every work session must start by reading `Current Session`.
+- Every work session must end with a ledger update before closing.
+- No code session is considered complete until `Session History` is updated.
+- If interrupted, resume under the same session number and record the interruption.
+- Session number can only increase by `+1` at closeout.
+
+## Session History
+
+### Session #1 - Baseline Recovery + Core Infra Additions
+
+- Added versioned API/infrastructure work (`Server/index.ts`, API gateway pattern).
+- Added core infrastructure routes (`healthRoutes`, `gdprRoutes`, `registryRoutes`) and API router wiring.
+- Added app registry service (`Server/services/appRegistry.ts`).
+- Added SDK foundation (`sdk/WinnersSDK.ts`).
+- Added GDPR Prisma support (`PrivacyAcknowledgment` model + relations).
+- Added GDPR SQL migration file (`prisma/migrations/add_gdpr_privacy_ack/migration.sql`).
+- Added Phase 3 Academy Prisma models and relations.
+- Added vision guardrails (`VISION_GUARDS.md`).
+- Completed Phase 1 pending closeout items:
+  - `RevenueChart.tsx` ecosystem design update
+  - RLS migration pack
+  - SSO preparation routes
+  - backup automation workflow
+
+## End-of-Session Template
+
+Use this template for each new session:
+
+```md
+### Session #N - <Title>
+
+- Date: YYYY-MM-DD
+- Completed:
+  - ...
+- Validation:
+  - ...
+- Blockers:
+  - ...
+- Next Session Focus:
+  - ...
+```
