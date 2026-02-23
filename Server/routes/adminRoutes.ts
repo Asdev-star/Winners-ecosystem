@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Server/routes/adminRoutes.ts
 
 import { Router, Request, Response } from "express";

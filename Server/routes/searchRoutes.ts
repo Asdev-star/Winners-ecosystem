@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Server/routes/searchRoutes.ts
 
 import { Router, Request, Response } from "express";

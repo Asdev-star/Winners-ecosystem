@@ -156,7 +156,6 @@ const PLAN_COLORS: Record<string, string> = {
 
 export default function AdminPage() {
   const token = useAuthStore((s) => s.token);
-  const user  = useAuthStore((s) => s.user);
 
   const [tab, setTab]         = useState<"overview" | "tenants" | "users">("overview");
   const [stats, setStats]     = useState<any>(null);

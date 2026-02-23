@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore, getAuthHeaders } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -127,7 +127,7 @@ const css = `
 .ob-plan-card.selected::before {
   content: '✓'; position: absolute; top: -10px; right: -10px;
   width: 22px; height: 22px; border-radius: 50%;
-  background: var(--gold); color: #080B10;
+  background: var(--gold); color: var(--bg);
   font-weight: 900; font-size: 11px;
   display: flex; align-items: center; justify-content: center;
 }
@@ -164,7 +164,7 @@ const css = `
 /* Navigation */
 .ob-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .ob-btn {
-  background: var(--gold); color: #080B10; border: none;
+  background: var(--gold); color: var(--bg); border: none;
   border-radius: 4px; padding: 12px 28px;
   font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
   cursor: pointer; transition: opacity 0.15s;

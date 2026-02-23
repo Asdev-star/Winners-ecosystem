@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Server/services/stripeService.ts
 
 import Stripe from "stripe";

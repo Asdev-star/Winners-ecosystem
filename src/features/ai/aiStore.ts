@@ -45,7 +45,7 @@ interface AIState {
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
-export const useAIStore = create<AIState>((set, get) => ({
+export const useAIStore = create<AIState>((set) => ({
   insight:     null,
   isLoading:   false,
   isStreaming:  false,

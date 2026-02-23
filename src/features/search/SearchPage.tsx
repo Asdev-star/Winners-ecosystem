@@ -102,7 +102,6 @@ export default function SearchPage() {
   const [filter, setFilter]   = useState("all");
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const debounce              = { current: null as any };
 
   useEffect(() => {
     const id = "sp-styles";

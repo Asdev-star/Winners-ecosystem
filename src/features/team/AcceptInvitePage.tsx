@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuthStore } from "../auth/authStore";
 
 const css = `
   .ai-root {
@@ -88,7 +87,6 @@ function resolveInviteToken(token: string) {
 export default function AcceptInvitePage() {
   const [params]   = useSearchParams();
   const navigate   = useNavigate();
-  const login      = useAuthStore((s) => s.login);
 
   const token      = params.get("token") ?? "";
   const invite     = resolveInviteToken(token);

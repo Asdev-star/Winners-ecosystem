@@ -31,6 +31,7 @@ import AdminPage         from "./features/admin/AdminPage";
 import ChangelogPage from "./features/changelog/ChangelogPage";
 import TwoFactorPage from "./features/security/TwoFactorPage";
 import CommunityPage from "./features/community/CommunityPage";
+import GroupsPage from "./features/community/GroupsPage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -77,6 +78,7 @@ function App() {
         <Route path="admin"         element={<AdminPage />} />
         <Route path="changelog" element={<ChangelogPage />} />
         <Route path="community" element={<CommunityPage />} />
+        <Route path="community/groups" element={<GroupsPage />} />
       </Route>
     </Routes>
   );

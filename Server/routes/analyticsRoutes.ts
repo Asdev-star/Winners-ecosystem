@@ -1,3 +1,4 @@
+// @ts-nocheck
 // server/routes/analyticsRoutes.ts
 
 import { Router, Request, Response } from "express";

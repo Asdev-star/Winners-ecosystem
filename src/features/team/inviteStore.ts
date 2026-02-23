@@ -68,7 +68,7 @@ const MOCK_TENANT: Tenant = {
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
-export const useInviteStore = create<InviteState>((set, get) => ({
+export const useInviteStore = create<InviteState>((set) => ({
   members:        [],
   pendingInvites: [],
   tenant:         null,

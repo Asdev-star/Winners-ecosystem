@@ -107,7 +107,7 @@ const css = `
 
 /* Buttons */
 .st-btn {
-  background: var(--gold); color: #080B10; border: none; border-radius: 4px;
+  background: var(--gold); color: var(--bg); border: none; border-radius: 4px;
   padding: 10px 22px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
   cursor: pointer; transition: opacity 0.15s;
 }

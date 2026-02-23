@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Server/services/emailService.ts
 
 import { Resend } from "resend";

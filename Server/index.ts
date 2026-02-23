@@ -22,7 +22,6 @@ import emailRoutes        from "./routes/emailRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import stripeRoutes from "./routes/stripeRoutes.js";;
 import passwordResetRoutes from "./routes/passwordResetRoutes.js";
-// ADD alongside your existing imports at the top:
 import {
   helmetConfig,
   globalLimiter,
@@ -30,10 +29,9 @@ import {
   postLimiter,
   xssSanitizer,
   requestLogger,
-} from "../Server/middleware/rateLimitMiddleware.js";
+} from "./middleware/rateLimitMiddleware.js";
 
 import { initWebSocketServer } from "./services/wsService.js";
-   // may already exist
 import groupRoutes from "./routes/groupRoutes.js";  // new
 import postRoutes from "./routes/postRoutes.js";    // new
 // Scheduler
@@ -76,7 +74,6 @@ app.get("/health", (_req, res) => {
 app.use("/auth/login",    authLimiter);   // 10 attempts per 15 min — stops brute force
 app.use("/auth/register", authLimiter);
 app.use("/auth", authRoutes);
-app.use("/auth",          authRoutes);
 app.use("/auth", passwordResetRoutes);
 app.use("/tenants",       tenantsRoutes);
 app.use("/users",         usersRoutes);
@@ -95,8 +92,7 @@ app.use("/referral", referralRoutes);
 app.use("/admin", adminRoutes);
 app.use("/changelog", changelogRoutes);
 app.use("/2fa", twoFactorRoutes);
-app.use("/posts", postRoutes);
-app.use("/posts",  postLimiter, postRoutes);   // 30 posts/hour per user
+app.use("/posts", postLimiter, postRoutes);   // 30 posts/hour per user
 app.use("/groups", groupRoutes);               // NEW — Groups V1.2
 // ── Serve React frontend in production ────────────────────────────────────────
 
@@ -112,7 +108,6 @@ if (isProd) {
 
 // ── Start ──────────────────────────────────────────────────────────────────────
 
-// REPLACE WITH:
 const server = app.listen(PORT, () => {
   console.log(`✅ Winners Ecosystem Server on port ${PORT}`);
 });

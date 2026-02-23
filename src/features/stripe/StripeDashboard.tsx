@@ -1,7 +1,7 @@
 // src/features/stripe/StripeDashboard.tsx
 
 import { useState, useEffect } from "react";
-import { useAuthStore, getAuthHeaders } from "../auth/authStore";
+import { getAuthHeaders } from "../auth/authStore";
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
@@ -84,7 +84,6 @@ function fmt(n: number) {
 }
 
 export default function StripeDashboard() {
-  const user = useAuthStore((s) => s.user);
   const [stats, setStats]       = useState<any>(null);
   const [status, setStatus]     = useState<any>(null);
   const [loading, setLoading]   = useState(true);

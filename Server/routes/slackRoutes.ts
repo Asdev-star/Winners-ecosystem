@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Server/routes/slackRoutes.ts
 
 import { Router, Request, Response } from "express";

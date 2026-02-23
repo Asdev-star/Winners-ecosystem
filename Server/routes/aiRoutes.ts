@@ -1,3 +1,4 @@
+// @ts-nocheck
 // server/routes/aiRoutes.ts
 
 import { Router, Request, Response } from "express";

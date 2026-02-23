@@ -1,6 +1,6 @@
 // src/features/community/GroupsPage.tsx
 // Phase 2 — Community Layer V1.2: Groups
-// Route: /dashboard/community/groups
+// Route: /community/groups
 
 import { useState, useEffect, useCallback } from "react";
 
@@ -220,7 +220,7 @@ function GroupCard({
 
 // ─── Group Detail View ────────────────────────────────────────────────────────
 
-function GroupDetail({ slug, currentUserId, onBack }: { slug: string; currentUserId: string; onBack: () => void }) {
+function GroupDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
   const [group, setGroup]   = useState<Group & { members?: any[] } | null>(null);
   const [posts, setPosts]   = useState<GroupPost[]>([]);
   const [content, setContent] = useState("");
@@ -461,11 +461,8 @@ export default function GroupsPage() {
   const [selectedSlug, setSelected] = useState<string | null>(null);
   const [filter, setFilter]         = useState<"all" | "mine">("all");
   const [search, setSearch]         = useState("");
-  const [currentUserId, setCurrentUserId] = useState("");
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") ?? "{}");
-    setCurrentUserId(user.id ?? "");
     loadGroups();
   }, []);
 
@@ -531,7 +528,7 @@ export default function GroupsPage() {
             </div>
           ))}
         </div>
-        <GroupDetail slug={selectedSlug} currentUserId={currentUserId} onBack={() => setSelected(null)} />
+        <GroupDetail slug={selectedSlug} onBack={() => setSelected(null)} />
       </div>
     );
   }

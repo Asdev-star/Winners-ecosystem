@@ -182,7 +182,7 @@ interface Post {
   id: string; content: string; authorId: string;
   author: { id: string; name: string; role: string };
   tags: { tag: { name: string } }[]; likes: { userId: string }[];
-  comments: Comment[]; pinned: boolean; createdAt: string;
+  comments: Comment[]; isPinned: boolean; createdAt: string;
   _count?: { likes: number; comments: number };
 }
 interface Comment { id: string; content: string; author: { name: string }; createdAt: string; }
@@ -203,6 +203,7 @@ export default function CommunityPage() {
   const [openComments, setOpenComments]           = useState<Set<string>>(new Set());
   const [commentText, setCommentText]             = useState<Record<string, string>>({});
   const [submittingComment, setSubmittingComment] = useState<string | null>(null);
+  const [onlineCount, setOnlineCount]             = useState(0);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -227,6 +228,38 @@ export default function CommunityPage() {
   }, [token]);
 
   useEffect(() => { fetchPosts(1); fetchMembers(); }, [fetchPosts, fetchMembers]);
+
+  useEffect(() => {
+    if (!token || !API) return;
+
+    let ws: WebSocket | null = null;
+    try {
+      const apiUrl = new URL(API);
+      const protocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${apiUrl.host}/ws?token=${encodeURIComponent(token)}`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload?.type === "PRESENCE_UPDATE" && typeof payload.onlineCount === "number") {
+            setOnlineCount(payload.onlineCount);
+          }
+          if (payload?.type === "NEW_POST" || payload?.type === "NEW_COMMENT" || payload?.type === "NEW_LIKE") {
+            fetchPosts(1);
+          }
+        } catch {
+          // Ignore malformed socket payloads
+        }
+      };
+    } catch {
+      // Ignore websocket bootstrap failures
+    }
+
+    return () => {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+    };
+  }, [token, fetchPosts]);
 
   const handlePost = async () => {
     if (!content.trim()) return;
@@ -340,7 +373,7 @@ export default function CommunityPage() {
                         <div className="cm-post-name">{post.author?.name ?? "Unknown"}</div>
                         <div className="cm-post-meta">{post.author?.role?.toLowerCase()} · {timeAgo(post.createdAt)}</div>
                       </div>
-                      {post.pinned && <span className="cm-pinned-badge">📌 Pinned</span>}
+                      {post.isPinned && <span className="cm-pinned-badge">📌 Pinned</span>}
                     </div>
 
                     <div className="cm-post-body">{post.content}</div>
@@ -410,6 +443,7 @@ export default function CommunityPage() {
               { label: "Total Likes", val: totalLikes     },
               { label: "Comments",    val: totalComments  },
               { label: "Members",     val: members.length },
+              { label: "Online Now",  val: onlineCount    },
             ].map((s) => (
               <div className="cm-stat-row" key={s.label}>
                 <span className="cm-stat-label">{s.label}</span>

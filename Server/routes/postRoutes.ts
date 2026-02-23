@@ -1,5 +1,5 @@
 // Server/routes/postRoutes.ts
-// FIXED: pinned is the correct field name (schema uses pinned, not isPinned)
+// FIXED: isPinned is the correct field name (schema uses isPinned)
 // FIXED: all req.params cast with String()
 
 import { Router, Request, Response } from "express";
@@ -27,7 +27,7 @@ router.get("/", async (req: Request, res: Response) => {
     const [posts, total, pinned] = await Promise.all([
       db.post.findMany({
         where,
-        orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],  // FIXED: pinned
+        orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
         skip:    (page - 1) * limit,
         take:    limit,
         include: {
@@ -39,7 +39,7 @@ router.get("/", async (req: Request, res: Response) => {
       }),
       db.post.count({ where }),
       db.post.findMany({
-        where:   { tenantId, pinned: true, deletedAt: null },  // FIXED: pinned
+        where:   { tenantId, isPinned: true, deletedAt: null },
         orderBy: { createdAt: "desc" },
         include: {
           author: { select: { id: true, name: true, email: true } },

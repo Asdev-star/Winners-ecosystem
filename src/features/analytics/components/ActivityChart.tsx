@@ -95,8 +95,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function ActivityChart() {
   const period    = useAnalyticsStore((s) => s.period);
   const setPeriod = useAnalyticsStore((s) => s.setPeriod);
-  const userData  = useAnalyticsStore((s) => s.userData);
+  const activityData = useAnalyticsStore((s) => s.data);
   const isLoading = useAnalyticsStore((s) => s.isLoading);
+  const userData = activityData.map((p) => ({
+    name: p.date,
+    value: p.activity,
+  }));
 
   const forecastData       = generateForecast(userData);
   const lastRealPoint      = userData.length > 0 ? userData[userData.length - 1] : null;
