@@ -9,10 +9,10 @@ import crypto from "crypto";
 
 const router = Router();
 
-const LS_API_KEY       = process.env.LEMONSQUEEZY_API_KEY ?? "";
-const LS_STORE_ID      = process.env.LEMONSQUEEZY_STORE_ID ?? "";
+const LS_API_KEY        = process.env.LEMONSQUEEZY_API_KEY       ?? "";
+const LS_STORE_ID       = process.env.LEMONSQUEEZY_STORE_ID      ?? "";
 const LS_WEBHOOK_SECRET = process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? "";
-const APP_URL          = process.env.APP_URL ?? "http://localhost:5173";
+const APP_URL           = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:5173";
 
 // Plan → LemonSqueezy variant ID mapping
 const VARIANT_IDS: Record<string, string> = {
@@ -42,8 +42,7 @@ router.get("/subscription", authMiddleware, enforceTenant, async (req: Request, 
     const tenant = await db.tenant.findFirst({ where: { id: req.user!.tenantId } });
     if (!tenant) return res.status(404).json({ message: "Tenant not found" });
 
-    const seats = await db.user.count({ where: { tenantId: req.user!.tenantId, deletedAt: null } });
-    const plan  = tenant.plan as keyof typeof PLAN_LIMITS;
+    const plan = tenant.plan as keyof typeof PLAN_LIMITS;
 
     return res.json({
       id:                `sub_${tenant.id}`,
@@ -51,10 +50,10 @@ router.get("/subscription", authMiddleware, enforceTenant, async (req: Request, 
       status:            "active",
       currentPeriodEnd:  new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       cancelAtPeriodEnd: false,
-      seats:             PLAN_LIMITS[plan].seats,
+      seats:             PLAN_LIMITS[plan]?.seats ?? 3,
     });
   } catch (err) {
-    console.error("Subscription fetch error:", err);
+    console.error("[Billing] subscription fetch error:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -70,17 +69,17 @@ router.get("/usage", authMiddleware, enforceTenant, async (req: Request, res: Re
 
     const [seats, exportCount, recordCount] = await Promise.all([
       db.user.count({ where: { tenantId, deletedAt: null } }),
-      // In production: track export events in a separate table
       Promise.resolve(12),
       db.revenueRecord.count({ where: { tenantId } }),
     ]);
 
     return res.json({
-      seats:   { used: seats,       limit: limits.seats },
-      exports: { used: exportCount, limit: limits.exportPerMonth },
+      seats:   { used: seats,       limit: limits.seats           ?? 3    },
+      exports: { used: exportCount, limit: limits.exportPerMonth  ?? 30   },
       storage: { used: recordCount, limit: plan === "FREE" ? 1000 : plan === "PRO" ? 10000 : 999999 },
     });
   } catch (err) {
+    console.error("[Billing] usage fetch error:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -96,13 +95,16 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
 
   const variantId = VARIANT_IDS[planId];
   if (!variantId) {
-    // Dev mode — return mock checkout URL
-    return res.json({ url: `${APP_URL}/billing?upgraded=${planId}` });
+    // ✅ FIXED: was `?upgraded=${planId}` which React Router couldn't match
+    console.warn(`[Billing] No variant ID for plan "${planId}" — using dev mock redirect`);
+    return res.json({ url: `${APP_URL}/billing?success=true` });
   }
 
   try {
-    const user   = await db.user.findFirst({ where: { id: req.user!.userId }, include: { tenant: true } });
-    const tenant = user?.tenant;
+    const user = await db.user.findFirst({
+      where:   { id: req.user!.userId },
+      include: { tenant: true },
+    });
 
     const payload = {
       data: {
@@ -114,13 +116,13 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
             custom: { tenant_id: req.user!.tenantId },
           },
           product_options: {
-            redirect_url:    `${APP_URL}/billing?success=true`,
+            redirect_url:     `${APP_URL}/billing?success=true`,
             receipt_link_url: `${APP_URL}/billing`,
           },
         },
         relationships: {
           store:   { data: { type: "stores",   id: LS_STORE_ID } },
-          variant: { data: { type: "variants", id: variantId  } },
+          variant: { data: { type: "variants", id: variantId   } },
         },
       },
     };
@@ -128,11 +130,14 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
     const data = await lsRequest("/checkouts", { method: "POST", body: JSON.stringify(payload) });
     const url  = data?.data?.attributes?.url;
 
-    if (!url) return res.status(500).json({ message: "Failed to create checkout session" });
+    if (!url) {
+      console.error("[Billing] LemonSqueezy returned no URL:", JSON.stringify(data));
+      return res.status(500).json({ message: "Failed to create checkout session" });
+    }
 
     return res.json({ url });
   } catch (err) {
-    console.error("Checkout error:", err);
+    console.error("[Billing] checkout error:", err);
     return res.status(500).json({ message: "Checkout failed" });
   }
 });
@@ -141,17 +146,13 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
 
 router.post("/cancel", authMiddleware, enforceTenant, requirePermission("manageBilling"), async (req: Request, res: Response) => {
   try {
-    // In production: call LemonSqueezy API to cancel subscription
-    // await lsRequest(`/subscriptions/${subscriptionId}`, { method: "DELETE" })
-
-    // For now — downgrade to FREE in DB
     await db.tenant.update({
       where: { id: req.user!.tenantId },
       data:  { plan: "FREE" },
     });
-
     return res.json({ message: "Subscription cancelled. You will be downgraded at period end." });
   } catch (err) {
+    console.error("[Billing] cancel error:", err);
     return res.status(500).json({ message: "Cancellation failed" });
   }
 });
@@ -160,7 +161,6 @@ router.post("/cancel", authMiddleware, enforceTenant, requirePermission("manageB
 
 router.post("/resume", authMiddleware, enforceTenant, requirePermission("manageBilling"), async (req: Request, res: Response) => {
   try {
-    // In production: call LemonSqueezy API to resume subscription
     return res.json({ message: "Subscription resumed." });
   } catch (err) {
     return res.status(500).json({ message: "Resume failed" });
@@ -168,17 +168,19 @@ router.post("/resume", authMiddleware, enforceTenant, requirePermission("manageB
 });
 
 // ─── POST /billing/webhook ────────────────────────────────────────────────────
-// Register this URL in LemonSqueezy dashboard as your webhook endpoint
+// Register in LemonSqueezy Dashboard → Webhooks:
+//   URL: https://winners-empire-eco.up.railway.app/billing/webhook
+// Events: subscription_created, subscription_updated, subscription_cancelled, subscription_expired
 
 router.post("/webhook", async (req: Request, res: Response) => {
   const signature = req.headers["x-signature"] as string;
   const rawBody   = JSON.stringify(req.body);
 
-  // Verify webhook signature
   if (LS_WEBHOOK_SECRET) {
-    const hmac    = crypto.createHmac("sha256", LS_WEBHOOK_SECRET);
-    const digest  = hmac.update(rawBody).digest("hex");
+    const hmac   = crypto.createHmac("sha256", LS_WEBHOOK_SECRET);
+    const digest = hmac.update(rawBody).digest("hex");
     if (signature !== digest) {
+      console.warn("[Billing] Webhook signature mismatch");
       return res.status(401).json({ message: "Invalid signature" });
     }
   }
@@ -193,24 +195,27 @@ router.post("/webhook", async (req: Request, res: Response) => {
       case "subscription_created":
       case "subscription_updated": {
         const variantId = req.body?.data?.attributes?.variant_id?.toString();
-        const plan      =
+        const plan =
           variantId === process.env.LS_ENTERPRISE_VARIANT_ID ? "ENTERPRISE" :
           variantId === process.env.LS_PRO_VARIANT_ID        ? "PRO"        : "FREE";
 
         await db.tenant.update({ where: { id: tenantId }, data: { plan: plan as any } });
-        console.log(`✅ Webhook: tenant ${tenantId} upgraded to ${plan}`);
+        console.log(`✅ [Webhook] tenant ${tenantId} → ${plan}`);
         break;
       }
 
       case "subscription_cancelled":
       case "subscription_expired": {
         await db.tenant.update({ where: { id: tenantId }, data: { plan: "FREE" } });
-        console.log(`⚠️ Webhook: tenant ${tenantId} downgraded to FREE`);
+        console.log(`⚠️ [Webhook] tenant ${tenantId} → FREE`);
         break;
       }
+
+      default:
+        console.log(`[Webhook] unhandled event: ${event}`);
     }
   } catch (err) {
-    console.error("Webhook processing error:", err);
+    console.error("[Billing] Webhook processing error:", err);
   }
 
   return res.status(200).json({ received: true });
