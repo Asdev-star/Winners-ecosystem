@@ -10,278 +10,152 @@ const css = `
 
   .cm-root {
     display: flex; gap: 0; min-height: 100vh;
-    background: var(--bg, #0D1520);
-    font-family: 'Syne', sans-serif;
-    padding-bottom: 80px;
+    background: #0D1520; font-family: 'Syne', sans-serif; padding-bottom: 80px;
   }
 
-  /* ── Feed (center) ── */
   .cm-feed { flex: 1; max-width: 680px; margin: 0 auto; padding: 28px 20px; }
 
   .cm-page-title {
-    font-size: 22px; font-weight: 800;
-    color: var(--text, #E8EDF2); margin-bottom: 20px;
-    display: flex; align-items: center; gap: 10px;
+    font-size: 22px; font-weight: 800; color: #E8EEF5;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
   }
   .cm-page-badge {
-    background: rgba(201,168,76,0.12); color: var(--gold, #C9A84C);
-    font-family: 'Space Mono', monospace; font-size: 9px;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    padding: 3px 10px; border-radius: 20px;
-    border: 1px solid rgba(201,168,76,0.2);
+    background: rgba(74,222,128,0.1); color: #4ade80;
+    font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 3px 10px; border-radius: 20px;
+    border: 1px solid rgba(74,222,128,0.2);
   }
 
-  /* ── Compose box ── */
   .cm-compose {
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
-    border-radius: 10px; padding: 16px; margin-bottom: 20px;
+    background: linear-gradient(135deg, #0f1923 0%, #111D2E 100%);
+    border: 1px solid rgba(137,196,225,0.12);
+    border-radius: 16px; padding: 16px; margin-bottom: 20px;
+    position: relative; overflow: hidden;
   }
-  .cm-compose-top {
-    display: flex; gap: 12px; align-items: flex-start;
+  .cm-compose::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, #C9A84C, transparent);
   }
+  .cm-compose-top { display: flex; gap: 12px; align-items: flex-start; }
+
   .cm-avatar {
     width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-    background: rgba(201,168,76,0.15);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 700; color: var(--gold, #C9A84C);
-    border: 1px solid rgba(201,168,76,0.2);
+    background: rgba(201,168,76,0.12); display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #C9A84C; border: 1px solid rgba(201,168,76,0.2);
   }
   .cm-compose-input {
-    flex: 1; background: var(--bg, #0D1520);
-    border: 1px solid var(--border, #1E3248); border-radius: 8px;
-    padding: 10px 14px; color: var(--text, #E8EDF2);
-    font-family: 'Syne', sans-serif; font-size: 14px;
-    resize: none; outline: none; min-height: 80px;
-    transition: border-color 0.15s;
-    width: 100%;
+    flex: 1; background: rgba(137,196,225,0.04); border: 1px solid #1E3248; border-radius: 10px;
+    padding: 10px 14px; color: #E8EEF5; font-family: 'Syne', sans-serif; font-size: 14px;
+    resize: none; outline: none; min-height: 80px; transition: border-color 0.15s, box-shadow 0.15s; width: 100%;
   }
-  .cm-compose-input:focus { border-color: var(--gold, #C9A84C); }
-  .cm-compose-input::placeholder { color: var(--text-dim, #5A6878); }
+  .cm-compose-input:focus { border-color: rgba(201,168,76,0.5); box-shadow: 0 0 0 3px rgba(201,168,76,0.07); }
+  .cm-compose-input::placeholder { color: #2E3D4F; }
 
   .cm-compose-footer {
     display: flex; align-items: center; justify-content: space-between;
-    margin-top: 10px; padding-top: 10px;
-    border-top: 1px solid var(--border, #1E3248);
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid #1E3248;
   }
-  .cm-tag-input {
-    background: transparent; border: none; outline: none;
-    font-family: 'Space Mono', monospace; font-size: 10px;
-    color: var(--text-dim, #5A6878); width: 160px;
-  }
-  .cm-tag-input::placeholder { color: var(--text-dim, #5A6878); }
+  .cm-tag-input { background: transparent; border: none; outline: none; font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; width: 160px; }
+  .cm-tag-input::placeholder { color: #2E3D4F; }
 
   .cm-post-btn {
-    padding: 8px 20px; border-radius: 6px;
-    background: var(--gold, #C9A84C); color: #0D1520;
+    padding: 8px 20px; border-radius: 8px; background: #C9A84C; color: #0D1520;
     font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
     border: none; cursor: pointer; transition: all 0.15s;
   }
-  .cm-post-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-  .cm-post-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cm-post-btn:hover:not(:disabled) { background: #E8C97A; transform: translateY(-1px); }
+  .cm-post-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-  /* ── Post card ── */
   .cm-post {
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
-    border-radius: 10px; margin-bottom: 16px;
-    transition: border-color 0.15s;
+    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    border: 1px solid rgba(137,196,225,0.1);
+    border-radius: 16px; margin-bottom: 16px; transition: border-color 0.2s; overflow: hidden;
   }
   .cm-post:hover { border-color: rgba(201,168,76,0.2); }
 
-  .cm-post-header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 14px 16px 0;
-  }
+  .cm-post-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 0; }
   .cm-post-author { flex: 1; }
-  .cm-post-name {
-    font-size: 13px; font-weight: 700;
-    color: var(--text, #E8EDF2);
-  }
-  .cm-post-meta {
-    font-family: 'Space Mono', monospace; font-size: 10px;
-    color: var(--text-dim, #5A6878); margin-top: 1px;
-  }
+  .cm-post-name { font-size: 13px; font-weight: 700; color: #E8EEF5; }
+  .cm-post-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; margin-top: 1px; }
+  .cm-post-body { padding: 12px 16px; font-size: 14px; color: #E8EEF5; line-height: 1.65; white-space: pre-wrap; }
 
-  .cm-post-body {
-    padding: 12px 16px;
-    font-size: 14px; color: var(--text, #E8EDF2);
-    line-height: 1.65; white-space: pre-wrap;
-  }
+  .cm-post-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
+  .cm-tag { font-family: 'Space Mono', monospace; font-size: 10px; color: #C9A84C; background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.15); border-radius: 20px; padding: 2px 10px; }
 
-  .cm-post-tags {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    padding: 0 16px 10px;
-  }
-  .cm-tag {
-    font-family: 'Space Mono', monospace; font-size: 10px;
-    color: var(--gold, #C9A84C);
-    background: rgba(201,168,76,0.08);
-    border: 1px solid rgba(201,168,76,0.15);
-    border-radius: 20px; padding: 2px 10px;
-  }
-
-  .cm-post-actions {
-    display: flex; align-items: center; gap: 4px;
-    padding: 8px 12px; border-top: 1px solid var(--border, #1E3248);
-  }
+  .cm-post-actions { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-top: 1px solid rgba(137,196,225,0.08); }
   .cm-action-btn {
-    display: flex; align-items: center; gap: 5px;
-    padding: 6px 10px; border-radius: 6px;
-    border: none; background: transparent;
-    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
-    color: var(--text-dim, #5A6878); cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 8px;
+    border: none; background: transparent; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
+    color: #5A7A96; cursor: pointer; transition: all 0.15s;
   }
-  .cm-action-btn:hover { background: rgba(255,255,255,0.04); color: var(--text, #E8EDF2); }
-  .cm-action-btn.liked { color: #E05A4E; }
-  .cm-action-btn.liked:hover { background: rgba(224,90,78,0.08); }
-  .cm-action-btn.delete:hover { color: #E05A4E; background: rgba(224,90,78,0.08); }
+  .cm-action-btn:hover { background: rgba(137,196,225,0.06); color: #E8EEF5; }
+  .cm-action-btn.liked { color: #f87171; }
+  .cm-action-btn.liked:hover { background: rgba(248,113,113,0.08); }
+  .cm-action-btn.delete:hover { color: #f87171; background: rgba(248,113,113,0.08); }
 
-  /* ── Comments ── */
-  .cm-comments {
-    padding: 0 16px 14px; border-top: 1px solid var(--border, #1E3248);
-  }
+  .cm-comments { padding: 0 16px 14px; border-top: 1px solid rgba(137,196,225,0.08); }
   .cm-comment-list { padding-top: 12px; }
-  .cm-comment {
-    display: flex; gap: 8px; margin-bottom: 10px;
-  }
+  .cm-comment { display: flex; gap: 8px; margin-bottom: 10px; }
   .cm-comment-avatar {
     width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-    background: rgba(137,196,225,0.1);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700;
-    color: var(--ice, #89C4E1);
-    border: 1px solid rgba(137,196,225,0.15);
+    background: rgba(137,196,225,0.08); display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #89C4E1; border: 1px solid rgba(137,196,225,0.15);
   }
-  .cm-comment-bubble {
-    flex: 1; background: var(--bg, #0D1520);
-    border: 1px solid var(--border, #1E3248);
-    border-radius: 8px; padding: 8px 12px;
-  }
-  .cm-comment-author {
-    font-size: 11px; font-weight: 700;
-    color: var(--text, #E8EDF2); margin-bottom: 2px;
-  }
-  .cm-comment-text {
-    font-size: 13px; color: var(--text-dim, #5A6878); line-height: 1.5;
-  }
+  .cm-comment-bubble { flex: 1; background: rgba(137,196,225,0.04); border: 1px solid #1E3248; border-radius: 10px; padding: 8px 12px; }
+  .cm-comment-author { font-size: 11px; font-weight: 700; color: #E8EEF5; margin-bottom: 2px; }
+  .cm-comment-text { font-size: 13px; color: #5A7A96; line-height: 1.5; }
 
-  .cm-comment-form {
-    display: flex; gap: 8px; margin-top: 10px;
-  }
+  .cm-comment-form { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
   .cm-comment-input {
-    flex: 1; background: var(--bg, #0D1520);
-    border: 1px solid var(--border, #1E3248);
-    border-radius: 6px; padding: 8px 12px;
-    color: var(--text, #E8EDF2);
-    font-family: 'Syne', sans-serif; font-size: 13px;
+    flex: 1; background: rgba(137,196,225,0.04); border: 1px solid #1E3248; border-radius: 8px;
+    padding: 8px 12px; color: #E8EEF5; font-family: 'Syne', sans-serif; font-size: 13px;
     outline: none; transition: border-color 0.15s;
   }
-  .cm-comment-input:focus { border-color: var(--gold, #C9A84C); }
-  .cm-comment-input::placeholder { color: var(--text-dim, #5A6878); }
+  .cm-comment-input:focus { border-color: rgba(201,168,76,0.5); }
+  .cm-comment-input::placeholder { color: #2E3D4F; }
   .cm-comment-submit {
-    padding: 8px 14px; border-radius: 6px;
-    background: rgba(201,168,76,0.12);
-    border: 1px solid rgba(201,168,76,0.2);
-    color: var(--gold, #C9A84C);
+    padding: 8px 14px; border-radius: 8px; background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.2); color: #C9A84C;
     font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
-    cursor: pointer; transition: all 0.15s;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
   }
-  .cm-comment-submit:hover { background: rgba(201,168,76,0.2); }
+  .cm-comment-submit:hover:not(:disabled) { background: rgba(201,168,76,0.2); }
+  .cm-comment-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* ── Sidebar ── */
-  .cm-sidebar {
-    width: 280px; flex-shrink: 0;
-    padding: 28px 16px 28px 0;
-  }
-
+  .cm-sidebar { width: 280px; flex-shrink: 0; padding: 28px 16px 28px 0; }
   .cm-sidebar-card {
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
-    border-radius: 10px; padding: 16px;
-    margin-bottom: 16px;
+    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 16px; margin-bottom: 16px;
   }
-  .cm-sidebar-title {
-    font-family: 'Space Mono', monospace; font-size: 10px;
-    letter-spacing: 0.15em; text-transform: uppercase;
-    color: var(--gold, #C9A84C); margin-bottom: 14px;
-  }
+  .cm-sidebar-card.gold-border { border-color: rgba(201,168,76,0.2); }
+  .cm-sidebar-title { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: #C9A84C; margin-bottom: 14px; }
 
-  .cm-member-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 7px 0; border-bottom: 1px solid var(--border, #1E3248);
-  }
-  .cm-member-item:last-child { border-bottom: none; }
-  .cm-member-avatar {
-    width: 30px; height: 30px; border-radius: 50%;
-    background: rgba(201,168,76,0.1);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; color: var(--gold, #C9A84C);
-    flex-shrink: 0;
-  }
-  .cm-member-name {
-    font-size: 12px; font-weight: 700; color: var(--text, #E8EDF2);
-  }
-  .cm-member-role {
-    font-family: 'Space Mono', monospace; font-size: 9px;
-    color: var(--text-dim, #5A6878); text-transform: uppercase;
-  }
-  .cm-member-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #2DD4A0; margin-left: auto; flex-shrink: 0;
-    box-shadow: 0 0 4px #2DD4A0;
-  }
+  .cm-member-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(137,196,225,0.07); }
+  .cm-member-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .cm-member-avatar { width: 30px; height: 30px; border-radius: 50%; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.15); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #C9A84C; flex-shrink: 0; }
+  .cm-member-name { font-size: 12px; font-weight: 700; color: #E8EEF5; }
+  .cm-member-role { font-family: 'Space Mono', monospace; font-size: 9px; color: #5A7A96; text-transform: uppercase; }
+  .cm-member-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; margin-left: auto; flex-shrink: 0; box-shadow: 0 0 6px rgba(74,222,128,0.5); }
 
-  .cm-stat-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 6px 0; border-bottom: 1px solid var(--border, #1E3248);
-  }
-  .cm-stat-row:last-child { border-bottom: none; }
-  .cm-stat-label {
-    font-family: 'Space Mono', monospace; font-size: 10px;
-    color: var(--text-dim, #5A6878);
-  }
-  .cm-stat-val {
-    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
-    color: var(--gold, #C9A84C);
-  }
+  .cm-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(137,196,225,0.07); }
+  .cm-stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .cm-stat-label { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; }
+  .cm-stat-val { font-size: 13px; font-weight: 800; color: #C9A84C; }
 
-  /* ── Empty + loading states ── */
-  .cm-empty {
-    text-align: center; padding: 48px 20px;
-    font-family: 'Space Mono', monospace; font-size: 12px;
-    color: var(--text-dim, #5A6878);
-  }
+  .cm-pinned-badge { display: inline-flex; align-items: center; gap: 4px; font-family: 'Space Mono', monospace; font-size: 9px; color: #C9A84C; letter-spacing: 0.1em; text-transform: uppercase; margin-left: auto; }
+
+  .cm-empty { text-align: center; padding: 48px 20px; font-family: 'Space Mono', monospace; font-size: 12px; color: #5A7A96; }
   .cm-empty-icon { font-size: 36px; margin-bottom: 12px; }
 
-  .cm-skeleton {
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
-    border-radius: 10px; padding: 16px; margin-bottom: 16px;
-  }
-  .cm-skel-line {
-    height: 12px; border-radius: 4px; margin-bottom: 8px;
-    background: linear-gradient(90deg, var(--border, #1E3248) 25%, rgba(255,255,255,0.03) 50%, var(--border, #1E3248) 75%);
-    background-size: 200% 100%; animation: cm-shimmer 1.4s infinite;
-  }
+  .cm-skeleton { background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%); border: 1px solid rgba(137,196,225,0.08); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+  .cm-skel-line { height: 11px; border-radius: 6px; margin-bottom: 9px; background: linear-gradient(90deg, #1E3248 25%, rgba(137,196,225,0.05) 50%, #1E3248 75%); background-size: 200% 100%; animation: cm-shimmer 1.4s infinite; }
   @keyframes cm-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-  .cm-load-more {
-    width: 100%; padding: 11px;
-    background: transparent; border: 1px solid var(--border, #1E3248);
-    border-radius: 8px; color: var(--text-dim, #5A6878);
-    font-family: 'Space Mono', monospace; font-size: 11px;
-    cursor: pointer; transition: all 0.15s; margin-top: 8px;
-  }
-  .cm-load-more:hover { border-color: var(--gold, #C9A84C); color: var(--gold, #C9A84C); }
+  .cm-load-more { width: 100%; padding: 11px; background: transparent; border: 1px solid #1E3248; border-radius: 10px; color: #5A7A96; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+  .cm-load-more:hover { border-color: rgba(201,168,76,0.3); color: #C9A84C; }
 
-  /* ── Pinned badge ── */
-  .cm-pinned-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-family: 'Space Mono', monospace; font-size: 9px;
-    color: var(--gold, #C9A84C); letter-spacing: 0.1em;
-    text-transform: uppercase; margin-left: auto;
-  }
+  .cm-tip-text { font-size: 12px; color: #5A7A96; line-height: 1.6; font-family: 'Space Mono', monospace; }
+  .cm-tip-text strong { color: #C9A84C; }
 
   @media (max-width: 900px) {
     .cm-sidebar { display: none; }
@@ -305,45 +179,29 @@ function initials(name: string): string {
 }
 
 interface Post {
-  id: string;
-  content: string;
-  authorId: string;
+  id: string; content: string; authorId: string;
   author: { id: string; name: string; role: string };
-  tags: { tag: { name: string } }[];
-  likes: { userId: string }[];
-  comments: Comment[];
-  pinned: boolean;
-  createdAt: string;
+  tags: { tag: { name: string } }[]; likes: { userId: string }[];
+  comments: Comment[]; pinned: boolean; createdAt: string;
   _count?: { likes: number; comments: number };
 }
-
-interface Comment {
-  id: string;
-  content: string;
-  author: { name: string };
-  createdAt: string;
-}
-
-interface Member {
-  id: string;
-  name: string;
-  role: string;
-}
+interface Comment { id: string; content: string; author: { name: string }; createdAt: string; }
+interface Member  { id: string; name: string; role: string; }
 
 export default function CommunityPage() {
   const token = useAuthStore((s) => s.token);
   const user  = useAuthStore((s) => s.user);
 
-  const [posts, setPosts]         = useState<Post[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [posting, setPosting]     = useState(false);
-  const [content, setContent]     = useState("");
-  const [tags, setTags]           = useState("");
-  const [page, setPage]           = useState(1);
-  const [hasMore, setHasMore]     = useState(false);
-  const [members, setMembers]     = useState<Member[]>([]);
-  const [openComments, setOpenComments] = useState<Set<string>>(new Set());
-  const [commentText, setCommentText]   = useState<Record<string, string>>({});
+  const [posts, setPosts]     = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [posting, setPosting] = useState(false);
+  const [content, setContent] = useState("");
+  const [tags, setTags]       = useState("");
+  const [page, setPage]       = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [openComments, setOpenComments]           = useState<Set<string>>(new Set());
+  const [commentText, setCommentText]             = useState<Record<string, string>>({});
   const [submittingComment, setSubmittingComment] = useState<string | null>(null);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -356,11 +214,8 @@ export default function CommunityPage() {
       const list = data.posts ?? [];
       setPosts((prev) => append ? [...prev, ...list] : list);
       setHasMore(data.hasMore ?? false);
-    } catch {
-      setPosts([]);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setPosts([]); }
+    finally  { setLoading(false); }
   }, [token]);
 
   const fetchMembers = useCallback(async () => {
@@ -371,41 +226,26 @@ export default function CommunityPage() {
     } catch {}
   }, [token]);
 
-  useEffect(() => {
-    fetchPosts(1);
-    fetchMembers();
-  }, [fetchPosts, fetchMembers]);
+  useEffect(() => { fetchPosts(1); fetchMembers(); }, [fetchPosts, fetchMembers]);
 
   const handlePost = async () => {
     if (!content.trim()) return;
     setPosting(true);
     try {
       const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
-      const res = await fetch(`${API}/posts`, {
-        method: "POST", headers,
-        body: JSON.stringify({ content: content.trim(), tags: tagList }),
-      });
-      if (res.ok) {
-        setContent(""); setTags("");
-        await fetchPosts(1);
-      }
-    } finally {
-      setPosting(false);
-    }
+      const res = await fetch(`${API}/posts`, { method: "POST", headers, body: JSON.stringify({ content: content.trim(), tags: tagList }) });
+      if (res.ok) { setContent(""); setTags(""); await fetchPosts(1); }
+    } finally { setPosting(false); }
   };
 
   const handleLike = async (postId: string) => {
-    const post = posts.find((p) => p.id === postId);
+    const post  = posts.find((p) => p.id === postId);
     if (!post) return;
     const liked = post.likes?.some((l) => l.userId === user?.id);
-    await fetch(`${API}/posts/${postId}/like`, {
-      method: liked ? "DELETE" : "POST", headers,
-    });
+    await fetch(`${API}/posts/${postId}/like`, { method: liked ? "DELETE" : "POST", headers });
     setPosts((prev) => prev.map((p) => {
       if (p.id !== postId) return p;
-      const newLikes = liked
-        ? p.likes.filter((l) => l.userId !== user?.id)
-        : [...p.likes, { userId: user?.id ?? "" }];
+      const newLikes = liked ? p.likes.filter((l) => l.userId !== user?.id) : [...p.likes, { userId: user?.id ?? "" }];
       return { ...p, likes: newLikes };
     }));
   };
@@ -417,11 +257,7 @@ export default function CommunityPage() {
   };
 
   const toggleComments = (postId: string) => {
-    setOpenComments((prev) => {
-      const next = new Set(prev);
-      next.has(postId) ? next.delete(postId) : next.add(postId);
-      return next;
-    });
+    setOpenComments((prev) => { const next = new Set(prev); next.has(postId) ? next.delete(postId) : next.add(postId); return next; });
   };
 
   const handleComment = async (postId: string) => {
@@ -429,29 +265,16 @@ export default function CommunityPage() {
     if (!text) return;
     setSubmittingComment(postId);
     try {
-      const res = await fetch(`${API}/posts/${postId}/comments`, {
-        method: "POST", headers,
-        body: JSON.stringify({ content: text }),
-      });
+      const res = await fetch(`${API}/posts/${postId}/comments`, { method: "POST", headers, body: JSON.stringify({ content: text }) });
       if (res.ok) {
         const newComment = await res.json();
         setCommentText((prev) => ({ ...prev, [postId]: "" }));
-        setPosts((prev) => prev.map((p) =>
-          p.id === postId
-            ? { ...p, comments: [...(p.comments ?? []), newComment] }
-            : p
-        ));
+        setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: [...(p.comments ?? []), newComment] } : p));
       }
-    } finally {
-      setSubmittingComment(null);
-    }
+    } finally { setSubmittingComment(null); }
   };
 
-  const loadMore = () => {
-    const next = page + 1;
-    setPage(next);
-    fetchPosts(next, true);
-  };
+  const loadMore = () => { const next = page + 1; setPage(next); fetchPosts(next, true); };
 
   const totalLikes    = posts.reduce((s, p) => s + (p.likes?.length ?? 0), 0);
   const totalComments = posts.reduce((s, p) => s + (p.comments?.length ?? 0), 0);
@@ -461,14 +284,12 @@ export default function CommunityPage() {
       <style>{css}</style>
       <div className="cm-root">
 
-        {/* ── Center feed ── */}
         <div className="cm-feed">
           <div className="cm-page-title">
             🧑‍🤝‍🧑 Community
             <span className="cm-page-badge">● Live</span>
           </div>
 
-          {/* Compose */}
           <div className="cm-compose">
             <div className="cm-compose-top">
               <div className="cm-avatar">{initials(user?.name ?? "")}</div>
@@ -481,29 +302,20 @@ export default function CommunityPage() {
               />
             </div>
             <div className="cm-compose-footer">
-              <input
-                className="cm-tag-input"
-                placeholder="# tags (comma separated)"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-              />
-              <button
-                className="cm-post-btn"
-                disabled={!content.trim() || posting}
-                onClick={handlePost}
-              >
-                {posting ? "Posting..." : "Post →"}
+              <input className="cm-tag-input" placeholder="# tags, comma separated" value={tags} onChange={(e) => setTags(e.target.value)} />
+              <button className="cm-post-btn" disabled={!content.trim() || posting} onClick={handlePost}>
+                {posting ? "Posting…" : "Post →"}
               </button>
             </div>
           </div>
 
-          {/* Posts */}
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="cm-skeleton">
-                <div className="cm-skel-line" style={{ width: "40%" }} />
+                <div className="cm-skel-line" style={{ width: "40%", marginBottom: 14 }} />
                 <div className="cm-skel-line" style={{ width: "100%" }} />
-                <div className="cm-skel-line" style={{ width: "70%" }} />
+                <div className="cm-skel-line" style={{ width: "75%" }} />
+                <div className="cm-skel-line" style={{ width: "50%" }} />
               </div>
             ))
           ) : posts.length === 0 ? (
@@ -514,61 +326,40 @@ export default function CommunityPage() {
           ) : (
             <>
               {posts.map((post) => {
-                const liked          = post.likes?.some((l) => l.userId === user?.id);
-                const likeCount      = post.likes?.length ?? 0;
-                const commentCount   = post.comments?.length ?? 0;
-                const isOwn          = post.author?.id === user?.id || post.authorId === user?.id;
-                const commentsOpen   = openComments.has(post.id);
+                const liked        = post.likes?.some((l) => l.userId === user?.id);
+                const likeCount    = post.likes?.length ?? 0;
+                const commentCount = post.comments?.length ?? 0;
+                const isOwn        = post.author?.id === user?.id || post.authorId === user?.id;
+                const commentsOpen = openComments.has(post.id);
 
                 return (
                   <div key={post.id} className="cm-post">
                     <div className="cm-post-header">
-                      <div className="cm-avatar" style={{ width: 36, height: 36, fontSize: 12 }}>
-                        {initials(post.author?.name ?? "?")}
-                      </div>
+                      <div className="cm-avatar" style={{ width: 36, height: 36, fontSize: 12 }}>{initials(post.author?.name ?? "?")}</div>
                       <div className="cm-post-author">
                         <div className="cm-post-name">{post.author?.name ?? "Unknown"}</div>
-                        <div className="cm-post-meta">
-                          {post.author?.role?.toLowerCase()} · {timeAgo(post.createdAt)}
-                        </div>
+                        <div className="cm-post-meta">{post.author?.role?.toLowerCase()} · {timeAgo(post.createdAt)}</div>
                       </div>
-                      {post.pinned && (
-                        <span className="cm-pinned-badge">📌 Pinned</span>
-                      )}
+                      {post.pinned && <span className="cm-pinned-badge">📌 Pinned</span>}
                     </div>
 
                     <div className="cm-post-body">{post.content}</div>
 
                     {post.tags?.length > 0 && (
                       <div className="cm-post-tags">
-                        {post.tags.map((t, i) => (
-                          <span key={i} className="cm-tag">#{t.tag?.name ?? t}</span>
-                        ))}
+                        {post.tags.map((t, i) => <span key={i} className="cm-tag">#{t.tag?.name ?? t}</span>)}
                       </div>
                     )}
 
                     <div className="cm-post-actions">
-                      <button
-                        className={`cm-action-btn${liked ? " liked" : ""}`}
-                        onClick={() => handleLike(post.id)}
-                      >
+                      <button className={`cm-action-btn${liked ? " liked" : ""}`} onClick={() => handleLike(post.id)}>
                         {liked ? "❤️" : "🤍"} {likeCount > 0 && likeCount}
                       </button>
-                      <button
-                        className="cm-action-btn"
-                        onClick={() => toggleComments(post.id)}
-                      >
-                        💬 {commentCount > 0 && commentCount}
-                        {commentsOpen ? " Hide" : " Comment"}
+                      <button className="cm-action-btn" onClick={() => toggleComments(post.id)}>
+                        💬 {commentCount > 0 && commentCount} {commentsOpen ? "Hide" : "Comment"}
                       </button>
                       {isOwn && (
-                        <button
-                          className="cm-action-btn delete"
-                          onClick={() => handleDelete(post.id)}
-                          style={{ marginLeft: "auto" }}
-                        >
-                          🗑
-                        </button>
+                        <button className="cm-action-btn delete" onClick={() => handleDelete(post.id)} style={{ marginLeft: "auto" }}>🗑</button>
                       )}
                     </div>
 
@@ -577,9 +368,7 @@ export default function CommunityPage() {
                         <div className="cm-comment-list">
                           {post.comments?.map((c) => (
                             <div key={c.id} className="cm-comment">
-                              <div className="cm-comment-avatar">
-                                {initials(c.author?.name ?? "?")}
-                              </div>
+                              <div className="cm-comment-avatar">{initials(c.author?.name ?? "?")}</div>
                               <div className="cm-comment-bubble">
                                 <div className="cm-comment-author">{c.author?.name}</div>
                                 <div className="cm-comment-text">{c.content}</div>
@@ -588,26 +377,19 @@ export default function CommunityPage() {
                           ))}
                         </div>
                         <div className="cm-comment-form">
-                          <div className="cm-avatar" style={{ width: 28, height: 28, fontSize: 10 }}>
-                            {initials(user?.name ?? "")}
-                          </div>
+                          <div className="cm-avatar" style={{ width: 28, height: 28, fontSize: 10 }}>{initials(user?.name ?? "")}</div>
                           <input
-                            className="cm-comment-input"
-                            placeholder="Write a comment..."
+                            className="cm-comment-input" placeholder="Write a comment…"
                             value={commentText[post.id] ?? ""}
-                            onChange={(e) =>
-                              setCommentText((prev) => ({ ...prev, [post.id]: e.target.value }))
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleComment(post.id);
-                            }}
+                            onChange={(e) => setCommentText((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleComment(post.id); }}
                           />
                           <button
                             className="cm-comment-submit"
-                            disabled={submittingComment === post.id}
+                            disabled={submittingComment === post.id || !commentText[post.id]?.trim()}
                             onClick={() => handleComment(post.id)}
                           >
-                            {submittingComment === post.id ? "..." : "→"}
+                            {submittingComment === post.id ? "…" : "→"}
                           </button>
                         </div>
                       </div>
@@ -615,41 +397,27 @@ export default function CommunityPage() {
                   </div>
                 );
               })}
-
-              {hasMore && (
-                <button className="cm-load-more" onClick={loadMore}>
-                  Load more posts →
-                </button>
-              )}
+              {hasMore && <button className="cm-load-more" onClick={loadMore}>Load more posts →</button>}
             </>
           )}
         </div>
 
-        {/* ── Right sidebar ── */}
         <div className="cm-sidebar">
-
-          {/* Community stats */}
           <div className="cm-sidebar-card">
             <div className="cm-sidebar-title">Community Stats</div>
-            <div className="cm-stat-row">
-              <span className="cm-stat-label">Posts</span>
-              <span className="cm-stat-val">{posts.length}</span>
-            </div>
-            <div className="cm-stat-row">
-              <span className="cm-stat-label">Total Likes</span>
-              <span className="cm-stat-val">{totalLikes}</span>
-            </div>
-            <div className="cm-stat-row">
-              <span className="cm-stat-label">Comments</span>
-              <span className="cm-stat-val">{totalComments}</span>
-            </div>
-            <div className="cm-stat-row">
-              <span className="cm-stat-label">Members</span>
-              <span className="cm-stat-val">{members.length}</span>
-            </div>
+            {[
+              { label: "Posts",       val: posts.length   },
+              { label: "Total Likes", val: totalLikes     },
+              { label: "Comments",    val: totalComments  },
+              { label: "Members",     val: members.length },
+            ].map((s) => (
+              <div className="cm-stat-row" key={s.label}>
+                <span className="cm-stat-label">{s.label}</span>
+                <span className="cm-stat-val">{s.val}</span>
+              </div>
+            ))}
           </div>
 
-          {/* Active members */}
           <div className="cm-sidebar-card">
             <div className="cm-sidebar-title">Active Members</div>
             {members.slice(0, 6).map((m) => (
@@ -663,21 +431,18 @@ export default function CommunityPage() {
               </div>
             ))}
             {members.length === 0 && (
-              <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Space Mono, monospace" }}>
-                No members yet
-              </div>
+              <div style={{ fontSize: 11, color: "#5A7A96", fontFamily: "Space Mono, monospace" }}>No members yet</div>
             )}
           </div>
 
-          {/* Tip */}
-          <div className="cm-sidebar-card" style={{ borderColor: "rgba(201,168,76,0.2)" }}>
+          <div className="cm-sidebar-card gold-border">
             <div className="cm-sidebar-title">✦ Tip</div>
-            <div style={{ fontSize: 12, color: "var(--text-dim)", lineHeight: 1.6, fontFamily: "Space Mono, monospace" }}>
-              Press <strong style={{ color: "var(--gold)" }}>⌘ + Enter</strong> to post quickly. Use tags to help others find your posts.
+            <div className="cm-tip-text">
+              Press <strong>⌘ + Enter</strong> to post quickly. Use tags to help others find your posts.
             </div>
           </div>
-
         </div>
+
       </div>
     </>
   );
