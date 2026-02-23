@@ -1,4 +1,4 @@
-// src/features/analytics/AnalyticsPage.tsx
+// src/features/analytics/components/AnalyticsPage.tsx
 
 import { useState, useMemo } from "react";
 import type { ReactNode } from "react";
