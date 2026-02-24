@@ -1,6 +1,9 @@
 // src/features/auth/authStore.ts
 
 import { create } from "zustand";
+
+
+import { API_BASE } from "../../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,7 +40,6 @@ interface AuthState {
 
 const TOKEN_KEY = "we_token";        // we = Winners Ecosystem
 const USER_KEY  = "we_user";
-const API_BASE  = import.meta.env.VITE_API_URL ?? "https://winners-empire-eco.up.railway.app";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

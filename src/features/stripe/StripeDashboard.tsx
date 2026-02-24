@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { getAuthHeaders } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 const css = `
   .sd-wrap { padding: 32px; max-width: 1100px; margin: 0 auto; }
   .sd-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }

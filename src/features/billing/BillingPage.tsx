@@ -5,9 +5,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
-const API = `${import.meta.env.VITE_API_URL ?? ""}/api/v1`;
-
+const API = API_BASE;
 // ── Types ──────────────────────────────────────────────────────────────────────
 type PlanId = "free" | "pro" | "enterprise";
 

@@ -5,9 +5,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 interface Invite { email: string; role: string; }
 
 const css = `

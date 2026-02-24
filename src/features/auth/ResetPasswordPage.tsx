@@ -1,10 +1,10 @@
 // src/features/auth/ResetPasswordPage.tsx
 
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Mono&display=swap');
 

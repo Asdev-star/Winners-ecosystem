@@ -5,10 +5,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore, getAuthHeaders } from "../auth/authStore";
+import { useAuthStore, getAuthHeaders } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Stats {
   totalRevenue:   number;

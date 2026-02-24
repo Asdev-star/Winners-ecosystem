@@ -1,10 +1,10 @@
 // src/features/referral/ReferralPage.tsx
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 const css = `
   .rr-root { padding: 28px 24px 80px; font-family: 'Syne', sans-serif; color: var(--text); max-width: 900px; }
   .rr-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }

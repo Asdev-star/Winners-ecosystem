@@ -1,10 +1,10 @@
 // src/features/activity/ActivityPage.tsx
 
 import { useEffect, useState, useCallback } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 const css = `
   .ac-root { padding: 24px 24px 80px; max-width: 960px; font-family: 'Syne', sans-serif; color: var(--text); }
 

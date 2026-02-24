@@ -1,10 +1,10 @@
 // src/features/admin/AdminPage.tsx
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 const css = `
   .adm-root { padding: 24px 24px 80px; font-family: 'Syne', sans-serif; color: var(--text); max-width: 1100px; }
 

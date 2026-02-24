@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "./authStore";
+
+
+import { API_BASE } from "../../lib/api";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -273,7 +276,7 @@ export default function LoginPage() {
     if (code) {
       window.history.replaceState({}, "", "/login");
       setLoading(true);
-      const API = import.meta.env.VITE_API_URL ?? "";
+const API = API_BASE;
       fetch(`${API}/auth/google/exchange`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, redirectUri: `${window.location.origin}/login` }),

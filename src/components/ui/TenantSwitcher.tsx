@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuthStore, getAuthHeaders } from "../../features/auth/authStore";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+import { API_BASE } from "../../lib/api";
 
 const css = `
   .ts-wrap { position: relative; display: inline-block; width: 100%; }

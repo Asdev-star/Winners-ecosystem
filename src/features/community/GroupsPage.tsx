@@ -2,10 +2,10 @@
 // Phase 2 — Community Layer V1.2: Groups
 // Route: /community/groups
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Group {

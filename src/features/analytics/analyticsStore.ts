@@ -2,8 +2,7 @@
 
 import { create } from "zustand";
 import { getAuthHeaders } from "../auth/authStore";
-
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+import { API_BASE } from "../../lib/api";
 
 export type Period = "7d" | "30d" | "90d";
 

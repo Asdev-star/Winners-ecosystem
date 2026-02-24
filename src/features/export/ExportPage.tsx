@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getAuthHeaders } from "../auth/authStore";
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+import { API_BASE } from "../../lib/api";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');

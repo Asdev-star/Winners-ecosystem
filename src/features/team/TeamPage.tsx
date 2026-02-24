@@ -2,10 +2,10 @@
 // Phase 1 — Core Engine · Team Management
 // Ecosystem design: CSS variables, card pattern, context bar, no Tailwind
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { API_BASE } from "../../lib/api";
 
-const API = import.meta.env.VITE_API_URL ?? "";
-
+const API = API_BASE;
 function authHeaders() {
   const token = localStorage.getItem("token");
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
