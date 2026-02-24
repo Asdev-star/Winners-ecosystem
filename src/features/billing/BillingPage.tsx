@@ -1,100 +1,52 @@
 // src/features/billing/BillingPage.tsx
-// FULLY SELF-CONTAINED — no billingStore import, no external dependencies that can crash
+// Phase 1 — Core Engine · Billing
 // CSS via JSX <style> tag — StrictMode safe
+// FIXED: headers built inside callbacks so token is always fresh
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
-const API = API_BASE;
-// ── Types ──────────────────────────────────────────────────────────────────────
 type PlanId = "free" | "pro" | "enterprise";
 
 interface Plan {
-  id: PlanId;
-  name: string;
-  price: number;
-  seats: number;
-  highlighted: boolean;
-  features: string[];
+  id: PlanId; name: string; price: number; seats: number;
+  highlighted: boolean; features: string[];
 }
-
 interface Subscription {
-  id: string;
-  planId: PlanId;
+  id: string; planId: PlanId;
   status: "active" | "cancelled" | "past_due" | "trialing";
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
-  stripeCustomerId?: string;
+  currentPeriodEnd: string; cancelAtPeriodEnd: boolean; stripeCustomerId?: string;
 }
-
 interface UsageSummary {
-  seats: { used: number; limit: number };
+  seats:   { used: number; limit: number };
   exports: { used: number; limit: number };
   storage: { used: number; limit: number };
 }
 
-// ── Plans config ───────────────────────────────────────────────────────────────
 const PLANS: Plan[] = [
   {
-    id: "free",
-    name: "Free",
-    price: 0,
-    seats: 3,
-    highlighted: false,
+    id: "free", name: "Free", price: 0, seats: 3, highlighted: false,
     features: ["Up to 3 seats", "30-day analytics", "CSV & JSON export", "Basic AI insights", "Community access"],
   },
   {
-    id: "pro",
-    name: "Pro",
-    price: 99,
-    seats: 10,
-    highlighted: true,
-    features: [
-      "Up to 10 seats",
-      "90-day analytics",
-      "All export formats",
-      "AI insights + forecasting",
-      "Community — full creator tools",
-      "Academy enrollment",
-      "Priority support",
-    ],
+    id: "pro", name: "Pro", price: 99, seats: 10, highlighted: true,
+    features: ["Up to 10 seats", "90-day analytics", "All export formats", "AI insights + forecasting", "Community — full creator tools", "Academy enrollment", "Priority support"],
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 299,
-    seats: 999,
-    highlighted: false,
-    features: [
-      "Unlimited seats",
-      "Unlimited analytics",
-      "All export formats",
-      "AI agents + automation",
-      "Full ecosystem access",
-      "Custom integrations + API",
-      "Dedicated account manager",
-      "SLA guarantee",
-    ],
+    id: "enterprise", name: "Enterprise", price: 299, seats: 999, highlighted: false,
+    features: ["Unlimited seats", "Unlimited analytics", "All export formats", "AI agents + automation", "Full ecosystem access", "Custom integrations + API", "Dedicated account manager", "SLA guarantee"],
   },
 ];
-
 const PLAN_ORDER: PlanId[] = ["free", "pro", "enterprise"];
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
 async function safeFetch(url: string, headers: Record<string, string>) {
   try {
     const res = await fetch(url, { headers });
-    if (!res.ok) {
-      console.warn(`[Billing] ${url} → ${res.status}`);
-      return null;
-    }
+    if (!res.ok) { console.warn(`[Billing] ${url} → ${res.status}`); return null; }
     return await res.json();
-  } catch (e) {
-    console.warn(`[Billing] ${url} → network error`, e);
-    return null;
-  }
+  } catch (e) { console.warn(`[Billing] network error`, e); return null; }
 }
 
 function usageColor(used: number, limit: number) {
@@ -106,26 +58,30 @@ function usagePct(used: number, limit: number) {
   return Math.min(100, Math.round((used / limit) * 100));
 }
 
-// ── Component ──────────────────────────────────────────────────────────────────
 export default function BillingPage() {
-  const [searchParams] = useSearchParams();
-  const token = useAuthStore((s) => s.token);
-  const user = useAuthStore((s) => s.user);
+  const [searchParams]   = useSearchParams();
+  const token            = useAuthStore((s) => s.token);
+  const user             = useAuthStore((s) => s.user);
 
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [usage, setUsage] = useState<UsageSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [upgrading, setUpgrading] = useState<PlanId | null>(null);
+  const [usage, setUsage]               = useState<UsageSummary | null>(null);
+  const [loading, setLoading]           = useState(true);
+  const [upgrading, setUpgrading]       = useState<PlanId | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast]               = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  const showSuccess = searchParams.get("success") === "true";
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  const canManage = user?.role === "owner";
+  const showSuccess  = searchParams.get("success") === "true";
+  const canManage    = user?.role === "owner";
   const currentPlanId: PlanId = subscription?.planId ?? "free";
-  const currentPlan = PLANS.find((p) => p.id === currentPlanId) ?? PLANS[0];
-  const isPaid = currentPlanId !== "free";
-  const planIcon = currentPlanId === "enterprise" ? "🏢" : currentPlanId === "pro" ? "⚡" : "🌱";
+  const currentPlan  = PLANS.find((p) => p.id === currentPlanId) ?? PLANS[0];
+  const isPaid       = currentPlanId !== "free";
+  const planIcon     = currentPlanId === "enterprise" ? "🏢" : currentPlanId === "pro" ? "⚡" : "🌱";
+
+  // ── Always build headers fresh from current token ──────────────────────────
+  const getHeaders = useCallback(() => ({
+    Authorization: `Bearer ${token ?? ""}`,
+    "Content-Type": "application/json",
+  }), [token]);
 
   const showToast = (msg: string, type: "success" | "error") => {
     setToast({ msg, type });
@@ -133,119 +89,101 @@ export default function BillingPage() {
   };
 
   const fetchBilling = useCallback(async () => {
+    if (!token) return; // wait for auth
     setLoading(true);
-    const [sub, use] = await Promise.all([safeFetch(`${API}/billing/subscription`, headers), safeFetch(`${API}/billing/usage`, headers)]);
-    // Fallback mock so page always renders something
-    setSubscription(
-      sub ?? {
-        id: "mock",
-        planId: "free",
-        status: "active",
-        currentPeriodEnd: "",
-        cancelAtPeriodEnd: false,
-      },
-    );
-    setUsage(
-      use ?? {
-        seats: { used: 1, limit: 3 },
-        exports: { used: 0, limit: 30 },
-        storage: { used: 0, limit: 1000 },
-      },
-    );
+    const h = getHeaders();
+    const [sub, use] = await Promise.all([
+      safeFetch(`${API_BASE}/billing/subscription`, h),
+      safeFetch(`${API_BASE}/billing/usage`, h),
+    ]);
+    setSubscription(sub ?? { id: "mock", planId: "free", status: "active", currentPeriodEnd: "", cancelAtPeriodEnd: false });
+    setUsage(use ?? { seats: { used: 1, limit: 3 }, exports: { used: 0, limit: 30 }, storage: { used: 0, limit: 1000 } });
     setLoading(false);
-  }, [token]);
+  }, [token, getHeaders]);
 
-  useEffect(() => {
-    fetchBilling();
-  }, [fetchBilling]);
+  useEffect(() => { fetchBilling(); }, [fetchBilling]);
 
   const handleUpgrade = async (planId: PlanId) => {
-    if (planId === "free") {
-      await handleCancel();
-      return;
-    }
+    if (planId === "free") { await handleCancel(); return; }
     setUpgrading(planId);
     try {
-      const res = await fetch(`${API}/billing/checkout`, {
-        method: "POST",
-        headers,
+      const res = await fetch(`${API_BASE}/billing/checkout`, {
+        method: "POST", headers: getHeaders(),
         body: JSON.stringify({
           planId,
           successUrl: `${window.location.origin}/billing?success=true`,
-          cancelUrl: `${window.location.origin}/billing`,
+          cancelUrl:  `${window.location.origin}/billing`,
         }),
       });
       if (!res.ok) throw new Error("Checkout failed");
       const { url } = await res.json();
       window.location.href = url;
-    } catch {
-      showToast("Failed to start checkout. Please try again.", "error");
-    } finally {
-      setUpgrading(null);
-    }
+    } catch { showToast("Failed to start checkout. Please try again.", "error"); }
+    finally   { setUpgrading(null); }
   };
 
   const handlePortal = async () => {
     setPortalLoading(true);
     try {
-      const customerId = subscription?.stripeCustomerId;
-      if (!customerId) {
-        showToast("No Stripe customer ID found for this workspace.", "error");
-        return;
-      }
-
-      const res = await fetch(`${API}/stripe/portal`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          customerId,
-          returnUrl: `${window.location.origin}/billing`,
-        }),
+      const res = await fetch(`${API_BASE}/billing/portal`, {
+        method: "POST", headers: getHeaders(),
+        body: JSON.stringify({ returnUrl: `${window.location.origin}/billing` }),
       });
       if (!res.ok) throw new Error();
       const { url } = await res.json();
       window.location.href = url;
-    } catch {
-      showToast("Failed to open billing portal.", "error");
-    } finally {
-      setPortalLoading(false);
-    }
+    } catch { showToast("Failed to open billing portal.", "error"); }
+    finally   { setPortalLoading(false); }
   };
 
   const handleCancel = async () => {
     if (!confirm("Cancel subscription? You'll be downgraded to Free at period end.")) return;
-    const res = await fetch(`${API}/billing/cancel`, { method: "POST", headers });
-    if (res.ok) {
-      setSubscription((s) => (s ? { ...s, cancelAtPeriodEnd: true } : s));
-      showToast("Subscription cancelled. Downgrade takes effect at period end.", "success");
-    } else {
-      showToast("Cancellation failed.", "error");
-    }
+    const res = await fetch(`${API_BASE}/billing/cancel`, { method: "POST", headers: getHeaders() });
+    if (res.ok) { setSubscription((s) => s ? { ...s, cancelAtPeriodEnd: true } : s); showToast("Cancelled. Downgrade takes effect at period end.", "success"); }
+    else showToast("Cancellation failed.", "error");
   };
 
   const handleResume = async () => {
-    const res = await fetch(`${API}/billing/resume`, { method: "POST", headers });
-    if (res.ok) {
-      setSubscription((s) => (s ? { ...s, cancelAtPeriodEnd: false } : s));
-      showToast("Subscription resumed!", "success");
-    } else {
-      showToast("Resume failed.", "error");
-    }
+    const res = await fetch(`${API_BASE}/billing/resume`, { method: "POST", headers: getHeaders() });
+    if (res.ok) { setSubscription((s) => s ? { ...s, cancelAtPeriodEnd: false } : s); showToast("Subscription resumed!", "success"); }
+    else showToast("Resume failed.", "error");
   };
+
+  if (loading) return (
+    <>
+      <style>{CSS}</style>
+      <div className="bp-root">
+        <div className="bp-inner">
+          <div className="bp-skeleton-header" />
+          <div className="bp-skeleton-card" />
+          <div className="bp-skeleton-grid" />
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
       <style>{CSS}</style>
       <div className="bp-root">
         <div className="bp-inner">
+
+          {/* Header */}
           <div className="bp-header">
-            <h1 className="bp-title">
-              Billing & <span>Plans</span>
-            </h1>
+            <h1 className="bp-title">Billing & <span>Plans</span></h1>
             <p className="bp-subtitle">Manage your subscription, usage and payment details</p>
           </div>
 
-          {showSuccess && <div className="bp-success-banner">✓ Plan upgraded successfully! Welcome to {currentPlan.name}.</div>}
+          {/* Context bar */}
+          <div className="bp-ctx-bar">
+            <span className="bp-ctx-badge live">⬡ Core Engine</span>
+            <span className="bp-ctx-sep">›</span>
+            <span className="bp-ctx-badge active">💳 Billing</span>
+          </div>
+
+          {showSuccess && (
+            <div className="bp-success-banner">✓ Plan upgraded successfully! Welcome to {currentPlan.name}.</div>
+          )}
 
           {/* Current plan */}
           <div className="bp-current">
@@ -268,9 +206,7 @@ export default function BillingPage() {
                 </span>
               )}
               {subscription?.cancelAtPeriodEnd && canManage && (
-                <button className="bp-resume-btn" onClick={handleResume}>
-                  Resume
-                </button>
+                <button className="bp-resume-btn" onClick={handleResume}>Resume</button>
               )}
               {isPaid && canManage && (
                 <button className="bp-portal-btn" onClick={handlePortal} disabled={portalLoading}>
@@ -281,12 +217,12 @@ export default function BillingPage() {
           </div>
 
           {/* Usage */}
-          {usage && !loading && (
+          {usage && (
             <>
               <div className="bp-section">Usage This Month</div>
               <div className="bp-usage-grid">
                 {[
-                  { label: "Seats", ...usage.seats, unit: "users" },
+                  { label: "Seats",   ...usage.seats,   unit: "users"   },
                   { label: "Exports", ...usage.exports, unit: "exports" },
                   { label: "Records", ...usage.storage, unit: "records" },
                 ].map((m) => (
@@ -294,7 +230,9 @@ export default function BillingPage() {
                     <div className="bp-usage-label">{m.label}</div>
                     <div className="bp-usage-value" style={{ color: usageColor(m.used, m.limit) === "high" ? "#f87171" : "#E8EEF5" }}>
                       {m.used.toLocaleString()}
-                      <span style={{ fontSize: 12, fontWeight: 400, color: "#5A7A96", marginLeft: 4 }}>/ {m.limit >= 999999 ? "∞" : m.limit.toLocaleString()}</span>
+                      <span style={{ fontSize: 12, fontWeight: 400, color: "#5A7A96", marginLeft: 4 }}>
+                        / {m.limit >= 999999 ? "∞" : m.limit.toLocaleString()}
+                      </span>
                     </div>
                     <div className="bp-bar-track">
                       <div className={`bp-bar-fill ${usageColor(m.used, m.limit)}`} style={{ width: `${usagePct(m.used, m.limit)}%` }} />
@@ -324,28 +262,19 @@ export default function BillingPage() {
                   </div>
                   <div className="bp-plan-features">
                     {plan.features.map((f) => (
-                      <div className="bp-feature" key={f}>
-                        <span className="bp-check">✓</span>
-                        {f}
-                      </div>
+                      <div className="bp-feature" key={f}><span className="bp-check">✓</span>{f}</div>
                     ))}
                   </div>
                   {isCurrent ? (
-                    <button className="bp-btn dim" disabled>
-                      Current Plan
-                    </button>
+                    <button className="bp-btn dim" disabled>Current Plan</button>
                   ) : isUpgrade && canManage ? (
                     <button className={`bp-btn gold${plan.id === "enterprise" ? " ice" : ""}`} onClick={() => handleUpgrade(plan.id)} disabled={!!upgrading}>
                       {isPending ? "Redirecting…" : `Upgrade to ${plan.name}`}
                     </button>
                   ) : canManage ? (
-                    <button className="bp-btn dim outline" onClick={() => handleUpgrade(plan.id)} disabled={!!upgrading}>
-                      Downgrade
-                    </button>
+                    <button className="bp-btn dim outline" onClick={() => handleUpgrade(plan.id)} disabled={!!upgrading}>Downgrade</button>
                   ) : (
-                    <button className="bp-btn dim" disabled>
-                      Contact Owner
-                    </button>
+                    <button className="bp-btn dim" disabled>Contact Owner</button>
                   )}
                 </div>
               );
@@ -357,10 +286,10 @@ export default function BillingPage() {
             <div className="bp-manage-row">
               <div>
                 <div className="bp-manage-title">Payment & Invoices</div>
-                <div className="bp-manage-desc">Update payment method, download invoices, manage Stripe billing.</div>
+                <div className="bp-manage-desc">Update payment method, download invoices, manage billing.</div>
               </div>
               <button className="bp-manage-btn" onClick={handlePortal} disabled={portalLoading}>
-                {portalLoading ? "Opening portal…" : "↗ Open Stripe Portal"}
+                {portalLoading ? "Opening portal…" : "↗ Open Billing Portal"}
               </button>
             </div>
           )}
@@ -372,32 +301,46 @@ export default function BillingPage() {
                 <div className="bp-danger-title">Cancel Subscription</div>
                 <div className="bp-danger-desc">Downgrade to Free at end of billing period.</div>
               </div>
-              <button className="bp-danger-btn" onClick={handleCancel}>
-                Cancel Plan
-              </button>
+              <button className="bp-danger-btn" onClick={handleCancel}>Cancel Plan</button>
             </div>
           )}
         </div>
 
-        {toast && <div className={`bp-toast ${toast.type}`}>{toast.type === "success" ? "✓" : "✗"} {toast.msg}</div>}
+        {toast && (
+          <div className={`bp-toast ${toast.type}`}>
+            {toast.type === "success" ? "✓" : "✗"} {toast.msg}
+          </div>
+        )}
       </div>
     </>
   );
 }
 
-// ── CSS — placed at bottom, JSX <style> tag, StrictMode safe ──────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
   .bp-root  { background: #0D1520; color: #E8EEF5; font-family: 'Syne', sans-serif; min-height: 100vh; padding: 32px 24px 80px; }
   .bp-inner { max-width: 1000px; margin: 0 auto; }
 
-  .bp-header  { margin-bottom: 36px; }
-  .bp-title   { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: #E8EEF5; margin: 0 0 4px; }
+  .bp-header   { margin-bottom: 16px; }
+  .bp-title    { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: #E8EEF5; margin: 0 0 4px; }
   .bp-title span { color: #C9A84C; }
   .bp-subtitle { font-family: 'Space Mono', monospace; font-size: 11px; color: #5A7A96; }
 
+  .bp-ctx-bar   { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .bp-ctx-badge { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; }
+  .bp-ctx-badge.live   { background: rgba(74,222,128,0.08);  color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+  .bp-ctx-badge.active { background: rgba(201,168,76,0.08);  color: #C9A84C; border: 1px solid rgba(201,168,76,0.2); }
+  .bp-ctx-sep  { color: #1E3248; font-size: 14px; }
+
   .bp-success-banner { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; font-family: 'Space Mono', monospace; font-size: 11px; color: #4ade80; }
+
+  /* Skeleton */
+  .bp-skeleton-header { height: 60px; background: #111D2E; border-radius: 12px; margin-bottom: 16px; animation: bp-shimmer 1.4s infinite; }
+  .bp-skeleton-card   { height: 80px; background: #111D2E; border-radius: 16px; margin-bottom: 20px; animation: bp-shimmer 1.4s infinite 0.1s; }
+  .bp-skeleton-grid   { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .bp-skeleton-grid::before, .bp-skeleton-grid::after { content: ''; height: 100px; background: #111D2E; border-radius: 12px; animation: bp-shimmer 1.4s infinite 0.2s; }
+  @keyframes bp-shimmer { 0%,100% { opacity:0.4; } 50% { opacity:0.8; } }
 
   .bp-current { background: linear-gradient(135deg, #0f1923, #111D2E); border: 1px solid rgba(201,168,76,0.2); border-radius: 16px; padding: 20px 24px; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; position: relative; overflow: hidden; }
   .bp-current::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #C9A84C, #89C4E1, transparent); }
@@ -408,10 +351,10 @@ const CSS = `
   .bp-current-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; margin-top: 3px; }
 
   .bp-badge { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; }
-  .bp-badge.active   { background: rgba(74,222,128,0.1);  color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
-  .bp-badge.cancelled{ background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
-  .bp-badge.trialing { background: rgba(137,196,225,0.1); color: #89C4E1; border: 1px solid rgba(137,196,225,0.2); }
-  .bp-badge.pastdue  { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+  .bp-badge.active    { background: rgba(74,222,128,0.1);  color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+  .bp-badge.cancelled { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+  .bp-badge.trialing  { background: rgba(137,196,225,0.1); color: #89C4E1; border: 1px solid rgba(137,196,225,0.2); }
+  .bp-badge.pastdue   { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
 
   .bp-portal-btn { background: transparent; border: 1px solid rgba(137,196,225,0.25); color: #89C4E1; border-radius: 8px; padding: 8px 14px; font-family: 'Space Mono', monospace; font-size: 9px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
   .bp-portal-btn:hover:not(:disabled) { border-color: #89C4E1; background: rgba(137,196,225,0.06); }
@@ -440,14 +383,14 @@ const CSS = `
   .bp-plan::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: rgba(137,196,225,0.15); }
   .bp-plan.pro::before        { background: linear-gradient(90deg, transparent, #C9A84C, transparent); }
   .bp-plan.enterprise::before { background: linear-gradient(90deg, transparent, #89C4E1, transparent); }
-  .bp-plan.current { border-color: rgba(74,222,128,0.3); }
+  .bp-plan.current     { border-color: rgba(74,222,128,0.3); }
   .bp-plan.highlighted:not(.current) { border-color: rgba(201,168,76,0.25); }
 
   .bp-plan-badge { position: absolute; top: 14px; right: 14px; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
   .bp-plan-badge.popular { background: rgba(201,168,76,0.15); color: #C9A84C; border: 1px solid rgba(201,168,76,0.3); }
   .bp-plan-badge.active  { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
 
-  .bp-plan-name { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+  .bp-plan-name   { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
   .bp-plan.pro .bp-plan-name        { color: #C9A84C; }
   .bp-plan.enterprise .bp-plan-name { color: #89C4E1; }
   .bp-plan-price  { margin-bottom: 16px; }
@@ -467,14 +410,14 @@ const CSS = `
   .bp-btn.dim.outline:hover { border-color: #f87171; color: #f87171; }
   .bp-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-  .bp-manage-row { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 18px 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .bp-manage-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
-  .bp-manage-desc  { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; }
-  .bp-manage-btn   { background: transparent; border: 1px solid rgba(137,196,225,0.2); color: #89C4E1; border-radius: 8px; padding: 10px 20px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .bp-manage-row  { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 18px 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .bp-manage-title{ font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .bp-manage-desc { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; }
+  .bp-manage-btn  { background: transparent; border: 1px solid rgba(137,196,225,0.2); color: #89C4E1; border-radius: 8px; padding: 10px 20px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
   .bp-manage-btn:hover:not(:disabled) { border-color: #89C4E1; background: rgba(137,196,225,0.06); }
   .bp-manage-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .bp-danger { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(248,113,113,0.15); border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .bp-danger       { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(248,113,113,0.15); border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .bp-danger-title { font-size: 13px; font-weight: 700; color: #f87171; margin-bottom: 4px; }
   .bp-danger-desc  { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; }
   .bp-danger-btn   { background: transparent; border: 1px solid rgba(248,113,113,0.25); color: #f87171; border-radius: 8px; padding: 8px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
@@ -487,14 +430,14 @@ const CSS = `
   @keyframes bp-slide { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
 
   @media (max-width: 768px) {
-    .bp-root   { padding: 16px 14px 80px; }
-    .bp-plans  { grid-template-columns: 1fr; gap: 12px; }
+    .bp-root  { padding: 16px 14px 80px; }
+    .bp-plans { grid-template-columns: 1fr; gap: 12px; }
     .bp-usage-grid { grid-template-columns: 1fr 1fr; }
     .bp-plan:hover { transform: none; }
-    .bp-toast  { bottom: 70px; left: 14px; right: 14px; }
+    .bp-toast { bottom: 70px; left: 14px; right: 14px; }
   }
   @media (max-width: 480px) {
-    .bp-usage-grid { grid-template-columns: 1fr; }
+    .bp-usage-grid  { grid-template-columns: 1fr; }
     .bp-plan-amount { font-size: 26px; }
   }
 `;
