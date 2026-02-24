@@ -26,6 +26,11 @@ html {
   --green:     #2DD4A0;
   --purple:    #9B6FFF;
 
+  /* Active layer tokens (overridden by LayerThemeBridge) */
+  --layer-accent:      #C9A84C;
+  --layer-accent-soft: rgba(201,168,76,0.16);
+  --layer-accent-alt:  #89C4E1;
+
   color-scheme: dark;
 }
 
@@ -62,6 +67,16 @@ body {
   font-family: 'Syne', sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+}
+
+#root {
+  position: relative;
+  isolation: isolate;
+}
+
+#root > *:not(.ai-backdrop) {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────────────────────── */
@@ -135,5 +150,205 @@ html.dark {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--gold), var(--ice), transparent);
+  background: linear-gradient(90deg, var(--layer-accent), var(--layer-accent-alt), transparent);
+}
+
+/* Global AI backdrop across all pages */
+.ai-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ai-backdrop-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(43,95,142,0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(43,95,142,0.09) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(circle at 50% 40%, black 0%, black 50%, transparent 100%);
+  opacity: 0.28;
+}
+
+.ai-backdrop-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(52px);
+  animation: aiGlowFloat 12s ease-in-out infinite;
+}
+
+.ai-backdrop-glow-gold {
+  width: 540px;
+  height: 320px;
+  top: -60px;
+  left: 14%;
+  background: radial-gradient(circle, rgba(201,168,76,0.22), transparent 70%);
+}
+
+.ai-backdrop-glow-ice {
+  width: 500px;
+  height: 300px;
+  top: 14%;
+  right: 8%;
+  background: radial-gradient(circle, rgba(137,196,225,0.2), transparent 70%);
+  animation-delay: 1.5s;
+}
+
+.ai-backdrop-glow-blue {
+  width: 620px;
+  height: 360px;
+  bottom: -120px;
+  right: 22%;
+  background: radial-gradient(circle, rgba(43,95,142,0.2), transparent 70%);
+  animation-delay: 2.8s;
+}
+
+.ai-backdrop-ring {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(137,196,225,0.14);
+}
+
+.ai-backdrop-ring-a {
+  width: 360px;
+  height: 360px;
+  animation: aiSpin 24s linear infinite;
+}
+
+.ai-backdrop-ring-b {
+  width: 250px;
+  height: 250px;
+  border-color: rgba(201,168,76,0.18);
+  animation: aiSpin 18s linear infinite reverse;
+}
+
+.ai-backdrop-ring-c {
+  width: 140px;
+  height: 140px;
+  border-color: rgba(155,111,255,0.16);
+  animation: aiSpin 10s linear infinite;
+}
+
+.ai-backdrop-logo,
+.ai-backdrop-logo-fallback {
+  position: absolute;
+  right: 28px;
+  bottom: 24px;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 1px solid rgba(201,168,76,0.4);
+  box-shadow: 0 0 26px rgba(201,168,76,0.18);
+  opacity: 0.28;
+}
+
+.ai-backdrop-logo {
+  object-fit: cover;
+}
+
+.ai-backdrop-logo-fallback {
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: var(--gold);
+  background: rgba(13,21,32,0.6);
+}
+
+.ai-backdrop.landing .ai-backdrop-logo,
+.ai-backdrop.landing .ai-backdrop-logo-fallback {
+  opacity: 0.45;
+}
+
+/* Global AI UI polish for existing pages */
+[class*="-card"],
+[class*="-panel"],
+[class*="-widget"],
+[class*="-section"] {
+  backdrop-filter: blur(8px);
+}
+
+[class*="-card"],
+[class*="-panel"] {
+  border-color: color-mix(in srgb, var(--border) 75%, var(--gold) 25%);
+}
+
+[class*="-card"]:hover,
+[class*="-panel"]:hover {
+  box-shadow: 0 0 0 1px var(--layer-accent-soft), 0 10px 40px rgba(13,21,32,0.28);
+}
+
+button,
+[class*="-btn"] {
+  transition: transform 0.16s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+button:hover,
+[class*="-btn"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px var(--layer-accent-soft);
+}
+
+html[data-layer="community"] {
+  --layer-accent: #89C4E1;
+  --layer-accent-soft: rgba(137,196,225,0.2);
+  --layer-accent-alt: #2DD4A0;
+}
+
+html[data-layer="academy"] {
+  --layer-accent: #C9A84C;
+  --layer-accent-soft: rgba(201,168,76,0.18);
+  --layer-accent-alt: #E8C97A;
+}
+
+html[data-layer="market"] {
+  --layer-accent: #9B6FFF;
+  --layer-accent-soft: rgba(155,111,255,0.2);
+  --layer-accent-alt: #89C4E1;
+}
+
+html[data-layer="work"] {
+  --layer-accent: #2B5F8E;
+  --layer-accent-soft: rgba(43,95,142,0.22);
+  --layer-accent-alt: #89C4E1;
+}
+
+html[data-layer="ai"] {
+  --layer-accent: #89C4E1;
+  --layer-accent-soft: rgba(137,196,225,0.24);
+  --layer-accent-alt: #9B6FFF;
+}
+
+html[data-layer="finance"] {
+  --layer-accent: #2DD4A0;
+  --layer-accent-soft: rgba(45,212,160,0.2);
+  --layer-accent-alt: #C9A84C;
+}
+
+@keyframes aiSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes aiGlowFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.88; }
+  50% { transform: translate3d(0, -16px, 0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .ai-backdrop-logo,
+  .ai-backdrop-logo-fallback {
+    width: 48px;
+    height: 48px;
+    right: 12px;
+    bottom: 10px;
+  }
+  .ai-backdrop-ring-a { width: 240px; height: 240px; }
+  .ai-backdrop-ring-b { width: 170px; height: 170px; }
+  .ai-backdrop-ring-c { width: 96px; height: 96px; }
 }
