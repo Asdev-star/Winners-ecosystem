@@ -45,31 +45,42 @@ router.get("/revenue", async (req: Request, res: Response) => {
     const [currentRevenue, currentActivity, previousRevenue, previousActivity] = await Promise.all([
       // Current period revenue
       db.revenueRecord.findMany({
-        where:   { tenantId, date: { gte: dateFrom(days) } },
-        orderBy: { date: "asc" },
+        where:   { tenantId, recordedAt: { gte: dateFrom(days) } },
+        orderBy: { recordedAt: "asc" },
       }),
       // Current period activity
       db.analyticsEvent.findMany({
-        where:   { tenantId, date: { gte: dateFrom(days) } },
-        orderBy: { date: "asc" },
+        where:   { tenantId, createdAt: { gte: dateFrom(days) } },
+        orderBy: { createdAt: "asc" },
       }),
       // Previous period revenue
       db.revenueRecord.findMany({
-        where:   { tenantId, date: { gte: dateFrom(days * 2), lt: dateFrom(days) } },
-        orderBy: { date: "asc" },
+        where:   { tenantId, recordedAt: { gte: dateFrom(days * 2), lt: dateFrom(days) } },
+        orderBy: { recordedAt: "asc" },
       }),
       // Previous period activity
       db.analyticsEvent.findMany({
-        where:   { tenantId, date: { gte: dateFrom(days * 2), lt: dateFrom(days) } },
-        orderBy: { date: "asc" },
+        where:   { tenantId, createdAt: { gte: dateFrom(days * 2), lt: dateFrom(days) } },
+        orderBy: { createdAt: "asc" },
       }),
     ]);
 
     // Merge revenue + activity by date
-    const revenueMap  = new Map(currentRevenue.map((r) => [r.date.toDateString(), r.amount]));
-    const activityMap = new Map(currentActivity.map((a) => [a.date.toDateString(), a.count]));
-    const prevRevMap  = new Map(previousRevenue.map((r) => [r.date.toDateString(), r.amount]));
-    const prevActMap  = new Map(previousActivity.map((a) => [a.date.toDateString(), a.count]));
+    const revenueMap = new Map(currentRevenue.map((r) => [r.recordedAt.toDateString(), r.amount]));
+    const prevRevMap = new Map(previousRevenue.map((r) => [r.recordedAt.toDateString(), r.amount]));
+
+    // Analytics events are event-level rows in current schema, so aggregate counts by day.
+    const activityMap = currentActivity.reduce((map, e) => {
+      const key = e.createdAt.toDateString();
+      map.set(key, (map.get(key) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>());
+
+    const prevActMap = previousActivity.reduce((map, e) => {
+      const key = e.createdAt.toDateString();
+      map.set(key, (map.get(key) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>());
 
     // Build data array aligned to days
     const data     = [];
@@ -121,8 +132,8 @@ router.get("/forecast", requirePermission("viewForecasts"), async (req: Request,
 
   try {
     const records = await db.revenueRecord.findMany({
-      where:   { tenantId, date: { gte: dateFrom(days) } },
-      orderBy: { date: "asc" },
+      where:   { tenantId, recordedAt: { gte: dateFrom(days) } },
+      orderBy: { recordedAt: "asc" },
     });
 
     const ys = records.map((r) => r.amount);
@@ -170,8 +181,8 @@ router.get("/summary", async (req: Request, res: Response) => {
 
   try {
     const [current, previous] = await Promise.all([
-      db.revenueRecord.aggregate({ where: { tenantId, date: { gte: dateFrom(30) } }, _sum: { amount: true } }),
-      db.revenueRecord.aggregate({ where: { tenantId, date: { gte: dateFrom(60), lt: dateFrom(30) } }, _sum: { amount: true } }),
+      db.revenueRecord.aggregate({ where: { tenantId, recordedAt: { gte: dateFrom(30) } }, _sum: { amount: true } }),
+      db.revenueRecord.aggregate({ where: { tenantId, recordedAt: { gte: dateFrom(60), lt: dateFrom(30) } }, _sum: { amount: true } }),
     ]);
 
     const curRev  = current._sum.amount  ?? 0;
