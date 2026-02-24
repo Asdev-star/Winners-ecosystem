@@ -70,6 +70,7 @@ router.get("/subscription", authMiddleware, enforceTenant, async (req: Request, 
       currentPeriodEnd:  new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       cancelAtPeriodEnd: false,
       seats:             PLAN_LIMITS[plan]?.seats ?? 3,
+      stripeCustomerId:  tenant.stripeCustomerId ?? null,
     });
   } catch (err) {
     console.error("[Billing] subscription fetch error:", err);

@@ -26,6 +26,7 @@ interface Subscription {
   status: "active" | "cancelled" | "past_due" | "trialing";
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
+  stripeCustomerId?: string;
 }
 
 interface UsageSummary {
@@ -187,10 +188,19 @@ export default function BillingPage() {
   const handlePortal = async () => {
     setPortalLoading(true);
     try {
-      const res = await fetch(`${API}/billing/portal`, {
+      const customerId = subscription?.stripeCustomerId;
+      if (!customerId) {
+        showToast("No Stripe customer ID found for this workspace.", "error");
+        return;
+      }
+
+      const res = await fetch(`${API}/stripe/portal`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ returnUrl: `${window.location.origin}/billing` }),
+        body: JSON.stringify({
+          customerId,
+          returnUrl: `${window.location.origin}/billing`,
+        }),
       });
       if (!res.ok) throw new Error();
       const { url } = await res.json();
