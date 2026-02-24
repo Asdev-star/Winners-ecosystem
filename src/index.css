@@ -352,3 +352,133 @@ html[data-layer="finance"] {
   .ai-backdrop-ring-b { width: 170px; height: 170px; }
   .ai-backdrop-ring-c { width: 96px; height: 96px; }
 }
+
+/* Route-aware AI assistant for high-impact pages */
+.ai-assistant {
+  position: fixed;
+  right: 14px;
+  top: 84px;
+  z-index: 35;
+  width: 310px;
+  max-width: calc(100vw - 22px);
+  pointer-events: auto;
+}
+
+.ai-assistant-toggle {
+  width: 100%;
+  border: 1px solid rgba(201,168,76,0.35);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(201,168,76,0.18), rgba(13,21,32,0.88));
+  color: var(--gold);
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.ai-assistant-body {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(165deg, rgba(13,21,32,0.95), rgba(17,29,46,0.95));
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.34);
+}
+
+.ai-assistant-body::before {
+  content: "";
+  display: block;
+  height: 2px;
+  background: linear-gradient(90deg, var(--layer-accent), var(--layer-accent-alt), transparent);
+}
+
+.ai-assistant-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 8px;
+}
+
+.ai-assistant-top small {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--layer-accent-alt);
+}
+
+.ai-assistant-top span {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.ai-assistant-signal {
+  margin: 0 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(8,14,24,0.55);
+}
+
+.ai-assistant-signal b {
+  font-size: 24px;
+  color: var(--layer-accent);
+  line-height: 1;
+}
+
+.ai-assistant-signal em {
+  margin-left: 6px;
+  font-style: normal;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ai-assistant-body p {
+  margin: 0;
+  padding: 0 12px 12px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.ai-assistant-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.ai-assistant-actions button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(8,14,24,0.64);
+  color: var(--text-dim);
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  padding: 8px 8px;
+  cursor: pointer;
+}
+
+.ai-assistant-actions button:hover {
+  color: var(--layer-accent);
+  border-color: color-mix(in srgb, var(--layer-accent) 50%, var(--border) 50%);
+}
+
+@media (max-width: 1100px) {
+  .ai-assistant {
+    position: fixed;
+    right: 10px;
+    left: 10px;
+    top: auto;
+    bottom: 72px;
+    width: auto;
+  }
+}
