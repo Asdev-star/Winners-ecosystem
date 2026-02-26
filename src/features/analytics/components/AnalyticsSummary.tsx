@@ -1,190 +1,302 @@
+// src/features/analytics/components/AnalyticsSummary.tsx
+// Phase 1 — Core Engine · Analytics Layer
+// Full ecosystem design — NO Tailwind, CSS variables only
+
 import { useAnalyticsStore } from "../analyticsStore";
 
-function formatCurrency(value: number) {
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+  .as-root {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 640px) {
+    .as-root { grid-template-columns: 1fr; }
+  }
+
+  /* ── Card ── */
+  .as-card {
+    background: var(--surface, #111D2E);
+    border: 1px solid var(--border, #1E3248);
+    border-radius: 6px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .as-card:hover {
+    transform: translateY(-2px);
+  }
+  .as-card:hover.as-card--gold  { border-color: rgba(201,168,76,0.35); }
+  .as-card:hover.as-card--ice   { border-color: rgba(137,196,225,0.35); }
+  .as-card:hover.as-card--green { border-color: rgba(45,212,160,0.35); }
+  .as-card:hover.as-card--blue  { border-color: rgba(43,95,142,0.35); }
+
+  /* 2px gradient top border — the ecosystem card pattern */
+  .as-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .as-card--gold::before  { background: linear-gradient(90deg, transparent, var(--gold, #C9A84C), transparent); }
+  .as-card--ice::before   { background: linear-gradient(90deg, transparent, var(--ice, #89C4E1), transparent); }
+  .as-card--green::before { background: linear-gradient(90deg, transparent, var(--green, #2DD4A0), transparent); }
+  .as-card--blue::before  { background: linear-gradient(90deg, transparent, var(--blue, #2B5F8E), transparent); }
+
+  /* Glow radial behind value */
+  .as-card::after {
+    content: '';
+    position: absolute; bottom: -20px; right: -20px;
+    width: 120px; height: 120px; border-radius: 50%;
+    pointer-events: none; opacity: 0.06;
+  }
+  .as-card--gold::after  { background: var(--gold, #C9A84C); }
+  .as-card--ice::after   { background: var(--ice, #89C4E1); }
+  .as-card--green::after { background: var(--green, #2DD4A0); }
+  .as-card--blue::after  { background: var(--blue, #2B5F8E); }
+
+  /* ── Header row ── */
+  .as-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .as-card-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-dim, #5A7A96);
+  }
+  .as-card-icon {
+    width: 32px; height: 32px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .as-card-icon--gold  { background: rgba(201,168,76,0.1);  color: var(--gold, #C9A84C); }
+  .as-card-icon--ice   { background: rgba(137,196,225,0.1); color: var(--ice, #89C4E1); }
+  .as-card-icon--green { background: rgba(45,212,160,0.1);  color: var(--green, #2DD4A0); }
+  .as-card-icon--blue  { background: rgba(43,95,142,0.15);  color: var(--ice, #89C4E1); }
+
+  /* ── Value ── */
+  .as-card-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 30px; font-weight: 800;
+    letter-spacing: -0.8px; line-height: 1;
+    margin-bottom: 10px;
+  }
+  .as-card--gold  .as-card-value { color: var(--gold, #C9A84C); }
+  .as-card--ice   .as-card-value { color: var(--ice, #89C4E1); }
+  .as-card--green .as-card-value { color: var(--green, #2DD4A0); }
+  .as-card--blue  .as-card-value { color: var(--text, #E8EEF5); }
+
+  /* ── Growth pill ── */
+  .as-growth {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 9px; border-radius: 3px;
+  }
+  .as-growth--up {
+    background: rgba(45,212,160,0.1);
+    color: var(--green, #2DD4A0);
+    border: 1px solid rgba(45,212,160,0.2);
+  }
+  .as-growth--down {
+    background: rgba(224,90,78,0.1);
+    color: var(--red, #E05A4E);
+    border: 1px solid rgba(224,90,78,0.2);
+  }
+  .as-growth--flat {
+    background: rgba(90,122,150,0.1);
+    color: var(--text-dim, #5A7A96);
+    border: 1px solid rgba(90,122,150,0.2);
+  }
+
+  /* ── Sparkline bar ── */
+  .as-sparkline {
+    display: flex; align-items: flex-end; gap: 3px;
+    height: 28px; margin-top: 14px;
+  }
+  .as-spark-bar {
+    flex: 1; border-radius: 2px; opacity: 0.4;
+    transition: opacity 0.2s;
+  }
+  .as-card:hover .as-spark-bar { opacity: 0.7; }
+
+  /* ── Skeleton loader ── */
+  .as-skeleton {
+    background: var(--surface, #111D2E);
+    border: 1px solid var(--border, #1E3248);
+    border-radius: 6px; padding: 22px 24px;
+    animation: as-shimmer 1.5s ease-in-out infinite;
+  }
+  .as-skel-line {
+    border-radius: 4px;
+    background: var(--surface2, #172335);
+    margin-bottom: 10px;
+  }
+
+  @keyframes as-shimmer {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+
+  /* ── Loading state full row ── */
+  .as-loading {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 32px;
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--text-dim, #5A7A96);
+    border: 1px solid var(--border, #1E3248);
+    border-radius: 6px; background: var(--surface, #111D2E);
+  }
+  .as-loading-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--gold, #C9A84C);
+    animation: as-pulse 1.2s ease-in-out infinite;
+  }
+  .as-loading-dot:nth-child(2) { animation-delay: 0.2s; background: var(--ice, #89C4E1); }
+  .as-loading-dot:nth-child(3) { animation-delay: 0.4s; background: var(--green, #2DD4A0); }
+
+  @keyframes as-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50%       { opacity: 1;   transform: scale(1.2); }
+  }
+`;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatCurrency(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000)     return `$${(value / 1_000).toFixed(1)}K`;
   return `$${value.toLocaleString()}`;
 }
 
-const Growth = ({ value }: { value: number }) => (
-  <span
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "4px",
-      fontSize: "12px",
-      fontWeight: 600,
-      letterSpacing: "0.05em",
-      color: value >= 0 ? "#4ade80" : "#f87171",
-    }}
-  >
-    <span style={{ fontSize: "10px" }}>{value >= 0 ? "▲" : "▼"}</span>
-    {Math.abs(value).toFixed(1)}%{" "}
-    <span style={{ color: "#6b7280", fontWeight: 400 }}>vs prev period</span>
-  </span>
-);
-
-interface MetricCardProps {
-  label: string;
-  value: string;
-  growth: number;
-  icon: React.ReactNode;
-  accentColor: string;
+function formatGrowth(value: number): string {
+  const abs = Math.abs(value).toFixed(1);
+  if (value > 0)  return `▲ ${abs}%`;
+  if (value < 0)  return `▼ ${abs}%`;
+  return `— 0%`;
 }
 
-function MetricCard({ label, value, growth, icon, accentColor }: MetricCardProps) {
+function growthClass(value: number): string {
+  if (value > 0)  return "as-growth as-growth--up";
+  if (value < 0)  return "as-growth as-growth--down";
+  return "as-growth as-growth--flat";
+}
+
+// Mini sparkline — uses normalised random-ish bars based on a seed
+function Sparkline({ color, seed }: { color: string; seed: number }) {
+  const bars = Array.from({ length: 10 }, (_, i) => {
+    // deterministic-ish heights from seed + index
+    const h = 30 + ((seed * 13 + i * 37) % 60);
+    return Math.max(15, h);
+  });
+  const max = Math.max(...bars);
   return (
-    <div
-      style={{
-        background: "linear-gradient(135deg, #0f1923 0%, #0D1520 100%)",
-        border: "1px solid rgba(137,196,225,0.12)",
-        borderRadius: "16px",
-        padding: "28px",
-        position: "relative",
-        overflow: "hidden",
-        transition: "border-color 0.2s, transform 0.2s",
-        cursor: "default",
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = `${accentColor}40`;
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(137,196,225,0.12)";
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
-      }}
-    >
-      {/* Top accent line */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "2px",
-          background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)`,
-          opacity: 0.7,
-        }}
-      />
-
-      {/* Background radial glow */}
-      <div
-        style={{
-          position: "absolute",
-          top: "-40px",
-          right: "-40px",
-          width: "120px",
-          height: "120px",
-          borderRadius: "50%",
-          background: `radial-gradient(circle, ${accentColor}18 0%, transparent 70%)`,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Icon badge */}
-      <div
-        style={{
-          width: "40px",
-          height: "40px",
-          borderRadius: "10px",
-          background: `${accentColor}18`,
-          border: `1px solid ${accentColor}30`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "16px",
-          color: accentColor,
-        }}
-      >
-        {icon}
-      </div>
-
-      <p
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: "#6b7280",
-          marginBottom: "8px",
-        }}
-      >
-        {label}
-      </p>
-
-      <p
-        style={{
-          fontSize: "32px",
-          fontWeight: 700,
-          color: "#f0f4f8",
-          letterSpacing: "-0.02em",
-          lineHeight: 1,
-          marginBottom: "12px",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value}
-      </p>
-
-      <Growth value={growth} />
+    <div className="as-sparkline">
+      {bars.map((h, i) => (
+        <div
+          key={i}
+          className="as-spark-bar"
+          style={{ height: `${(h / max) * 100}%`, background: color }}
+        />
+      ))}
     </div>
   );
 }
+
+// ─── Skeleton ────────────────────────────────────────────────────────────────
 
 function SkeletonCard() {
   return (
-    <div
-      style={{
-        background: "linear-gradient(135deg, #0f1923 0%, #0D1520 100%)",
-        border: "1px solid rgba(137,196,225,0.08)",
-        borderRadius: "16px",
-        padding: "28px",
-      }}
-    >
-      <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "#1a2535", marginBottom: "16px" }} />
-      <div style={{ width: "80px", height: "11px", borderRadius: "4px", background: "#1a2535", marginBottom: "12px" }} />
-      <div style={{ width: "140px", height: "32px", borderRadius: "6px", background: "#1a2535", marginBottom: "12px" }} />
-      <div style={{ width: "100px", height: "12px", borderRadius: "4px", background: "#1a2535" }} />
+    <div className="as-skeleton">
+      <div className="as-skel-line" style={{ width: "55%", height: 10 }} />
+      <div className="as-skel-line" style={{ width: "40%", height: 32, marginBottom: 14 }} />
+      <div className="as-skel-line" style={{ width: "30%", height: 18 }} />
     </div>
   );
 }
+
+// ─── Metric Card ─────────────────────────────────────────────────────────────
+
+interface MetricCardProps {
+  label:    string;
+  value:    string;
+  growth:   number;
+  icon:     string;
+  variant:  "gold" | "ice" | "green" | "blue";
+  sparkSeed:number;
+}
+
+function MetricCard({ label, value, growth, icon, variant, sparkSeed }: MetricCardProps) {
+  const colorMap: Record<string, string> = {
+    gold:  "var(--gold, #C9A84C)",
+    ice:   "var(--ice, #89C4E1)",
+    green: "var(--green, #2DD4A0)",
+    blue:  "var(--ice, #89C4E1)",
+  };
+
+  return (
+    <div className={`as-card as-card--${variant}`}>
+      <div className="as-card-header">
+        <div className="as-card-label">{label}</div>
+        <div className={`as-card-icon as-card-icon--${variant}`}>{icon}</div>
+      </div>
+
+      <div className="as-card-value">{value}</div>
+
+      <span className={growthClass(growth)}>
+        {formatGrowth(growth)}
+        <span style={{ fontSize: 8, opacity: 0.7, fontWeight: 400, marginLeft: 2 }}>vs prev period</span>
+      </span>
+
+      <Sparkline color={colorMap[variant]} seed={sparkSeed} />
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AnalyticsSummary() {
   const { summary, isLoading } = useAnalyticsStore();
 
-  if (isLoading || !summary) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-        <SkeletonCard />
-        <SkeletonCard />
-      </div>
-    );
-  }
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-      <MetricCard
-        label="Total Revenue"
-        value={formatCurrency(summary.totalRevenue)}
-        growth={summary.revenueGrowth}
-        accentColor="#C9A84C"
-        icon={
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23" />
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </svg>
-        }
-      />
+    <>
+      <style>{css}</style>
+      <div className="as-root">
 
-      <MetricCard
-        label="Total Activity"
-        value={summary.totalActivity.toLocaleString()}
-        growth={summary.activityGrowth}
-        accentColor="#89C4E1"
-        icon={
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-        }
-      />
-    </div>
+        {isLoading || !summary ? (
+          <>
+            <SkeletonCard />
+            <SkeletonCard />
+          </>
+        ) : (
+          <>
+            <MetricCard
+              label="Total Revenue"
+              value={formatCurrency(summary.totalRevenue)}
+              growth={summary.revenueGrowth}
+              icon="💰"
+              variant="gold"
+              sparkSeed={summary.totalRevenue % 97}
+            />
+
+            <MetricCard
+              label="Platform Activity"
+              value={summary.totalActivity.toLocaleString()}
+              growth={summary.activityGrowth}
+              icon="📊"
+              variant="ice"
+              sparkSeed={summary.totalActivity % 83}
+            />
+          </>
+        )}
+
+      </div>
+    </>
   );
 }
