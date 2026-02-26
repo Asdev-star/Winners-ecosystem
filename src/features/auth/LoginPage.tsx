@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "./authStore";
+import { useAuthStore, type AuthUser } from "./authStore";
 
 
 import { API_BASE } from "../../lib/api";
@@ -177,6 +177,10 @@ const TICKER = [
   { label: "AI Agents",  val: "Phase 5",  cls: "dn" },
 ];
 
+function getErrorMessage(err: unknown, fallback: string) {
+  return err instanceof Error ? err.message : fallback;
+}
+
 // ─── OTP Input ─────────────────────────────────────────────────────────────
 
 function OtpInput({ onComplete, hasError }: { onComplete: (code: string) => void; hasError: boolean }) {
@@ -230,7 +234,6 @@ export default function LoginPage() {
   const navigate         = useNavigate();
   const login            = useAuthStore((s) => s.login);
   const verifyTwoFactor  = useAuthStore((s) => s.verifyTwoFactor);
-  const loginWithGoogle  = useAuthStore((s) => s.loginWithGoogle);
   const pendingTwoFactor = useAuthStore((s) => s.pendingTwoFactor);
   const user             = useAuthStore((s) => s.user);
 
@@ -265,6 +268,30 @@ export default function LoginPage() {
 
   // Google OAuth callback
   useEffect(() => {
+    const finishOAuthLogin = (token: string, rawUser: unknown) => {
+      if (!token || !rawUser) {
+        setError("Google sign-in failed.");
+        return;
+      }
+
+      try {
+        const userData: AuthUser = typeof rawUser === "string"
+          ? JSON.parse(decodeURIComponent(rawUser)) as AuthUser
+          : rawUser as AuthUser;
+
+        localStorage.setItem("we_token", token);
+        localStorage.setItem("we_user", JSON.stringify(userData));
+        useAuthStore.setState({
+          token,
+          user: userData,
+          pendingTwoFactor: null,
+        });
+        navigate("/dashboard", { replace: true });
+      } catch {
+        setError("Failed to complete Google sign-in.");
+      }
+    };
+
     const params = new URLSearchParams(window.location.search);
     const code   = params.get("code");
     const token  = params.get("token");
@@ -276,15 +303,24 @@ export default function LoginPage() {
     if (code) {
       window.history.replaceState({}, "", "/login");
       setLoading(true);
-const API = API_BASE;
+      const API = API_BASE;
       fetch(`${API}/auth/google/exchange`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, redirectUri: `${window.location.origin}/login` }),
       })
-        .then((r) => r.json())
-        .then(async (data) => {
-          if (data.token) await loginWithGoogle(data.token).catch(() => {});
-          else setError(data.message ?? "Google sign-in failed.");
+        .then(async (r) => {
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) {
+            setError(data.message ?? "Google sign-in failed.");
+            return;
+          }
+
+          if (data.token && data.user) {
+            finishOAuthLogin(data.token, data.user);
+            return;
+          }
+
+          setError(data.message ?? "Google sign-in failed.");
         })
         .catch(() => setError("Google sign-in failed."))
         .finally(() => setLoading(false));
@@ -292,14 +328,9 @@ const API = API_BASE;
     }
 
     if (token && userJson) {
-      try {
-        const userData = JSON.parse(decodeURIComponent(userJson));
-        localStorage.setItem("we_token", token);
-        localStorage.setItem("we_user", JSON.stringify(userData));
-        window.location.replace("/dashboard");
-      } catch { setError("Failed to complete Google sign-in."); }
+      finishOAuthLogin(token, userJson);
     }
-  }, []);
+  }, [navigate]);
 
   const validate = () => {
     const errs = { email: !email.includes("@"), password: password.length < 6 };
@@ -313,7 +344,7 @@ const API = API_BASE;
     if (!validate()) return;
     setLoading(true);
     try { await login(email, password); }
-    catch (err: any) { setError(err?.message ?? "Invalid credentials."); }
+    catch (err: unknown) { setError(getErrorMessage(err, "Invalid credentials.")); }
     finally { setLoading(false); }
   };
 
@@ -321,7 +352,7 @@ const API = API_BASE;
     setOtpError(false);
     setLoading(true);
     try { await verifyTwoFactor(code); }
-    catch (err: any) { setOtpError(true); setError(err?.message ?? "Invalid code."); }
+    catch (err: unknown) { setOtpError(true); setError(getErrorMessage(err, "Invalid code.")); }
     finally { setLoading(false); }
   };
 

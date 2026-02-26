@@ -8,6 +8,11 @@ interface Props {
 
 export default function ProtectedRoute({ children }: Props) {
   const user = useAuthStore((state) => state.user);
+  const isRestoring = useAuthStore((state) => state.isRestoring);
+
+  if (isRestoring) {
+    return null;
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;

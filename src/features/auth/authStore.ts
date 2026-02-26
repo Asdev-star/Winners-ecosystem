@@ -127,30 +127,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // ── Google OAuth ───────────────────────────────────────────────────────────
-  // Pass the ID token from Google Sign-In SDK — backend verifies it
+  // Completes OAuth login using a backend-issued JWT access token.
   loginWithGoogle: async (googleToken) => {
     set({ isLoading: true });
     try {
-      const body = await apiFetch("/auth/google", {
-        method: "POST",
-        body: JSON.stringify({ token: googleToken }),
+      const body = await apiFetch("/auth/me", {
+        headers: { Authorization: `Bearer ${googleToken}` },
       });
-
-      // Google login can also trigger 2FA on high-security tenants
-      if (body.requiresTwoFactor) {
-        set({
-          isLoading: false,
-          pendingTwoFactor: {
-            userId: body.userId,
-            method: body.method as TwoFactorMethod,
-          },
-        });
-        return;
-      }
-
-      const { token, user }: { token: string; user: AuthUser } = body;
-      persist(token, user);
-      set({ token, user, isLoading: false, pendingTwoFactor: null });
+      const user: AuthUser = body.user ?? body;
+      persist(googleToken, user);
+      set({ token: googleToken, user, isLoading: false, pendingTwoFactor: null });
     } catch (err) {
       set({ isLoading: false });
       throw err;
