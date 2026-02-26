@@ -65,7 +65,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Ensure unique slug within tenant
     let slug     = slugify(name);
-    let existing = await db.group.findFirst({ where: { tenantId, slug } });
+    const existing = await db.group.findFirst({ where: { tenantId, slug } });
     if (existing) slug = `${slug}-${Date.now()}`;
 
     const group = await db.group.create({
