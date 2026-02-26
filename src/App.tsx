@@ -35,7 +35,8 @@ import ChangelogPage from "./features/changelog/ChangelogPage";
 import TwoFactorPage from "./features/security/TwoFactorPage";
 import CommunityPage from "./features/community/CommunityPage";
 import GroupsPage from "./features/community/GroupsPage";
-import CoursesPage from "./features/courses/CoursesPage";
+import AcademyPage from "./features/academy/AcademyPage";
+import CoursePage from "./features/academy/CoursePage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -85,8 +86,8 @@ function App() {
           <Route path="changelog" element={<ChangelogPage />} />
           <Route path="community" element={<CommunityPage />} />
           <Route path="community/groups" element={<GroupsPage />} />
-          <Route path="academy" element={<CoursesPage />} />
-          <Route path="academy/courses/:slug" element={<CoursesPage />} />
+          <Route path="academy" element={<AcademyPage />} />
+          <Route path="academy/courses/:slug" element={<CoursePage />} />
         </Route>
       </Routes>
     </>

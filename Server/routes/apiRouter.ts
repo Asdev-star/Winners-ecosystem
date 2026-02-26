@@ -24,6 +24,7 @@ import ssoRoutes from "./ssoRoutes.js";
 import registryRoutes from "./registryRoutes.js";
 import healthRoutes from "./healthRoutes.js";
 import gdprRoutes from "./gdprRoutes.js";
+import academyRoutes from "./academyRoutes.js";
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = Router();
@@ -55,5 +56,6 @@ router.use("/gdpr", gdprRoutes);
 router.use("/slack", slackRoutes);
 router.use("/sso", ssoRoutes);
 router.use("/registry", registryRoutes);
+router.use("/academy", academyRoutes);
 
 export default router;
