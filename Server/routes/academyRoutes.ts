@@ -1,9 +1,8 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import db from "../db.js";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 function toSlug(value: string) {
   return value
@@ -51,7 +50,7 @@ function withCourseStats<T extends { enrollments: { id: string }[]; reviews: { r
 
 router.get("/courses", async (_req, res) => {
   try {
-    const courses = await prisma.course.findMany({
+    const courses = await db.course.findMany({
       where: { published: true, deletedAt: null },
       include: {
         instructor: { select: { name: true, email: true } },
@@ -80,7 +79,7 @@ router.get("/courses/:id", async (req, res) => {
   try {
     const courseKey = String(req.params.id ?? "");
 
-    const course = await prisma.course.findFirst({
+    const course = await db.course.findFirst({
       where: {
         published: true,
         deletedAt: null,
@@ -127,7 +126,7 @@ router.post("/courses", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "title, description, and category are required" });
     }
 
-    const course = await prisma.course.create({
+    const course = await db.course.create({
       data: {
         tenantId: req.user.tenantId,
         instructorId: req.user.userId,
@@ -164,7 +163,7 @@ router.put("/courses/:id", authMiddleware, async (req, res) => {
     }
 
     const courseId = String(req.params.id ?? "");
-    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    const course = await db.course.findUnique({ where: { id: courseId } });
 
     if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
       return res.status(403).json({ error: "Not authorized" });
@@ -183,7 +182,7 @@ router.put("/courses/:id", authMiddleware, async (req, res) => {
     if (req.body?.currency !== undefined) updateData.currency = asString(req.body.currency).trim() || course.currency;
     if (req.body?.published !== undefined) updateData.published = Boolean(req.body.published);
 
-    const updatedCourse = await prisma.course.update({
+    const updatedCourse = await db.course.update({
       where: { id: courseId },
       data: updateData,
     });
@@ -208,13 +207,13 @@ router.post("/courses/:courseId/modules", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "title is required" });
     }
 
-    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    const course = await db.course.findUnique({ where: { id: courseId } });
 
     if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    const moduleRecord = await prisma.module.create({
+    const moduleRecord = await db.module.create({
       data: {
         courseId,
         title,
@@ -243,7 +242,7 @@ router.post("/modules/:moduleId/lessons", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "title is required" });
     }
 
-    const moduleRecord = await prisma.module.findUnique({
+    const moduleRecord = await db.module.findUnique({
       where: { id: moduleId },
       include: { course: true },
     });
@@ -252,7 +251,7 @@ router.post("/modules/:moduleId/lessons", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    const lesson = await prisma.lesson.create({
+    const lesson = await db.lesson.create({
       data: {
         moduleId,
         title,
@@ -281,7 +280,7 @@ router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
     const courseId = String(req.params.courseId ?? "");
     const userId = req.user.userId;
 
-    const existingEnrollment = await prisma.enrollment.findUnique({
+    const existingEnrollment = await db.enrollment.findUnique({
       where: { courseId_userId: { courseId, userId } },
     });
 
@@ -289,7 +288,7 @@ router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Already enrolled" });
     }
 
-    const enrollment = await prisma.enrollment.create({
+    const enrollment = await db.enrollment.create({
       data: {
         courseId,
         userId,
@@ -317,7 +316,7 @@ router.get("/enrollments", authMiddleware, async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await db.enrollment.findMany({
       where: { userId: req.user.userId },
       include: {
         course: {
@@ -361,7 +360,7 @@ router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
     const completed = Boolean(req.body?.completed);
     const timeSpent = asInt(req.body?.timeSpent, 0);
 
-    const lesson = await prisma.lesson.findUnique({
+    const lesson = await db.lesson.findUnique({
       where: { id: lessonId },
       include: {
         module: {
@@ -374,7 +373,7 @@ router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
       return res.status(404).json({ error: "Lesson not found" });
     }
 
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await db.enrollment.findUnique({
       where: {
         courseId_userId: {
           courseId: lesson.module.courseId,
@@ -387,7 +386,7 @@ router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Not enrolled in this course" });
     }
 
-    const progress = await prisma.lessonProgress.upsert({
+    const progress = await db.lessonProgress.upsert({
       where: {
         enrollmentId_lessonId: {
           enrollmentId: enrollment.id,
@@ -430,7 +429,7 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
     const courseId = String(req.params.courseId ?? "");
     const userId = req.user.userId;
 
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await db.enrollment.findUnique({
       where: {
         courseId_userId: {
           courseId,
@@ -444,7 +443,7 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
       return res.status(403).json({ error: "Not enrolled" });
     }
 
-    const totalLessons = await prisma.lesson.count({
+    const totalLessons = await db.lesson.count({
       where: {
         module: {
           courseId,
@@ -462,7 +461,7 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
       });
     }
 
-    const existingCertificate = await prisma.certificate.findUnique({
+    const existingCertificate = await db.certificate.findUnique({
       where: { enrollmentId: enrollment.id },
     });
 
@@ -470,7 +469,7 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
       return res.json(existingCertificate);
     }
 
-    const certificate = await prisma.certificate.create({
+    const certificate = await db.certificate.create({
       data: {
         enrollmentId: enrollment.id,
         courseId,
@@ -491,7 +490,7 @@ router.get("/certificates", authMiddleware, async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const certificates = await prisma.certificate.findMany({
+    const certificates = await db.certificate.findMany({
       where: { userId: req.user.userId },
       include: {
         course: {
@@ -525,7 +524,7 @@ router.post("/courses/:courseId/reviews", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "rating is required (1-5)" });
     }
 
-    const enrollment = await prisma.enrollment.findUnique({
+    const enrollment = await db.enrollment.findUnique({
       where: {
         courseId_userId: {
           courseId,
@@ -538,7 +537,7 @@ router.post("/courses/:courseId/reviews", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Must be enrolled to review" });
     }
 
-    const review = await prisma.review.upsert({
+    const review = await db.review.upsert({
       where: {
         courseId_userId: {
           courseId,
