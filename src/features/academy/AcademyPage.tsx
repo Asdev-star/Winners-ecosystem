@@ -2,6 +2,7 @@
 // Phase 3: Academy Layer — Course catalog with filters and enrollment
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface Course {
   id: string;
@@ -18,6 +19,7 @@ interface Course {
 }
 
 export default function AcademyPage() {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,16 +93,35 @@ export default function AcademyPage() {
       {ctxBar}
 
       <div style={{ marginBottom: 32 }}>
-        <h1 style={{
-          fontFamily: 'Cormorant Garamond, serif',
-          fontSize: 42,
-          fontWeight: 600,
-          color: 'var(--gold)',
-          marginBottom: 8,
-          letterSpacing: '-0.5px'
-        }}>
-          Winners Academy
-        </h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <h1 style={{
+            fontFamily: 'Cormorant Garamond, serif',
+            fontSize: 42,
+            fontWeight: 600,
+            color: 'var(--gold)',
+            marginBottom: 8,
+            letterSpacing: '-0.5px'
+          }}>
+            Winners Academy
+          </h1>
+          <button
+            onClick={() => navigate("/academy/my-learning")}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: "var(--surface2)",
+              color: "var(--text)",
+              fontFamily: "Space Mono, monospace",
+              fontSize: 11,
+              cursor: "pointer",
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+            }}
+          >
+            My Learning
+          </button>
+        </div>
         <p style={{
           fontFamily: 'Syne, sans-serif',
           fontSize: 16,

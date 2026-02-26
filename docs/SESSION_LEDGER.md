@@ -2,8 +2,8 @@
 
 ## Current Session
 
-- `Session #1` (tracking initialized)
-- Date: `2026-02-23`
+- `Session #2` (academy student flow continuation)
+- Date: `2026-02-26`
 - Vision Status: `Stabilization-first active`
 
 ## Session Update Rule
@@ -40,6 +40,25 @@ At the end of every build session:
   - RLS migration pack
   - SSO preparation routes
   - backup automation workflow
+
+### Session #2 - Academy Student Dashboard + Authenticated Course Actions
+
+- Date: 2026-02-26
+- Completed:
+  - Added `src/features/academy/StudentDashboardPage.tsx` for enrollments, progress, and certificates.
+  - Added route wiring in `src/App.tsx` for `/academy/my-learning`.
+  - Added Academy and Course page navigation entry points to My Learning.
+  - Fixed academy protected calls in `CoursePage.tsx` to send Bearer auth headers.
+  - Improved enrollment matching in `CoursePage.tsx` to support both `id` and `slug`.
+- Validation:
+  - `npx.cmd tsc --noEmit -p tsconfig.app.json` passes.
+  - `npx.cmd tsc --noEmit -p tsconfig.server.json` passes.
+  - `npx.cmd eslint src/App.tsx src/features/academy/AcademyPage.tsx src/features/academy/CoursePage.tsx src/features/academy/StudentDashboardPage.tsx` passes.
+- Blockers:
+  - Existing unrelated working-tree deletion remains: `src/features/courses/CoursesPage.tsx`.
+- Next Session Focus:
+  - Add instructor-facing course create/manage UI (course CRUD, modules, lessons).
+  - Add paid-course enrollment checkout UI integration for academy flow.
 
 ## End-of-Session Template
 

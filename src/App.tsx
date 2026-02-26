@@ -37,6 +37,7 @@ import CommunityPage from "./features/community/CommunityPage";
 import GroupsPage from "./features/community/GroupsPage";
 import AcademyPage from "./features/academy/AcademyPage";
 import CoursePage from "./features/academy/CoursePage";
+import StudentDashboardPage from "./features/academy/StudentDashboardPage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -87,6 +88,7 @@ function App() {
           <Route path="community" element={<CommunityPage />} />
           <Route path="community/groups" element={<GroupsPage />} />
           <Route path="academy" element={<AcademyPage />} />
+          <Route path="academy/my-learning" element={<StudentDashboardPage />} />
           <Route path="academy/courses/:slug" element={<CoursePage />} />
         </Route>
       </Routes>

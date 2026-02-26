@@ -1,9 +1,9 @@
 // src/features/academy/CoursePage.tsx — Course Player V1.0
 // Phase 3: Academy Layer — Individual course view with enrollment and progress tracking
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { useAuthStore } from "../../features/auth/authStore";
+import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
 
 interface Course {
   id: string;
@@ -39,6 +39,7 @@ interface Course {
 interface Enrollment {
   id: string;
   enrolledAt: string;
+  course?: { id: string; slug?: string | null };
   progress: Array<{
     lessonId: string;
     completed: boolean;
@@ -56,16 +57,9 @@ export default function CoursePage() {
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const { user } = useAuthStore();
 
-  useEffect(() => {
-    if (slug) {
-      fetchCourse();
-      if (user) {
-        checkEnrollment();
-      }
-    }
-  }, [slug, user]);
+  const fetchCourse = useCallback(async () => {
+    if (!slug) return;
 
-  const fetchCourse = async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/v1/academy/courses/${slug}`);
@@ -77,14 +71,20 @@ export default function CoursePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug]);
 
-  const checkEnrollment = async () => {
+  const checkEnrollment = useCallback(async () => {
+    if (!slug) return;
+
     try {
-      const response = await fetch("/api/v1/academy/enrollments");
+      const response = await fetch("/api/v1/academy/enrollments", {
+        headers: getAuthHeaders(),
+      });
       if (response.ok) {
-        const enrollments = await response.json();
-        const courseEnrollment = enrollments.find((e: any) => e.course.id === slug);
+        const enrollments = (await response.json()) as Enrollment[];
+        const courseEnrollment = enrollments.find((item) => (
+          item.course?.id === slug || item.course?.slug === slug
+        ));
         if (courseEnrollment) {
           setEnrollment(courseEnrollment);
         }
@@ -92,7 +92,16 @@ export default function CoursePage() {
     } catch (err) {
       console.error("Failed to check enrollment:", err);
     }
-  };
+  }, [slug]);
+
+  useEffect(() => {
+    if (slug) {
+      void fetchCourse();
+      if (user) {
+        void checkEnrollment();
+      }
+    }
+  }, [slug, user, fetchCourse, checkEnrollment]);
 
   const handleEnroll = async () => {
     if (!user || !course) return;
@@ -101,8 +110,10 @@ export default function CoursePage() {
       setEnrolling(true);
       const response = await fetch(`/api/v1/academy/courses/${course.id}/enroll`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
       });
 
       if (!response.ok) throw new Error("Failed to enroll");
@@ -123,8 +134,10 @@ export default function CoursePage() {
     try {
       await fetch(`/api/v1/academy/lessons/${lessonId}/progress`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
         body: JSON.stringify({ completed: true })
       });
       await checkEnrollment(); // Refresh progress
@@ -228,6 +241,23 @@ export default function CoursePage() {
                   {course.averageRating.toFixed(1)} ({course.reviews.length} reviews)
                 </span>
               </div>
+              <button
+                onClick={() => window.location.href = "/academy/my-learning"}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 4,
+                  border: "1px solid var(--border)",
+                  background: "var(--surface2)",
+                  color: "var(--text)",
+                  fontFamily: "Space Mono, monospace",
+                  fontSize: 10,
+                  cursor: "pointer",
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                }}
+              >
+                My Learning
+              </button>
             </div>
           </div>
 
