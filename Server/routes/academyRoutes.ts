@@ -1,6 +1,3 @@
-// Server/routes/academyRoutes.ts — Winners Academy API V1.0
-// Phase 3: Academy Layer — Courses, Modules, Lessons, Enrollment, Progress, Certificates
-
 import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -8,227 +5,284 @@ import { authMiddleware } from "../middleware/authMiddleware.js";
 const router = Router();
 const prisma = new PrismaClient();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COURSES — CRUD for instructors
-// ─────────────────────────────────────────────────────────────────────────────
+function toSlug(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
-// GET /api/v1/academy/courses — List all courses (public catalog)
-router.get("/courses", async (req, res) => {
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function asOptionalString(value: unknown) {
+  const parsed = asString(value).trim();
+  return parsed.length > 0 ? parsed : null;
+}
+
+function asNumber(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function asInt(value: unknown, fallback = 0) {
+  return Math.trunc(asNumber(value, fallback));
+}
+
+function withCourseStats<T extends { enrollments: { id: string }[]; reviews: { rating: number; body: string | null; user?: { name: string } | null }[] }>(
+  course: T,
+) {
+  const reviewCount = course.reviews.length;
+  const ratingSum = course.reviews.reduce((sum, review) => sum + review.rating, 0);
+
+  return {
+    ...course,
+    tags: [],
+    enrollmentCount: course.enrollments.length,
+    averageRating: reviewCount > 0 ? ratingSum / reviewCount : 0,
+    reviews: course.reviews.map((review) => ({
+      ...review,
+      comment: review.body ?? "",
+    })),
+  };
+}
+
+router.get("/courses", async (_req, res) => {
   try {
     const courses = await prisma.course.findMany({
-      where: { published: true },
+      where: { published: true, deletedAt: null },
       include: {
         instructor: { select: { name: true, email: true } },
-        modules: { include: { lessons: true } },
+        modules: {
+          include: {
+            lessons: { orderBy: { order: "asc" } },
+          },
+          orderBy: { order: "asc" },
+        },
         enrollments: { select: { id: true } },
-        reviews: { select: { rating: true } }
+        reviews: {
+          include: { user: { select: { name: true } } },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
-    // Calculate average rating and enrollment count
-    const coursesWithStats = courses.map(course => ({
-      ...course,
-      enrollmentCount: course.enrollments.length,
-      averageRating: course.reviews.length > 0
-        ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / course.reviews.length
-        : 0
-    }));
-
-    res.json(coursesWithStats);
+    res.json(courses.map(withCourseStats));
   } catch (error) {
     console.error("Error fetching courses:", error);
     res.status(500).json({ error: "Failed to fetch courses" });
   }
 });
 
-// POST /api/v1/academy/courses — Create course (instructor only)
-router.post("/courses", authMiddleware, async (req, res) => {
-  try {
-    const { title, description, price, category, tags, published = false } = req.body;
-    const instructorId = req.user!.id;
-
-    const course = await prisma.course.create({
-      data: {
-        title,
-        description,
-        price: price || 0,
-        category,
-        tags: tags || [],
-        published,
-        instructorId
-      }
-    });
-
-    res.json(course);
-  } catch (error) {
-    console.error("Error creating course:", error);
-    res.status(500).json({ error: "Failed to create course" });
-  }
-});
-
-// GET /api/v1/academy/courses/:id — Get course details
 router.get("/courses/:id", async (req, res) => {
   try {
-    const courseId = req.params.id;
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
+    const courseKey = String(req.params.id ?? "");
+
+    const course = await prisma.course.findFirst({
+      where: {
+        published: true,
+        deletedAt: null,
+        OR: [{ id: courseKey }, { slug: courseKey }],
+      },
       include: {
         instructor: { select: { name: true, email: true } },
         modules: {
           include: {
-            lessons: {
-              orderBy: { order: 'asc' }
-            }
+            lessons: { orderBy: { order: "asc" } },
           },
-          orderBy: { order: 'asc' }
+          orderBy: { order: "asc" },
         },
         enrollments: { select: { id: true } },
         reviews: {
-          include: { user: { select: { name: true } } }
-        }
-      }
+          include: { user: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        },
+      },
     });
 
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
     }
 
-    res.json(course);
+    res.json(withCourseStats(course));
   } catch (error) {
     console.error("Error fetching course:", error);
     res.status(500).json({ error: "Failed to fetch course" });
   }
 });
 
-// PUT /api/v1/academy/courses/:id — Update course (instructor only)
-router.put("/courses/:id", authMiddleware, async (req, res) => {
+router.post("/courses", authMiddleware, async (req, res) => {
   try {
-    const courseId = req.params.id;
-    const instructorId = req.user!.id;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    // Verify ownership
-    const course = await prisma.course.findUnique({
-      where: { id: courseId }
+    const title = asString(req.body?.title).trim();
+    const description = asString(req.body?.description).trim();
+    const category = asString(req.body?.category).trim();
+
+    if (!title || !description || !category) {
+      return res.status(400).json({ error: "title, description, and category are required" });
+    }
+
+    const course = await prisma.course.create({
+      data: {
+        tenantId: req.user.tenantId,
+        instructorId: req.user.userId,
+        title,
+        slug: asOptionalString(req.body?.slug) ?? toSlug(title),
+        description,
+        about: asOptionalString(req.body?.about),
+        thumbnail: asOptionalString(req.body?.thumbnail),
+        previewVideo: asOptionalString(req.body?.previewVideo),
+        category,
+        price: asNumber(req.body?.price, 0),
+        currency: asOptionalString(req.body?.currency) ?? "USD",
+        published: Boolean(req.body?.published),
+      },
     });
 
-    if (!course || course.instructorId !== instructorId) {
+    res.status(201).json({
+      ...course,
+      tags: [],
+      enrollmentCount: 0,
+      averageRating: 0,
+      reviews: [],
+    });
+  } catch (error) {
+    console.error("Error creating course:", error);
+    res.status(500).json({ error: "Failed to create course" });
+  }
+});
+
+router.put("/courses/:id", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const courseId = String(req.params.id ?? "");
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+
+    if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    const { title, description, price, category, tags, published } = req.body;
+    const updateData: Record<string, unknown> = {};
+
+    if (req.body?.title !== undefined) updateData.title = asString(req.body.title).trim();
+    if (req.body?.slug !== undefined) updateData.slug = toSlug(asString(req.body.slug));
+    if (req.body?.description !== undefined) updateData.description = asString(req.body.description).trim();
+    if (req.body?.about !== undefined) updateData.about = asOptionalString(req.body.about);
+    if (req.body?.thumbnail !== undefined) updateData.thumbnail = asOptionalString(req.body.thumbnail);
+    if (req.body?.previewVideo !== undefined) updateData.previewVideo = asOptionalString(req.body.previewVideo);
+    if (req.body?.category !== undefined) updateData.category = asString(req.body.category).trim();
+    if (req.body?.price !== undefined) updateData.price = asNumber(req.body.price, course.price);
+    if (req.body?.currency !== undefined) updateData.currency = asString(req.body.currency).trim() || course.currency;
+    if (req.body?.published !== undefined) updateData.published = Boolean(req.body.published);
 
     const updatedCourse = await prisma.course.update({
       where: { id: courseId },
-      data: {
-        title,
-        description,
-        price,
-        category,
-        tags,
-        published
-      }
+      data: updateData,
     });
 
-    res.json(updatedCourse);
+    res.json({ ...updatedCourse, tags: [] });
   } catch (error) {
     console.error("Error updating course:", error);
     res.status(500).json({ error: "Failed to update course" });
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MODULES — Course structure
-// ─────────────────────────────────────────────────────────────────────────────
-
-// POST /api/v1/academy/courses/:courseId/modules — Add module to course
 router.post("/courses/:courseId/modules", authMiddleware, async (req, res) => {
   try {
-    const courseId = req.params.courseId;
-    const instructorId = req.user!.id;
-    const { title, description, order } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    // Verify course ownership
-    const course = await prisma.course.findUnique({
-      where: { id: courseId }
-    });
+    const courseId = String(req.params.courseId ?? "");
+    const title = asString(req.body?.title).trim();
 
-    if (!course || course.instructorId !== instructorId) {
+    if (!title) {
+      return res.status(400).json({ error: "title is required" });
+    }
+
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+
+    if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    const module = await prisma.module.create({
+    const moduleRecord = await prisma.module.create({
       data: {
+        courseId,
         title,
-        description,
-        order: order || 0,
-        courseId
-      }
+        description: asOptionalString(req.body?.description),
+        order: asInt(req.body?.order, 0),
+      },
     });
 
-    res.json(module);
+    res.status(201).json(moduleRecord);
   } catch (error) {
     console.error("Error creating module:", error);
     res.status(500).json({ error: "Failed to create module" });
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LESSONS — Course content
-// ─────────────────────────────────────────────────────────────────────────────
-
-// POST /api/v1/academy/modules/:moduleId/lessons — Add lesson to module
 router.post("/modules/:moduleId/lessons", authMiddleware, async (req, res) => {
   try {
-    const moduleId = req.params.moduleId;
-    const { title, content, videoUrl, order, duration } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    // Verify module ownership through course
-    const module = await prisma.module.findUnique({
+    const moduleId = String(req.params.moduleId ?? "");
+    const title = asString(req.body?.title).trim();
+
+    if (!title) {
+      return res.status(400).json({ error: "title is required" });
+    }
+
+    const moduleRecord = await prisma.module.findUnique({
       where: { id: moduleId },
-      include: { course: true }
+      include: { course: true },
     });
 
-    if (!module || module.course.instructorId !== req.user!.id) {
+    if (!moduleRecord || moduleRecord.course.instructorId !== req.user.userId || moduleRecord.course.tenantId !== req.user.tenantId) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
     const lesson = await prisma.lesson.create({
       data: {
+        moduleId,
         title,
-        content,
-        videoUrl,
-        order: order || 0,
-        duration: duration || 0,
-        moduleId
-      }
+        description: asOptionalString(req.body?.description),
+        content: asOptionalString(req.body?.content),
+        videoUrl: asOptionalString(req.body?.videoUrl),
+        duration: asInt(req.body?.duration, 0),
+        order: asInt(req.body?.order, 0),
+        isFree: Boolean(req.body?.isFree),
+      },
     });
 
-    res.json(lesson);
+    res.status(201).json(lesson);
   } catch (error) {
     console.error("Error creating lesson:", error);
     res.status(500).json({ error: "Failed to create lesson" });
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ENROLLMENT — Student enrollment and progress
-// ─────────────────────────────────────────────────────────────────────────────
-
-// POST /api/v1/academy/courses/:courseId/enroll — Enroll in course
 router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
   try {
-    const courseId = req.params.courseId;
-    const userId = req.user!.id;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    // Check if already enrolled
+    const courseId = String(req.params.courseId ?? "");
+    const userId = req.user.userId;
+
     const existingEnrollment = await prisma.enrollment.findUnique({
-      where: {
-        userId_courseId: {
-          userId,
-          courseId
-        }
-      }
+      where: { courseId_userId: { courseId, userId } },
     });
 
     if (existingEnrollment) {
@@ -237,58 +291,83 @@ router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
 
     const enrollment = await prisma.enrollment.create({
       data: {
+        courseId,
         userId,
-        courseId
-      }
+      },
+      include: { progress: true, course: true },
     });
 
-    res.json(enrollment);
+    res.status(201).json({
+      ...enrollment,
+      enrolledAt: enrollment.createdAt,
+      progress: enrollment.progress.map((item) => ({
+        ...item,
+        timeSpent: item.watchedSecs,
+      })),
+    });
   } catch (error) {
     console.error("Error enrolling in course:", error);
     res.status(500).json({ error: "Failed to enroll" });
   }
 });
 
-// GET /api/v1/academy/enrollments — Get user's enrollments
 router.get("/enrollments", authMiddleware, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
     const enrollments = await prisma.enrollment.findMany({
-      where: { userId },
+      where: { userId: req.user.userId },
       include: {
         course: {
           include: {
             instructor: { select: { name: true } },
-            modules: { include: { lessons: true } }
-          }
+            modules: {
+              include: { lessons: { orderBy: { order: "asc" } } },
+              orderBy: { order: "asc" },
+            },
+          },
         },
-        progress: true
-      }
+        progress: true,
+      },
+      orderBy: { createdAt: "desc" },
     });
 
-    res.json(enrollments);
+    res.json(
+      enrollments.map((enrollment) => ({
+        ...enrollment,
+        enrolledAt: enrollment.createdAt,
+        progress: enrollment.progress.map((item) => ({
+          ...item,
+          timeSpent: item.watchedSecs,
+        })),
+      })),
+    );
   } catch (error) {
     console.error("Error fetching enrollments:", error);
     res.status(500).json({ error: "Failed to fetch enrollments" });
   }
 });
 
-// POST /api/v1/academy/lessons/:lessonId/progress — Update lesson progress
 router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
   try {
-    const lessonId = req.params.lessonId;
-    const userId = req.user!.id;
-    const { completed, timeSpent } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    // Find enrollment for this lesson's course
+    const lessonId = String(req.params.lessonId ?? "");
+    const userId = req.user.userId;
+    const completed = Boolean(req.body?.completed);
+    const timeSpent = asInt(req.body?.timeSpent, 0);
+
     const lesson = await prisma.lesson.findUnique({
       where: { id: lessonId },
       include: {
         module: {
-          include: { course: true }
-        }
-      }
+          include: { course: true },
+        },
+      },
     });
 
     if (!lesson) {
@@ -297,11 +376,11 @@ router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
 
     const enrollment = await prisma.enrollment.findUnique({
       where: {
-        userId_courseId: {
+        courseId_userId: {
+          courseId: lesson.module.courseId,
           userId,
-          courseId: lesson.module.course.id
-        }
-      }
+        },
+      },
     });
 
     if (!enrollment) {
@@ -312,112 +391,116 @@ router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
       where: {
         enrollmentId_lessonId: {
           enrollmentId: enrollment.id,
-          lessonId
-        }
+          lessonId,
+        },
       },
       update: {
-        completed: completed || false,
-        timeSpent: {
-          increment: timeSpent || 0
+        completed,
+        watchedSecs: {
+          increment: timeSpent,
         },
-        completedAt: completed ? new Date() : null
+        completedAt: completed ? new Date() : null,
       },
       create: {
         enrollmentId: enrollment.id,
         lessonId,
-        completed: completed || false,
-        timeSpent: timeSpent || 0,
-        completedAt: completed ? new Date() : null
-      }
+        userId,
+        completed,
+        watchedSecs: timeSpent,
+        completedAt: completed ? new Date() : null,
+      },
     });
 
-    res.json(progress);
+    res.json({
+      ...progress,
+      timeSpent: progress.watchedSecs,
+    });
   } catch (error) {
     console.error("Error updating progress:", error);
     res.status(500).json({ error: "Failed to update progress" });
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CERTIFICATES — Completion certificates
-// ─────────────────────────────────────────────────────────────────────────────
-
-// POST /api/v1/academy/courses/:courseId/certificate — Generate certificate
 router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) => {
   try {
-    const courseId = req.params.courseId;
-    const userId = req.user!.id;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    // Check enrollment and completion
+    const courseId = String(req.params.courseId ?? "");
+    const userId = req.user.userId;
+
     const enrollment = await prisma.enrollment.findUnique({
       where: {
-        userId_courseId: {
+        courseId_userId: {
+          courseId,
           userId,
-          courseId
-        }
+        },
       },
-      include: {
-        course: true,
-        progress: {
-          include: { lesson: true }
-        }
-      }
+      include: { progress: true },
     });
 
     if (!enrollment) {
       return res.status(403).json({ error: "Not enrolled" });
     }
 
-    // Check if all lessons are completed
     const totalLessons = await prisma.lesson.count({
       where: {
         module: {
-          courseId
-        }
-      }
+          courseId,
+        },
+      },
     });
 
-    const completedLessons = enrollment.progress.filter(p => p.completed).length;
+    const completedLessons = enrollment.progress.filter((item) => item.completed).length;
 
-    if (completedLessons < totalLessons) {
+    if (totalLessons === 0 || completedLessons < totalLessons) {
       return res.status(400).json({
         error: "Course not completed",
         completed: completedLessons,
-        total: totalLessons
+        total: totalLessons,
       });
     }
 
-    // Generate certificate
-    const certificate = await prisma.certificate.create({
-      data: {
-        userId,
-        courseId,
-        certificateNumber: `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
-      }
+    const existingCertificate = await prisma.certificate.findUnique({
+      where: { enrollmentId: enrollment.id },
     });
 
-    res.json(certificate);
+    if (existingCertificate) {
+      return res.json(existingCertificate);
+    }
+
+    const certificate = await prisma.certificate.create({
+      data: {
+        enrollmentId: enrollment.id,
+        courseId,
+        userId,
+      },
+    });
+
+    res.status(201).json(certificate);
   } catch (error) {
     console.error("Error generating certificate:", error);
     res.status(500).json({ error: "Failed to generate certificate" });
   }
 });
 
-// GET /api/v1/academy/certificates — Get user's certificates
 router.get("/certificates", authMiddleware, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
     const certificates = await prisma.certificate.findMany({
-      where: { userId },
+      where: { userId: req.user.userId },
       include: {
         course: {
           include: {
-            instructor: { select: { name: true } }
-          }
-        }
+            instructor: { select: { name: true } },
+          },
+        },
       },
-      orderBy: { issuedAt: 'desc' }
+      orderBy: { issuedAt: "desc" },
     });
 
     res.json(certificates);
@@ -427,41 +510,57 @@ router.get("/certificates", authMiddleware, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REVIEWS — Course reviews and ratings
-// ─────────────────────────────────────────────────────────────────────────────
-
-// POST /api/v1/academy/courses/:courseId/reviews — Add review
 router.post("/courses/:courseId/reviews", authMiddleware, async (req, res) => {
   try {
-    const courseId = req.params.courseId;
-    const userId = req.user!.id;
-    const { rating, comment } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-    // Check if enrolled and completed
+    const courseId = String(req.params.courseId ?? "");
+    const userId = req.user.userId;
+    const rating = Math.max(1, Math.min(5, asInt(req.body?.rating, 0)));
+    const comment = asOptionalString(req.body?.comment);
+
+    if (!rating) {
+      return res.status(400).json({ error: "rating is required (1-5)" });
+    }
+
     const enrollment = await prisma.enrollment.findUnique({
       where: {
-        userId_courseId: {
+        courseId_userId: {
+          courseId,
           userId,
-          courseId
-        }
-      }
+        },
+      },
     });
 
     if (!enrollment) {
       return res.status(403).json({ error: "Must be enrolled to review" });
     }
 
-    const review = await prisma.review.create({
-      data: {
-        userId,
-        courseId,
+    const review = await prisma.review.upsert({
+      where: {
+        courseId_userId: {
+          courseId,
+          userId,
+        },
+      },
+      update: {
         rating,
-        comment
-      }
+        body: comment,
+      },
+      create: {
+        courseId,
+        userId,
+        rating,
+        body: comment,
+      },
     });
 
-    res.json(review);
+    res.status(201).json({
+      ...review,
+      comment: review.body ?? "",
+    });
   } catch (error) {
     console.error("Error creating review:", error);
     res.status(500).json({ error: "Failed to create review" });

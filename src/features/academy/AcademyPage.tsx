@@ -2,7 +2,6 @@
 // Phase 3: Academy Layer — Course catalog with filters and enrollment
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../../features/auth/authStore";
 
 interface Course {
   id: string;
@@ -24,7 +23,6 @@ export default function AcademyPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const { user } = useAuthStore();
 
   useEffect(() => {
     fetchCourses();
