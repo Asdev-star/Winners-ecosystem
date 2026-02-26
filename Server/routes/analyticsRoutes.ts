@@ -34,6 +34,22 @@ function formatDate(d: Date) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function isMissingTableError(err: any) {
+  return err?.code === "P2021" || String(err?.message ?? "").toLowerCase().includes("does not exist");
+}
+
+function buildZeroSeries(days: number) {
+  const data = [];
+  const previous = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const cur  = new Date(); cur.setDate(cur.getDate() - i);
+    const prev = new Date(); prev.setDate(prev.getDate() - i - days);
+    data.push({ date: formatDate(cur), revenue: 0, activity: 0 });
+    previous.push({ date: formatDate(prev), revenue: 0, activity: 0 });
+  }
+  return { data, previous };
+}
+
 // ─── GET /analytics/revenue?period=30d ───────────────────────────────────────
 
 router.get("/revenue", async (req: Request, res: Response) => {
@@ -119,6 +135,21 @@ router.get("/revenue", async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error("Analytics revenue error:", err);
+    if (isMissingTableError(err)) {
+      const fallback = buildZeroSeries(days);
+      return res.json({
+        tenantId,
+        period,
+        data: fallback.data,
+        previous: fallback.previous,
+        summary: {
+          totalRevenue: 0,
+          revenueGrowth: 0,
+          totalActivity: 0,
+          activityGrowth: 0,
+        },
+      });
+    }
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -202,6 +233,14 @@ router.get("/summary", async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error("Summary error:", err);
+    if (isMissingTableError(err)) {
+      return res.json({
+        tenantId,
+        trend: "flat",
+        revenueGrowth: 0,
+        topInsight: "Revenue analytics will appear after initial data sync.",
+      });
+    }
     return res.status(500).json({ message: "Internal server error" });
   }
 });

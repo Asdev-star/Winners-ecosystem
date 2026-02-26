@@ -11,6 +11,10 @@ const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
 
+function isMissingTableError(err: any) {
+  return err?.code === "P2021" || String(err?.message ?? "").toLowerCase().includes("does not exist");
+}
+
 // ─── GET /posts — feed ────────────────────────────────────────────────────────
 
 router.get("/", async (req: Request, res: Response) => {
@@ -68,9 +72,20 @@ router.get("/", async (req: Request, res: Response) => {
       total,
       page,
       pages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
     });
   } catch (err: any) {
     console.error("Get posts error:", err);
+    if (isMissingTableError(err)) {
+      return res.json({
+        posts: [],
+        pinned: [],
+        total: 0,
+        page,
+        pages: 0,
+        hasMore: false,
+      });
+    }
     return res.status(500).json({ message: "Internal server error" });
   }
 });

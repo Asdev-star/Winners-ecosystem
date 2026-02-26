@@ -2,12 +2,13 @@
 // Phase 1 — Core Engine · Team Management
 // Ecosystem design: CSS variables, card pattern, context bar, no Tailwind
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
 function authHeaders() {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("we_token");
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 }
 
@@ -46,6 +47,7 @@ function timeAgo(iso: string) {
 }
 
 export default function TeamPage() {
+  const authUser = useAuthStore((s) => s.user);
   const [members, setMembers]         = useState<Member[]>([]);
   const [loading, setLoading]         = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -53,19 +55,24 @@ export default function TeamPage() {
   const [inviting, setInviting]       = useState(false);
   const [inviteMsg, setInviteMsg]     = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [search, setSearch]           = useState("");
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  useEffect(() => {
-    setCurrentUser(JSON.parse(localStorage.getItem("user") ?? "{}"));
-    loadMembers();
-  }, []);
+  useEffect(() => { loadMembers(); }, []);
 
   const loadMembers = async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`${API}/team/members`, { headers: authHeaders() });
+      const res  = await fetch(`${API}/tenants/me/members`, { headers: authHeaders() });
       const data = await res.json();
-      setMembers(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data?.members) ? data.members : [];
+      setMembers(
+        list.map((m: any) => ({
+          id: m.id,
+          name: m.name ?? "",
+          email: m.email,
+          role: (m.role ?? "member") as Role,
+          joinedAt: m.createdAt ?? new Date().toISOString(),
+          lastActive: m.createdAt ?? new Date().toISOString(),
+        })),
+      );
     } catch {}
     setLoading(false);
   };
@@ -74,7 +81,7 @@ export default function TeamPage() {
     if (!inviteEmail.trim()) return;
     setInviting(true); setInviteMsg(null);
     try {
-      const res  = await fetch(`${API}/team/invite`, {
+      const res  = await fetch(`${API}/users/invite`, {
         method:  "POST",
         headers: authHeaders(),
         body:    JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
@@ -90,7 +97,7 @@ export default function TeamPage() {
   };
 
   const changeRole = async (memberId: string, newRole: Role) => {
-    await fetch(`${API}/team/members/${memberId}/role`, {
+    await fetch(`${API}/users/${memberId}/role`, {
       method:  "PATCH",
       headers: authHeaders(),
       body:    JSON.stringify({ role: newRole }),
@@ -100,7 +107,7 @@ export default function TeamPage() {
 
   const removeMember = async (member: Member) => {
     if (!confirm(`Remove ${member.name || member.email} from your team?`)) return;
-    await fetch(`${API}/team/members/${member.id}`, { method: "DELETE", headers: authHeaders() });
+    await fetch(`${API}/users/${member.id}`, { method: "DELETE", headers: authHeaders() });
     setMembers((prev) => prev.filter((m) => m.id !== member.id));
   };
 
@@ -108,7 +115,7 @@ export default function TeamPage() {
     !search || m.name?.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const canManage = ["owner", "admin"].includes(currentUser?.role ?? "");
+  const canManage = ["owner", "admin"].includes(authUser?.role ?? "");
 
   const platformLayers = [
     { name: "Core", status: "live" },
@@ -221,7 +228,7 @@ export default function TeamPage() {
         ) : (
           filtered.map((member, i) => {
             const rm = ROLE_META[member.role] ?? ROLE_META.member;
-            const isMe = member.id === currentUser?.id;
+            const isMe = member.id === authUser?.id;
             const isOwner = member.role === "owner";
             return (
               <div key={member.id} style={{ ...s.memberRow, ...(i === filtered.length - 1 ? { borderBottom: "none" } : {}) }}>

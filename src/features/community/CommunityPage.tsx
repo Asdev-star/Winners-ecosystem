@@ -221,9 +221,10 @@ export default function CommunityPage() {
 
   const fetchMembers = useCallback(async () => {
     try {
-      const res  = await fetch(`${API}/team`, { headers });
+      const res  = await fetch(`${API}/tenants/me/members`, { headers });
       const data = await res.json();
-      setMembers(data.members ?? data ?? []);
+      const list = Array.isArray(data?.members) ? data.members : [];
+      setMembers(list);
     } catch {}
   }, [token]);
 
@@ -272,14 +273,22 @@ export default function CommunityPage() {
   };
 
   const handleLike = async (postId: string) => {
-    const post  = posts.find((p) => p.id === postId);
-    if (!post) return;
-    const liked = post.likes?.some((l) => l.userId === user?.id);
-    await fetch(`${API}/posts/${postId}/like`, { method: liked ? "DELETE" : "POST", headers });
+    const res = await fetch(`${API}/posts/${postId}/like`, { method: "POST", headers });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) return;
+
     setPosts((prev) => prev.map((p) => {
       if (p.id !== postId) return p;
-      const newLikes = liked ? p.likes.filter((l) => l.userId !== user?.id) : [...p.likes, { userId: user?.id ?? "" }];
-      return { ...p, likes: newLikes };
+      const currentLikes = Array.isArray(p.likes) ? p.likes : [];
+      const hasMyLike = currentLikes.some((l) => l.userId === user?.id);
+
+      if (data.liked === true && !hasMyLike) {
+        return { ...p, likes: [...currentLikes, { userId: user?.id ?? "" }] };
+      }
+      if (data.liked === false && hasMyLike) {
+        return { ...p, likes: currentLikes.filter((l) => l.userId !== user?.id) };
+      }
+      return p;
     }));
   };
 
