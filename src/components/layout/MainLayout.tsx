@@ -217,6 +217,7 @@ const CORE_NAV = [
   { path: "/analytics",     icon: "📊", label: "Analytics",      tag: null },
   { path: "/search",        icon: "🔍", label: "Smart Search",   tag: null },
   { path: "/activity",      icon: "📋", label: "Activity Log",   tag: null },
+  { path: "/ops",           icon: "OPS",  label: "Core Ops",       tag: "new" },
 ];
 
 // ── ECOSYSTEM PLATFORMS (each will become its own app/site) ──────────────────

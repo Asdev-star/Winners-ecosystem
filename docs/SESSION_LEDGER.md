@@ -2,7 +2,7 @@
 
 ## Current Session
 
-- `Session #3` (state sync + project evolution baseline)
+- `Session #4` (core ops dashboard closeout)
 - Date: `2026-02-27`
 - Vision Status: `Stabilization-first active`
 
@@ -24,6 +24,29 @@ At the end of every build session:
 - Session number can only increase by `+1` at closeout.
 
 ## Session History
+
+### Session #4 - Core Engine Ops Dashboard Wiring
+
+- Date: 2026-02-27
+- Completed:
+  - Added `src/features/ops/CoreOpsPage.tsx` for service-health visibility.
+  - Wired route in `src/App.tsx` at `/ops`.
+  - Added Core Platform sidebar entry in `src/components/layout/MainLayout.tsx`:
+    - path: `/ops`
+    - label: `Core Ops`
+  - Dashboard integrates existing backend infrastructure:
+    - `/api/v1/health/ready`
+    - `/api/v1/health/db`
+    - `/api/v1/registry`
+- Validation:
+  - `npx.cmd tsc --noEmit -p tsconfig.app.json` passes.
+  - `npx.cmd tsc --noEmit -p tsconfig.server.json` passes.
+  - `npx.cmd eslint src Server --ext .ts,.tsx` passes.
+- Blockers:
+  - None for this slice.
+- Next Session Focus:
+  - Expand Core Ops with historical uptime trend and alert hooks.
+  - Tighten typed contracts for shared API responses across admin/ops views.
 
 ### Session #3 - State Snapshot Sync + Project Evolution Baseline
 
