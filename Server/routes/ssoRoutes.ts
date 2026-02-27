@@ -66,7 +66,10 @@ router.post("/token", authMiddleware, (req: Request, res: Response) => {
 });
 
 router.post("/exchange", async (req: Request, res: Response) => {
-  const { handoffToken, audience } = req.body as { handoffToken?: string; audience?: string };
+  const body = typeof req.body === "object" && req.body !== null
+    ? (req.body as { handoffToken?: string; audience?: string })
+    : {};
+  const { handoffToken, audience } = body;
   if (!handoffToken) {
     return res.status(400).json({ message: "handoffToken is required" });
   }
