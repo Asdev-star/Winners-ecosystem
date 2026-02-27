@@ -1,6 +1,7 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuthStore } from "./features/auth/authStore";
+import "./App.css";
 
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./app/ProtectedRoute";
@@ -43,60 +44,65 @@ import CoreOpsPage from "./features/ops/CoreOpsPage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
 
   return (
-    <>
+    <div className="app-shell">
       <LayerThemeBridge />
       <AIBackdrop />
       <AIPageAssistant />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/landing" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/invite/accept" element={<AcceptInvitePage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/architecture" element={<ArchitectureDiagram />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/sso/exchange" element={<SsoExchangePage />} />
+      <div className="app-route-layer">
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/landing" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/invite/accept" element={<AcceptInvitePage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/architecture" element={<ArchitectureDiagram />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/sso/exchange" element={<SsoExchangePage />} />
 
-        <Route
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="2fa" element={<TwoFactorPage />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="search" element={<SearchPage />} />
-          <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="team" element={<TeamPage />} />
-          <Route path="export" element={<ExportPage />} />
-          <Route path="billing" element={<BillingPage />} />
-          <Route path="email" element={<EmailReportsPage />} />
-          <Route path="notifications" element={<NotificationsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="slack" element={<SlackSettingsPage />} />
-          <Route path="stripe" element={<StripeDashboard />} />
-          <Route path="activity" element={<ActivityPage />} />
-          <Route path="referral" element={<ReferralPage />} />
-          <Route path="admin" element={<AdminPage />} />
-          <Route path="ops" element={<CoreOpsPage />} />
-          <Route path="changelog" element={<ChangelogPage />} />
-          <Route path="community" element={<CommunityPage />} />
-          <Route path="community/groups" element={<GroupsPage />} />
-          <Route path="academy" element={<AcademyPage />} />
-          <Route path="academy/my-learning" element={<StudentDashboardPage />} />
-          <Route path="academy/courses/:slug" element={<CoursePage />} />
-        </Route>
-      </Routes>
-    </>
+          <Route
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="2fa" element={<TwoFactorPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="search" element={<SearchPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="team" element={<TeamPage />} />
+            <Route path="export" element={<ExportPage />} />
+            <Route path="billing" element={<BillingPage />} />
+            <Route path="email" element={<EmailReportsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="slack" element={<SlackSettingsPage />} />
+            <Route path="stripe" element={<StripeDashboard />} />
+            <Route path="activity" element={<ActivityPage />} />
+            <Route path="referral" element={<ReferralPage />} />
+            <Route path="admin" element={<AdminPage />} />
+            <Route path="ops" element={<CoreOpsPage />} />
+            <Route path="changelog" element={<ChangelogPage />} />
+            <Route path="community" element={<CommunityPage />} />
+            <Route path="community/groups" element={<GroupsPage />} />
+            <Route path="academy" element={<AcademyPage />} />
+            <Route path="academy/my-learning" element={<StudentDashboardPage />} />
+            <Route path="academy/courses/:slug" element={<CoursePage />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to={user ? "/dashboard" : "/landing"} replace />} />
+        </Routes>
+      </div>
+    </div>
   );
 }
 

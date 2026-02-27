@@ -87,12 +87,29 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Syne', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
 /* ══════════════════════════════════════════
