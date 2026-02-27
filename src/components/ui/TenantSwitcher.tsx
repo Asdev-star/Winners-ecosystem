@@ -1,6 +1,6 @@
 // src/components/ui/TenantSwitcher.tsx
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useAuthStore, getAuthHeaders } from "../../features/auth/authStore";
 
 import { API_BASE } from "../../lib/api";
@@ -48,7 +48,10 @@ export default function TenantSwitcher({ onCreateNew }: Props) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const ref                   = useRef<HTMLDivElement>(null);
 
-  const active: Tenant = { id: user?.tenantId ?? "", name: user?.tenantName ?? "Workspace", plan: "PRO" };
+  const active = useMemo<Tenant>(
+    () => ({ id: user?.tenantId ?? "", name: user?.tenantName ?? "Workspace", plan: "PRO" }),
+    [user?.tenantId, user?.tenantName],
+  );
 
   useEffect(() => {
     const id = "ts-styles";
@@ -62,9 +65,17 @@ export default function TenantSwitcher({ onCreateNew }: Props) {
   useEffect(() => {
     fetch(`${API_BASE}/tenants/me`, { headers: getAuthHeaders() })
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setTenants([{ id: data.id, name: data.name, plan: data.plan }]); })
+      .then((data) => {
+        if (data) {
+          setTenants([{
+            id: String(data.id ?? ""),
+            name: String(data.name ?? "Workspace"),
+            plan: String(data.plan ?? "PRO"),
+          }]);
+        }
+      })
       .catch(() => setTenants([active]));
-  }, []);
+  }, [active]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
@@ -73,7 +84,11 @@ export default function TenantSwitcher({ onCreateNew }: Props) {
   }, []);
 
   const list     = tenants.length > 0 ? tenants : [active];
-  const initials = (n: string) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const initials = (n: string) => {
+    const normalized = typeof n === "string" ? n.trim() : "";
+    if (!normalized) return "??";
+    return normalized.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  };
 
   return (
     <div className="ts-wrap" ref={ref}>

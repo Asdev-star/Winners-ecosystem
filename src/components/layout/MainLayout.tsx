@@ -312,7 +312,10 @@ export default function MainLayout() {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const initials = user?.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() ?? "??";
+  const initialsSource = `${user?.name ?? user?.email ?? ""}`.trim();
+  const initials = initialsSource
+    ? initialsSource.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "??";
   const pageName = ALL_NAV.find((n) => location.pathname.startsWith(n.path))?.label ?? "Dashboard";
   const closeSidebar = () => setSidebarOpen(false);
 

@@ -3,13 +3,12 @@
 // Ecosystem design: CSS variables, card pattern, context bar, no Tailwind
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
 function authHeaders() {
-  const token = localStorage.getItem("we_token");
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  return { "Content-Type": "application/json", ...getAuthHeaders() };
 }
 
 const ROLES = ["owner", "admin", "member", "viewer"] as const;
@@ -24,6 +23,18 @@ interface Member {
   lastActive?: string;
 }
 
+interface ApiMember {
+  id?: string;
+  name?: string | null;
+  email?: string;
+  role?: string | null;
+  createdAt?: string;
+}
+
+function isRole(value: unknown): value is Role {
+  return typeof value === "string" && (ROLES as readonly string[]).includes(value);
+}
+
 const ROLE_META: Record<Role, { label: string; color: string; bg: string; border: string; desc: string }> = {
   owner:  { label: "Owner",  color: "var(--gold)",    bg: "rgba(201,168,76,0.1)",  border: "rgba(201,168,76,0.25)",  desc: "Full access, billing, delete workspace" },
   admin:  { label: "Admin",  color: "var(--purple)",  bg: "rgba(155,111,255,0.1)", border: "rgba(155,111,255,0.2)", desc: "Manage team, settings, all features" },
@@ -32,7 +43,8 @@ const ROLE_META: Record<Role, { label: string; color: string; bg: string; border
 };
 
 function initials(name: string, email: string) {
-  const src = name || email;
+  const src = (name || email || "").trim();
+  if (!src) return "??";
   return src.split(/\s|@/)[0].slice(0, 2).toUpperCase();
 }
 
@@ -62,18 +74,20 @@ export default function TeamPage() {
     try {
       const res  = await fetch(`${API}/tenants/me/members`, { headers: authHeaders() });
       const data = await res.json();
-      const list = Array.isArray(data?.members) ? data.members : [];
+      const list: ApiMember[] = Array.isArray(data?.members) ? data.members : [];
       setMembers(
-        list.map((m: any) => ({
-          id: m.id,
+        list.map((m) => ({
+          id: m.id ?? "",
           name: m.name ?? "",
-          email: m.email,
-          role: (m.role ?? "member") as Role,
+          email: m.email ?? "",
+          role: isRole(m.role) ? m.role : "member",
           joinedAt: m.createdAt ?? new Date().toISOString(),
           lastActive: m.createdAt ?? new Date().toISOString(),
         })),
       );
-    } catch {}
+    } catch {
+      setMembers([]);
+    }
     setLoading(false);
   };
 
@@ -90,8 +104,9 @@ export default function TeamPage() {
       if (!res.ok) throw new Error(data.error ?? "Failed to send invite");
       setInviteMsg({ type: "ok", text: `Invite sent to ${inviteEmail}` });
       setInviteEmail("");
-    } catch (e: any) {
-      setInviteMsg({ type: "err", text: e.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to send invite";
+      setInviteMsg({ type: "err", text: message });
     }
     setInviting(false);
   };

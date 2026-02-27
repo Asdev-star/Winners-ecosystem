@@ -3,13 +3,13 @@
 // Also serves as identity hub across all ecosystem layers
 // Ecosystem design: CSS variables, card pattern, context bar, no Tailwind
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
 function authHeaders() {
-  const token = localStorage.getItem("token");
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  return { "Content-Type": "application/json", ...getAuthHeaders() };
 }
 
 interface UserProfile {
@@ -34,8 +34,15 @@ const SKILL_SUGGESTIONS = [
   "Copywriting", "Video Production", "SEO", "Data Analysis",
 ];
 
+const SOCIAL_FIELDS: Array<{ key: "website" | "twitter" | "github"; label: string; placeholder: string }> = [
+  { key: "website", label: "Website", placeholder: "https://yoursite.com" },
+  { key: "twitter", label: "Twitter / X", placeholder: "@handle" },
+  { key: "github", label: "GitHub", placeholder: "username" },
+];
+
 function initials(name: string, email: string) {
-  const src = name || email;
+  const src = (name || email || "").trim();
+  if (!src) return "??";
   return src.split(/\s|@/)[0].slice(0, 2).toUpperCase();
 }
 
@@ -52,14 +59,28 @@ export default function ProfilePage() {
     const load = async () => {
       try {
         const res  = await fetch(`${API}/users/me`, { headers: authHeaders() });
+        if (!res.ok) throw new Error(`Failed to load profile (${res.status})`);
         const data = await res.json();
         setProfile(data);
         setForm(data);
       } catch {
         // fallback to localStorage
-        const user = JSON.parse(localStorage.getItem("user") ?? "{}");
-        setProfile(user);
-        setForm(user);
+        const raw = localStorage.getItem("we_user");
+        const user = raw ? JSON.parse(raw) : null;
+        if (user && (user.name || user.email)) {
+          const fallback: UserProfile = {
+            id: user.id ?? "",
+            name: user.name ?? "",
+            email: user.email ?? "",
+            role: user.role ?? "viewer",
+            joinedAt: user.joinedAt ?? new Date().toISOString(),
+          };
+          setProfile(fallback);
+          setForm(fallback);
+        } else {
+          setProfile(null);
+          setForm({});
+        }
       }
     };
     load();
@@ -239,23 +260,19 @@ export default function ProfilePage() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                {[
-                  { key: "website", label: "Website", placeholder: "https://yoursite.com" },
-                  { key: "twitter", label: "Twitter / X", placeholder: "@handle" },
-                  { key: "github",  label: "GitHub",      placeholder: "username" },
-                ].map(({ key, label, placeholder }) => (
+                {SOCIAL_FIELDS.map(({ key, label, placeholder }) => (
                   <div key={key} style={s.field}>
                     <label style={s.label}>{label}</label>
                     {editing ? (
                       <input
                         style={s.input}
-                        value={(form as any)[key] ?? ""}
+                        value={form[key] ?? ""}
                         onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))}
                         placeholder={placeholder}
                       />
                     ) : (
                       <div style={s.fieldValue}>
-                        {(profile as any)[key] || <span style={{ color: "var(--text-dim)" }}>—</span>}
+                        {profile[key] || <span style={{ color: "var(--text-dim)" }}>—</span>}
                       </div>
                     )}
                   </div>
