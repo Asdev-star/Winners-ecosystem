@@ -1,31 +1,27 @@
-import { expect, afterEach, vi, beforeAll, afterAll } from "vitest";
-import { cleanup } from "@testing-library/react";
-import "@testing-library/jest-dom";
+import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
-// Cleanup after each test
 afterEach(() => {
-  cleanup();
+  vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
-// Mock window.matchMedia
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
-// Mock fetch (optional - use MSW for more control)
-global.fetch = vi.fn();
-
-// Suppress console errors in tests (optional)
+// Suppress noisy console errors from known test-environment warnings
 const originalError = console.error;
 beforeAll(() => {
   console.error = (...args: unknown[]) => {
