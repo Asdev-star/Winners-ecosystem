@@ -206,7 +206,7 @@ export default function SettingsPage() {
     const confirm2 = prompt(`Type your workspace name "${wsName}" to confirm:`);
     if (confirm2 !== wsName) { alert("Name did not match. Deletion cancelled."); return; }
     try {
-      await fetch(`${API}/api/v1/tenants/me`, { method: "DELETE", headers: getAuthHeaders() });
+      await fetch(`${API}/tenants/me`, { method: "DELETE", headers: getAuthHeaders() });
       logout(); navigate("/login");
     } catch { alert("Deletion failed. Please try again."); }
   };

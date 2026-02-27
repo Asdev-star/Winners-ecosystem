@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
+import { API_BASE } from "../../lib/api";
 
 interface Course {
   id: string;
@@ -62,7 +63,7 @@ export default function CoursePage() {
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/v1/academy/courses/${slug}`);
+      const response = await fetch(`${API_BASE}/academy/courses/${slug}`);
       if (!response.ok) throw new Error("Failed to fetch course");
       const data = await response.json();
       setCourse(data);
@@ -77,7 +78,7 @@ export default function CoursePage() {
     if (!slug) return;
 
     try {
-      const response = await fetch("/api/v1/academy/enrollments", {
+      const response = await fetch(`${API_BASE}/academy/enrollments`, {
         headers: getAuthHeaders(),
       });
       if (response.ok) {
@@ -108,7 +109,7 @@ export default function CoursePage() {
 
     try {
       setEnrolling(true);
-      const response = await fetch(`/api/v1/academy/courses/${course.id}/enroll`, {
+      const response = await fetch(`${API_BASE}/academy/courses/${course.id}/enroll`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +133,7 @@ export default function CoursePage() {
     if (!enrollment) return;
 
     try {
-      await fetch(`/api/v1/academy/lessons/${lessonId}/progress`, {
+      await fetch(`${API_BASE}/academy/lessons/${lessonId}/progress`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

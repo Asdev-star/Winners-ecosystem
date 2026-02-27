@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAuthHeaders, useAuthStore } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
 interface EnrollmentProgress {
   lessonId: string;
@@ -66,8 +67,8 @@ export default function StudentDashboardPage() {
       setError(null);
 
       const [enrollmentsResponse, certificatesResponse] = await Promise.all([
-        fetch("/api/v1/academy/enrollments", { headers: getAuthHeaders() }),
-        fetch("/api/v1/academy/certificates", { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/academy/enrollments`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE}/academy/certificates`, { headers: getAuthHeaders() }),
       ]);
 
       if (!enrollmentsResponse.ok) {
@@ -117,7 +118,7 @@ export default function StudentDashboardPage() {
       setIssuingCourseId(courseId);
       setError(null);
 
-      const response = await fetch(`/api/v1/academy/courses/${courseId}/certificate`, {
+      const response = await fetch(`${API_BASE}/academy/courses/${courseId}/certificate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

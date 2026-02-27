@@ -3,6 +3,7 @@
 // Route: /community/groups
 
 import { useState, useEffect, useCallback } from "react";
+import { getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -36,8 +37,7 @@ interface GroupPost {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function authHeaders() {
-  const token = localStorage.getItem("token");
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  return { "Content-Type": "application/json", ...getAuthHeaders() };
 }
 
 function initials(name: string) {

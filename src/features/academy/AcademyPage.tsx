@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../../lib/api";
 
 interface Course {
   id: string;
@@ -33,7 +34,7 @@ export default function AcademyPage() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/v1/academy/courses");
+      const response = await fetch(`${API_BASE}/academy/courses`);
       if (!response.ok) throw new Error("Failed to fetch courses");
       const data = await response.json();
       setCourses(data);

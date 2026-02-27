@@ -239,7 +239,7 @@ export default function OnboardingPage() {
   const saveWorkspace = async () => {
     if (!workspaceName.trim()) { setError("Workspace name is required"); return false; }
     try {
-      const res = await fetch(`${API}/api/v1/settings/workspace`, {
+      const res = await fetch(`${API}/tenants/me`, {
         method: "PATCH", headers: authHeader,
         body: JSON.stringify({ name: workspaceName.trim() }),
       });
@@ -250,9 +250,9 @@ export default function OnboardingPage() {
 
   const savePreferences = async () => {
     try {
-      await fetch(`${API}/api/v1/settings/workspace`, {
+      await fetch(`${API}/tenants/me`, {
         method: "PATCH", headers: authHeader,
-        body: JSON.stringify({ timezone, currency }),
+        body: JSON.stringify({ settings: { timezone, currency } }),
       });
       return true;
     } catch (e: any) { setError(e.message); return false; }
@@ -261,7 +261,7 @@ export default function OnboardingPage() {
   const saveInvites = async () => {
     const valid = invites.filter((i) => i.email.includes("@"));
     for (const inv of valid) {
-      await fetch(`${API}/api/v1/team/invite`, {
+      await fetch(`${API}/users/invite`, {
         method: "POST", headers: authHeader,
         body: JSON.stringify({ email: inv.email, role: inv.role }),
       }).catch(() => {});
@@ -281,7 +281,7 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     setSaving(true);
-    await fetch(`${API}/api/v1/settings/workspace`, {
+    await fetch(`${API}/tenants/me`, {
       method: "PATCH", headers: authHeader,
       body: JSON.stringify({ onboardingComplete: true }),
     }).catch(() => {});
