@@ -28,6 +28,46 @@ import academyRoutes from "./academyRoutes.js";
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = Router();
+const version = process.env.npm_package_version ?? "1.0.0";
+
+const gatewayRoutes = [
+  "/auth",
+  "/health",
+  "/tenants",
+  "/users",
+  "/analytics",
+  "/export",
+  "/billing",
+  "/ai",
+  "/profile",
+  "/email",
+  "/notifications",
+  "/stripe",
+  "/search",
+  "/activity",
+  "/referral",
+  "/admin",
+  "/changelog",
+  "/2fa",
+  "/posts",
+  "/groups",
+  "/gdpr",
+  "/slack",
+  "/sso",
+  "/registry",
+  "/academy",
+];
+
+router.get("/", (_req, res) => {
+  res.json({
+    name: "Winners Ecosystem API Gateway",
+    gateway: "v1",
+    version,
+    timestamp: new Date().toISOString(),
+    routeCount: gatewayRoutes.length,
+    routes: gatewayRoutes,
+  });
+});
 
 router.use("/auth/login", authLimiter);
 router.use("/auth/register", authLimiter);

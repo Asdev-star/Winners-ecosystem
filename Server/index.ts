@@ -102,7 +102,7 @@ const LEGACY_ROUTES = [
   "/auth", "/tenants", "/users", "/analytics", "/export", "/billing",
   "/ai", "/profile", "/email", "/notifications", "/stripe", "/search",
   "/activity", "/referral", "/admin", "/changelog", "/2fa", "/posts", "/groups",
-  "/gdpr", "/registry", "/slack", "/sso",
+  "/gdpr", "/registry", "/slack", "/sso", "/academy",
 ];
 
 for (const route of LEGACY_ROUTES) {

@@ -7,6 +7,7 @@ import { API_BASE } from "../../lib/api";
 import { getAuthHeaders } from "../auth/authStore";
 
 type ServiceState = "ok" | "degraded" | "down";
+type AppRegistryStatus = "live" | "in_progress" | "planned" | "deprecated";
 
 interface ServiceCheck {
   status: ServiceState;
@@ -27,7 +28,7 @@ interface HealthReadyResponse {
 interface RegistryApp {
   id: string;
   name: string;
-  status: ServiceState | "planned";
+  status: AppRegistryStatus;
   phase: string;
   version?: string;
 }
@@ -35,7 +36,18 @@ interface RegistryApp {
 interface RegistryResponse {
   totalApps: number;
   liveApps: number;
+  progress?: number;
+  generatedAt?: string;
   apps: RegistryApp[];
+}
+
+interface GatewayResponse {
+  name: string;
+  gateway: string;
+  version: string;
+  timestamp: string;
+  routeCount: number;
+  routes: string[];
 }
 
 interface DbHealthResponse {
@@ -303,41 +315,94 @@ const css = `
 `;
 
 function statusClass(value: string): string {
-  if (value === "ok" || value === "degraded" || value === "down" || value === "planned") return value;
+  if (value === "ok" || value === "live") return "ok";
+  if (value === "degraded" || value === "in_progress") return "degraded";
+  if (value === "down" || value === "deprecated") return "down";
   return "planned";
+}
+
+function statusLabel(value: string): string {
+  return value.replace(/_/g, " ");
 }
 
 export default function CoreOpsPage() {
   const [health, setHealth] = useState<HealthReadyResponse | null>(null);
   const [registry, setRegistry] = useState<RegistryResponse | null>(null);
   const [dbHealth, setDbHealth] = useState<DbHealthResponse | null>(null);
+  const [gateway, setGateway] = useState<GatewayResponse | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const headers = getAuthHeaders();
-      const [healthRes, regRes, dbRes] = await Promise.all([
+      const [healthRes, regRes, dbRes, gatewayRes] = await Promise.all([
         fetch(`${API_BASE}/health/ready`, { headers }),
         fetch(`${API_BASE}/registry`, { headers }),
         fetch(`${API_BASE}/health/db`, { headers }),
+        fetch(API_BASE, { headers }),
       ]);
 
-      const [healthBody, regBody, dbBody] = await Promise.all([
-        healthRes.json(),
-        regRes.json(),
-        dbRes.json(),
+      const [healthBody, regBody, dbBody, gatewayBody] = await Promise.all([
+        healthRes.json().catch(() => ({})),
+        regRes.json().catch(() => ({})),
+        dbRes.json().catch(() => ({})),
+        gatewayRes.json().catch(() => ({})),
       ]);
 
-      if (!healthRes.ok) throw new Error(healthBody?.error ?? `Health endpoint failed (${healthRes.status})`);
-      if (!regRes.ok) throw new Error(regBody?.error ?? `Registry endpoint failed (${regRes.status})`);
-      if (!dbRes.ok) throw new Error(dbBody?.error ?? `DB health endpoint failed (${dbRes.status})`);
+      const failures: string[] = [];
+      let successfulResponses = 0;
 
-      setHealth(healthBody as HealthReadyResponse);
-      setRegistry(regBody as RegistryResponse);
-      setDbHealth(dbBody as DbHealthResponse);
+      if (healthRes.ok) {
+        setHealth(healthBody as HealthReadyResponse);
+        successfulResponses += 1;
+      } else {
+        const healthError = healthBody && typeof healthBody === "object" && "error" in healthBody
+          ? String((healthBody as { error?: string }).error ?? `status ${healthRes.status}`)
+          : `status ${healthRes.status}`;
+        failures.push(`health/ready: ${healthError}`);
+      }
+
+      if (regRes.ok) {
+        setRegistry(regBody as RegistryResponse);
+        successfulResponses += 1;
+      } else {
+        const registryError = regBody && typeof regBody === "object" && "error" in regBody
+          ? String((regBody as { error?: string }).error ?? `status ${regRes.status}`)
+          : `status ${regRes.status}`;
+        failures.push(`registry: ${registryError}`);
+      }
+
+      if (dbRes.ok) {
+        setDbHealth(dbBody as DbHealthResponse);
+        successfulResponses += 1;
+      } else {
+        const dbError = dbBody && typeof dbBody === "object" && "error" in dbBody
+          ? String((dbBody as { error?: string }).error ?? `status ${dbRes.status}`)
+          : `status ${dbRes.status}`;
+        failures.push(`health/db: ${dbError}`);
+      }
+
+      if (gatewayRes.ok) {
+        setGateway(gatewayBody as GatewayResponse);
+        successfulResponses += 1;
+      } else {
+        failures.push(`gateway: status ${gatewayRes.status}`);
+      }
+
+      if (successfulResponses > 0) {
+        setLastUpdated(new Date().toISOString());
+      }
+
+      if (failures.length === 0) {
+        setError("");
+      } else if (successfulResponses === 0) {
+        setError(`Core Ops endpoints are unavailable: ${failures.join(" | ")}`);
+      } else {
+        setError(`Partial outage detected: ${failures.join(" | ")}`);
+      }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Failed to load Core Ops data";
       setError(message);
@@ -348,6 +413,16 @@ export default function CoreOpsPage() {
 
   useEffect(() => {
     void fetchAll();
+  }, [fetchAll]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void fetchAll();
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, [fetchAll]);
 
   const serviceRows = useMemo(() => {
@@ -376,6 +451,11 @@ export default function CoreOpsPage() {
           <h1 className="ops-title">Core Ops Dashboard</h1>
           <div className="ops-sub">
             Live visibility into API readiness, infrastructure services, and ecosystem registry state.
+          </div>
+          <div className="ops-sub" style={{ marginTop: 4, fontFamily: "'Space Mono', monospace", fontSize: 10 }}>
+            Gateway {gateway?.gateway?.toUpperCase() ?? "V1"} | Version {gateway?.version ?? "--"} | Routes{" "}
+            {gateway?.routeCount ?? "--"} | Last update{" "}
+            {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : "--"}
           </div>
         </div>
         <button className="ops-refresh" onClick={() => void fetchAll()} disabled={loading}>
@@ -442,7 +522,7 @@ export default function CoreOpsPage() {
                     {app.phase} {app.version ? `| ${app.version}` : ""}
                   </div>
                 </div>
-                <span className={`ops-pill ${statusClass(app.status)}`}>{app.status}</span>
+                <span className={`ops-pill ${statusClass(app.status)}`}>{statusLabel(app.status)}</span>
               </div>
             ))
           )}
@@ -469,4 +549,3 @@ export default function CoreOpsPage() {
     </div>
   );
 }
-
