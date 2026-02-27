@@ -6,6 +6,8 @@
 import { Router, Request, Response } from "express";
 import db from "../db.js";
 import os from "os";
+import fs from "fs";
+import path from "path";
 
 const router = Router();
 
@@ -157,6 +159,63 @@ router.get("/db", async (_req: Request, res: Response) => {
       error:     err.message,
     });
   }
+});
+
+// ─── GET /health/phase1 — Core Engine Completion Audit ───────────────────────
+
+router.get("/phase1", async (_req: Request, res: Response) => {
+  const checks = {
+    rlsMigration: false,
+    gdprMigration: false,
+    backupWorkflow: false,
+    securityDeps: false,
+    requiredEnv: false,
+    dbReachable: false,
+  };
+
+  const projectRoot = process.cwd();
+  const rlsMigrationPath = path.join(projectRoot, "prisma", "migrations", "20260223210000_phase1_rls_policies", "migration.sql");
+  const gdprMigrationPath = path.join(projectRoot, "prisma", "migrations", "add_gdpr_privacy_ack", "migration.sql");
+  const backupWorkflowPath = path.join(projectRoot, ".github", "workflows", "db-backup.yml");
+
+  checks.rlsMigration = fs.existsSync(rlsMigrationPath);
+  checks.gdprMigration = fs.existsSync(gdprMigrationPath);
+  checks.backupWorkflow = fs.existsSync(backupWorkflowPath);
+
+  try {
+    const pkgRaw = fs.readFileSync(path.join(projectRoot, "package.json"), "utf8");
+    const pkg = JSON.parse(pkgRaw) as { dependencies?: Record<string, string> };
+    checks.securityDeps = Boolean(pkg.dependencies?.helmet && pkg.dependencies?.["express-rate-limit"]);
+  } catch {
+    checks.securityDeps = false;
+  }
+
+  checks.requiredEnv = Boolean(process.env.DATABASE_URL && process.env.JWT_SECRET);
+
+  try {
+    await (db as any).$queryRaw`SELECT 1`;
+    checks.dbReachable = true;
+  } catch {
+    checks.dbReachable = false;
+  }
+
+  const completed = Object.values(checks).filter(Boolean).length;
+  const total = Object.values(checks).length;
+  const percent = Math.round((completed / total) * 100);
+  const status: "ok" | "degraded" = percent === 100 ? "ok" : "degraded";
+
+  res.status(status === "ok" ? 200 : 207).json({
+    status,
+    percent,
+    completed,
+    total,
+    timestamp: new Date().toISOString(),
+    checks,
+    nextActions: [
+      !checks.requiredEnv ? "Set DATABASE_URL and JWT_SECRET in environment" : null,
+      !checks.dbReachable ? "Verify PostgreSQL connectivity for runtime and prisma db push" : null,
+    ].filter(Boolean),
+  });
 });
 
 export default router;

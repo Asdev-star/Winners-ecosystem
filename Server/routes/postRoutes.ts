@@ -215,15 +215,27 @@ router.patch("/:id", async (req: Request, res: Response) => {
     if (!post) return res.status(404).json({ message: "Post not found" });
     if (post.authorId !== userId) return res.status(403).json({ message: "Not your post" });
 
-    const updated = await db.post.update({
-      where: { id: postId },
+    const updateResult = await db.post.updateMany({
+      where: { id: postId, tenantId, deletedAt: null },
       data:  { content: content.trim(), edited: true },
+    });
+
+    if (updateResult.count === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const updated = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
       include: {
         author: { select: { id: true, name: true, email: true } },
         _count: { select: { likes: true, comments: true } },
         tags:   { include: { tag: true } },
       },
     });
+
+    if (!updated) {
+      return res.status(404).json({ message: "Post not found" });
+    }
 
     return res.json({
       ...updated,
@@ -255,10 +267,14 @@ router.delete("/:id", async (req: Request, res: Response) => {
     const canDelete = post.authorId === userId || ["owner", "admin"].includes(role);
     if (!canDelete) return res.status(403).json({ message: "Cannot delete this post" });
 
-    await db.post.update({
-      where: { id: postId },
+    const deleteResult = await db.post.updateMany({
+      where: { id: postId, tenantId, deletedAt: null },
       data:  { deletedAt: new Date() },
     });
+
+    if (deleteResult.count === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
 
     return res.json({ message: "Post deleted" });
   } catch (err: any) {
