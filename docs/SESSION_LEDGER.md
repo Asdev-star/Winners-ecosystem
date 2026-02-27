@@ -2,7 +2,7 @@
 
 ## Current Session
 
-- `Session #4` (core ops dashboard closeout)
+- `Session #5` (core sso exchange completion)
 - Date: `2026-02-27`
 - Vision Status: `Stabilization-first active`
 
@@ -24,6 +24,27 @@ At the end of every build session:
 - Session number can only increase by `+1` at closeout.
 
 ## Session History
+
+### Session #5 - Core SSO Exchange Flow Completion
+
+- Date: 2026-02-27
+- Completed:
+  - Extended backend SSO routes in `Server/routes/ssoRoutes.ts`:
+    - Added `POST /sso/exchange` to convert short-lived handoff token into standard app JWT session.
+    - Added audience check support and tenant/user consistency validation.
+  - Added frontend handoff completion page:
+    - `src/features/auth/SsoExchangePage.tsx`
+    - Route wired at `/sso/exchange` in `src/App.tsx`.
+  - Added API gateway compatibility redirect for `/sso` in `Server/index.ts` legacy route mapping.
+- Validation:
+  - `npx.cmd tsc --noEmit -p tsconfig.app.json` passes.
+  - `npx.cmd tsc --noEmit -p tsconfig.server.json` passes.
+  - `npx.cmd eslint src Server --ext .ts,.tsx` passes.
+- Blockers:
+  - None for this slice.
+- Next Session Focus:
+  - Integrate source-app SSO handoff trigger UI (`/api/v1/sso/token`) in auth/tenant launch entry points.
+  - Add signed-state / nonce support for stricter SSO replay hardening.
 
 ### Session #4 - Core Engine Ops Dashboard Wiring
 

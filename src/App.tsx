@@ -14,6 +14,7 @@ import AcceptInvitePage from "./features/team/AcceptInvitePage";
 import ArchitectureDiagram from "./components/docs/ArchitectureDiagram";
 import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./features/auth/ResetPasswordPage";
+import SsoExchangePage from "./features/auth/SsoExchangePage";
 import OnboardingPage from "./features/onboarding/OnboardingPage";
 
 import DashboardPage from "./features/dashboard/DashboardPage";
@@ -61,6 +62,7 @@ function App() {
         <Route path="/architecture" element={<ArchitectureDiagram />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/sso/exchange" element={<SsoExchangePage />} />
 
         <Route
           element={
