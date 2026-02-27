@@ -157,7 +157,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, next: expre
 // SERVER STARTUP
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.listen(Number(PORT), "0.0.0.0", () => {
+const server = app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`\n✅ Winners Ecosystem API — v1.1.0`);
   console.log(`   Port:        ${PORT}`);
   console.log(`   Environment: ${process.env.NODE_ENV ?? "development"}`);
@@ -167,5 +167,28 @@ app.listen(Number(PORT), "0.0.0.0", () => {
 
   if (isProd) startEmailScheduler();
 });
+
+const shutdown = (signal: NodeJS.Signals) => {
+  console.log(`[SHUTDOWN] Received ${signal}. Closing HTTP server...`);
+
+  server.close((error?: Error) => {
+    if (error) {
+      console.error("[SHUTDOWN] Error while closing server", error);
+      process.exit(1);
+      return;
+    }
+
+    console.log("[SHUTDOWN] HTTP server closed cleanly.");
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    console.error("[SHUTDOWN] Forced exit after 10s timeout.");
+    process.exit(1);
+  }, 10_000).unref();
+};
+
+process.once("SIGTERM", () => shutdown("SIGTERM"));
+process.once("SIGINT", () => shutdown("SIGINT"));
 
 export default app;
