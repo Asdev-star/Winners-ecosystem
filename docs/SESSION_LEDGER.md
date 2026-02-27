@@ -2,8 +2,8 @@
 
 ## Current Session
 
-- `Session #2` (academy student flow continuation)
-- Date: `2026-02-26`
+- `Session #3` (state sync + project evolution baseline)
+- Date: `2026-02-27`
 - Vision Status: `Stabilization-first active`
 
 ## Session Update Rule
@@ -24,6 +24,29 @@ At the end of every build session:
 - Session number can only increase by `+1` at closeout.
 
 ## Session History
+
+### Session #3 - State Snapshot Sync + Project Evolution Baseline
+
+- Date: 2026-02-27
+- Completed:
+  - Synced external state reference files into:
+    - `docs/state-snapshots/2026-02-27/WINNERS_ECOSYSTEM_PROJECT_STATE.md`
+    - `docs/state-snapshots/2026-02-27/WINNERS_ECOSYSTEM_MASTER_ANALYSIS.md`
+    - `docs/state-snapshots/2026-02-27/WINNERS_ECOSYSTEM_STATE.md`
+  - Added `docs/PROJECT_EVOLUTION.md` as execution-truth delta against snapshots.
+  - Documented implemented-vs-stale areas (Community/Academy wiring, Groups maturity, Phase 1 closeouts).
+- Validation:
+  - `npx.cmd tsc --noEmit -p tsconfig.app.json` passes.
+  - `npx.cmd tsc --noEmit -p tsconfig.server.json` passes.
+  - `npx.cmd eslint src Server --ext .ts,.tsx` reports `219 problems (205 errors, 14 warnings)`.
+  - test file scan in `src/` + `Server/` reports `0` test files.
+- Blockers:
+  - Lint backlog remains large across server routes and older frontend modules.
+  - Design-system compliance still drifts in specific pages (hardcoded color usage remains).
+- Next Session Focus:
+  - Update master state docs to remove stale "not wired" claims.
+  - Execute lint stabilization wave 1 (shared middleware + high-traffic routes).
+  - Start testing bootstrap with first smoke tests.
 
 ### Session #1 - Baseline Recovery + Core Infra Additions
 
