@@ -71,16 +71,16 @@ const css = `
 
   .lp-nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
   .lp-nav-logo {
-    width: 34px; height: 34px; border-radius: 7px;
+    width: 28px; height: 28px; border-radius: 6px;
     object-fit: cover;
     border: 1.5px solid rgba(201,168,76,0.4);
     box-shadow: 0 0 12px rgba(201,168,76,0.12);
   }
   .lp-nav-logo-fallback {
-    width: 34px; height: 34px; border-radius: 7px;
+    width: 28px; height: 28px; border-radius: 6px;
     background: linear-gradient(135deg, var(--gold3), var(--blue));
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 800; color: var(--bg);
+    font-size: 12px; font-weight: 800; color: var(--bg);
     border: 1.5px solid rgba(201,168,76,0.4);
   }
   .lp-nav-wordmark { line-height: 1.1; }
@@ -812,7 +812,7 @@ const css = `
 
 const PLATFORMS = [
   {
-    icon: "⬡", name: "Core Engine", phase: "Phase 1", status: "live", pct: 90,
+    icon: "⬡", name: "Core Engine", phase: "Phase 1", status: "live", pct: 95,
     desc: "The control tower. Multi-tenant auth, billing, analytics, RBAC, and the API gateway that powers every platform layer.",
     tags: ["Auth & 2FA", "Billing", "Analytics", "API Gateway"],
   },
@@ -822,7 +822,7 @@ const PLATFORMS = [
     tags: ["Social Feed", "Groups", "Messaging", "Creators"],
   },
   {
-    icon: "🎓", name: "Winners Academy", phase: "Phase 3", status: "soon", pct: 30,
+    icon: "🎓", name: "Winners Academy", phase: "Phase 3", status: "live", pct: 30,
     desc: "Complete learning platform. Courses, modules, video lessons, AI tutors, certificates, and skill-based hiring.",
     tags: ["Courses", "Certificates", "AI Tutor", "Progress"],
   },
@@ -832,7 +832,7 @@ const PLATFORMS = [
     tags: ["Products", "Vendors", "Dropship", "Commerce"],
   },
   {
-    icon: "🤖", name: "Winners Intelligence", phase: "Phase 5", status: "planned", pct: 5,
+    icon: "🤖", name: "Winners Intelligence", phase: "Phase 5", status: "live", pct: 15,
     desc: "The agentic AI core. Personal AI agents, cross-platform smart recommendations, voice search, and full automation.",
     tags: ["AI Agents", "Smart Search", "Automation", "Predictions"],
   },

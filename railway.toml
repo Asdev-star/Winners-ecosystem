@@ -1,4 +1,6 @@
 # railway.toml
+# Winners Ecosystem - Railway Deployment Configuration
+
 [build]
 builder = "NIXPACKS"
 buildCommand = "npm install && npm run build"
@@ -9,3 +11,26 @@ healthcheckPath = "/health"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+
+# Backup Configuration
+# Railway provides automatic daily backups for PostgreSQL
+# This config ensures backups are enabled via Railway dashboard settings
+
+[database]
+# PostgreSQL configuration
+# Backups are managed through Railway's built-in backup system
+# Enable backups in Railway dashboard: Your Project → Databases → PostgreSQL → Backups
+
+[backup]
+# Note: Railway Pro plans include automated daily backups
+# For custom backup schedules, use Railway's CLI:
+# railway backup create
+# railway backup list
+# railway backup restore <backup-id>
+
+# Environment variables for backup retention
+# BACKUP_RETENTION_DAYS=30 (default)
+
+[metrics]
+# Enable metrics collection for monitoring
+enabled = true

@@ -289,6 +289,7 @@ const WORKSPACE_NAV = [
 const BOTTOM_NAV = [
   { path: "/dashboard",  icon: "⬡",  label: "Home",      notif: false },
   { path: "/community",  icon: "🧑‍🤝‍🧑", label: "Community", notif: false },
+  { path: "/academy",    icon: "🎓",  label: "Learn",     notif: false },
   { path: "/intelligence",  icon: "🤖", label: "AI", notif: false },
   { path: "/analytics",  icon: "📊", label: "Analytics", notif: false },
   { path: "/notifications", icon: "🔔", label: "Alerts", notif: true  },
