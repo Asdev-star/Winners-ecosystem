@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore, getAuthHeaders } from "../auth/authStore";
+import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -32,19 +32,19 @@ function deltaColor(n: number) { return n > 0 ? "var(--green)" : n < 0 ? "var(--
 // ─── Static data ──────────────────────────────────────────────────────────────
 const PLATFORMS = [
   { icon: "⬡",  name: "Core Engine",         desc: "Auth · Billing · Analytics",     status: "live",    path: "/dashboard" },
-  { icon: "🧑‍🤝‍🧑", name: "Winners Community",   desc: "Feed · Posts · Profiles",         status: "live",    path: "/community" },
-  { icon: "🎓", name: "Winners Academy",      desc: "Courses · Certificates",          status: "soon",    path: null },
+  { icon: "🧑‍🤝‍🧑", name: "Winners Community",   desc: "Feed · Posts · Groups",         status: "live",    path: "/community" },
+  { icon: "🎓", name: "Winners Academy",      desc: "Courses · Certificates · AI",     status: "live",    path: "/academy" },
   { icon: "🛒", name: "Winners Market",       desc: "Products · Vendors",              status: "soon",    path: null },
-  { icon: "🤖", name: "Winners Intelligence", desc: "AI Agents · Automation",          status: "planned", path: null },
+  { icon: "🤖", name: "Winners Intelligence", desc: "AI Agents · ARIA · Multimodal",  status: "live",    path: "/intelligence" },
   { icon: "💼", name: "Winners Work",         desc: "Freelance · Jobs · Escrow",       status: "planned", path: null },
 ];
 
 const PHASES = [
   { n: 1, label: "Core",      state: "done"    },
-  { n: 2, label: "Community", state: "active"  },
-  { n: 3, label: "Academy",   state: "pending" },
+  { n: 2, label: "Community", state: "done"    },
+  { n: 3, label: "Academy",   state: "active"  },
   { n: 4, label: "Market",    state: "pending" },
-  { n: 5, label: "AI",        state: "pending" },
+  { n: 5, label: "AI",        state: "active"  },
   { n: 6, label: "Work",      state: "pending" },
   { n: 7, label: "Mobile",    state: "pending" },
   { n: 8, label: "Cloud",     state: "pending" },
@@ -253,13 +253,13 @@ export default function DashboardPage() {
         <div className="db-ctx-bar">
           <span className="db-ctx live">⬡ Core Engine</span>
           <span className="db-ctx-sep">›</span>
-          <span className="db-ctx active">🧑‍🤝‍🧑 Community</span>
+          <span className="db-ctx live">🧑‍🤝‍🧑 Community</span>
           <span className="db-ctx-sep">›</span>
-          <span className="db-ctx planned">🎓 Academy</span>
+          <span className="db-ctx active">🎓 Academy</span>
           <span className="db-ctx-sep">›</span>
           <span className="db-ctx planned">🛒 Market</span>
           <span className="db-ctx-sep">›</span>
-          <span className="db-ctx planned">🤖 Intelligence</span>
+          <span className="db-ctx active">🤖 Intelligence</span>
         </div>
 
         {/* ── Header ── */}
@@ -290,12 +290,13 @@ export default function DashboardPage() {
           <div className="db-ai-body">
             <div className="db-ai-lbl">Winners Intelligence · Ecosystem AI</div>
             <div className="db-ai-txt">
-              <strong>Phase 2 active.</strong>{" "}
-              {stats?.topInsight || "Community Layer is live. Building social engagement engine. Next: Winners Academy."}
+              <strong>Phase 3 active.</strong>{" "}
+              {stats?.topInsight || "Academy is live. Start building courses and earning certificates. AI Intelligence available at /intelligence"}
             </div>
           </div>
           <div className="db-ai-acts">
-            <button className="db-ai-btn" onClick={() => navigate("/community")}>Community →</button>
+            <button className="db-ai-btn" onClick={() => navigate("/academy")}>Academy →</button>
+            <button className="db-ai-btn" onClick={() => navigate("/intelligence")}>AI →</button>
             <button className="db-ai-btn p" onClick={() => navigate("/analytics")}>Analytics →</button>
           </div>
         </div>
