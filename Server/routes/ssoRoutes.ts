@@ -4,6 +4,7 @@
 
 import { Router, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { randomBytes, randomUUID } from "crypto";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 
@@ -21,6 +22,9 @@ type SsoPayload = {
   role: string;
   aud: string;
   typ: "sso_handoff";
+  jti: string;
+  state?: string;
+  nonce?: string;
 };
 
 type AppTokenPayload = {
@@ -30,6 +34,54 @@ type AppTokenPayload = {
   email: string;
   role: "owner" | "admin" | "member" | "viewer";
 };
+
+const consumedHandoffJtis = new Map<string, number>();
+const MAX_CHALLENGE_LENGTH = 256;
+
+function normalizeAudience(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const candidate = trimmed.includes("://") ? trimmed : `https://${trimmed}`;
+  try {
+    return new URL(candidate).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function normalizeChallenge(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > MAX_CHALLENGE_LENGTH) return null;
+  if (!/^[A-Za-z0-9._~-]+$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+function createChallengeToken(): string {
+  return randomBytes(16).toString("base64url");
+}
+
+function pruneConsumedJtis(now = Date.now()): void {
+  for (const [jti, expiresAt] of consumedHandoffJtis.entries()) {
+    if (expiresAt <= now) {
+      consumedHandoffJtis.delete(jti);
+    }
+  }
+}
+
+function markHandoffJtiConsumed(jti: string): void {
+  const now = Date.now();
+  pruneConsumedJtis(now);
+  consumedHandoffJtis.set(jti, now + SSO_TOKEN_TTL_SECONDS * 1000);
+}
+
+function isHandoffJtiConsumed(jti: string): boolean {
+  pruneConsumedJtis();
+  return consumedHandoffJtis.has(jti);
+}
 
 router.get("/config", (_req: Request, res: Response) => {
   res.json({
@@ -41,10 +93,16 @@ router.get("/config", (_req: Request, res: Response) => {
 });
 
 router.post("/token", authMiddleware, (req: Request, res: Response) => {
-  const { audience } = req.body as { audience?: string };
+  const body = typeof req.body === "object" && req.body !== null
+    ? (req.body as { audience?: string; state?: string; nonce?: string })
+    : {};
+  const audience = normalizeAudience(body.audience);
   if (!audience) {
-    return res.status(400).json({ message: "audience is required" });
+    return res.status(400).json({ message: "audience is required and must be a valid host" });
   }
+
+  const state = normalizeChallenge(body.state) ?? createChallengeToken();
+  const nonce = normalizeChallenge(body.nonce) ?? createChallengeToken();
 
   const payload: SsoPayload = {
     userId: req.user!.userId,
@@ -53,6 +111,9 @@ router.post("/token", authMiddleware, (req: Request, res: Response) => {
     role: req.user!.role,
     aud: audience,
     typ: "sso_handoff",
+    jti: randomUUID(),
+    state,
+    nonce,
   };
 
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: `${SSO_TOKEN_TTL_SECONDS}s` });
@@ -61,17 +122,32 @@ router.post("/token", authMiddleware, (req: Request, res: Response) => {
     token,
     expiresIn: SSO_TOKEN_TTL_SECONDS,
     audience,
+    state,
+    nonce,
     sharedDomain: SSO_SHARED_DOMAIN,
   });
 });
 
 router.post("/exchange", async (req: Request, res: Response) => {
   const body = typeof req.body === "object" && req.body !== null
-    ? (req.body as { handoffToken?: string; audience?: string })
+    ? (req.body as { handoffToken?: string; audience?: string; state?: string; nonce?: string })
     : {};
-  const { handoffToken, audience } = body;
+  const { handoffToken } = body;
+  const audience = typeof body.audience === "undefined" ? undefined : normalizeAudience(body.audience);
+  const state = typeof body.state === "undefined" ? undefined : normalizeChallenge(body.state);
+  const nonce = typeof body.nonce === "undefined" ? undefined : normalizeChallenge(body.nonce);
+
   if (!handoffToken) {
     return res.status(400).json({ message: "handoffToken is required" });
+  }
+  if (typeof body.audience !== "undefined" && !audience) {
+    return res.status(400).json({ message: "audience must be a valid host" });
+  }
+  if (typeof body.state !== "undefined" && !state) {
+    return res.status(400).json({ message: "state is invalid" });
+  }
+  if (typeof body.nonce !== "undefined" && !nonce) {
+    return res.status(400).json({ message: "nonce is invalid" });
   }
 
   let decoded: SsoPayload;
@@ -84,10 +160,23 @@ router.post("/exchange", async (req: Request, res: Response) => {
   if (decoded.typ !== "sso_handoff") {
     return res.status(400).json({ message: "Invalid handoff token type" });
   }
+  if (!decoded.jti) {
+    return res.status(400).json({ message: "Invalid handoff token id" });
+  }
 
   if (audience && decoded.aud !== audience) {
     return res.status(403).json({ message: "Audience mismatch" });
   }
+  if (decoded.state && decoded.state !== state) {
+    return res.status(403).json({ message: "State mismatch" });
+  }
+  if (decoded.nonce && decoded.nonce !== nonce) {
+    return res.status(403).json({ message: "Nonce mismatch" });
+  }
+  if (isHandoffJtiConsumed(decoded.jti)) {
+    return res.status(409).json({ message: "Handoff token already exchanged" });
+  }
+  markHandoffJtiConsumed(decoded.jti);
 
   try {
     const user = await db.user.findFirst({

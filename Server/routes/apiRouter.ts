@@ -25,6 +25,7 @@ import registryRoutes from "./registryRoutes.js";
 import healthRoutes from "./healthRoutes.js";
 import gdprRoutes from "./gdprRoutes.js";
 import academyRoutes from "./academyRoutes.js";
+import chatRoutes from "./chatRoutes.js";
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = Router();
@@ -56,6 +57,7 @@ const gatewayRoutes = [
   "/sso",
   "/registry",
   "/academy",
+  "/chat",
 ];
 
 router.get("/", (_req, res) => {
@@ -97,5 +99,6 @@ router.use("/slack", slackRoutes);
 router.use("/sso", ssoRoutes);
 router.use("/registry", registryRoutes);
 router.use("/academy", academyRoutes);
+router.use("/chat", chatRoutes);
 
 export default router;

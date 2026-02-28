@@ -247,12 +247,12 @@ const PLATFORMS = [
     tag:    "v3.0",
   },
   {
-    path:   "/ai-assistant",
+    path:   "/intelligence",
     icon:   "🤖",
     name:   "Winners AI",
     desc:   "Agentic AI · Smart Automation",
-    status: "planned",
-    tag:    "v4.0",
+    status: "live",
+    tag:    "v1.0",
   },
   {
     path:   "/freelance",
@@ -289,8 +289,8 @@ const WORKSPACE_NAV = [
 const BOTTOM_NAV = [
   { path: "/dashboard",  icon: "⬡",  label: "Home",      notif: false },
   { path: "/community",  icon: "🧑‍🤝‍🧑", label: "Community", notif: false },
+  { path: "/intelligence",  icon: "🤖", label: "AI", notif: false },
   { path: "/analytics",  icon: "📊", label: "Analytics", notif: false },
-  { path: "/stripe",     icon: "💳", label: "Revenue",   notif: false },
   { path: "/notifications", icon: "🔔", label: "Alerts", notif: true  },
 ];
 
