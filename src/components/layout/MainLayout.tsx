@@ -237,6 +237,11 @@ const PLATFORMS = [
     desc:   "Courses · Certificates · AI Tutor",
     status: "live",
     tag:    "v1.0",
+    sub:    [
+      { path: "/academy", label: "Browse" },
+      { path: "/academy/instructor", label: "Instructor" },
+      { path: "/academy/my-learning", label: "My Learning" },
+    ],
   },
   {
     path:   "/shop",

@@ -42,6 +42,8 @@ import CoursePage from "./features/academy/CoursePage";
 import StudentDashboardPage from "./features/academy/StudentDashboardPage";
 import CoreOpsPage from "./features/ops/CoreOpsPage";
 import WinnersChat from "./features/intelligence/WinnersChat";
+import InstructorDashboard from "./features/academy/InstructorDashboard";
+import CourseCreatePage from "./features/academy/CourseCreatePage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -99,6 +101,9 @@ function App() {
             <Route path="academy/my-learning" element={<StudentDashboardPage />} />
             <Route path="academy/courses/:slug" element={<CoursePage />} />
             <Route path="intelligence" element={<WinnersChat />} />
+            <Route path="academy/instructor" element={<InstructorDashboard />} />
+            <Route path="academy/instructor/create" element={<CourseCreatePage />} />
+            <Route path="academy/instructor/edit/:id" element={<CourseCreatePage />} />
           </Route>
 
           <Route path="*" element={<Navigate to={user ? "/dashboard" : "/landing"} replace />} />

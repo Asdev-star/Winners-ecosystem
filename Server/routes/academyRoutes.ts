@@ -75,6 +75,42 @@ router.get("/courses", async (_req, res) => {
   }
 });
 
+// Instructor: Get my courses
+router.get("/instructor/courses", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const courses = await db.course.findMany({
+      where: { 
+        instructorId: req.user.userId,
+        tenantId: req.user.tenantId,
+        deletedAt: null 
+      },
+      include: {
+        instructor: { select: { name: true, email: true } },
+        modules: {
+          include: {
+            lessons: { orderBy: { order: "asc" } },
+          },
+          orderBy: { order: "asc" },
+        },
+        enrollments: { select: { id: true, userId: true, createdAt: true } },
+        reviews: {
+          include: { user: { select: { name: true } } },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json(courses.map(withCourseStats));
+  } catch (error) {
+    console.error("Error fetching instructor courses:", error);
+    res.status(500).json({ error: "Failed to fetch instructor courses" });
+  }
+});
+
 router.get("/courses/:id", async (req, res) => {
   try {
     const courseKey = String(req.params.id ?? "");
