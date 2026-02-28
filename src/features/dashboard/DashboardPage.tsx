@@ -244,7 +244,59 @@ export default function DashboardPage() {
           .db-platforms{grid-template-columns:1fr;}
           .db-ai-acts{display:none;}
           .db-hdr{flex-direction:column;}
+          .db-wealth-grid{grid-template-columns:1fr 1fr;}
         }
+
+        /* Journey Map */
+        .db-journey { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:20px; margin-bottom:18px; position:relative; overflow:hidden; }
+        .db-journey::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--gold),var(--green),var(--ice)); }
+        .db-journey-ttl { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+        .db-journey-ttl span { font-size:14px; }
+        .db-journey-track { display:flex; align-items:center; gap:4px; overflow-x:auto; padding:8px 0; }
+        .db-journey-step { display:flex; flex-direction:column; align-items:center; gap:6px; min-width:70px; position:relative; }
+        .db-journey-step:not(:last-child)::after { content:''; position:absolute; top:16px; left:calc(50% + 18px); width:calc(100% - 36px); height:2px; background:var(--border); }
+        .db-journey-step.done:not(:last-child)::after { background:var(--gold); }
+        .db-journey-dot { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; position:relative; z-index:1; flex-shrink:0; border:2px solid transparent; transition:all .2s; }
+        .db-journey-dot.done { background:var(--gold); border-color:var(--gold); color:#080B10; }
+        .db-journey-dot.active { background:transparent; border-color:var(--green); color:var(--green); animation:db-pulse 2s infinite; }
+        .db-journey-dot.pending { background:var(--surface2); border-color:var(--border); color:var(--text-dim); }
+        .db-journey-lbl { font-family:'Space Mono',monospace; font-size:8px; color:var(--text-dim); text-align:center; white-space:nowrap; }
+        .db-journey-step.done .db-journey-lbl { color:var(--gold); }
+        .db-journey-step.active .db-journey-lbl { color:var(--green); }
+
+        /* Achievements */
+        .db-achievements { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:20px; margin-bottom:18px; position:relative; overflow:hidden; }
+        .db-achievements::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--purple),var(--gold)); }
+        .db-achievements-ttl { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+        .db-achievements-ttl span { display:flex; align-items:center; gap:8px; }
+        .db-achievements-ttl span:first-child { font-size:14px; }
+        .db-achievements-all { font-size:10px; color:var(--gold); cursor:pointer; }
+        .db-achievements-grid { display:flex; gap:12px; flex-wrap:wrap; }
+        .db-achievement { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface2); border-radius:6px; border:1px solid var(--border); flex:1; min-width:140px; max-width:200px; transition:all .2s; }
+        .db-achievement:hover { border-color:var(--gold); transform:translateY(-1px); }
+        .db-achievement.locked { opacity:.5; }
+        .db-achievement-icon { font-size:24px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:rgba(201,168,76,.1); border-radius:50%; flex-shrink:0; }
+        .db-achievement.locked .db-achievement-icon { background:rgba(90,122,150,.1); }
+        .db-achievement-info { flex:1; min-width:0; }
+        .db-achievement-name { font-size:11px; font-weight:700; margin-bottom:2px; }
+        .db-achievement-desc { font-family:'Space Mono',monospace; font-size:8px; color:var(--text-dim); }
+
+        /* Wealth Dashboard */
+        .db-wealth { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:20px; margin-bottom:18px; position:relative; overflow:hidden; }
+        .db-wealth::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--green),var(--gold)); }
+        .db-wealth-ttl { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+        .db-wealth-ttl span { font-size:14px; }
+        .db-wealth-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+        .db-wealth-card { background:var(--surface2); border-radius:6px; padding:14px; text-align:center; border:1px solid var(--border); transition:all .2s; }
+        .db-wealth-card:hover { border-color:var(--green); }
+        .db-wealth-card-icon { font-size:20px; margin-bottom:8px; }
+        .db-wealth-card-label { font-family:'Space Mono',monospace; font-size:8px; color:var(--text-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:.1em; }
+        .db-wealth-card-value { font-family:'Cormorant Garamond',serif; font-size:22px; font-weight:600; }
+        .db-wealth-card-value.gold { color:var(--gold); }
+        .db-wealth-card-value.green { color:var(--green); }
+        .db-wealth-card-value.ice { color:var(--ice); }
+        .db-wealth-card-value.purple { color:var(--purple); }
+        .db-wealth-card-sub { font-family:'Space Mono',monospace; font-size:8px; color:var(--text-dim); margin-top:4px; }
       `}</style>
 
       <div className="db">
@@ -388,7 +440,7 @@ export default function DashboardPage() {
 
         {/* ── Roadmap Progress ── */}
         <div className="db-road">
-          <div className="db-road-ttl">Ecosystem Build Progress · Phase 2 of 8 Active</div>
+          <div className="db-road-ttl">Ecosystem Build Progress · Phase 3 of 8 Active</div>
           <div className="db-phases">
             {PHASES.map((ph) => (
               <div key={ph.n} className={`db-phase ${ph.state}`}>
@@ -398,6 +450,106 @@ export default function DashboardPage() {
                 <div className="db-phase-lbl">{ph.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* ── Journey Map ── */}
+        <div className="db-journey">
+          <div className="db-journey-ttl"><span>🗺️</span> Your Journey Across the Ecosystem</div>
+          <div className="db-journey-track">
+            <div className="db-journey-step done">
+              <div className="db-journey-dot done">✓</div>
+              <div className="db-journey-lbl">Core Engine</div>
+            </div>
+            <div className="db-journey-step done">
+              <div className="db-journey-dot done">✓</div>
+              <div className="db-journey-lbl">Community</div>
+            </div>
+            <div className="db-journey-step active">
+              <div className="db-journey-dot active">🎓</div>
+              <div className="db-journey-lbl">Academy</div>
+            </div>
+            <div className="db-journey-step pending">
+              <div className="db-journey-dot pending">🛒</div>
+              <div className="db-journey-lbl">Market</div>
+            </div>
+            <div className="db-journey-step pending">
+              <div className="db-journey-dot pending">🤖</div>
+              <div className="db-journey-lbl">Intelligence</div>
+            </div>
+            <div className="db-journey-step pending">
+              <div className="db-journey-dot pending">💼</div>
+              <div className="db-journey-lbl">Work</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Achievements ── */}
+        <div className="db-achievements">
+          <div className="db-achievements-ttl">
+            <span>🏆</span> Your Achievements
+            <span className="db-achievements-all">View All →</span>
+          </div>
+          <div className="db-achievements-grid">
+            <div className="db-achievement">
+              <div className="db-achievement-icon">🚀</div>
+              <div className="db-achievement-info">
+                <div className="db-achievement-name">First Steps</div>
+                <div className="db-achievement-desc">Complete onboarding</div>
+              </div>
+            </div>
+            <div className="db-achievement">
+              <div className="db-achievement-icon">👥</div>
+              <div className="db-achievement-info">
+                <div className="db-achievement-name">Community Builder</div>
+                <div className="db-achievement-desc">Create your first post</div>
+              </div>
+            </div>
+            <div className="db-achievement">
+              <div className="db-achievement-icon">🎓</div>
+              <div className="db-achievement-info">
+                <div className="db-achievement-name">Scholar</div>
+                <div className="db-achievement-desc">Enroll in a course</div>
+              </div>
+            </div>
+            <div className="db-achievement locked">
+              <div className="db-achievement-icon">🏅</div>
+              <div className="db-achievement-info">
+                <div className="db-achievement-name">Certificate</div>
+                <div className="db-achievement-desc">Earn your first cert</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Wealth Dashboard ── */}
+        <div className="db-wealth">
+          <div className="db-wealth-ttl"><span>💰</span> Earnings Across Ecosystem</div>
+          <div className="db-wealth-grid">
+            <div className="db-wealth-card">
+              <div className="db-wealth-card-icon">💳</div>
+              <div className="db-wealth-card-label">Subscriptions</div>
+              <div className="db-wealth-card-value gold">{fmtMoney(stats?.totalRevenue ?? 0)}</div>
+              <div className="db-wealth-card-sub">Monthly recurring</div>
+            </div>
+            <div className="db-wealth-card">
+              <div className="db-wealth-card-icon">🎓</div>
+              <div className="db-wealth-card-label">Academy</div>
+              <div className="db-wealth-card-value green">$0</div>
+              <div className="db-wealth-card-sub">Course sales</div>
+            </div>
+            <div className="db-wealth-card">
+              <div className="db-wealth-card-icon">🛒</div>
+              <div className="db-wealth-card-label">Market</div>
+              <div className="db-wealth-card-value ice">$0</div>
+              <div className="db-wealth-card-sub">Product revenue</div>
+            </div>
+            <div className="db-wealth-card">
+              <div className="db-wealth-card-icon">💼</div>
+              <div className="db-wealth-card-label">Work</div>
+              <div className="db-wealth-card-value purple">$0</div>
+              <div className="db-wealth-card-sub">Freelance earnings</div>
+            </div>
           </div>
         </div>
 
