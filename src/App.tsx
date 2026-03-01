@@ -37,6 +37,12 @@ import ChangelogPage from "./features/changelog/ChangelogPage";
 import TwoFactorPage from "./features/security/TwoFactorPage";
 import CommunityPage from "./features/community/CommunityPage";
 import GroupsPage from "./features/community/GroupsPage";
+import LiveSpacesPage from "./features/community/LiveSpacesPage";
+import DiasporaDirectoryPage from "./features/community/DiasporaDirectoryPage";
+import OpportunityBoardPage from "./features/community/OpportunityBoardPage";
+import CreatorAnalyticsPage from "./features/community/CreatorAnalyticsPage";
+import CreatorEconomyPage from "./features/community/CreatorEconomyPage";
+import MessagesPage from "./features/community/MessagesPage";
 import AcademyPage from "./features/academy/AcademyPage";
 import CoursePage from "./features/academy/CoursePage";
 import StudentDashboardPage from "./features/academy/StudentDashboardPage";
@@ -97,6 +103,13 @@ function App() {
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="community" element={<CommunityPage />} />
             <Route path="community/groups" element={<GroupsPage />} />
+            <Route path="community/spaces" element={<LiveSpacesPage />} />
+            <Route path="community/directory" element={<DiasporaDirectoryPage />} />
+            <Route path="community/opportunities" element={<OpportunityBoardPage />} />
+            <Route path="community/analytics" element={<CreatorAnalyticsPage />} />
+            <Route path="community/creator" element={<CreatorEconomyPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="messages/:conversationId" element={<MessagesPage />} />
             <Route path="academy" element={<AcademyPage />} />
             <Route path="academy/my-learning" element={<StudentDashboardPage />} />
             <Route path="academy/courses/:slug" element={<CoursePage />} />

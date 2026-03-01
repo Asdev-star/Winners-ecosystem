@@ -229,6 +229,16 @@ const PLATFORMS = [
     desc:   "Social feed · Chat · Profiles",
     status: "live",
     tag:    "v1.0",
+    sub:    [
+      { path: "/community", label: "Feed" },
+      { path: "/community/groups", label: "Groups" },
+      { path: "/community/spaces", label: "Live Spaces", icon: "📡" },
+      { path: "/community/directory", label: "Directory", icon: "🌍" },
+      { path: "/community/opportunities", label: "Opportunities", icon: "🔗" },
+      { path: "/community/analytics", label: "Analytics", icon: "📊" },
+      { path: "/community/creator", label: "Creator", icon: "💎" },
+      { path: "/messages", label: "Messages" },
+    ],
   },
   {
     path:   "/academy",

@@ -35,7 +35,9 @@ model Tenant {
   posts           Post[]
   groups          Group[]
   privacyAcknowledgments PrivacyAcknowledgment[]
-  courses         Course[]
+  courses             Course[]
+  conversations       Conversation[]
+  liveSpaces         LiveSpace[]
 
   @@map("tenants")
 }
@@ -80,6 +82,26 @@ model User {
   lessonProgress       LessonProgress[] @relation("LessonProgress")
   courseCertificates   Certificate[]    @relation("CourseCertificate")
   courseReviews        Review[]         @relation("CourseReview")
+  createdConversations Conversation[]   @relation("ConversationCreator")
+  messages             Message[]        @relation("MessageSender")
+  conversationParticipations ConversationParticipant[]
+  messageReads         MessageRead[]
+  hostedSpaces         LiveSpace[]          @relation("LiveSpaceHost")
+  spaceParticipations  LiveSpaceParticipant[]
+  spaceSpeakers       LiveSpaceSpeaker[]
+  opportunities        Opportunity[]
+  subscriberSubscriptions CreatorSubscription[] @relation("Subscriber")
+  creatorSubscriptions  CreatorSubscription[] @relation("Creator")
+  creatorTier          CreatorTier[]
+
+  // Diaspora Directory fields
+  country             String?
+  city                String?
+  bio                 String?
+  skills              String[] // Array of skills for directory
+  industry            String?
+  isPublicProfile     Boolean   @default(true)
+  profileViews        Int       @default(0)
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -176,7 +198,7 @@ model RevenueRecord {
 model AnalyticsEvent {
   id        String   @id @default(cuid())
   tenantId  String
-  event     String
+  event     String   @default("unknown")
   userId    String?
   metadata  Json?
   createdAt DateTime @default(now())
@@ -392,10 +414,10 @@ model Group {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant    Tenant        @relation(fields: [tenantId], references: [id])
-  createdBy User          @relation("GroupCreator", fields: [createdById], references: [id])
-  members   GroupMember[]
-  posts     Post[]        @relation("GroupPosts")
+  tenant                   Tenant        @relation(fields: [tenantId], references: [id])
+  createdBy                User          @relation("GroupCreator", fields: [createdById], references: [id])
+  members                  GroupMember[]
+  posts                    Post[]        @relation("GroupPosts")
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -422,6 +444,262 @@ enum GroupMemberRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY LAYER — PHASE 2 V1.4: LIVE SPACES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model LiveSpace {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  description String?
+  hostId      String
+  status      LiveSpaceStatus @default(SCHEDULED)
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  endedAt     DateTime?
+  maxSpeakers Int      @default(6)
+  maxListeners Int     @default(500)
+  isRecorded  Boolean  @default(false)
+  recordingUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id])
+  host        User                @relation("LiveSpaceHost", fields: [hostId], references: [id])
+  participants LiveSpaceParticipant[]
+  speakers    LiveSpaceSpeaker[]
+
+  @@index([tenantId])
+  @@index([hostId])
+  @@index([status])
+  @@map("live_spaces")
+}
+
+model LiveSpaceParticipant {
+  id         String   @id @default(cuid())
+  spaceId    String
+  userId     String
+  role       LiveSpaceParticipantRole @default(LISTENER)
+  joinedAt   DateTime @default(now())
+  leftAt     DateTime?
+
+  space LiveSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([spaceId])
+  @@index([userId])
+  @@map("live_space_participants")
+}
+
+model LiveSpaceSpeaker {
+  id        String   @id @default(cuid())
+  spaceId   String
+  userId    String
+  isMuted   Boolean  @default(false)
+  isInvited Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+
+  space LiveSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([spaceId])
+  @@map("live_space_speakers")
+}
+
+// ─── Opportunity Board ───────────────────────────────────────────────────────────
+
+model Opportunity {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  description String   @db.Text
+  type        OpportunityType
+  category    String   // "job", "collab", "mentorship", "investment"
+  budget      String?  // e.g., "$5000", "negotiable", "volunteer"
+  skills      String[]
+  location    String?  // remote, specific country/city
+  status      OpportunityStatus @default(ACTIVE)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expiresAt   DateTime?
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([category])
+  @@map("opportunities")
+}
+
+enum OpportunityType {
+  JOB
+  COLLABORATION
+  MENTORSHIP
+  INVESTMENT
+}
+
+enum OpportunityStatus {
+  ACTIVE
+  FILLED
+  EXPIRED
+  ARCHIVED
+}
+
+// ─── Creator Subscriptions ─────────────────────────────────────────────────────────
+
+model CreatorSubscription {
+  id              String   @id @default(cuid())
+  subscriberId    String
+  creatorId       String
+  subscriber      User     @relation("Subscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
+  creator         User     @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
+  tier            String   // "basic", "pro", "premium"
+  amount          Int      // amount in cents
+  status          SubscriptionStatus @default(ACTIVE)
+  startedAt       DateTime @default(now())
+  expiresAt       DateTime?
+  stripeSubId     String?  // Stripe subscription ID
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([subscriberId, creatorId])
+  @@index([creatorId])
+  @@index([subscriberId])
+  @@map("creator_subscriptions")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PAUSED
+}
+
+model CreatorTier {
+  id          String   @id @default(cuid())
+  creatorId   String
+  creator     User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  name        String   // "Basic", "Pro", "Premium"
+  description String?
+  amount      Int      // monthly amount in cents
+  features    String[] // list of features for this tier
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([creatorId, name])
+  @@map("creator_tiers")
+}
+
+enum LiveSpaceStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum LiveSpaceParticipantRole {
+  HOST
+  SPEAKER
+  LISTENER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY LAYER — PHASE 2 V1.3: DIRECT MESSAGING
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Conversation {
+  id          String      @id @default(cuid())
+  tenantId    String
+  createdById String
+  isGroup     Boolean     @default(false)
+  title       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  createdBy  User        @relation("ConversationCreator", fields: [createdById], references: [id])
+  participants ConversationParticipant[]
+  messages    Message[]
+
+  @@index([tenantId, updatedAt(sort: Desc)])
+  @@index([createdById])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(cuid())
+  conversationId String
+  userId         String
+  role           ConversationRole @default(MEMBER)
+  lastReadAt     DateTime  @default(now())
+  joinedAt       DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+enum ConversationRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String
+  type           MessageType @default(TEXT)
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  conversation Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User             @relation("MessageSender", fields: [senderId], references: [id])
+  reads        MessageRead[]
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@index([senderId])
+  @@map("messages")
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  VOICE
+  SYSTEM
+}
+
+model MessageRead {
+  id          String   @id @default(cuid())
+  messageId   String
+  userId      String
+  readAt      DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+  @@map("message_reads")
 }
 
 // PHASE 3 - WINNERS ACADEMY

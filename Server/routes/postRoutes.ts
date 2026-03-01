@@ -1,11 +1,13 @@
 // Server/routes/postRoutes.ts
 // FIXED: isPinned is the correct field name (schema uses isPinned)
 // FIXED: all req.params cast with String()
+// Phase 2 V1.1: Added real-time presence API + Voice Posts
 
 import { Router, Request, Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
+import { getOnlineUsers } from "../services/wsService.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -14,6 +16,19 @@ router.use(enforceTenant);
 function isMissingTableError(err: any) {
   return err?.code === "P2021" || String(err?.message ?? "").toLowerCase().includes("does not exist");
 }
+
+// ─── GET /posts/online — get online users ───────────────────────────────────────
+
+router.get("/online", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  try {
+    const onlineUsers = getOnlineUsers(tenantId);
+    res.json({ onlineUsers, onlineCount: onlineUsers.length });
+  } catch (error) {
+    console.error("[presence] Error getting online users:", error);
+    res.status(500).json({ error: "Failed to get online users" });
+  }
+});
 
 // ─── GET /posts — feed ────────────────────────────────────────────────────────
 
@@ -142,6 +157,59 @@ router.post("/", async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     console.error("Create post error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ─── POST /posts/voice — create voice post ─────────────────────────────────────
+
+router.post("/voice", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const authorId = req.user!.userId;
+  const { content, voiceData, tags } = req.body;
+
+  if (!voiceData) {
+    return res.status(400).json({ message: "Voice data is required" });
+  }
+
+  try {
+    const tagRecords = await Promise.all(
+      (tags ? JSON.parse(tags) : []).map((name: string) =>
+        db.tag.upsert({
+          where:  { name: name.toLowerCase().trim() },
+          update: {},
+          create: { name: name.toLowerCase().trim() },
+        })
+      )
+    );
+
+    const post = await db.post.create({
+      data: {
+        tenantId,
+        authorId,
+        content: content?.trim() || "🎤 Voice post",
+        mediaUrl:  voiceData, // base64 data URL
+        mediaType: "voice",
+        tags: {
+          create: tagRecords.map((tag) => ({ tagId: tag.id })),
+        },
+      },
+      include: {
+        author:   { select: { id: true, name: true, email: true } },
+        _count:   { select: { likes: true, comments: true } },
+        tags:     { include: { tag: true } },
+      },
+    });
+
+    return res.status(201).json({
+      ...post,
+      likeCount:    post._count.likes,
+      commentCount: post._count.comments,
+      liked:        false,
+      tags:         post.tags.map((t) => t.tag.name),
+    });
+  } catch (err: any) {
+    console.error("Create voice post error:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 });

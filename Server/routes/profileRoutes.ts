@@ -10,13 +10,13 @@ const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
 
-// ─── PATCH /profile — update name & email ─────────────────────────────────────
+// ─── PATCH /profile — update name, email, and diaspora fields ────────────────────────
 
 router.patch("/", async (req: Request, res: Response) => {
-  const { name, email } = req.body;
+  const { name, email, country, city, bio, skills, industry, isPublicProfile } = req.body;
 
-  if (!name && !email) {
-    return res.status(400).json({ message: "name or email is required" });
+  if (!name && !email && !country && !city && !bio && !skills && !industry && isPublicProfile === undefined) {
+    return res.status(400).json({ message: "At least one field is required" });
   }
 
   try {
@@ -33,12 +33,29 @@ router.patch("/", async (req: Request, res: Response) => {
       data:  {
         ...(name  && { name }),
         ...(email && { email: email.toLowerCase() }),
+        ...(country !== undefined && { country }),
+        ...(city !== undefined && { city }),
+        ...(bio !== undefined && { bio }),
+        ...(skills && { skills }),
+        ...(industry !== undefined && { industry }),
+        ...(isPublicProfile !== undefined && { isPublicProfile }),
       },
     });
 
     return res.json({
       message: "Profile updated",
-      user: { id: updated.id, name: updated.name, email: updated.email, role: updated.role.toLowerCase() },
+      user: { 
+        id: updated.id, 
+        name: updated.name, 
+        email: updated.email, 
+        role: updated.role.toLowerCase(),
+        country: updated.country,
+        city: updated.city,
+        bio: updated.bio,
+        skills: updated.skills,
+        industry: updated.industry,
+        isPublicProfile: updated.isPublicProfile,
+      },
     });
   } catch (err) {
     console.error("Profile update error:", err);

@@ -147,3 +147,130 @@ router.delete("/:id", requirePermission("manageUsers"), async (req: Request, res
 });
 
 export default router;
+
+// ─── GET /users/analytics — creator analytics ────────────────────────────────────────
+
+router.get("/analytics", async (req: Request, res: Response) => {
+  const { period } = req.query;
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+
+  try {
+    // Get date filter
+    let dateFilter: Date | undefined;
+    if (period === "7d") dateFilter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    else if (period === "30d") dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    else if (period === "90d") dateFilter = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+    // Get user profile views
+    const user = await db.user.findFirst({ where: { id: userId } });
+    const profileViews = user?.profileViews || 0;
+
+    // Get follower count
+    const followersCount = await db.follow.count({ where: { followingId: userId } });
+
+    // Get posts count
+    const postsCount = await db.post.count({
+      where: { authorId: userId, ...(dateFilter && { createdAt: { gte: dateFilter } }) },
+    });
+
+    // Get likes and comments on user's posts
+    const userPosts = await db.post.findMany({
+      where: { authorId: userId, ...(dateFilter && { createdAt: { gte: dateFilter } }) },
+      select: { id: true },
+    });
+    const postIds = userPosts.map(p => p.id);
+
+    const likesCount = await db.like.count({ where: { postId: { in: postIds } } });
+    const commentsCount = await db.comment.count({ where: { postId: { in: postIds } } });
+
+    // Calculate engagement rate
+    const totalEngagement = likesCount + commentsCount;
+    const engagementRate = postsCount > 0 ? totalEngagement / postsCount / 100 : 0;
+
+    // Get top posts
+    const topPosts = await db.post.findMany({
+      where: { authorId: userId, ...(dateFilter && { createdAt: { gte: dateFilter } }) },
+      include: {
+        _count: { select: { likes: true, comments: true } },
+      },
+      orderBy: { likes: { _count: "desc" } },
+      take: 10,
+    });
+
+    const formattedTopPosts = topPosts.map(p => ({
+      id: p.id,
+      content: p.content?.slice(0, 200) || "",
+      likes: p._count.likes,
+      comments: p._count.comments,
+      createdAt: p.createdAt.toISOString(),
+    }));
+
+    // Simulated changes (in production, compare to previous period)
+    const profileViewsChange = Math.floor(Math.random() * 30) - 5; // -5 to +25%
+    const followersChange = Math.floor(Math.random() * 20) - 3; // -3 to +17%
+
+    return res.json({
+      analytics: {
+        profileViews,
+        profileViewsChange,
+        followers: followersCount,
+        followersChange,
+        totalPosts: postsCount,
+        totalLikes: likesCount,
+        totalComments: commentsCount,
+        engagementRate,
+      },
+      topPosts: formattedTopPosts,
+    });
+  } catch (err) {
+    console.error("Analytics fetch error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ─── GET /users/directory — public directory listing ─────────────────────────────
+
+router.get("/directory", async (req: Request, res: Response) => {
+  const { search, country, industry, publicOnly } = req.query;
+
+  try {
+    const where: any = {
+      deletedAt: null,
+      ...(publicOnly === "true" && { isPublicProfile: true }),
+      ...(country && { country: country as string }),
+      ...(industry && { industry: industry as string }),
+    };
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search as string, mode: "insensitive" } },
+        { skills: { has: search as string } },
+        { bio: { contains: search as string, mode: "insensitive" } },
+      ];
+    }
+
+    const users = await db.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        country: true,
+        city: true,
+        bio: true,
+        skills: true,
+        industry: true,
+        profileViews: true,
+        isPublicProfile: true,
+        createdAt: true,
+      },
+      orderBy: { profileViews: "desc" },
+      take: 50,
+    });
+
+    return res.json({ users });
+  } catch (err) {
+    console.error("Directory fetch error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});

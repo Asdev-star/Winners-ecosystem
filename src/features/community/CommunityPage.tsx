@@ -1,7 +1,7 @@
 // src/features/community/CommunityPage.tsx
 
-import { useState, useEffect, useCallback } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -57,6 +57,31 @@ const css = `
   }
   .cm-tag-input { background: transparent; border: none; outline: none; font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; width: 160px; }
   .cm-tag-input::placeholder { color: #2E3D4F; }
+
+  .cm-media-btn {
+    background: none; border: none; color: #5A7A96; font-size: 16px; cursor: pointer;
+    padding: 6px 10px; border-radius: 8px; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+  }
+  .cm-media-btn:hover { background: rgba(201,168,76,0.1); color: #C9A84C; }
+  .cm-media-btn.recording { background: rgba(224,90,78,0.15); color: #E05A4E; animation: pulse-rec 1s infinite; }
+  @keyframes pulse-rec { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+  .cm-voice-recording {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: rgba(224,90,78,0.08); border: 1px solid rgba(224,90,78,0.2);
+    border-radius: 10px; margin-top: 10px;
+  }
+  .cm-voice-wave {
+    display: flex; align-items: center; gap: 2px; height: 24px;
+  }
+  .cm-voice-bar {
+    width: 3px; background: #E05A4E; border-radius: 2px; animation: voice-bar 0.5s ease infinite alternate;
+  }
+  @keyframes voice-bar { 0% { height: 6px; } 100% { height: 20px; } }
+  .cm-voice-time { font-family: 'Space Mono', monospace; font-size: 12px; color: #E05A4E; }
+  .cm-voice-cancel {
+    margin-left: auto; background: none; border: none; color: #5A7A96; cursor: pointer; font-size: 12px;
+  }
 
   .cm-post-btn {
     padding: 8px 20px; border-radius: 8px; background: #C9A84C; color: #0D1520;
@@ -205,6 +230,13 @@ export default function CommunityPage() {
   const [submittingComment, setSubmittingComment] = useState<string | null>(null);
   const [onlineCount, setOnlineCount]             = useState(0);
 
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const fetchPosts = useCallback(async (p = 1, append = false) => {
@@ -263,13 +295,86 @@ export default function CommunityPage() {
   }, [token, fetchPosts]);
 
   const handlePost = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() && !voiceBlob) return;
     setPosting(true);
     try {
-      const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
-      const res = await fetch(`${API}/posts`, { method: "POST", headers, body: JSON.stringify({ content: content.trim(), tags: tagList }) });
-      if (res.ok) { setContent(""); setTags(""); await fetchPosts(1); }
+      // Handle voice post upload
+      if (voiceBlob) {
+        // Convert blob to base64
+        const voiceData = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(voiceBlob);
+          reader.onloadend = () => resolve(reader.result as string);
+        });
+
+        const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
+        const res = await fetch(`${API}/posts/voice`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content: content.trim() || "🎤 Voice post",
+            voiceData,
+            tags: JSON.stringify(tagList),
+          })
+        });
+        if (res.ok) {
+          setContent("");
+          setTags("");
+          setVoiceBlob(null);
+          setRecordingTime(0);
+          await fetchPosts(1);
+        }
+      } else {
+        // Regular text post
+        const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
+        const res = await fetch(`${API}/posts`, { method: "POST", headers, body: JSON.stringify({ content: content.trim(), tags: tagList }) });
+        if (res.ok) { setContent(""); setTags(""); await fetchPosts(1); }
+      }
     } finally { setPosting(false); }
+  };
+
+  // Voice recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      const chunks: Blob[] = [];
+
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      mediaRecorder.onstop = () => { setVoiceBlob(new Blob(chunks, { type: "audio/webm" })); stream.getTracks().forEach(t => t.stop()); };
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(t => t + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Failed to start recording:", err);
+      alert("Could not access microphone. Please grant permission.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    }
+  };
+
+  const cancelRecording = () => {
+    stopRecording();
+    setVoiceBlob(null);
+    setRecordingTime(0);
   };
 
   const handleLike = async (postId: string) => {
@@ -344,9 +449,38 @@ export default function CommunityPage() {
               />
             </div>
             <div className="cm-compose-footer">
-              <input className="cm-tag-input" placeholder="# tags, comma separated" value={tags} onChange={(e) => setTags(e.target.value)} />
-              <button className="cm-post-btn" disabled={!content.trim() || posting} onClick={handlePost}>
-                {posting ? "Posting…" : "Post →"}
+              {/* Voice Recording UI */}
+              {isRecording || voiceBlob ? (
+                <div className="cm-voice-recording">
+                  <div className="cm-voice-status">
+                    {isRecording && <span className="cm-recording-indicator">● Recording</span>}
+                    {voiceBlob && !isRecording && <span className="cm-voice-preview">🎤 Voice recorded ({Math.round(voiceBlob.size / 1024)}KB)</span>}
+                    {isRecording && <span className="cm-recording-time">{Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, "0")}</span>}
+                  </div>
+                  <div className="cm-voice-actions">
+                    {isRecording ? (
+                      <button type="button" className="cm-stop-btn" onClick={stopRecording}>⏹ Stop</button>
+                    ) : voiceBlob ? (
+                      <>
+                        <button type="button" className="cm-cancel-btn" onClick={cancelRecording}>✕ Discard</button>
+                        <button type="button" className="cm-play-btn" onClick={() => {
+                          const audio = new Audio(URL.createObjectURL(voiceBlob));
+                          audio.play();
+                        }}>▶ Play</button>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button type="button" className="cm-mic-btn" onClick={startRecording} title="Record a voice post">
+                    🎤 Voice
+                  </button>
+                  <input className="cm-tag-input" placeholder="# tags, comma separated" value={tags} onChange={(e) => setTags(e.target.value)} />
+                </>
+              )}
+              <button className="cm-post-btn" disabled={(!content.trim() && !voiceBlob) || posting} onClick={handlePost}>
+                {posting ? "Posting…" : voiceBlob ? "Post Voice →" : "Post →"}
               </button>
             </div>
           </div>

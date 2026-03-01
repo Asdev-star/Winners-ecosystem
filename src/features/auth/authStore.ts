@@ -1,7 +1,7 @@
 // src/features/auth/authStore.ts
 
 import { create } from "zustand";
-
+
 
 import { API_BASE } from "../../lib/api";
 
@@ -16,6 +16,14 @@ export interface AuthUser {
   tenantName: string;
   twoFactorEnabled?: boolean;
   avatarUrl?:        string;
+  // Diaspora directory fields
+  country?:        string | null;
+  city?:           string | null;
+  bio?:            string | null;
+  skills?:         string[] | null;
+  industry?:       string | null;
+  isPublicProfile?: boolean;
+  profileViews?:    number;
 }
 
 export type TwoFactorMethod = "totp" | "email_otp";
