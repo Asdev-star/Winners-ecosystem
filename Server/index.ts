@@ -28,16 +28,20 @@ import academyRoutes from "./routes/academyRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 
 // ── Message Routes (Phase 2 — Winners Community DMs) ───────────────────────
-import messageRoutes from "./routes/messageRoutes.js";
+// TEMPORARILY DISABLED - awaiting Prisma client regeneration
+// import messageRoutes from "./routes/messageRoutes.js";
 
 // ── Live Space Routes (Phase 2 V1.4 — Winners Community Live Spaces) ───────
-import liveSpaceRoutes from "./routes/liveSpaceRoutes.js";
+// TEMPORARILY DISABLED - awaiting Prisma client regeneration
+// import liveSpaceRoutes from "./routes/liveSpaceRoutes.js";
 
 // ── Opportunity Routes (Phase 2 — Winners Community Opportunity Board) ──────────
-import opportunityRoutes from "./routes/opportunityRoutes.js";
+// TEMPORARILY DISABLED - awaiting Prisma client regeneration
+// import opportunityRoutes from "./routes/opportunityRoutes.js";
 
 // ── Creator Routes (Phase 2 — Winners Community Creator Economy) ─────────────────
-import creatorRoutes from "./routes/creatorRoutes.js";
+// TEMPORARILY DISABLED - awaiting Prisma client regeneration
+// import creatorRoutes from "./routes/creatorRoutes.js";
 
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 import { startEmailScheduler } from "./services/emailScheduler.js";
@@ -114,10 +118,11 @@ app.use("/api/v1", v1Router);
 // ── Direct Route Mounts — Academy + Chat + Messages + Live Spaces ────────────
 app.use("/academy", academyRoutes);
 app.use("/chat", chatRoutes);
-app.use("/messages", messageRoutes);
-app.use("/spaces", liveSpaceRoutes);
-app.use("/opportunities", opportunityRoutes);
-app.use("/creator", creatorRoutes);
+// TEMPORARILY DISABLED - awaiting Prisma client regeneration
+// app.use("/messages", messageRoutes);
+// app.use("/spaces", liveSpaceRoutes);
+// app.use("/opportunities", opportunityRoutes);
+// app.use("/creator", creatorRoutes);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LEGACY ROUTE COMPATIBILITY — Redirect old unversioned routes to v1
