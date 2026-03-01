@@ -93,6 +93,8 @@ model User {
   subscriberSubscriptions CreatorSubscription[] @relation("Subscriber")
   creatorSubscriptions  CreatorSubscription[] @relation("Creator")
   creatorTier          CreatorTier[]
+  challengeSubmissions CommunityChallengeSubmission[]
+  challengeWins       CommunityChallengeWinner[]
 
   // Diaspora Directory fields
   country             String?
@@ -586,18 +588,88 @@ enum SubscriptionStatus {
 model CreatorTier {
   id          String   @id @default(cuid())
   creatorId   String
+  tenantId    String
   creator     User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  name        String   // "Basic", "Pro", "Premium"
+  name        String
   description String?
-  amount      Int      // monthly amount in cents
-  features    String[] // list of features for this tier
+  benefits    String[] // benefits for this tier
+  monthlyPrice Int     // monthly price in cents
+  yearlyPrice  Int     // yearly price in cents
   isActive    Boolean  @default(true)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@unique([creatorId, name])
+  @@index([tenantId])
   @@map("creator_tiers")
+}
+
+// ─── Community Challenges ───────────────────────────────────────────────────────────
+
+model CommunityChallenge {
+  id          String   @id @default(cuid())
+  tenantId    String
+  title       String
+  description String
+  category    String   // "content", "engagement", "creation", "growth"
+  prize       String   // "credits", "badge", "featured", "subscription"
+  prizeValue  Int      // amount of credits or badge name
+  startsAt    DateTime
+  endsAt      DateTime
+  status      ChallengeStatus @default(ACTIVE)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  submissions CommunityChallengeSubmission[]
+  winners     CommunityChallengeWinner[]
+
+  @@index([tenantId, status])
+  @@index([endsAt])
+  @@map("community_challenges")
+}
+
+model CommunityChallengeSubmission {
+  id          String   @id @default(cuid())
+  challengeId String
+  userId      String
+  postId      String?
+  content     String   @db.Text
+  engagement  Int      @default(0) // likes + comments + shares
+  
+  createdAt   DateTime @default(now())
+
+  challenge CommunityChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([challengeId, engagement(sort: Desc)])
+  @@map("challenge_submissions")
+}
+
+model CommunityChallengeWinner {
+  id          String   @id @default(cuid())
+  challengeId String
+  userId      String
+  rank        Int      // 1st, 2nd, 3rd
+  prizeAwarded String
+  
+  createdAt   DateTime @default(now())
+
+  challenge CommunityChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, rank])
+  @@map("challenge_winners")
+}
+
+enum ChallengeStatus {
+  DRAFT
+  ACTIVE
+  VOTING
+  COMPLETED
+  CANCELLED
 }
 
 enum LiveSpaceStatus {
