@@ -21,6 +21,12 @@ import "./services/appRegistry.js"; // Self-registers all platform modules at st
 // ── Core Infrastructure: Versioned API Gateway (Block 1 — Item 5) ─────────────
 import v1Router from "./routes/apiRouter.js";
 
+// ── Academy Routes (Phase 3 — Winners Academy) ───────────────────────────────
+import academyRoutes from "./routes/academyRoutes.js";
+
+// ── Chat Routes (Phase 5 — Winners Intelligence) ──────────────────────────────
+import chatRoutes from "./routes/chatRoutes.js";
+
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 import { startEmailScheduler } from "./services/emailScheduler.js";
 
@@ -93,6 +99,10 @@ app.use(globalRateLimiter);
 
 app.use("/api/v1", v1Router);
 
+// ── Direct Route Mounts — Academy + Chat (No Redirect Needed) ───────────────
+app.use("/academy", academyRoutes);
+app.use("/chat", chatRoutes);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // LEGACY ROUTE COMPATIBILITY — Redirect old unversioned routes to v1
 // Allows frontend to migrate gradually without breaking changes
@@ -102,7 +112,7 @@ const LEGACY_ROUTES = [
   "/auth", "/tenants", "/users", "/analytics", "/export", "/billing",
   "/ai", "/profile", "/email", "/notifications", "/stripe", "/search",
   "/activity", "/referral", "/admin", "/changelog", "/2fa", "/posts", "/groups",
-  "/gdpr", "/registry", "/slack", "/sso", "/academy", "/chat",
+  "/gdpr", "/registry", "/slack", "/sso",
 ];
 
 for (const route of LEGACY_ROUTES) {
