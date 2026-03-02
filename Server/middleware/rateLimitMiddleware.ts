@@ -8,6 +8,11 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { Request, Response, NextFunction } from "express";
 
+// Helper to get IP safely for rate limiting (handles IPv6)
+function getClientIp(req: Request): string {
+  return req.ip ?? req.socket.remoteAddress ?? 'unknown';
+}
+
 // ─── Security Headers (helmet) ────────────────────────────────────────────────
 // app.use(helmetConfig) — add to Server/index.ts
 
@@ -58,9 +63,10 @@ export const authLimiter = rateLimit({
     retryAfter: "15 minutes",
   },
   keyGenerator: (req: Request) => {
-    // Rate limit per IP + email combo - use trusted proxy for IPv6
-    const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown';
-    return `${ip}:${req.body?.email ?? ""}`;
+    // Rate limit per IP + email combo
+    const ip = getClientIp(req);
+    const email = typeof req.body?.email === 'string' ? req.body.email : '';
+    return `${ip}:${email}`;
   },
 });
 
@@ -91,8 +97,9 @@ export const postLimiter = rateLimit({
     message: "You've posted too frequently. Try again in an hour.",
   },
   keyGenerator: (req: Request) => {
-    // Per user ID, not IP (authenticated routes)
-    return (req as any).user?.userId ?? req.ip;
+    // Per user ID if authenticated, otherwise IP
+    const userId = (req as any).user?.userId;
+    return userId ?? getClientIp(req);
   },
 });
 
