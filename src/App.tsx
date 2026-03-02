@@ -52,6 +52,7 @@ import WinnersIntelligencePage from "./features/intelligence/WinnersIntelligence
 import AIPlatformPage from "./features/intelligence/ai-platform/AIPlatformPage";
 import InstructorDashboard from "./features/academy/InstructorDashboard";
 import CourseCreatePage from "./features/academy/CourseCreatePage";
+import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -74,6 +75,7 @@ function App() {
           <Route path="/invite/accept" element={<AcceptInvitePage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/architecture" element={<ArchitectureDiagram />} />
+          <Route path="/ui-quality" element={<WinnersUIArchitectureLevels />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/sso/exchange" element={<SsoExchangePage />} />
