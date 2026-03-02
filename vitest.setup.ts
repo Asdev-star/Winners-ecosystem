@@ -1,41 +1,29 @@
-import { afterAll, afterEach, beforeAll, vi } from "vitest";
+// Minimal vitest setup for v1.6.1
+// Note: This file runs in the test context, not Node.js
 
-afterEach(() => {
-  vi.clearAllMocks();
-  vi.restoreAllMocks();
-});
+import { afterEach, beforeAll } from 'vitest';
 
-if (typeof window !== "undefined") {
-  Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    value: vi.fn().mockImplementation((query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  });
-}
-
-// Suppress noisy console errors from known test-environment warnings
-const originalError = console.error;
+// Setup browser mocks for happy-dom
 beforeAll(() => {
-  console.error = (...args: unknown[]) => {
-    if (
-      typeof args[0] === "string" &&
-      (args[0].includes("Warning: ReactDOM.render") ||
-        args[0].includes("Not implemented: HTMLFormElement.prototype.submit"))
-    ) {
-      return;
-    }
-    originalError.call(console, ...args);
-  };
+  // Mock matchMedia for components that use it
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true,
+      }),
+    });
+  }
 });
 
-afterAll(() => {
-  console.error = originalError;
+// Cleanup after each test
+afterEach(() => {
+  // Clean up any timers or mocks
 });
