@@ -27,14 +27,14 @@ const css = `
   }
 
   .cm-compose {
-    background: linear-gradient(135deg, #0f1923 0%, #111D2E 100%);
+    background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
     border: 1px solid rgba(137,196,225,0.12);
     border-radius: 16px; padding: 16px; margin-bottom: 20px;
     position: relative; overflow: hidden;
   }
   .cm-compose::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
   }
   .cm-compose-top { display: flex; gap: 12px; align-items: flex-start; }
 
@@ -84,7 +84,7 @@ const css = `
   }
 
   .cm-post-btn {
-    padding: 8px 20px; border-radius: 8px; background: #C9A84C; color: #0D1520;
+    padding: 8px 20px; border-radius: 8px; background: var(--gold); color: var(--bg);
     font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
     border: none; cursor: pointer; transition: all 0.15s;
   }
@@ -92,7 +92,7 @@ const css = `
   .cm-post-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
   .cm-post {
-    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg) 100%);
     border: 1px solid rgba(137,196,225,0.1);
     border-radius: 16px; margin-bottom: 16px; transition: border-color 0.2s; overflow: hidden;
   }
@@ -100,12 +100,12 @@ const css = `
 
   .cm-post-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 0; }
   .cm-post-author { flex: 1; }
-  .cm-post-name { font-size: 13px; font-weight: 700; color: #E8EEF5; }
+  .cm-post-name { font-size: 13px; font-weight: 700; color: var(--text); }
   .cm-post-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; margin-top: 1px; }
   .cm-post-body { padding: 12px 16px; font-size: 14px; color: var(--text); line-height: 1.65; white-space: pre-wrap; }
 
   .cm-post-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
-  .cm-tag { font-family: 'Space Mono', monospace; font-size: 10px; color: #C9A84C; background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.15); border-radius: 20px; padding: 2px 10px; }
+  .cm-tag { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--gold); background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.15); border-radius: 20px; padding: 2px 10px; }
 
   .cm-post-actions { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-top: 1px solid rgba(137,196,225,0.08); }
   .cm-action-btn {
@@ -149,25 +149,25 @@ const css = `
 
   .cm-sidebar { width: 280px; flex-shrink: 0; padding: 28px 16px 28px 0; }
   .cm-sidebar-card {
-    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg) 100%);
     border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 16px; margin-bottom: 16px;
   }
   .cm-sidebar-card.gold-border { border-color: rgba(201,168,76,0.2); }
-  .cm-sidebar-title { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: #C9A84C; margin-bottom: 14px; }
+  .cm-sidebar-title { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
 
   .cm-member-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(137,196,225,0.07); }
   .cm-member-item:last-child { border-bottom: none; padding-bottom: 0; }
-  .cm-member-avatar { width: 30px; height: 30px; border-radius: 50%; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.15); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #C9A84C; flex-shrink: 0; }
-  .cm-member-name { font-size: 12px; font-weight: 700; color: #E8EEF5; }
+  .cm-member-avatar { width: 30px; height: 30px; border-radius: 50%; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.15); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+  .cm-member-name { font-size: 12px; font-weight: 700; color: var(--text); }
   .cm-member-role { font-family: 'Space Mono', monospace; font-size: 9px; color: #5A7A96; text-transform: uppercase; }
   .cm-member-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; margin-left: auto; flex-shrink: 0; box-shadow: 0 0 6px rgba(74,222,128,0.5); }
 
   .cm-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(137,196,225,0.07); }
   .cm-stat-row:last-child { border-bottom: none; padding-bottom: 0; }
   .cm-stat-label { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; }
-  .cm-stat-val { font-size: 13px; font-weight: 800; color: #C9A84C; }
+  .cm-stat-val { font-size: 13px; font-weight: 800; color: var(--gold); }
 
-  .cm-pinned-badge { display: inline-flex; align-items: center; gap: 4px; font-family: 'Space Mono', monospace; font-size: 9px; color: #C9A84C; letter-spacing: 0.1em; text-transform: uppercase; margin-left: auto; }
+  .cm-pinned-badge { display: inline-flex; align-items: center; gap: 4px; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-left: auto; }
 
   .cm-empty { text-align: center; padding: 48px 20px; font-family: 'Space Mono', monospace; font-size: 12px; color: #5A7A96; }
   .cm-empty-icon { font-size: 36px; margin-bottom: 12px; }
@@ -179,8 +179,8 @@ const css = `
   .cm-load-more { width: 100%; padding: 11px; background: transparent; border: 1px solid #1E3248; border-radius: 10px; color: #5A7A96; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
   .cm-load-more:hover { border-color: rgba(201,168,76,0.3); color: #C9A84C; }
 
-  .cm-tip-text { font-size: 12px; color: #5A7A96; line-height: 1.6; font-family: 'Space Mono', monospace; }
-  .cm-tip-text strong { color: #C9A84C; }
+  .cm-tip-text { font-size: 12px; color: var(--text-dim); line-height: 1.6; font-family: 'Space Mono', monospace; }
+  .cm-tip-text strong { color: var(--gold); }
 
   @media (max-width: 900px) {
     .cm-sidebar { display: none; }

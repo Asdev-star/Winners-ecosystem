@@ -210,8 +210,8 @@ const css = `
   }
 
   .form-btn-primary {
-    background: linear-gradient(135deg, var(--gold), #8B6914);
-    color: #0D1520;
+    background: linear-gradient(135deg, var(--gold), var(--gold));
+    color: var(--bg);
   }
 
   .form-btn-primary:hover {

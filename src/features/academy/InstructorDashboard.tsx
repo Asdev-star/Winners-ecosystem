@@ -36,7 +36,7 @@ const css = `
   .inst-title-icon {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, var(--gold), #8B6914);
+    background: linear-gradient(135deg, var(--gold), var(--gold));
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -58,8 +58,8 @@ const css = `
   }
 
   .inst-btn-primary {
-    background: linear-gradient(135deg, var(--gold), #8B6914);
-    color: #0D1520;
+    background: linear-gradient(135deg, var(--gold), var(--gold));
+    color: var(--bg);
   }
 
   .inst-btn-primary:hover {
@@ -246,7 +246,7 @@ const css = `
 
   .inst-course-btn.primary {
     background: var(--gold);
-    color: #0D1520;
+    color: var(--bg);
     border-color: var(--gold);
   }
 

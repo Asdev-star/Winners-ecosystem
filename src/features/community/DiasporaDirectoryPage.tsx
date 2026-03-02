@@ -11,7 +11,7 @@ const css = `
 
   .dd-root {
     display: flex; gap: 0; min-height: 100vh;
-    background: #0D1520; font-family: 'Syne', sans-serif; padding-bottom: 80px;
+    background: var(--bg); font-family: 'Syne', sans-serif; padding-bottom: 80px;
   }
 
   .dd-container { flex: 1; max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
@@ -22,7 +22,7 @@ const css = `
   }
 
   .dd-title-section h1 {
-    font-size: 28px; font-weight: 800; color: #E8EEF5; margin: 0 0 8px 0;
+    font-size: 28px; font-weight: 800; color: var(--text); margin: 0 0 8px 0;
   }
   .dd-subtitle { color: #5A7A96; font-size: 14px; }
 
@@ -51,7 +51,7 @@ const css = `
   }
 
   .dd-card {
-    background: #111D2E; border: 1px solid #1E3248; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
     padding: 20px; position: relative; overflow: hidden;
     transition: transform 0.2s, box-shadow 0.2s;
   }
@@ -71,7 +71,7 @@ const css = `
   .dd-avatar {
     width: 56px; height: 56px; border-radius: 50%;
     background: rgba(201,168,76,0.12); display: flex; align-items: center; justify-content: center;
-    font-size: 20px; font-weight: 700; color: #C9A84C;
+    font-size: 20px; font-weight: 700; color: var(--gold);
     border: 2px solid rgba(201,168,76,0.3); position: relative;
   }
   .dd-avatar.online::after {
@@ -80,7 +80,7 @@ const css = `
   }
 
   .dd-user-info h3 {
-    font-size: 16px; font-weight: 700; color: #E8EEF5; margin: 0 0 4px 0;
+    font-size: 16px; font-weight: 700; color: var(--text); margin: 0 0 4px 0;
   }
 
   .dd-location {
@@ -118,7 +118,7 @@ const css = `
   .dd-profile-link {
     background: linear-gradient(135deg, #C9A84C 0%, #A88A3C 100%);
     border: none; border-radius: 8px; padding: 8px 16px;
-    color: #0D1520; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
+    color: var(--bg); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
     cursor: pointer; transition: all 0.2s;
   }
   .dd-profile-link:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
@@ -202,7 +202,7 @@ const css = `
   }
   .dd-btn-secondary:hover { border-color: #5A7A96; color: #E8EEF5; }
   .dd-btn-primary {
-    background: linear-gradient(135deg, #C9A84C 0%, #A88A3C 100%); border: none; color: #0D1520;
+    background: linear-gradient(135deg, var(--gold) 0%, #a8863d 100%); border: none; color: var(--bg);
   }
   .dd-btn-primary:hover { box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
 
@@ -228,21 +228,64 @@ const css = `
 `;
 
 const COUNTRIES = [
-  "Nigeria", "Kenya", "Ghana", "South Africa", "Egypt", "Morocco", "Ethiopia", "Tanzania",
-  "Uganda", "Rwanda", "Senegal", "Ivory Coast", "Cameroon", "UK", "USA", "Canada",
-  "Germany", "France", "Netherlands", "UAE", "Other"
+  "Nigeria",
+  "Kenya",
+  "Ghana",
+  "South Africa",
+  "Egypt",
+  "Morocco",
+  "Ethiopia",
+  "Tanzania",
+  "Uganda",
+  "Rwanda",
+  "Senegal",
+  "Ivory Coast",
+  "Cameroon",
+  "UK",
+  "USA",
+  "Canada",
+  "Germany",
+  "France",
+  "Netherlands",
+  "UAE",
+  "Other",
 ];
 
 const INDUSTRIES = [
-  "Technology", "Finance & Banking", "Healthcare", "Education", "Creative Arts",
-  "Marketing & Media", "E-commerce", "Real Estate", "Legal", "Consulting",
-  "Music & Entertainment", "Food & Hospitality", "Sports", "Non-profit", "Other"
+  "Technology",
+  "Finance & Banking",
+  "Healthcare",
+  "Education",
+  "Creative Arts",
+  "Marketing & Media",
+  "E-commerce",
+  "Real Estate",
+  "Legal",
+  "Consulting",
+  "Music & Entertainment",
+  "Food & Hospitality",
+  "Sports",
+  "Non-profit",
+  "Other",
 ];
 
 const COMMON_SKILLS = [
-  "React", "Node.js", "Python", "UI/UX Design", "Graphic Design", "Video Editing",
-  "Copywriting", "Social Media", "SEO", "Data Analysis", "Project Management",
-  "Sales", "Finance", "Accounting", "Photography", "Content Creation"
+  "React",
+  "Node.js",
+  "Python",
+  "UI/UX Design",
+  "Graphic Design",
+  "Video Editing",
+  "Copywriting",
+  "Social Media",
+  "SEO",
+  "Data Analysis",
+  "Project Management",
+  "Sales",
+  "Finance",
+  "Accounting",
+  "Photography",
+  "Content Creation",
 ];
 
 interface UserProfile {
@@ -271,9 +314,9 @@ export default function DiasporaDirectoryPage() {
     country: user?.country || "",
     city: user?.city || "",
     bio: user?.bio || "",
-    skills: user?.skills || [] as string[],
+    skills: user?.skills || ([] as string[]),
     industry: user?.industry || "",
-    isPublicProfile: user?.isPublicProfile ?? true
+    isPublicProfile: user?.isPublicProfile ?? true,
   });
 
   useEffect(() => {
@@ -289,7 +332,7 @@ export default function DiasporaDirectoryPage() {
       params.append("publicOnly", "true");
 
       const res = await fetch(`${API}/users/directory?${params}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       if (res.ok) {
         const data = await res.json();
@@ -308,9 +351,9 @@ export default function DiasporaDirectoryPage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify(editForm),
       });
       if (res.ok) {
         setShowEditModal(false);
@@ -322,16 +365,21 @@ export default function DiasporaDirectoryPage() {
   };
 
   const toggleSkill = (skill: string) => {
-    setEditForm(prev => ({
+    setEditForm((prev) => ({
       ...prev,
       skills: prev.skills.includes(skill)
-        ? prev.skills.filter(s => s !== skill)
-        : [...prev.skills, skill]
+        ? prev.skills.filter((s) => s !== skill)
+        : [...prev.skills, skill],
     }));
   };
 
   const getInitials = (name: string) => {
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -342,10 +390,15 @@ export default function DiasporaDirectoryPage() {
           <div className="dd-header">
             <div className="dd-title-section">
               <h1>🌍 Diaspora Directory</h1>
-              <p className="dd-subtitle">Connect with Africans worldwide by country, industry, and skills</p>
+              <p className="dd-subtitle">
+                Connect with Africans worldwide by country, industry, and skills
+              </p>
             </div>
             {user && (
-              <button className="dd-profile-link" onClick={() => setShowEditModal(true)}>
+              <button
+                className="dd-profile-link"
+                onClick={() => setShowEditModal(true)}
+              >
                 Edit My Profile
               </button>
             )}
@@ -365,7 +418,11 @@ export default function DiasporaDirectoryPage() {
               onChange={(e) => setFilterCountry(e.target.value)}
             >
               <option value="">All Countries</option>
-              {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
             <select
               className="dd-filter-select"
@@ -373,7 +430,11 @@ export default function DiasporaDirectoryPage() {
               onChange={(e) => setFilterIndustry(e.target.value)}
             >
               <option value="">All Industries</option>
-              {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+              {INDUSTRIES.map((i) => (
+                <option key={i} value={i}>
+                  {i}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -385,11 +446,13 @@ export default function DiasporaDirectoryPage() {
             <div className="dd-empty">
               <div className="dd-empty-icon">🌍</div>
               <h3>No members found</h3>
-              <p>Try adjusting your filters or be the first to add your profile!</p>
+              <p>
+                Try adjusting your filters or be the first to add your profile!
+              </p>
             </div>
           ) : (
             <div className="dd-grid">
-              {users.map(u => (
+              {users.map((u) => (
                 <div key={u.id} className="dd-card">
                   <div className="dd-card-header">
                     <div className="dd-avatar online">
@@ -399,7 +462,8 @@ export default function DiasporaDirectoryPage() {
                       <h3>{u.name}</h3>
                       {u.country && (
                         <div className="dd-location">
-                          📍 {u.city ? `${u.city}, ` : ""}{u.country}
+                          📍 {u.city ? `${u.city}, ` : ""}
+                          {u.country}
                         </div>
                       )}
                     </div>
@@ -409,17 +473,19 @@ export default function DiasporaDirectoryPage() {
                     <span className="dd-industry-badge">{u.industry}</span>
                   )}
 
-                  {u.bio && (
-                    <p className="dd-bio">{u.bio}</p>
-                  )}
+                  {u.bio && <p className="dd-bio">{u.bio}</p>}
 
                   {u.skills && u.skills.length > 0 && (
                     <div className="dd-skills">
-                      {u.skills.slice(0, 4).map(skill => (
-                        <span key={skill} className="dd-skill-tag">{skill}</span>
+                      {u.skills.slice(0, 4).map((skill) => (
+                        <span key={skill} className="dd-skill-tag">
+                          {skill}
+                        </span>
                       ))}
                       {u.skills.length > 4 && (
-                        <span className="dd-skill-tag">+{u.skills.length - 4}</span>
+                        <span className="dd-skill-tag">
+                          +{u.skills.length - 4}
+                        </span>
                       )}
                     </div>
                   )}
@@ -439,10 +505,18 @@ export default function DiasporaDirectoryPage() {
 
       {showEditModal && (
         <div className="dd-edit-modal" onClick={() => setShowEditModal(false)}>
-          <div className="dd-modal-content" onClick={e => e.stopPropagation()}>
+          <div
+            className="dd-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="dd-modal-header">
               <h2>Edit Your Directory Profile</h2>
-              <button className="dd-close-btn" onClick={() => setShowEditModal(false)}>×</button>
+              <button
+                className="dd-close-btn"
+                onClick={() => setShowEditModal(false)}
+              >
+                ×
+              </button>
             </div>
             <div className="dd-modal-body">
               <div className="dd-form-group">
@@ -451,7 +525,9 @@ export default function DiasporaDirectoryPage() {
                   type="text"
                   className="dd-form-input"
                   value={editForm.name}
-                  onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
                 />
               </div>
 
@@ -460,10 +536,16 @@ export default function DiasporaDirectoryPage() {
                 <select
                   className="dd-form-select"
                   value={editForm.country}
-                  onChange={e => setEditForm({ ...editForm, country: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, country: e.target.value })
+                  }
                 >
                   <option value="">Select country...</option>
-                  {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {COUNTRIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -474,7 +556,9 @@ export default function DiasporaDirectoryPage() {
                   className="dd-form-input"
                   placeholder="e.g., London, Lagos, New York"
                   value={editForm.city}
-                  onChange={e => setEditForm({ ...editForm, city: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, city: e.target.value })
+                  }
                 />
               </div>
 
@@ -483,10 +567,16 @@ export default function DiasporaDirectoryPage() {
                 <select
                   className="dd-form-select"
                   value={editForm.industry}
-                  onChange={e => setEditForm({ ...editForm, industry: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, industry: e.target.value })
+                  }
                 >
                   <option value="">Select industry...</option>
-                  {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+                  {INDUSTRIES.map((i) => (
+                    <option key={i} value={i}>
+                      {i}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -496,19 +586,25 @@ export default function DiasporaDirectoryPage() {
                   className="dd-form-textarea"
                   placeholder="Tell us about yourself..."
                   value={editForm.bio}
-                  onChange={e => setEditForm({ ...editForm, bio: e.target.value })}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, bio: e.target.value })
+                  }
                 />
               </div>
 
               <div className="dd-form-group">
                 <label>Skills</label>
                 <div className="dd-skills-input">
-                  {COMMON_SKILLS.map(skill => (
+                  {COMMON_SKILLS.map((skill) => (
                     <span
                       key={skill}
                       className={`dd-skill-tag input ${editForm.skills.includes(skill) ? "active" : ""}`}
                       onClick={() => toggleSkill(skill)}
-                      style={{ background: editForm.skills.includes(skill) ? "rgba(201,168,76,0.3)" : undefined }}
+                      style={{
+                        background: editForm.skills.includes(skill)
+                          ? "rgba(201,168,76,0.3)"
+                          : undefined,
+                      }}
                     >
                       {skill}
                     </span>
@@ -520,7 +616,12 @@ export default function DiasporaDirectoryPage() {
                 <div className="dd-toggle">
                   <div
                     className={`dd-toggle-switch ${editForm.isPublicProfile ? "active" : ""}`}
-                    onClick={() => setEditForm({ ...editForm, isPublicProfile: !editForm.isPublicProfile })}
+                    onClick={() =>
+                      setEditForm({
+                        ...editForm,
+                        isPublicProfile: !editForm.isPublicProfile,
+                      })
+                    }
                   />
                   <span style={{ color: "#E8EEF5", fontSize: "13px" }}>
                     Make my profile visible in directory
@@ -529,10 +630,16 @@ export default function DiasporaDirectoryPage() {
               </div>
             </div>
             <div className="dd-modal-footer">
-              <button className="dd-btn dd-btn-secondary" onClick={() => setShowEditModal(false)}>
+              <button
+                className="dd-btn dd-btn-secondary"
+                onClick={() => setShowEditModal(false)}
+              >
                 Cancel
               </button>
-              <button className="dd-btn dd-btn-primary" onClick={handleSaveProfile}>
+              <button
+                className="dd-btn dd-btn-primary"
+                onClick={handleSaveProfile}
+              >
                 Save Profile
               </button>
             </div>

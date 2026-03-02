@@ -41,8 +41,8 @@ const css = `
     content: '';
     position: absolute; top: 0; left: 0; right: 0; height: 2px;
   }
-  .as-card--gold::before  { background: linear-gradient(90deg, transparent, var(--gold, #C9A84C), transparent); }
-  .as-card--ice::before   { background: linear-gradient(90deg, transparent, var(--ice, #89C4E1), transparent); }
+  .as-card--gold::before  { background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  .as-card--ice::before   { background: linear-gradient(90deg, transparent, var(--ice), transparent); }
   .as-card--green::before { background: linear-gradient(90deg, transparent, var(--green, #2DD4A0), transparent); }
   .as-card--blue::before  { background: linear-gradient(90deg, transparent, var(--blue, #2B5F8E), transparent); }
 
@@ -53,8 +53,8 @@ const css = `
     width: 120px; height: 120px; border-radius: 50%;
     pointer-events: none; opacity: 0.06;
   }
-  .as-card--gold::after  { background: var(--gold, #C9A84C); }
-  .as-card--ice::after   { background: var(--ice, #89C4E1); }
+  .as-card--gold::after  { background: var(--gold); }
+  .as-card--ice::after   { background: var(--ice); }
   .as-card--green::after { background: var(--green, #2DD4A0); }
   .as-card--blue::after  { background: var(--blue, #2B5F8E); }
 
@@ -73,8 +73,8 @@ const css = `
     display: flex; align-items: center; justify-content: center;
     font-size: 14px; flex-shrink: 0;
   }
-  .as-card-icon--gold  { background: rgba(201,168,76,0.1);  color: var(--gold, #C9A84C); }
-  .as-card-icon--ice   { background: rgba(137,196,225,0.1); color: var(--ice, #89C4E1); }
+  .as-card-icon--gold  { background: var(--gold-glow-sm);  color: var(--gold); }
+  .as-card-icon--ice   { background: var(--blue-glow-sm); color: var(--ice); }
   .as-card-icon--green { background: rgba(45,212,160,0.1);  color: var(--green, #2DD4A0); }
   .as-card-icon--blue  { background: rgba(43,95,142,0.15);  color: var(--ice, #89C4E1); }
 
@@ -85,8 +85,8 @@ const css = `
     letter-spacing: -0.8px; line-height: 1;
     margin-bottom: 10px;
   }
-  .as-card--gold  .as-card-value { color: var(--gold, #C9A84C); }
-  .as-card--ice   .as-card-value { color: var(--ice, #89C4E1); }
+  .as-card--gold  .as-card-value { color: var(--gold); }
+  .as-card--ice   .as-card-value { color: var(--ice); }
   .as-card--green .as-card-value { color: var(--green, #2DD4A0); }
   .as-card--blue  .as-card-value { color: var(--text, #E8EEF5); }
 
@@ -155,7 +155,7 @@ const css = `
   }
   .as-loading-dot {
     width: 5px; height: 5px; border-radius: 50%;
-    background: var(--gold, #C9A84C);
+    background: var(--gold);
     animation: as-pulse 1.2s ease-in-out infinite;
   }
   .as-loading-dot:nth-child(2) { animation-delay: 0.2s; background: var(--ice, #89C4E1); }
@@ -234,10 +234,10 @@ interface MetricCardProps {
 
 function MetricCard({ label, value, growth, icon, variant, sparkSeed }: MetricCardProps) {
   const colorMap: Record<string, string> = {
-    gold:  "var(--gold, #C9A84C)",
-    ice:   "var(--ice, #89C4E1)",
-    green: "var(--green, #2DD4A0)",
-    blue:  "var(--ice, #89C4E1)",
+    gold:  "var(--gold)",
+    ice:   "var(--ice)",
+    green: "var(--green)",
+    blue:  "var(--ice)",
   };
 
   return (

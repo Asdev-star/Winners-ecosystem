@@ -11,7 +11,7 @@ const css = `
 
   .ob-root {
     display: flex; gap: 0; min-height: 100vh;
-    background: #0D1520; font-family: 'Syne', sans-serif; padding-bottom: 80px;
+    background: var(--bg); font-family: 'Syne', sans-serif; padding-bottom: 80px;
   }
 
   .ob-container { flex: 1; max-width: 1000px; margin: 0 auto; padding: 28px 20px; }
@@ -22,24 +22,24 @@ const css = `
   }
 
   .ob-title-section h1 {
-    font-size: 28px; font-weight: 800; color: #E8EEF5; margin: 0 0 8px 0;
+    font-size: 28px; font-weight: 800; color: var(--text); margin: 0 0 8px 0;
   }
   .ob-subtitle { color: #5A7A96; font-size: 14px; }
 
   .ob-create-btn {
-    background: linear-gradient(135deg, #C9A84C 0%, #A88A3C 100%);
+    background: linear-gradient(135deg, var(--gold) 0%, #a8863d 100%);
     border: none; border-radius: 10px; padding: 12px 24px;
-    color: #0D1520; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--bg); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
     cursor: pointer; transition: all 0.2s;
   }
   .ob-create-btn:hover { transform: scale(1.02); box-shadow: 0 4px 16px rgba(201,168,76,0.3); }
 
   .ob-tabs {
-    display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid #1E3248; padding-bottom: 12px;
+    display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px;
   }
 
   .ob-tab {
-    background: none; border: none; color: #5A7A96;
+    background: none; border: none; color: var(--text-dim);
     font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
     padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
   }

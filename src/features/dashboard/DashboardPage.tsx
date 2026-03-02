@@ -11,62 +11,107 @@ import { API_BASE } from "../../lib/api";
 const API = API_BASE;
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Stats {
-  totalRevenue:   number;
-  revenueGrowth:  number;
-  totalActivity:  number;
+  totalRevenue: number;
+  revenueGrowth: number;
+  totalActivity: number;
   activityGrowth: number;
-  teamMembers:    number;
-  topInsight:     string;
-  trend:          "up" | "down" | "flat";
+  teamMembers: number;
+  topInsight: string;
+  trend: "up" | "down" | "flat";
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtMoney(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `$${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
   return `$${n.toFixed(0)}`;
 }
-function deltaSign(n: number) { return n > 0 ? "▲" : n < 0 ? "▼" : "–"; }
-function deltaColor(n: number) { return n > 0 ? "var(--green)" : n < 0 ? "var(--red)" : "var(--text-dim)"; }
+function deltaSign(n: number) {
+  return n > 0 ? "▲" : n < 0 ? "▼" : "–";
+}
+function deltaColor(n: number) {
+  return n > 0 ? "var(--green)" : n < 0 ? "var(--red)" : "var(--text-dim)";
+}
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 const PLATFORMS = [
-  { icon: "⬡",  name: "Core Engine",         desc: "Auth · Billing · Analytics",     status: "live",    path: "/dashboard" },
-  { icon: "🧑‍🤝‍🧑", name: "Winners Community",   desc: "Feed · Posts · Groups",         status: "live",    path: "/community" },
-  { icon: "🎓", name: "Winners Academy",      desc: "Courses · Certificates · AI",     status: "live",    path: "/academy" },
-  { icon: "🛒", name: "Winners Market",       desc: "Products · Vendors",              status: "soon",    path: null },
-  { icon: "🤖", name: "Winners Intelligence", desc: "AI Agents · ARIA · Multimodal",  status: "live",    path: "/intelligence" },
-  { icon: "💼", name: "Winners Work",         desc: "Freelance · Jobs · Escrow",       status: "planned", path: null },
+  {
+    icon: "⬡",
+    name: "Core Engine",
+    desc: "Auth · Billing · Analytics",
+    status: "live",
+    path: "/dashboard",
+  },
+  {
+    icon: "🧑‍🤝‍🧑",
+    name: "Winners Community",
+    desc: "Feed · Posts · Groups",
+    status: "live",
+    path: "/community",
+  },
+  {
+    icon: "🎓",
+    name: "Winners Academy",
+    desc: "Courses · Certificates · AI",
+    status: "live",
+    path: "/academy",
+  },
+  {
+    icon: "🛒",
+    name: "Winners Market",
+    desc: "Products · Vendors",
+    status: "soon",
+    path: null,
+  },
+  {
+    icon: "🤖",
+    name: "Winners Intelligence",
+    desc: "AI Agents · ARIA · Multimodal",
+    status: "live",
+    path: "/intelligence",
+  },
+  {
+    icon: "💼",
+    name: "Winners Work",
+    desc: "Freelance · Jobs · Escrow",
+    status: "planned",
+    path: null,
+  },
 ];
 
 const PHASES = [
-  { n: 1, label: "Core",      state: "done"    },
-  { n: 2, label: "Community", state: "done"    },
-  { n: 3, label: "Academy",   state: "active"  },
-  { n: 4, label: "Market",    state: "pending" },
-  { n: 5, label: "AI",        state: "active"  },
-  { n: 6, label: "Work",      state: "pending" },
-  { n: 7, label: "Mobile",    state: "pending" },
-  { n: 8, label: "Cloud",     state: "pending" },
+  { n: 1, label: "Core", state: "done" },
+  { n: 2, label: "Community", state: "done" },
+  { n: 3, label: "Academy", state: "active" },
+  { n: 4, label: "Market", state: "pending" },
+  { n: 5, label: "AI", state: "active" },
+  { n: 6, label: "Work", state: "pending" },
+  { n: 7, label: "Mobile", state: "pending" },
+  { n: 8, label: "Cloud", state: "pending" },
 ];
 
 const NAV_LINKS = [
-  { icon: "📊", label: "Analytics",    path: "/analytics",    sub: "Charts · Forecasts" },
-  { icon: "🧑‍🤝‍🧑", label: "Community",   path: "/community",    sub: "Feed · Posts" },
-  { icon: "👥", label: "Team",          path: "/team",         sub: "Members · Roles" },
-  { icon: "💳", label: "Billing",       path: "/billing",      sub: "Plans · Invoices" },
-  { icon: "⚙️", label: "Settings",      path: "/settings",     sub: "Workspace config" },
+  {
+    icon: "📊",
+    label: "Analytics",
+    path: "/analytics",
+    sub: "Charts · Forecasts",
+  },
+  { icon: "🧑‍🤝‍🧑", label: "Community", path: "/community", sub: "Feed · Posts" },
+  { icon: "👥", label: "Team", path: "/team", sub: "Members · Roles" },
+  { icon: "💳", label: "Billing", path: "/billing", sub: "Plans · Invoices" },
+  { icon: "⚙️", label: "Settings", path: "/settings", sub: "Workspace config" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const user     = useAuthStore((s) => s.user);
+  const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
 
-  const [stats,   setStats]   = useState<Stats | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
-  const [now,     setNow]     = useState(new Date());
+  const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
 
   // Greeting
   const greeting = () => {
@@ -78,9 +123,15 @@ export default function DashboardPage() {
   async function safeFetch(url: string) {
     try {
       const r = await fetch(url, { headers: getAuthHeaders() });
-      if (!r.ok) { console.warn(`[Dashboard] ${url} → ${r.status}`); return null; }
+      if (!r.ok) {
+        console.warn(`[Dashboard] ${url} → ${r.status}`);
+        return null;
+      }
       return await r.json();
-    } catch (e) { console.warn(`[Dashboard] ${url} failed:`, e); return null; }
+    } catch (e) {
+      console.warn(`[Dashboard] ${url} failed:`, e);
+      return null;
+    }
   }
 
   const loadStats = useCallback(async () => {
@@ -94,15 +145,27 @@ export default function DashboardPage() {
         safeFetch(`${API}/tenants/me/members`),
       ]);
 
-      const totalRevenue   = revenue?.summary?.totalRevenue   ?? 0;
-      const revenueGrowth  = revenue?.summary?.revenueGrowth  ?? 0;
-      const totalActivity  = revenue?.summary?.totalActivity  ?? 0;
+      const totalRevenue = revenue?.summary?.totalRevenue ?? 0;
+      const revenueGrowth = revenue?.summary?.revenueGrowth ?? 0;
+      const totalActivity = revenue?.summary?.totalActivity ?? 0;
       const activityGrowth = revenue?.summary?.activityGrowth ?? 0;
-      const teamMembers    = members?.total ?? (Array.isArray(members?.members) ? members.members.length : 1);
-      const topInsight     = summary?.topInsight ?? "";
-      const trend: "up" | "down" | "flat" = summary?.trend ?? (revenueGrowth > 2 ? "up" : revenueGrowth < -2 ? "down" : "flat");
+      const teamMembers =
+        members?.total ??
+        (Array.isArray(members?.members) ? members.members.length : 1);
+      const topInsight = summary?.topInsight ?? "";
+      const trend: "up" | "down" | "flat" =
+        summary?.trend ??
+        (revenueGrowth > 2 ? "up" : revenueGrowth < -2 ? "down" : "flat");
 
-      setStats({ totalRevenue, revenueGrowth, totalActivity, activityGrowth, teamMembers, topInsight, trend });
+      setStats({
+        totalRevenue,
+        revenueGrowth,
+        totalActivity,
+        activityGrowth,
+        teamMembers,
+        topInsight,
+        trend,
+      });
     } catch (e: any) {
       setError(e?.message ?? "Failed to load dashboard");
     } finally {
@@ -159,7 +222,7 @@ export default function DashboardPage() {
         .db-ai-acts { display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap; }
         .db-ai-btn { background:transparent; border:1px solid var(--border); border-radius:4px; padding:6px 13px; font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); cursor:pointer; transition:all .15s; white-space:nowrap; }
         .db-ai-btn:hover { border-color:var(--gold); color:var(--gold); }
-        .db-ai-btn.p { background:var(--gold); color:#080B10; border-color:var(--gold); font-weight:700; }
+        .db-ai-btn.p { background:var(--gold); color:var(--bg); border-color:var(--gold); font-weight:700; }
         .db-ai-btn.p:hover { opacity:.88; }
 
         /* KPI grid */
@@ -176,7 +239,7 @@ export default function DashboardPage() {
         .db-kpi-delta { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); }
 
         /* Insight */
-        .db-insight { display:flex; align-items:flex-start; gap:10px; background:rgba(201,168,76,.04); border:1px solid rgba(201,168,76,.15); border-left:3px solid var(--gold); border-radius:4px; padding:12px 16px; margin-bottom:18px; font-size:13px; line-height:1.6; }
+        .db-insight { display:flex; align-items:flex-start; gap:10px; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--gold); border-radius:4px; padding:12px 16px; margin-bottom:18px; font-size:13px; line-height:1.6; }
         .db-insight strong { color:var(--gold); }
 
         /* Roadmap */
@@ -189,8 +252,8 @@ export default function DashboardPage() {
         .db-phase.done:not(:last-child)::after   { background:var(--gold); }
         .db-phase.active:not(:last-child)::after { background:linear-gradient(90deg,var(--blue),var(--border)); }
         .db-phase-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:9px; font-weight:700; position:relative; z-index:1; flex-shrink:0; }
-        .db-phase-dot.done   { background:var(--gold); color:#080B10; }
-        .db-phase-dot.active { background:var(--blue); color:white; box-shadow:0 0 12px rgba(43,95,142,.5); }
+        .db-phase-dot.done   { background:var(--gold); color:var(--bg); }
+        .db-phase-dot.active { background:var(--blue); color:white; box-shadow:var(--blue-glow); }
         .db-phase-dot.pending{ background:var(--surface2); border:1px solid var(--border); color:var(--text-dim); }
         .db-phase-lbl { font-family:'Space Mono',monospace; font-size:8px; color:var(--text-dim); text-align:center; }
         .db-phase.done .db-phase-lbl   { color:var(--gold); }
@@ -257,7 +320,7 @@ export default function DashboardPage() {
         .db-journey-step:not(:last-child)::after { content:''; position:absolute; top:16px; left:calc(50% + 18px); width:calc(100% - 36px); height:2px; background:var(--border); }
         .db-journey-step.done:not(:last-child)::after { background:var(--gold); }
         .db-journey-dot { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; position:relative; z-index:1; flex-shrink:0; border:2px solid transparent; transition:all .2s; }
-        .db-journey-dot.done { background:var(--gold); border-color:var(--gold); color:#080B10; }
+        .db-journey-dot.done { background:var(--gold); border-color:var(--gold); color:var(--bg); }
         .db-journey-dot.active { background:transparent; border-color:var(--green); color:var(--green); animation:db-pulse 2s infinite; }
         .db-journey-dot.pending { background:var(--surface2); border-color:var(--border); color:var(--text-dim); }
         .db-journey-lbl { font-family:'Space Mono',monospace; font-size:8px; color:var(--text-dim); text-align:center; white-space:nowrap; }
@@ -300,7 +363,6 @@ export default function DashboardPage() {
       `}</style>
 
       <div className="db">
-
         {/* ── Context Bar ── */}
         <div className="db-ctx-bar">
           <span className="db-ctx live">⬡ Core Engine</span>
@@ -317,9 +379,16 @@ export default function DashboardPage() {
         {/* ── Header ── */}
         <div className="db-hdr">
           <div>
-            <h1 className="db-title">{greeting()}, <em>{firstName}</em></h1>
+            <h1 className="db-title">
+              {greeting()}, <em>{firstName}</em>
+            </h1>
             <div className="db-date">
-              Winners Ecosystem · Control Center · {now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+              Winners Ecosystem · Control Center ·{" "}
+              {now.toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+              })}
             </div>
           </div>
           <div className="db-pill">
@@ -332,7 +401,9 @@ export default function DashboardPage() {
         {error && (
           <div className="db-err">
             ⚠ {error}
-            <button className="db-err-btn" onClick={loadStats}>Retry</button>
+            <button className="db-err-btn" onClick={loadStats}>
+              Retry
+            </button>
           </div>
         )}
 
@@ -343,32 +414,53 @@ export default function DashboardPage() {
             <div className="db-ai-lbl">Winners Intelligence · Ecosystem AI</div>
             <div className="db-ai-txt">
               <strong>Phase 3 active.</strong>{" "}
-              {stats?.topInsight || "Academy is live. Start building courses and earning certificates. AI Intelligence available at /intelligence"}
+              {stats?.topInsight ||
+                "Academy is live. Start building courses and earning certificates. AI Intelligence available at /intelligence"}
             </div>
           </div>
           <div className="db-ai-acts">
-            <button className="db-ai-btn" onClick={() => navigate("/academy")}>Academy →</button>
-            <button className="db-ai-btn" onClick={() => navigate("/intelligence")}>AI →</button>
-            <button className="db-ai-btn p" onClick={() => navigate("/analytics")}>Analytics →</button>
+            <button className="db-ai-btn" onClick={() => navigate("/academy")}>
+              Academy →
+            </button>
+            <button
+              className="db-ai-btn"
+              onClick={() => navigate("/intelligence")}
+            >
+              AI →
+            </button>
+            <button
+              className="db-ai-btn p"
+              onClick={() => navigate("/analytics")}
+            >
+              Analytics →
+            </button>
           </div>
         </div>
 
         {/* ── KPIs ── */}
         <div className="db-kpis">
-
           {/* Revenue */}
           <div className="db-kpi g">
             <div className="db-kpi-lbl">Total Revenue</div>
             {loading ? (
               <>
-                <div className="db-skel" style={{ height: 36, width: "65%", marginBottom: 8 }} />
+                <div
+                  className="db-skel"
+                  style={{ height: 36, width: "65%", marginBottom: 8 }}
+                />
                 <div className="db-skel" style={{ height: 12, width: "50%" }} />
               </>
             ) : (
               <>
-                <div className="db-kpi-val">{fmtMoney(stats?.totalRevenue ?? 0)}</div>
-                <div className="db-kpi-delta" style={{ color: deltaColor(stats?.revenueGrowth ?? 0) }}>
-                  {deltaSign(stats?.revenueGrowth ?? 0)} {Math.abs(stats?.revenueGrowth ?? 0).toFixed(1)}% vs last 30d
+                <div className="db-kpi-val">
+                  {fmtMoney(stats?.totalRevenue ?? 0)}
+                </div>
+                <div
+                  className="db-kpi-delta"
+                  style={{ color: deltaColor(stats?.revenueGrowth ?? 0) }}
+                >
+                  {deltaSign(stats?.revenueGrowth ?? 0)}{" "}
+                  {Math.abs(stats?.revenueGrowth ?? 0).toFixed(1)}% vs last 30d
                 </div>
               </>
             )}
@@ -379,14 +471,23 @@ export default function DashboardPage() {
             <div className="db-kpi-lbl">Total Activity</div>
             {loading ? (
               <>
-                <div className="db-skel" style={{ height: 36, width: "60%", marginBottom: 8 }} />
+                <div
+                  className="db-skel"
+                  style={{ height: 36, width: "60%", marginBottom: 8 }}
+                />
                 <div className="db-skel" style={{ height: 12, width: "55%" }} />
               </>
             ) : (
               <>
-                <div className="db-kpi-val">{(stats?.totalActivity ?? 0).toLocaleString()}</div>
-                <div className="db-kpi-delta" style={{ color: deltaColor(stats?.activityGrowth ?? 0) }}>
-                  {deltaSign(stats?.activityGrowth ?? 0)} {Math.abs(stats?.activityGrowth ?? 0).toFixed(1)}% vs last 30d
+                <div className="db-kpi-val">
+                  {(stats?.totalActivity ?? 0).toLocaleString()}
+                </div>
+                <div
+                  className="db-kpi-delta"
+                  style={{ color: deltaColor(stats?.activityGrowth ?? 0) }}
+                >
+                  {deltaSign(stats?.activityGrowth ?? 0)}{" "}
+                  {Math.abs(stats?.activityGrowth ?? 0).toFixed(1)}% vs last 30d
                 </div>
               </>
             )}
@@ -397,7 +498,10 @@ export default function DashboardPage() {
             <div className="db-kpi-lbl">Team Members</div>
             {loading ? (
               <>
-                <div className="db-skel" style={{ height: 36, width: "35%", marginBottom: 8 }} />
+                <div
+                  className="db-skel"
+                  style={{ height: 36, width: "35%", marginBottom: 8 }}
+                />
                 <div className="db-skel" style={{ height: 12, width: "60%" }} />
               </>
             ) : (
@@ -413,16 +517,31 @@ export default function DashboardPage() {
             <div className="db-kpi-lbl">Revenue Trend</div>
             {loading ? (
               <>
-                <div className="db-skel" style={{ height: 36, width: "55%", marginBottom: 8 }} />
+                <div
+                  className="db-skel"
+                  style={{ height: 36, width: "55%", marginBottom: 8 }}
+                />
                 <div className="db-skel" style={{ height: 12, width: "65%" }} />
               </>
             ) : (
               <>
-                <div className="db-kpi-val" style={{
-                  fontSize: 24,
-                  color: stats?.trend === "up" ? "var(--green)" : stats?.trend === "down" ? "var(--red)" : "var(--text)",
-                }}>
-                  {stats?.trend === "up" ? "↑ Rising" : stats?.trend === "down" ? "↓ Falling" : "→ Stable"}
+                <div
+                  className="db-kpi-val"
+                  style={{
+                    fontSize: 24,
+                    color:
+                      stats?.trend === "up"
+                        ? "var(--green)"
+                        : stats?.trend === "down"
+                          ? "var(--red)"
+                          : "var(--text)",
+                  }}
+                >
+                  {stats?.trend === "up"
+                    ? "↑ Rising"
+                    : stats?.trend === "down"
+                      ? "↓ Falling"
+                      : "→ Stable"}
                 </div>
                 <div className="db-kpi-delta">vs previous 30 days</div>
               </>
@@ -434,13 +553,17 @@ export default function DashboardPage() {
         {!loading && stats?.topInsight && (
           <div className="db-insight">
             <span>💡</span>
-            <span><strong>AI Insight:</strong> {stats.topInsight}</span>
+            <span>
+              <strong>AI Insight:</strong> {stats.topInsight}
+            </span>
           </div>
         )}
 
         {/* ── Roadmap Progress ── */}
         <div className="db-road">
-          <div className="db-road-ttl">Ecosystem Build Progress · Phase 3 of 8 Active</div>
+          <div className="db-road-ttl">
+            Ecosystem Build Progress · Phase 3 of 8 Active
+          </div>
           <div className="db-phases">
             {PHASES.map((ph) => (
               <div key={ph.n} className={`db-phase ${ph.state}`}>
@@ -453,9 +576,44 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Growth Insights - AI Weekly Report */}
+        <div
+          className="db-insight"
+          style={{
+            background: "rgba(155,111,255,0.04)",
+            borderLeftColor: "var(--purple)",
+          }}
+        >
+          <div style={{ fontSize: "18px", marginRight: "8px" }}>📈</div>
+          <div>
+            <div
+              style={{
+                fontFamily: "Space Mono, monospace",
+                fontSize: "9px",
+                letterSpacing: "0.15em",
+                color: "var(--purple)",
+                marginBottom: "4px",
+              }}
+            >
+              WEEKLY GROWTH REPORT
+            </div>
+            <div style={{ fontSize: "13px", lineHeight: "1.6" }}>
+              Your{" "}
+              <strong style={{ color: "var(--gold)" }}>
+                community following grew 18%
+              </strong>{" "}
+              this week.
+              <strong>OMEGA recommends</strong> launching a course on your
+              expertise to monetize your growing audience.
+            </div>
+          </div>
+        </div>
+
         {/* ── Journey Map ── */}
         <div className="db-journey">
-          <div className="db-journey-ttl"><span>🗺️</span> Your Journey Across the Ecosystem</div>
+          <div className="db-journey-ttl">
+            <span>🗺️</span> Your Journey Across the Ecosystem
+          </div>
           <div className="db-journey-track">
             <div className="db-journey-step done">
               <div className="db-journey-dot done">✓</div>
@@ -502,7 +660,9 @@ export default function DashboardPage() {
               <div className="db-achievement-icon">👥</div>
               <div className="db-achievement-info">
                 <div className="db-achievement-name">Community Builder</div>
-                <div className="db-achievement-desc">Create your first post</div>
+                <div className="db-achievement-desc">
+                  Create your first post
+                </div>
               </div>
             </div>
             <div className="db-achievement">
@@ -519,17 +679,35 @@ export default function DashboardPage() {
                 <div className="db-achievement-desc">Earn your first cert</div>
               </div>
             </div>
+            <div className="db-achievement locked">
+              <div className="db-achievement-icon">📈</div>
+              <div className="db-achievement-info">
+                <div className="db-achievement-name">Master Trader</div>
+                <div className="db-achievement-desc">$1K trading volume</div>
+              </div>
+            </div>
+            <div className="db-achievement locked">
+              <div className="db-achievement-icon">💎</div>
+              <div className="db-achievement-info">
+                <div className="db-achievement-name">Elite Freelancer</div>
+                <div className="db-achievement-desc">Complete 10 contracts</div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* ── Wealth Dashboard ── */}
         <div className="db-wealth">
-          <div className="db-wealth-ttl"><span>💰</span> Earnings Across Ecosystem</div>
+          <div className="db-wealth-ttl">
+            <span>💰</span> Earnings Across Ecosystem
+          </div>
           <div className="db-wealth-grid">
             <div className="db-wealth-card">
               <div className="db-wealth-card-icon">💳</div>
               <div className="db-wealth-card-label">Subscriptions</div>
-              <div className="db-wealth-card-value gold">{fmtMoney(stats?.totalRevenue ?? 0)}</div>
+              <div className="db-wealth-card-value gold">
+                {fmtMoney(stats?.totalRevenue ?? 0)}
+              </div>
               <div className="db-wealth-card-sub">Monthly recurring</div>
             </div>
             <div className="db-wealth-card">
@@ -569,7 +747,11 @@ export default function DashboardPage() {
               </div>
               <div className="db-plat-right">
                 <span className={`db-badge ${p.status}`}>
-                  {p.status === "live" ? "● Live" : p.status === "soon" ? "◎ Soon" : "○ Planned"}
+                  {p.status === "live"
+                    ? "● Live"
+                    : p.status === "soon"
+                      ? "◎ Soon"
+                      : "○ Planned"}
                 </span>
               </div>
             </div>
@@ -578,42 +760,62 @@ export default function DashboardPage() {
 
         {/* ── Bottom Row ── */}
         <div className="db-bottom">
-
           {/* 30-day snapshot */}
           <div className="db-card gold-top">
             <div className="db-card-ttl">30-Day Snapshot</div>
             {loading ? (
-              [1,2,3,4,5].map(i => (
+              [1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="db-row">
-                  <div className="db-skel" style={{ height: 11, width: "40%" }} />
-                  <div className="db-skel" style={{ height: 11, width: "22%" }} />
+                  <div
+                    className="db-skel"
+                    style={{ height: 11, width: "40%" }}
+                  />
+                  <div
+                    className="db-skel"
+                    style={{ height: 11, width: "22%" }}
+                  />
                 </div>
               ))
             ) : (
               <>
                 <div className="db-row">
                   <span className="db-row-lbl">Total Revenue</span>
-                  <span className="db-row-val" style={{ color: "var(--gold)" }}>{fmtMoney(stats?.totalRevenue ?? 0)}</span>
+                  <span className="db-row-val" style={{ color: "var(--gold)" }}>
+                    {fmtMoney(stats?.totalRevenue ?? 0)}
+                  </span>
                 </div>
                 <div className="db-row">
                   <span className="db-row-lbl">Revenue Growth</span>
-                  <span className="db-row-val" style={{ color: deltaColor(stats?.revenueGrowth ?? 0) }}>
-                    {(stats?.revenueGrowth ?? 0) >= 0 ? "+" : ""}{(stats?.revenueGrowth ?? 0).toFixed(1)}%
+                  <span
+                    className="db-row-val"
+                    style={{ color: deltaColor(stats?.revenueGrowth ?? 0) }}
+                  >
+                    {(stats?.revenueGrowth ?? 0) >= 0 ? "+" : ""}
+                    {(stats?.revenueGrowth ?? 0).toFixed(1)}%
                   </span>
                 </div>
                 <div className="db-row">
                   <span className="db-row-lbl">Activity Events</span>
-                  <span className="db-row-val" style={{ color: "var(--text)" }}>{(stats?.totalActivity ?? 0).toLocaleString()}</span>
+                  <span className="db-row-val" style={{ color: "var(--text)" }}>
+                    {(stats?.totalActivity ?? 0).toLocaleString()}
+                  </span>
                 </div>
                 <div className="db-row">
                   <span className="db-row-lbl">Activity Growth</span>
-                  <span className="db-row-val" style={{ color: deltaColor(stats?.activityGrowth ?? 0) }}>
-                    {(stats?.activityGrowth ?? 0) >= 0 ? "+" : ""}{(stats?.activityGrowth ?? 0).toFixed(1)}%
+                  <span
+                    className="db-row-val"
+                    style={{ color: deltaColor(stats?.activityGrowth ?? 0) }}
+                  >
+                    {(stats?.activityGrowth ?? 0) >= 0 ? "+" : ""}
+                    {(stats?.activityGrowth ?? 0).toFixed(1)}%
                   </span>
                 </div>
                 <div className="db-row">
                   <span className="db-row-lbl">Team Size</span>
-                  <span className="db-row-val" style={{ color: "var(--gold)" }}>{stats?.teamMembers ?? 1} member{(stats?.teamMembers ?? 1) !== 1 ? "s" : ""}</span>
+                  <span className="db-row-val" style={{ color: "var(--gold)" }}>
+                    {stats?.teamMembers ?? 1} member
+                    {(stats?.teamMembers ?? 1) !== 1 ? "s" : ""}
+                  </span>
                 </div>
               </>
             )}
@@ -631,15 +833,33 @@ export default function DashboardPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span className="db-row-ico">{lnk.icon}</span>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700 }}>{lnk.label}</div>
-                    <div style={{ fontFamily: "Space Mono, monospace", fontSize: 9, color: "var(--text-dim)", marginTop: 1 }}>{lnk.sub}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700 }}>
+                      {lnk.label}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "Space Mono, monospace",
+                        fontSize: 9,
+                        color: "var(--text-dim)",
+                        marginTop: 1,
+                      }}
+                    >
+                      {lnk.sub}
+                    </div>
                   </div>
                 </div>
-                <span style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)" }}>→</span>
+                <span
+                  style={{
+                    fontFamily: "Space Mono, monospace",
+                    fontSize: 10,
+                    color: "var(--text-dim)",
+                  }}
+                >
+                  →
+                </span>
               </div>
             ))}
           </div>
-
         </div>
       </div>
     </>

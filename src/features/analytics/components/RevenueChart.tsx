@@ -122,7 +122,7 @@ export default function RevenueChart() {
               style={{
                 width: "32px",
                 height: "32px",
-                border: "2px solid rgba(201, 168, 76, 0.2)",
+                border: "2px solid var(--gold-glow-sm)",
                 borderTop: "2px solid var(--gold)",
                 borderRadius: "50%",
                 animation: "spin 0.8s linear infinite",

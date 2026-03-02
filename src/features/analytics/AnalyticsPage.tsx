@@ -3,12 +3,26 @@
 import { useState, useMemo } from "react";
 import type { ReactNode } from "react";
 import {
-  ComposedChart, Area, Line, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceDot,
+  ComposedChart,
+  Area,
+  Line,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceDot,
 } from "recharts";
 import {
-  getMockData, getPreviousPeriodData, generateForecast,
-  generateInsights, calcTotal, calcGrowth, calcAverage, detectAnomalies,
+  getMockData,
+  getPreviousPeriodData,
+  generateForecast,
+  generateInsights,
+  calcTotal,
+  calcGrowth,
+  calcAverage,
+  detectAnomalies,
 } from "../../lib/analyticsEngine";
 import type { Period, ForecastPoint } from "../../lib/analyticsEngine";
 
@@ -16,19 +30,6 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
   .an-root {
-    --gold:     #C9A84C;
-    --gold2:    #E8C97A;
-    --bg:       #0D1520;
-    --surface:  #111D2E;
-    --surface2: #172335;
-    --border:   #1E3248;
-    --text:     #E8EEF5;
-    --text-dim: #5A7A96;
-    --green:    #2DD4A0;
-    --blue:     #2B5F8E;
-    --ice:      #89C4E1;
-    --red:      #E05A4E;
-    --purple:   #9B6FFF;
     background: var(--bg); color: var(--text);
     font-family: 'Syne', sans-serif;
     min-height: 100vh; padding: 28px 24px 80px;
@@ -214,7 +215,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div className="an-tooltip-row" key={p.dataKey}>
           <span>{p.name}</span>
           <span className="an-tooltip-val">
-            {p.dataKey.toLowerCase().includes("revenue") || p.dataKey.toLowerCase().includes("bound") || p.dataKey.toLowerCase().includes("forecast")
+            {p.dataKey.toLowerCase().includes("revenue") ||
+            p.dataKey.toLowerCase().includes("bound") ||
+            p.dataKey.toLowerCase().includes("forecast")
               ? `$${Number(p.value).toLocaleString()}`
               : Number(p.value).toLocaleString()}
           </span>
@@ -224,7 +227,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-interface KpiProps { label: string; value: string; growth: number; color: "gold" | "green" | "blue" | "purple"; }
+interface KpiProps {
+  label: string;
+  value: string;
+  growth: number;
+  color: "gold" | "green" | "blue" | "purple";
+}
 const KpiCard = ({ label, value, growth, color }: KpiProps) => {
   const dir = growth > 1 ? "up" : growth < -1 ? "down" : "flat";
   return (
@@ -238,7 +246,17 @@ const KpiCard = ({ label, value, growth, color }: KpiProps) => {
   );
 };
 
-const ChartCard = ({ title, meta, legend, children }: { title: string; meta?: ReactNode; legend?: ReactNode; children: ReactNode }) => (
+const ChartCard = ({
+  title,
+  meta,
+  legend,
+  children,
+}: {
+  title: string;
+  meta?: ReactNode;
+  legend?: ReactNode;
+  children: ReactNode;
+}) => (
   <div className="an-chart-card">
     <div className="an-chart-header">
       <div>
@@ -252,58 +270,87 @@ const ChartCard = ({ title, meta, legend, children }: { title: string; meta?: Re
 );
 
 export default function AnalyticsPage() {
-  const [period, setPeriod]         = useState<Period>("30d");
+  const [period, setPeriod] = useState<Period>("30d");
   const [showForecast, setForecast] = useState(false);
-  const [showComparison, setComp]   = useState(false);
+  const [showComparison, setComp] = useState(false);
 
   useState(() => {
     const id = "an-styles";
     if (!document.getElementById(id)) {
       const tag = document.createElement("style");
-      tag.id = id; tag.textContent = css;
+      tag.id = id;
+      tag.textContent = css;
       document.head.appendChild(tag);
     }
   });
 
-  const currentData  = useMemo(() => getMockData(period), [period]);
+  const currentData = useMemo(() => getMockData(period), [period]);
   const previousData = useMemo(() => getPreviousPeriodData(period), [period]);
-  const forecastData = useMemo(() => generateForecast(currentData, 7), [currentData]);
-  const insights     = useMemo(() => generateInsights(currentData, previousData, period), [currentData, previousData, period]);
-  const anomalySet   = useMemo(() => detectAnomalies(currentData), [currentData]);
+  const forecastData = useMemo(
+    () => generateForecast(currentData, 7),
+    [currentData],
+  );
+  const insights = useMemo(
+    () => generateInsights(currentData, previousData, period),
+    [currentData, previousData, period],
+  );
+  const anomalySet = useMemo(() => detectAnomalies(currentData), [currentData]);
 
-  const curRevTotal  = calcTotal(currentData, "revenue");
+  const curRevTotal = calcTotal(currentData, "revenue");
   const prevRevTotal = calcTotal(previousData, "revenue");
-  const curActTotal  = calcTotal(currentData, "activity");
+  const curActTotal = calcTotal(currentData, "activity");
   const prevActTotal = calcTotal(previousData, "activity");
-  const avgRevenue   = calcAverage(currentData, "revenue");
+  const avgRevenue = calcAverage(currentData, "revenue");
 
-  const comparisonData = currentData.map((d, i) => ({ ...d, prevRevenue: previousData[i]?.revenue ?? 0 }));
+  const comparisonData = currentData.map((d, i) => ({
+    ...d,
+    prevRevenue: previousData[i]?.revenue ?? 0,
+  }));
 
   const revenueChartData: ForecastPoint[] = showForecast
     ? forecastData
     : currentData.map((d, i) => ({ ...d, isAnomaly: anomalySet.has(i) }));
 
-  const anomalyPoints = revenueChartData.map((d, i) => ({ ...d, index: i })).filter((d) => d.isAnomaly);
-  const periodLabel   = period === "7d" ? "7 Days" : period === "30d" ? "30 Days" : "90 Days";
+  const anomalyPoints = revenueChartData
+    .map((d, i) => ({ ...d, index: i }))
+    .filter((d) => d.isAnomaly);
+  const periodLabel =
+    period === "7d" ? "7 Days" : period === "30d" ? "30 Days" : "90 Days";
 
   return (
     <div className="an-root">
       <div className="an-inner">
-
         {/* Header */}
         <div className="an-header">
           <div>
-            <h1 className="an-title">Analytics <span>Intelligence</span></h1>
-            <p className="an-subtitle">Winners Ecosystem · Core Engine · {periodLabel} · {currentData.length} data points</p>
+            <h1 className="an-title">
+              Analytics <span>Intelligence</span>
+            </h1>
+            <p className="an-subtitle">
+              Winners Ecosystem · Core Engine · {periodLabel} ·{" "}
+              {currentData.length} data points
+            </p>
           </div>
           <div className="an-controls">
             {(["7d", "30d", "90d"] as Period[]).map((p) => (
-              <button key={p} className={`an-period-btn${period === p ? " active" : ""}`} onClick={() => setPeriod(p)}>{p}</button>
+              <button
+                key={p}
+                className={`an-period-btn${period === p ? " active" : ""}`}
+                onClick={() => setPeriod(p)}
+              >
+                {p}
+              </button>
             ))}
-            <div className={`an-toggle${showForecast ? " on" : ""}`} onClick={() => setForecast((v) => !v)}>
+            <div
+              className={`an-toggle${showForecast ? " on" : ""}`}
+              onClick={() => setForecast((v) => !v)}
+            >
               <div className="an-toggle-dot" /> Forecast
             </div>
-            <div className={`an-toggle${showComparison ? " on" : ""}`} onClick={() => setComp((v) => !v)}>
+            <div
+              className={`an-toggle${showComparison ? " on" : ""}`}
+              onClick={() => setComp((v) => !v)}
+            >
               <div className="an-toggle-dot" /> Compare
             </div>
           </div>
@@ -324,10 +371,33 @@ export default function AnalyticsPage() {
 
         {/* KPIs */}
         <div className="an-kpis">
-          <KpiCard label="Total Revenue"      value={`$${curRevTotal.toLocaleString()}`} growth={calcGrowth(curRevTotal, prevRevTotal)} color="gold" />
-          <KpiCard label="Avg Daily Revenue"  value={`$${avgRevenue.toLocaleString()}`}  growth={calcGrowth(avgRevenue, calcAverage(previousData, "revenue"))} color="green" />
-          <KpiCard label="Total Activity"     value={curActTotal.toLocaleString()}        growth={calcGrowth(curActTotal, prevActTotal)} color="blue" />
-          <KpiCard label="Forecast Growth"    value={`${insights.forecastGrowth > 0 ? "+" : ""}${insights.forecastGrowth}%`} growth={insights.forecastGrowth} color="purple" />
+          <KpiCard
+            label="Total Revenue"
+            value={`$${curRevTotal.toLocaleString()}`}
+            growth={calcGrowth(curRevTotal, prevRevTotal)}
+            color="gold"
+          />
+          <KpiCard
+            label="Avg Daily Revenue"
+            value={`$${avgRevenue.toLocaleString()}`}
+            growth={calcGrowth(
+              avgRevenue,
+              calcAverage(previousData, "revenue"),
+            )}
+            color="green"
+          />
+          <KpiCard
+            label="Total Activity"
+            value={curActTotal.toLocaleString()}
+            growth={calcGrowth(curActTotal, prevActTotal)}
+            color="blue"
+          />
+          <KpiCard
+            label="Forecast Growth"
+            value={`${insights.forecastGrowth > 0 ? "+" : ""}${insights.forecastGrowth}%`}
+            growth={insights.forecastGrowth}
+            color="purple"
+          />
         </div>
 
         {/* AI Insight */}
@@ -335,25 +405,43 @@ export default function AnalyticsPage() {
           <div className="an-insight-header">
             <span className="an-insight-badge">🧠 AI Insight</span>
             <span className={`an-insight-trend ${insights.trend}`}>
-              {insights.trend === "up" ? "▲ Trending Up" : insights.trend === "down" ? "▼ Trending Down" : "● Stable"}
+              {insights.trend === "up"
+                ? "▲ Trending Up"
+                : insights.trend === "down"
+                  ? "▼ Trending Down"
+                  : "● Stable"}
             </span>
             {insights.anomalyCount > 0 && (
-              <span className="an-spike-badge">{insights.anomalyCount} spike{insights.anomalyCount > 1 ? "s" : ""} detected</span>
+              <span className="an-spike-badge">
+                {insights.anomalyCount} spike
+                {insights.anomalyCount > 1 ? "s" : ""} detected
+              </span>
             )}
           </div>
           <div className="an-insight-primary">{insights.topInsight}</div>
-          <div className="an-insight-secondary">{insights.secondaryInsight}</div>
+          <div className="an-insight-secondary">
+            {insights.secondaryInsight}
+          </div>
           <div className="an-insight-grid">
             <div className="an-insight-stat">
-              <div className="an-insight-stat-val">{insights.revenueGrowth > 0 ? "+" : ""}{insights.revenueGrowth}%</div>
+              <div className="an-insight-stat-val">
+                {insights.revenueGrowth > 0 ? "+" : ""}
+                {insights.revenueGrowth}%
+              </div>
               <div className="an-insight-stat-lbl">Revenue Growth</div>
             </div>
             <div className="an-insight-stat">
-              <div className="an-insight-stat-val">{insights.activityGrowth > 0 ? "+" : ""}{insights.activityGrowth}%</div>
+              <div className="an-insight-stat-val">
+                {insights.activityGrowth > 0 ? "+" : ""}
+                {insights.activityGrowth}%
+              </div>
               <div className="an-insight-stat-lbl">Activity Growth</div>
             </div>
             <div className="an-insight-stat">
-              <div className="an-insight-stat-val">{insights.forecastGrowth > 0 ? "+" : ""}{insights.forecastGrowth}%</div>
+              <div className="an-insight-stat-val">
+                {insights.forecastGrowth > 0 ? "+" : ""}
+                {insights.forecastGrowth}%
+              </div>
               <div className="an-insight-stat-lbl">7-Day Forecast</div>
             </div>
           </div>
@@ -362,44 +450,167 @@ export default function AnalyticsPage() {
         {/* Revenue Chart */}
         <ChartCard
           title="Revenue"
-          meta={showForecast ? `${currentData.length} actual + 7 forecast days` : `${currentData.length} days actual`}
+          meta={
+            showForecast
+              ? `${currentData.length} actual + 7 forecast days`
+              : `${currentData.length} days actual`
+          }
           legend={
             <div className="an-legend">
-              <div className="an-legend-item"><div className="an-legend-dot" style={{ background: "#C9A84C" }} />Revenue</div>
-              {showForecast && <>
-                <div className="an-legend-item"><div className="an-legend-line" style={{ background: "#9B6FFF" }} />Forecast</div>
-                <div className="an-legend-item"><div className="an-legend-line" style={{ background: "rgba(155,111,255,0.3)" }} />Confidence</div>
-              </>}
-              {showComparison && <div className="an-legend-item"><div className="an-legend-dash" style={{ borderColor: "#89C4E1" }} />Prev Period</div>}
-              <div className="an-legend-item"><div className="an-legend-dot" style={{ background: "#E05A4E" }} />Spike</div>
+              <div className="an-legend-item">
+                <div
+                  className="an-legend-dot"
+                  style={{ background: "var(--gold)" }}
+                />
+                Revenue
+              </div>
+              {showForecast && (
+                <>
+                  <div className="an-legend-item">
+                    <div
+                      className="an-legend-line"
+                      style={{ background: "var(--purple)" }}
+                    />
+                    Forecast
+                  </div>
+                  <div className="an-legend-item">
+                    <div
+                      className="an-legend-line"
+                      style={{ background: "var(--gold-glow-sm)" }}
+                    />
+                    Confidence
+                  </div>
+                </>
+              )}
+              {showComparison && (
+                <div className="an-legend-item">
+                  <div
+                    className="an-legend-dash"
+                    style={{ borderColor: "#89C4E1" }}
+                  />
+                  Prev Period
+                </div>
+              )}
+              <div className="an-legend-item">
+                <div
+                  className="an-legend-dot"
+                  style={{ background: "#E05A4E" }}
+                />
+                Spike
+              </div>
             </div>
           }
         >
           <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={showComparison ? comparisonData : revenueChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <ComposedChart
+              data={showComparison ? comparisonData : revenueChartData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
               <defs>
                 <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#C9A84C" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
+                  <stop
+                    offset="5%"
+                    stopColor="var(--gold)"
+                    stopOpacity={0.15}
+                  />
+                  <stop offset="95%" stopColor="var(--gold)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#9B6FFF" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#9B6FFF" stopOpacity={0} />
+                  <stop
+                    offset="5%"
+                    stopColor="var(--purple)"
+                    stopOpacity={0.1}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="var(--purple)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E3248" vertical={false} />
-              <XAxis dataKey="date" tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--border)"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="date"
+                tick={{
+                  fill: "var(--text-dim)",
+                  fontSize: 9,
+                  fontFamily: "Space Mono",
+                }}
+                tickLine={false}
+                axisLine={false}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{
+                  fill: "var(--text-dim)",
+                  fontSize: 9,
+                  fontFamily: "Space Mono",
+                }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              />
               <Tooltip content={<CustomTooltip />} />
-              {showForecast && <>
-                <Area dataKey="upperBound" fill="url(#bandGrad)" stroke="none" name="Upper Bound" />
-                <Area dataKey="lowerBound" fill="#0D1520" stroke="none" name="Lower Bound" />
-              </>}
-              {showComparison && <Line dataKey="prevRevenue" stroke="#89C4E1" strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="Prev Revenue" />}
-              <Area dataKey="revenue" stroke="#C9A84C" strokeWidth={2} fill="url(#revGrad)" dot={false} activeDot={{ r: 4, fill: "#C9A84C" }} name="Revenue" />
-              {showForecast && <Line dataKey="forecastRevenue" stroke="#9B6FFF" strokeWidth={2} strokeDasharray="6 3" dot={false} name="Forecast" />}
+              {showForecast && (
+                <>
+                  <Area
+                    dataKey="upperBound"
+                    fill="url(#bandGrad)"
+                    stroke="none"
+                    name="Upper Bound"
+                  />
+                  <Area
+                    dataKey="lowerBound"
+                    fill="var(--bg)"
+                    stroke="none"
+                    name="Lower Bound"
+                  />
+                </>
+              )}
+              {showComparison && (
+                <Line
+                  dataKey="prevRevenue"
+                  stroke="#89C4E1"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  name="Prev Revenue"
+                />
+              )}
+              <Area
+                dataKey="revenue"
+                stroke="var(--gold)"
+                strokeWidth={2}
+                fill="url(#revGrad)"
+                dot={false}
+                activeDot={{ r: 4, fill: "var(--gold)" }}
+                name="Revenue"
+              />
+              {showForecast && (
+                <Line
+                  dataKey="forecastRevenue"
+                  stroke="var(--purple)"
+                  strokeWidth={2}
+                  strokeDasharray="6 3"
+                  dot={false}
+                  name="Forecast"
+                />
+              )}
               {anomalyPoints.map((point) => (
-                <ReferenceDot key={point.date} x={point.date} y={point.revenue} r={5} fill="#E05A4E" stroke="#E05A4E" strokeOpacity={0.3} strokeWidth={6} />
+                <ReferenceDot
+                  key={point.date}
+                  x={point.date}
+                  y={point.revenue}
+                  r={5}
+                  fill="#E05A4E"
+                  stroke="#E05A4E"
+                  strokeOpacity={0.3}
+                  strokeWidth={6}
+                />
               ))}
             </ComposedChart>
           </ResponsiveContainer>
@@ -409,36 +620,106 @@ export default function AnalyticsPage() {
         <div className="an-grid">
           <ChartCard title="Activity" meta="Daily engagement events">
             <ResponsiveContainer width="100%" height={200}>
-              <ComposedChart data={currentData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+              <ComposedChart
+                data={currentData}
+                margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+              >
                 <defs>
                   <linearGradient id="actGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#2B5F8E" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="#2B5F8E" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#2B5F8E" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E3248" vertical={false} />
-                <XAxis dataKey="date" tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#1E3248"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{
+                    fill: "#5A7A96",
+                    fontSize: 9,
+                    fontFamily: "Space Mono",
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tick={{
+                    fill: "#5A7A96",
+                    fontSize: 9,
+                    fontFamily: "Space Mono",
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <Tooltip content={<CustomTooltip />} />
-                <Area dataKey="activity" stroke="#89C4E1" strokeWidth={2} fill="url(#actGrad)" dot={false} name="Activity" />
+                <Area
+                  dataKey="activity"
+                  stroke="#89C4E1"
+                  strokeWidth={2}
+                  fill="url(#actGrad)"
+                  dot={false}
+                  name="Activity"
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Period Comparison" meta="Current vs previous period revenue">
+          <ChartCard
+            title="Period Comparison"
+            meta="Current vs previous period revenue"
+          >
             <ResponsiveContainer width="100%" height={200}>
-              <ComposedChart data={comparisonData.slice(0, 14)} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1E3248" vertical={false} />
-                <XAxis dataKey="date" tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: "#5A7A96", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <ComposedChart
+                data={comparisonData.slice(0, 14)}
+                margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#1E3248"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{
+                    fill: "#5A7A96",
+                    fontSize: 9,
+                    fontFamily: "Space Mono",
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tick={{
+                    fill: "#5A7A96",
+                    fontSize: 9,
+                    fontFamily: "Space Mono",
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="revenue"     fill="rgba(201,168,76,0.65)"  radius={[2, 2, 0, 0]} name="Current" />
-                <Bar dataKey="prevRevenue" fill="rgba(43,95,142,0.4)"    radius={[2, 2, 0, 0]} name="Previous" />
+                <Bar
+                  dataKey="revenue"
+                  fill="rgba(201,168,76,0.65)"
+                  radius={[2, 2, 0, 0]}
+                  name="Current"
+                />
+                <Bar
+                  dataKey="prevRevenue"
+                  fill="rgba(43,95,142,0.4)"
+                  radius={[2, 2, 0, 0]}
+                  name="Previous"
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </ChartCard>
         </div>
-
       </div>
     </div>
   );
