@@ -58,8 +58,9 @@ export const authLimiter = rateLimit({
     retryAfter: "15 minutes",
   },
   keyGenerator: (req: Request) => {
-    // Rate limit per IP + email combo for smarter tracking
-    return `${req.ip}:${req.body?.email ?? ""}`;
+    // Rate limit per IP + email combo - use trusted proxy for IPv6
+    const ip = req.ip ?? req.socket.remoteAddress ?? 'unknown';
+    return `${ip}:${req.body?.email ?? ""}`;
   },
 });
 
