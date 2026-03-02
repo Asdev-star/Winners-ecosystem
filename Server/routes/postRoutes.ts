@@ -284,7 +284,7 @@ router.patch("/:id", async (req: Request, res: Response) => {
     if (post.authorId !== userId) return res.status(403).json({ message: "Not your post" });
 
     const updated = await db.post.update({
-      where: { id: postId },
+      where: { id: postId, tenantId },
       data:  { content: content.trim(), edited: true },
       include: {
         author: { select: { id: true, name: true, email: true } },
@@ -324,7 +324,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     if (!canDelete) return res.status(403).json({ message: "Cannot delete this post" });
 
     await db.post.update({
-      where: { id: postId },
+      where: { id: postId, tenantId },
       data:  { deletedAt: new Date() },
     });
 

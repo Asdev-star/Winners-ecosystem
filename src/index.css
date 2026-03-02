@@ -31,6 +31,8 @@
   --green:  #2DD4A0;   /* Success, live status */
   --red:    #E05A4E;   /* Error, danger */
   --purple: #9B6FFF;   /* AI features, intelligence */
+  --purple-light: #B594FF;  /* Lighter purple for hover states */
+  --gold-light: #F5C842;    /* Lighter gold for hover states */
 
   /* ── Surfaces ── */
   --bg:       #080E1A;   /* Page background — deeper for contrast */

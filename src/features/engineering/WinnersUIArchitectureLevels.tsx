@@ -1,6 +1,7 @@
 // Phase: Cross-cutting · Layer: Core Engine / Engineering Standards
 // Winners Ecosystem — UI Architecture Quality Framework
 // Zero Tailwind · CSS variables only · Winners design system
+// Inspired by premium design: ambient lighting, pip animations, sophisticated typography
 
 import { useState, useEffect, useRef } from "react";
 
@@ -20,1221 +21,1253 @@ const css = `
     overflow-x: hidden;
   }
 
-  /* ── GRID TEXTURE ─────────────────────────────── */
+  /* Ambient top glow */
+  .wa-ambient-top {
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 500px;
+    background: radial-gradient(ellipse at center, rgba(201,168,76,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Grid texture */
   .wa-grid-bg {
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
     background-image:
-      linear-gradient(rgba(43,95,142,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(43,95,142,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(rgba(30,50,72,0.18) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,50,72,0.18) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
 
-  /* ── HEADER ───────────────────────────────────── */
+  /* Page wrap */
+  .wa-page-wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+
+  /* HEADER */
   .wa-header {
-    position: relative; z-index: 10;
-    padding: 72px 48px 56px;
-    max-width: 1200px; margin: 0 auto;
-    border-bottom: 1px solid var(--border);
+    padding: 72px 0 80px;
+    text-align: center;
   }
 
-  .wa-header-eyebrow {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 20px;
-  }
-  .wa-header-eyebrow-line {
-    width: 32px; height: 1px; background: var(--gold);
-  }
-  .wa-header-eyebrow-text {
+  .wa-eyebrow {
     font-family: 'Space Mono', monospace;
-    font-size: 9px; letter-spacing: 0.35em; text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
     color: var(--gold);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
   }
+  .wa-eyebrow::before, .wa-eyebrow::after {
+    content: '';
+    width: 48px;
+    height: 1px;
+  }
+  .wa-eyebrow::before { background: linear-gradient(90deg, transparent, var(--gold)); }
+  .wa-eyebrow::after  { background: linear-gradient(90deg, var(--gold), transparent); }
 
   .wa-header-title {
     font-family: 'Cormorant Garamond', serif;
-    font-size: clamp(40px, 5vw, 72px);
+    font-size: clamp(44px, 6vw, 82px);
     font-weight: 300;
-    line-height: 1.0;
-    color: var(--text);
-    margin-bottom: 6px;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
   }
   .wa-header-title em {
-    font-style: italic; color: var(--gold);
+    font-style: italic;
+    color: var(--gold);
   }
 
   .wa-header-sub {
-    font-size: 14px; color: var(--text-dim);
-    line-height: 1.7; max-width: 580px;
-    margin-top: 18px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(17px, 2.2vw, 24px);
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-dim);
+    margin-bottom: 36px;
   }
 
   .wa-header-meta {
-    display: flex; align-items: center; gap: 20px;
-    margin-top: 28px; flex-wrap: wrap;
-  }
-  .wa-meta-tag {
-    display: flex; align-items: center; gap: 6px;
     font-family: 'Space Mono', monospace;
-    font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
-    padding: 5px 12px; border-radius: 2px;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    flex-wrap: wrap;
   }
-  .wa-meta-tag.gold   { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(201,168,76,0.2); }
-  .wa-meta-tag.green  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(45,212,160,0.2); }
-  .wa-meta-tag.blue   { background: rgba(43,95,142,0.1); color: var(--ice); border: 1px solid rgba(43,95,142,0.25); }
-  .wa-meta-tag-dot {
-    width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+  .wa-header-meta span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wa-header-meta span::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--gold);
+    opacity: 0.55;
   }
 
-  /* ── CONTEXT BAR ─────────────────────────────── */
-  .wa-context-bar {
-    position: relative; z-index: 10;
-    padding: 12px 48px;
-    max-width: 1200px; margin: 0 auto;
-    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-    border-bottom: 1px solid var(--border2);
-  }
-  .wa-ctx-badge {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-    padding: 3px 8px; border-radius: 2px;
-    display: flex; align-items: center; gap: 5px;
-    cursor: default;
-  }
-  .wa-ctx-badge::before {
-    content: ''; width: 4px; height: 4px; border-radius: 50%; background: currentColor;
-  }
-  .wa-ctx-badge.live    { background: rgba(45,212,160,0.07);  color: var(--green); border: 1px solid rgba(45,212,160,0.15); }
-  .wa-ctx-badge.building{ background: rgba(201,168,76,0.07);  color: var(--gold);  border: 1px solid rgba(201,168,76,0.15); }
-  .wa-ctx-badge.planned { background: rgba(90,122,150,0.07);  color: var(--text-dim); border: 1px solid var(--border); }
-  .wa-ctx-sep { color: var(--text-faint); font-size: 10px; }
-
-  /* ── PROGRESS STRIP ──────────────────────────── */
-  .wa-progress-strip {
-    position: relative; z-index: 10;
-    padding: 28px 48px 0;
-    max-width: 1200px; margin: 0 auto;
-    display: flex; gap: 4px; align-items: flex-end;
-  }
-  .wa-progress-col {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
-  }
-  .wa-progress-bar-wrap {
-    width: 100%; background: var(--surface2); border-radius: 2px; overflow: hidden;
-    height: 4px; position: relative;
-  }
-  .wa-progress-bar-fill {
-    height: 100%; border-radius: 2px;
-    transition: width 1.4s cubic-bezier(0.22, 0.9, 0.36, 1);
-  }
-  .wa-progress-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--text-faint); text-align: center;
-  }
-  .wa-progress-num {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px; color: var(--text-dim);
-  }
-
-  /* ── MAIN LAYOUT ─────────────────────────────── */
-  .wa-main {
-    position: relative; z-index: 10;
-    padding: 60px 48px 80px;
-    max-width: 1200px; margin: 0 auto;
-    display: flex; flex-direction: column; gap: 3px;
-  }
-
-  /* ── LEVEL CARD ──────────────────────────────── */
-  .wa-level {
-    position: relative;
+  /* STATUS STRIP */
+  .wa-status-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 14px 24px;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
-    overflow: hidden;
-    transition: border-color 0.25s, box-shadow 0.25s;
-    cursor: pointer;
-    background: var(--surface);
-  }
-  .wa-level:hover  { border-color: rgba(201,168,76,0.25); }
-  .wa-level.active { border-color: rgba(201,168,76,0.4);  box-shadow: 0 0 40px rgba(201,168,76,0.06); }
-
-  .wa-level-top-border {
-    position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    transition: opacity 0.3s;
-  }
-  .wa-level:not(.active) .wa-level-top-border { opacity: 0.35; }
-
-  /* ── LEVEL HEADER (always visible) ──────────── */
-  .wa-level-header {
-    display: grid;
-    grid-template-columns: 64px 1fr auto;
-    align-items: center;
-    gap: 0;
-    padding: 0;
-    min-height: 72px;
-  }
-
-  .wa-level-num-block {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 0 20px;
-    height: 100%;
-    border-right: 1px solid var(--border2);
+    margin-bottom: 72px;
     position: relative;
-  }
-  .wa-level-num {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 28px; font-weight: 300; line-height: 1;
-    transition: color 0.3s;
-  }
-  .wa-level-roman {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase;
-    color: var(--text-faint); margin-top: 2px;
-  }
-
-  .wa-level-title-block {
-    padding: 18px 24px;
-    display: flex; flex-direction: column; gap: 4px;
-  }
-  .wa-level-name {
-    font-family: 'Syne', sans-serif;
-    font-size: 15px; font-weight: 700; letter-spacing: 0.01em;
-    line-height: 1.2;
-    transition: color 0.3s;
-  }
-  .wa-level-tagline {
-    font-size: 12px; color: var(--text-dim); line-height: 1.5;
-  }
-
-  .wa-level-right {
-    padding: 0 24px;
-    display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
-  }
-  .wa-level-status-badge {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase;
-    padding: 4px 10px; border-radius: 2px;
-    white-space: nowrap;
-  }
-  .wa-level-chevron {
-    font-size: 10px; color: var(--text-faint);
-    transition: transform 0.3s, color 0.3s;
-  }
-  .wa-level.active .wa-level-chevron { transform: rotate(180deg); }
-
-  /* ── LEVEL BODY (expandable) ─────────────────── */
-  .wa-level-body {
     overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.5s cubic-bezier(0.22, 0.9, 0.36, 1);
-    border-top: 1px solid transparent;
   }
-  .wa-level.active .wa-level-body {
-    max-height: 1800px;
-    border-top-color: var(--border2);
-  }
-
-  .wa-level-body-inner {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0;
-    padding: 0;
-  }
-
-  /* ── BODY PANELS ─────────────────────────────── */
-  .wa-panel {
-    padding: 28px 28px 24px;
-    border-right: 1px solid var(--border2);
-    display: flex; flex-direction: column; gap: 16px;
-  }
-  .wa-panel:last-child { border-right: none; }
-
-  .wa-panel-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
-    color: var(--text-faint);
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border2);
-    display: flex; align-items: center; gap: 8px;
-  }
-
-  /* ── CODE BLOCK ──────────────────────────────── */
-  .wa-code-block {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px 16px;
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    line-height: 1.8;
-    color: var(--text-dim);
-    overflow-x: auto;
-    position: relative;
-  }
-  .wa-code-block::before {
+  .wa-status-strip::before {
     content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: var(--border);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), transparent);
   }
-  .wa-code-gold   { color: var(--gold); }
-  .wa-code-green  { color: var(--green); }
-  .wa-code-ice    { color: var(--ice); }
-  .wa-code-purple { color: var(--purple); }
-  .wa-code-red    { color: var(--red); }
-  .wa-code-dim    { color: var(--text-faint); }
-  .wa-code-comment{ color: var(--text-faint); font-style: italic; }
 
-  /* ── CHECKLIST ───────────────────────────────── */
-  .wa-checklist { display: flex; flex-direction: column; gap: 8px; }
-  .wa-check-item {
-    display: flex; align-items: flex-start; gap: 10px;
-    font-size: 12px; line-height: 1.5; color: var(--text-dim);
-  }
-  .wa-check-icon {
-    width: 16px; height: 16px; border-radius: 2px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; margin-top: 1px;
+  .wa-sdot {
+    display: flex;
+    align-items: center;
+    gap: 7px;
     font-family: 'Space Mono', monospace;
-    font-size: 9px; font-weight: 700;
-  }
-  .wa-check-icon.done  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(45,212,160,0.2); }
-  .wa-check-icon.todo  { background: var(--surface3); color: var(--text-faint); border: 1px solid var(--border); }
-  .wa-check-icon.warn  { background: var(--red-dim); color: var(--red); border: 1px solid rgba(224,90,78,0.2); }
-  .wa-check-icon.next  { background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(201,168,76,0.2); }
-
-  /* ── METRICS ROW ─────────────────────────────── */
-  .wa-metrics { display: flex; gap: 8px; flex-wrap: wrap; }
-  .wa-metric {
-    flex: 1; min-width: 90px;
-    background: var(--surface2);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding: 4px 10px;
+    border-radius: 3px;
     border: 1px solid var(--border);
-    border-radius: 4px; padding: 12px 14px;
   }
-  .wa-metric-val {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 24px; font-weight: 300; line-height: 1;
-    margin-bottom: 3px;
+  .wa-sdot .wa-pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
-  .wa-metric-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase;
-    color: var(--text-faint);
+  .wa-sdot.live  { color:var(--green); background:rgba(45,212,160,0.05); border-color:rgba(45,212,160,0.18); }
+  .wa-sdot.live .wa-pip { background:var(--green); box-shadow:0 0 6px var(--green); animation:wa-pip-pulse 2s infinite; }
+  .wa-sdot.build { color:var(--gold);  background:rgba(201,168,76,0.05); border-color:rgba(201,168,76,0.18); }
+  .wa-sdot.build .wa-pip { background:var(--gold); }
+  .wa-sdot.plan  { color:var(--text-dim); }
+  .wa-sdot.plan .wa-pip { background:var(--text-dim); }
+  .wa-sdiv { width:1px; height:14px; background:var(--border); flex-shrink:0; }
+
+  @keyframes wa-pip-pulse {
+    0%,100%{opacity:1}
+    50%{opacity:0.35}
   }
 
-  /* ── ARCH DIAGRAM ────────────────────────────── */
-  .wa-arch-diagram {
+  /* SECTION LABEL */
+  .wa-sec-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .wa-sec-label::after {
+    content:'';
+    flex:1;
+    height:1px;
+    background:linear-gradient(90deg, var(--border), transparent);
+  }
+
+  .wa-sec-intro {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-dim);
+    max-width: 660px;
+    line-height: 1.65;
+    margin-bottom: 60px;
+  }
+
+  /* LEVELS CONTAINER */
+  .wa-levels {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  /* LEVEL CARD */
+  .wa-lcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.25s;
+    cursor: pointer;
+  }
+  .wa-lcard:hover { border-color: var(--border2); }
+
+  /* Top accent */
+  .wa-lcard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+  /* Left bar */
+  .wa-lcard::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 3px;
+  }
+
+  .wa-lcard.l1::before { background: linear-gradient(90deg, rgba(90,122,150,0.5), transparent); }
+  .wa-lcard.l1::after  { background: rgba(90,122,150,0.25); }
+
+  .wa-lcard.l2::before { background: linear-gradient(90deg, var(--ice), transparent); }
+  .wa-lcard.l2::after  { background: linear-gradient(180deg, var(--ice), transparent); }
+
+  .wa-lcard.l3::before { background: linear-gradient(90deg, var(--gold), transparent); }
+  .wa-lcard.l3::after  { background: linear-gradient(180deg, var(--gold), rgba(201,168,76,0.1)); }
+
+  .wa-lcard.l4::before { background: linear-gradient(90deg, var(--purple), transparent); }
+  .wa-lcard.l4::after  { background: linear-gradient(180deg, var(--purple), rgba(155,111,255,0.08)); }
+
+  .wa-lcard.l5::before { background: linear-gradient(90deg, var(--green), var(--gold), transparent); }
+  .wa-lcard.l5::after  { background: linear-gradient(180deg, var(--green), var(--gold)); }
+
+  .wa-linner {
+    padding: 36px 40px 32px 52px;
+    cursor: pointer;
+  }
+
+  .wa-ltop {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+  }
+
+  .wa-lnum-block {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .wa-lnum {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 54px;
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1;
+  }
+  .wa-lcard.l1 .wa-lnum { color: var(--text-dim); }
+  .wa-lcard.l2 .wa-lnum { color: var(--ice); }
+  .wa-lcard.l3 .wa-lnum { color: var(--gold); }
+  .wa-lcard.l4 .wa-lnum { color: var(--purple); }
+  .wa-lcard.l5 .wa-lnum {
+    background: linear-gradient(135deg, var(--green), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .wa-lnum-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  .wa-lmain {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .wa-lheader {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 5px;
+    flex-wrap: wrap;
+  }
+
+  .wa-lname {
+    font-family: 'Syne', sans-serif;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+  .wa-lcard.l1 .wa-lname { color: var(--text-mid); }
+  .wa-lcard.l2 .wa-lname { color: var(--ice); }
+  .wa-lcard.l3 .wa-lname { color: var(--gold); }
+  .wa-lcard.l4 .wa-lname { color: var(--purple); }
+  .wa-lcard.l5 .wa-lname {
+    background: linear-gradient(90deg, var(--green), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .wa-lbadge {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-weight: 700;
+  }
+  .wa-lb-current  { background:rgba(201,168,76,0.1);  color:var(--gold);    border:1px solid rgba(201,168,76,0.22); }
+  .wa-lb-baseline { background:rgba(137,196,225,0.08); color:var(--ice);     border:1px solid rgba(137,196,225,0.2); }
+  .wa-lb-required { background:rgba(201,168,76,0.07);  color:var(--gold);    border:1px solid rgba(201,168,76,0.15); }
+  .wa-lb-advanced { background:rgba(155,111,255,0.1);  color:var(--purple);  border:1px solid rgba(155,111,255,0.2); }
+  .wa-lb-vision   { background:linear-gradient(135deg,rgba(45,212,160,0.1),rgba(201,168,76,0.1)); color:var(--green); border:1px solid rgba(45,212,160,0.2); }
+
+  .wa-ltagline {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-style: italic;
+    font-weight: 300;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  .wa-ldesc {
+    font-size: 13.5px;
+    line-height: 1.72;
+    color: var(--text-mid);
+    margin-bottom: 18px;
+    max-width: 820px;
+  }
+
+  .wa-ldesc code {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+  }
+
+  /* Toggle button */
+  .wa-ltoggle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s;
+  }
+  .wa-ltoggle:hover { color: var(--gold); }
+  .wa-larrow {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: transform 0.3s ease, border-color 0.2s;
+  }
+  .wa-ltoggle:hover .wa-larrow { border-color: var(--gold); }
+  .wa-ltoggle.open .wa-larrow  { transform: rotate(180deg); }
+
+  /* Expanded */
+  .wa-lexp {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .wa-lexp.open { max-height: 1400px; }
+
+  .wa-lexp-inner {
+    padding: 0 40px 36px 52px;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+    padding-top: 28px;
+  }
+
+  /* Metrics row */
+  .wa-mrow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .wa-mchip {
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 16px;
-    font-family: 'Space Mono', monospace;
-    font-size: 10px;
-    line-height: 2.0;
+    text-align: center;
   }
-  .wa-arch-layer {
-    display: flex; align-items: center; gap: 8px;
-    padding: 4px 8px; border-radius: 2px; margin: 2px 0;
-  }
-  .wa-arch-layer-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .wa-arch-arrow {
-    text-align: center; color: var(--text-faint);
-    padding: 2px 0; font-size: 10px;
-  }
-
-  /* ── BENCHMARK CHIPS ─────────────────────────── */
-  .wa-benchmarks { display: flex; flex-wrap: wrap; gap: 6px; }
-  .wa-benchmark-chip {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px; letter-spacing: 0.1em;
-    padding: 4px 10px; border-radius: 2px;
-    background: var(--surface2); color: var(--text-dim);
-    border: 1px solid var(--border);
-    display: flex; align-items: center; gap: 5px;
-  }
-  .wa-benchmark-chip-dot { width: 4px; height: 4px; border-radius: 50%; }
-
-  /* ── VERDICT BANNER ──────────────────────────── */
-  .wa-verdict {
-    border-radius: 4px; padding: 16px 18px;
-    font-size: 12px; line-height: 1.6;
-    display: flex; gap: 12px; align-items: flex-start;
-    margin-top: 4px;
-  }
-  .wa-verdict-icon {
-    font-size: 14px; flex-shrink: 0; margin-top: 1px;
-  }
-  .wa-verdict-text { color: var(--text-dim); }
-  .wa-verdict b { font-weight: 700; }
-
-  /* ── BOTTOM SUMMARY ──────────────────────────── */
-  .wa-summary {
-    position: relative; z-index: 10;
-    max-width: 1200px; margin: 0 auto;
-    padding: 0 48px 80px;
-  }
-
-  .wa-summary-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 3px;
-  }
-  .wa-summary-col {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 20px 18px;
-    position: relative; overflow: hidden;
-  }
-  .wa-summary-col::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, var(--gold), transparent);
-  }
-  .wa-summary-col-num {
+  .wa-mval {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 36px; font-weight: 300; line-height: 1;
-    margin-bottom: 6px;
-  }
-  .wa-summary-col-name {
-    font-family: 'Syne', sans-serif;
-    font-size: 12px; font-weight: 700;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
     margin-bottom: 4px;
   }
-  .wa-summary-col-desc {
+  .wa-mlbl {
     font-family: 'Space Mono', monospace;
-    font-size: 9px; letter-spacing: 0.05em;
-    color: var(--text-faint); line-height: 1.6;
-    white-space: pre-line;
-  }
-  .wa-summary-col-status {
-    margin-top: 12px;
-    font-family: 'Space Mono', monospace;
-    font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase;
-    padding: 3px 8px; border-radius: 2px; display: inline-block;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
   }
 
-  /* ── SPRINT ROADMAP ──────────────────────────── */
+  /* Detail grid */
+  .wa-dgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .wa-dblock {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 20px;
+  }
+
+  .wa-dtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .wa-dtitle::after {
+    content:'';
+    flex:1;
+    height:1px;
+    background:var(--border);
+  }
+
+  .wa-ditems {
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+  }
+  .wa-ditems li {
+    font-size: 12.5px;
+    color: var(--text-mid);
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    line-height: 1.5;
+  }
+  .wa-dicon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    margin-top: 1px;
+  }
+  .wa-ic-check { background:rgba(45,212,160,0.1);  color:var(--green); }
+  .wa-ic-build  { background:rgba(201,168,76,0.1);  color:var(--gold); }
+  .wa-ic-plan   { background:rgba(90,122,150,0.1);  color:var(--text-dim); }
+  .wa-ic-warn   { background:rgba(224,90,78,0.1);   color:var(--red); }
+  .wa-ic-ai     { background:rgba(155,111,255,0.1); color:var(--purple); }
+
+  /* Chip row */
+  .wa-chips {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+  .wa-chip {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+  }
+  .wa-chip.gold   { border-color:rgba(201,168,76,0.3);   color:var(--gold); }
+  .wa-chip.ice    { border-color:rgba(137,196,225,0.3);  color:var(--ice); }
+  .wa-chip.purple { border-color:rgba(155,111,255,0.3);  color:var(--purple); }
+  .wa-chip.green  { border-color:rgba(45,212,160,0.3);   color:var(--green); }
+  .wa-chip.red    { border-color:rgba(224,90,78,0.3);    color:var(--red); }
+
+  /* CONNECTOR */
+  .wa-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 0;
+    position: relative;
+  }
+  .wa-cline {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 30px;
+    background: linear-gradient(180deg, var(--border), var(--border2));
+  }
+  .wa-clabel {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 2px 14px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ROADMAP */
   .wa-roadmap {
-    position: relative; z-index: 10;
-    max-width: 1200px; margin: 0 auto;
-    padding: 0 48px 80px;
+    margin-top: 80px;
   }
-  .wa-roadmap-title {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
-    color: var(--gold); margin-bottom: 24px;
-    display: flex; align-items: center; gap: 12px;
+
+  .wa-rmap-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
   }
-  .wa-roadmap-title::after {
-    content: ''; flex: 1; height: 1px; background: var(--border);
+
+  .wa-rcell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 26px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s;
   }
-  .wa-roadmap-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+  .wa-rcell:hover { background: var(--surface2); }
+
+  .wa-rcell::before {
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:2px;
   }
-  .wa-sprint {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
-    padding: 22px 22px 18px; position: relative; overflow: hidden;
+  .wa-rcell.done::before   { background:linear-gradient(90deg, var(--green), transparent); }
+  .wa-rcell.active::before { background:linear-gradient(90deg, var(--gold), transparent); }
+  .wa-rcell.next::before   { background:linear-gradient(90deg, var(--ice), transparent); }
+  .wa-rcell.future::before { background:linear-gradient(90deg, rgba(90,122,150,0.35), transparent); }
+
+  .wa-rnum {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 38px;
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1;
+    margin-bottom: 4px;
   }
-  .wa-sprint::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, var(--gold), transparent);
-  }
-  .wa-sprint-label {
-    font-family: 'Space Mono', monospace;
-    font-size: 8px; letter-spacing: 0.25em; text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-  .wa-sprint-name {
+  .wa-rcell.done   .wa-rnum { color:var(--green); }
+  .wa-rcell.active .wa-rnum { color:var(--gold); }
+  .wa-rcwa-rnum {ell.next   . color:var(--ice); }
+  .wa-rcell.future .wa-rnum { color:var(--text-dim); }
+
+  .wa-rtitle {
     font-family: 'Syne', sans-serif;
-    font-size: 14px; font-weight: 700; margin-bottom: 14px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 6px;
   }
-  .wa-sprint-items { display: flex; flex-direction: column; gap: 7px; }
-  .wa-sprint-item {
-    display: flex; align-items: flex-start; gap: 8px;
-    font-size: 11px; color: var(--text-dim); line-height: 1.4;
-  }
-  .wa-sprint-item::before {
-    content: '→'; color: var(--text-faint); flex-shrink: 0;
-    font-family: 'Space Mono', monospace; font-size: 9px; margin-top: 1px;
-  }
-  .wa-sprint-outcome {
-    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border2);
+  .wa-rcell.done   .wa-rtitle { color:var(--green); }
+  .wa-rcell.active .wa-rtitle { color:var(--gold); }
+  .wa-rcell.next   .wa-rtitle { color:var(--ice); }
+  .wa-rcell.future .wa-rtitle { color:var(--text-dim); }
+
+  .wa-rsprint {
     font-family: 'Space Mono', monospace;
-    font-size: 9px; letter-spacing: 0.05em; color: var(--text-faint);
-    display: flex; align-items: center; gap: 6px;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
   }
-  .wa-sprint-outcome-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 
-  /* ── ANIMATIONS ──────────────────────────────── */
+  .wa-rtags {
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+  }
+  .wa-rtag {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  /* MANIFESTO */
+  .wa-manifesto {
+    margin-top: 80px;
+    padding: 60px 64px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+  }
+  .wa-manifesto::before {
+    content: '';
+    position: absolute;
+    top:0;
+    left:0;
+    right:0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .wa-manifesto::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 280px;
+    background: radial-gradient(ellipse at center, rgba(201,168,76,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .wa-mquote {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(19px, 2.8vw, 30px);
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.55;
+    color: var(--text);
+    max-width: 800px;
+    margin: 0 auto 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .wa-mquote strong {
+    font-weight: 600;
+    color: var(--gold);
+    font-style: normal;
+  }
+
+  .wa-mattr {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ANIMATIONS */
   @keyframes wa-fade-up {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
   }
-  @keyframes wa-shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
+  .wa-fi { opacity:0; animation: wa-fade-up 0.6s ease forwards; }
+  .wa-fi-1 { animation-delay:0.05s; }
+  .wa-fi-2 { animation-delay:0.15s; }
+  .wa-fi-3 { animation-delay:0.25s; }
+  .wa-fi-4 { animation-delay:0.35s; }
+  .wa-fi-5 { animation-delay:0.45s; }
+  .wa-fi-6 { animation-delay:0.55s; }
+  .wa-fi-7 { animation-delay:0.65s; }
+  .wa-fi-8 { animation-delay:0.75s; }
 
-  .wa-animate { opacity: 0; animation: wa-fade-up 0.6s ease forwards; }
-  .wa-animate-1 { animation-delay: 0.05s; }
-  .wa-animate-2 { animation-delay: 0.12s; }
-  .wa-animate-3 { animation-delay: 0.19s; }
-  .wa-animate-4 { animation-delay: 0.26s; }
-  .wa-animate-5 { animation-delay: 0.33s; }
-
-  /* ── RESPONSIVE ──────────────────────────────── */
+  /* RESPONSIVE */
   @media (max-width: 900px) {
-    .wa-header, .wa-context-bar, .wa-progress-strip, .wa-main, .wa-summary, .wa-roadmap {
-      padding-left: 20px; padding-right: 20px;
-    }
-    .wa-level-body-inner { grid-template-columns: 1fr; }
-    .wa-panel { border-right: none; border-bottom: 1px solid var(--border2); }
-    .wa-panel:last-child { border-bottom: none; }
-    .wa-summary-grid { grid-template-columns: repeat(2, 1fr); }
-    .wa-roadmap-grid { grid-template-columns: 1fr; }
-    .wa-level-header { grid-template-columns: 56px 1fr auto; }
+    .wa-rmap-grid { grid-template-columns: repeat(3, 1fr); }
+    .wa-dgrid     { grid-template-columns: 1fr; }
+    .wa-mrow      { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .wa-page-wrap { padding: 0 16px 80px; }
+    .wa-linner    { padding: 24px 18px 22px 26px; }
+    .wa-lexp-inner{ padding: 0 18px 24px 26px; padding-top: 24px; }
+    .wa-lnum      { font-size: 40px; }
+    .wa-rmap-grid { grid-template-columns: repeat(2, 1fr); }
+    .wa-manifesto { padding: 36px 24px; }
   }
 `;
 
-// ── DATA ───────────────────────────────────────────────────────────────────────
-
+// Level data structure
 interface LevelItem {
-  type: "done" | "warn" | "todo" | "next";
+  type: "check" | "build" | "plan" | "warn" | "ai";
   text: string;
 }
 
-interface CodeLine {
-  t: string;
-  v: string;
-}
-
-interface Metric {
-  val: string;
-  label: string;
-  color: string;
-}
-
-interface Panel {
-  title: string;
-  items?: LevelItem[];
-  snippet?: CodeLine[];
-}
-
-interface Panels {
-  state: Panel;
-  code: Panel;
-  action: Panel;
-}
-
-interface Level {
-  num: string;
-  roman: string;
+interface LevelData {
+  id: string;
   name: string;
   tagline: string;
-  color: string;
-  colorDim: string;
-  colorBorder: string;
-  status: string;
-  statusColor: { bg: string; color: string; border: string };
-  metrics: Metric[];
-  gradient: string;
-  panels: Panels;
+  desc: string;
+  badge: string;
+  badgeClass: string;
+  metrics: { val: string; label: string; color: string }[];
+  panels: {
+    violations?: LevelItem[];
+    exitCriteria?: LevelItem[];
+    architecture?: LevelItem[];
+    componentLib?: LevelItem[];
+    stores?: LevelItem[];
+    hooks?: LevelItem[];
+    intelligence?: LevelItem[];
+    deployment?: LevelItem[];
+    distribution?: LevelItem[];
+  };
+  chips: { text: string; class: string }[];
 }
 
-interface Sprint {
-  color: string;
-  gradient: string;
-  label: string;
-  name: string;
-  items: string[];
-  outcome: { color: string; text: string };
-}
-
-const LEVELS: Level[] = [
+const LEVELS: LevelData[] = [
   {
-    num: "01",
-    roman: "I",
+    id: "l1",
     name: "Functional",
-    tagline: "Pages work. Data loads. Actions fire.",
-    color: "var(--red)",
-    colorDim: "var(--red-dim)",
-    colorBorder: "rgba(224,90,78,0.2)",
-    status: "Current Reality",
-    statusColor: { bg: "var(--red-dim)", color: "var(--red)", border: "rgba(224,90,78,0.2)" },
+    tagline: "Pages that work, but do not yet speak the language of the ecosystem.",
+    desc: `Data loads. Actions fire. Routes exist. But every page is structurally isolated — styles are duplicated inline, hex values are hardcoded throughout, there is no shared component vocabulary, and no architectural continuity between screens. The 219 lint errors in the live repository are the direct symptom of this level. This is survival code. It proves the idea, but it does not build the foundation.`,
+    badge: "Current — Partial",
+    badgeClass: "wa-lb-current",
     metrics: [
-      { val: "219", label: "Lint problems", color: "var(--red)" },
-      { val: "0", label: "Test files", color: "var(--text-dim)" },
-      { val: "~40%", label: "Pages consistent", color: "var(--text-dim)" },
+      { val: "219", label: "Lint Problems", color: "var(--red)" },
+      { val: "0", label: "Test Files", color: "var(--text-dim)" },
+      { val: "~50%", label: "Pages at this Level", color: "var(--text-dim)" },
     ],
-    gradient: "linear-gradient(90deg, var(--red), transparent)",
     panels: {
-      state: {
-        title: "Current Code Reality",
-        items: [
-          { type: "warn", text: "Hardcoded hex values in CommunityPage.tsx and RevenueChart.tsx" },
-          { type: "warn", text: "219 lint problems — 205 errors, 14 warnings across codebase" },
-          { type: "warn", text: "0 test files — Vitest config exists but suite empty" },
-          { type: "warn", text: "CSS duplicated per-file — no shared component language" },
-          { type: "warn", text: "@ts-nocheck scattered across multiple files" },
-          { type: "done", text: "TypeScript compiles clean — both tsconfig targets pass" },
-          { type: "done", text: "Core Engine pages functional and deployed live" },
-        ]
-      },
-      code: {
-        title: "What This Looks Like",
-        snippet: [
-          { t: "comment", v: "// ❌ Level 1 — survival code" },
-          { t: "red",  v: `style={{ color: '#C9A84C' }}` },
-          { t: "dim",  v: "" },
-          { t: "comment", v: "// Inline hex everywhere" },
-          { t: "red",  v: `background: '#111D2E',` },
-          { t: "red",  v: `border: '1px solid #1E3248'` },
-          { t: "dim",  v: "" },
-          { t: "comment", v: "// @ts-nocheck used to skip types" },
-          { t: "red",  v: "// @ts-nocheck" },
-          { t: "dim",  v: "export default function Page(){" },
-          { t: "dim",  v: "  return <div>" },
-        ]
-      },
-      action: {
-        title: "To Escape This Level",
-        items: [
-          { type: "next", text: "Global design sweep — grep and replace all hardcoded hex with CSS vars" },
-          { type: "next", text: "Lint reduction pass — start with no-explicit-any and @ts-nocheck clusters" },
-          { type: "next", text: "Enforce design rules in every existing page before writing new ones" },
-        ],
-        verdict: {
-          style: { background: "var(--red-dim)", border: "1px solid rgba(224,90,78,0.15)" },
-          icon: "⚠",
-          text: "<b>The gap between your vision and this level is total.</b> Bloomberg Terminal doesn't ship with hardcoded colors. Fix this before any new feature is written."
-        }
-      }
-    }
+      violations: [
+        { type: "warn", text: "Hardcoded hex in CommunityPage.tsx" },
+        { type: "warn", text: "Hardcoded hex in RevenueChart.tsx" },
+        { type: "warn", text: "@ts-nocheck suppressing type errors sitewide" },
+        { type: "warn", text: "no-explicit-any throughout backend routes" },
+        { type: "warn", text: "Card pattern duplicated in every page file" },
+        { type: "warn", text: "Context bar copy-pasted, not imported" },
+        { type: "warn", text: "Intelligence routes unwired in App.tsx" },
+      ],
+      exitCriteria: [
+        { type: "build", text: "All hardcoded hex replaced with CSS variables" },
+        { type: "build", text: "@ts-nocheck eliminated across all files" },
+        { type: "build", text: "Lint errors reduced below 50" },
+        { type: "build", text: "Intelligence routes wired in App.tsx" },
+        { type: "build", text: "chatRoutes mounted in Server/index.ts" },
+        { type: "build", text: "Every existing page passes design checklist" },
+      ],
+    },
+    chips: [
+      { text: "Sprint 1 Priority", class: "red" },
+      { text: "Design Sweep", class: "" },
+      { text: "Lint Reduction", class: "" },
+      { text: "Route Wiring", class: "" },
+    ],
   },
   {
-    num: "02",
-    roman: "II",
+    id: "l2",
     name: "Consistent",
-    tagline: "Every page obeys the same non-negotiable rules.",
-    color: "var(--orange)",
-    colorDim: "var(--orange-dim)",
-    colorBorder: "rgba(245,158,11,0.2)",
-    status: "50% Achieved",
-    statusColor: { bg: "var(--orange-dim)", color: "var(--orange)", border: "rgba(245,158,11,0.2)" },
+    tagline: "Every surface speaks the same visual language. No exceptions. No drift. Ever.",
+    desc: `The design system is fully enforced across all existing pages. Every card carries the 6px radius and 2px gold gradient top border. Every label is Space Mono. Every heading is Cormorant Garamond. Every data value references a CSS variable. The ecosystem context bar appears on every page reflecting live layer health. Skeleton loaders have replaced all spinners. Empty states include an AI prompt CTA — never a blank "No data found" message.`,
+    badge: "Non-Negotiable Baseline",
+    badgeClass: "wa-lb-baseline",
     metrics: [
-      { val: "12", label: "CSS vars in use", color: "var(--gold)" },
-      { val: "6px", label: "Card radius", color: "var(--gold)" },
-      { val: "3", label: "Font families", color: "var(--gold)" },
+      { val: "12", label: "CSS Variables", color: "var(--ice)" },
+      { val: "3", label: "Font Families", color: "var(--ice)" },
+      { val: "8+", label: "Layer Dots in Context Bar", color: "var(--ice)" },
     ],
-    gradient: "linear-gradient(90deg, var(--orange), transparent)",
     panels: {
-      state: {
-        title: "Design System Compliance",
-        items: [
-          { type: "done", text: "CSS variables declared and used across most pages" },
-          { type: "done", text: "Card pattern: 6px radius + 2px gold gradient top border" },
-          { type: "done", text: "Cormorant Garamond · Syne · Space Mono loaded and used" },
-          { type: "done", text: "Context bar pattern defined — ecosystem breadcrumb on every page" },
-          { type: "todo", text: "CommunityPage.tsx still has hardcoded hex — sweep pending" },
-          { type: "todo", text: "RevenueChart.tsx colors not yet converted to CSS variables" },
-          { type: "todo", text: "Skeleton loaders missing on several data-fetching components" },
-        ]
-      },
-      code: {
-        title: "What This Looks Like",
-        snippet: [
-          { t: "comment", v: "// ✅ Level 2 — consistent design system" },
-          { t: "green", v: `style={{ color: 'var(--gold)' }}` },
-          { t: "dim",   v: "" },
-          { t: "green", v: "background: var(--surface)," },
-          { t: "green", v: "border: '1px solid var(--border)'," },
-          { t: "green", v: "borderRadius: 6," },
-          { t: "dim",   v: "" },
-          { t: "comment", v: "// Card pattern used everywhere" },
-          { t: "green", v: ".card::before {" },
-          { t: "green", v: "  background: linear-gradient(" },
-          { t: "green", v: "    90deg, var(--gold), transparent" },
-          { t: "green", v: "  );" },
-        ]
-      },
-      action: {
-        title: "Compliance Checklist",
-        items: [
-          { type: "done", text: "All CSS variables declared in :root" },
-          { type: "done", text: "Phase + Layer comment at top of every file" },
-          { type: "next", text: "Ecosystem context bar on every single page" },
-          { type: "next", text: "Empty states use AI prompt, never bare 'No data'" },
-          { type: "next", text: "Skeleton loading replaces all spinners" },
-          { type: "next", text: "WCAG AA contrast on all text — 4.5:1 minimum" },
-        ],
-        verdict: {
-          style: { background: "var(--orange-dim)", border: "1px solid rgba(245,158,11,0.15)" },
-          icon: "◈",
-          text: "<b>This is the minimum floor for a premium product.</b> Every page that doesn't meet this standard reduces trust. A user who sees one inconsistent page questions all the others."
-        }
-      }
-    }
+      violations: [
+        { type: "check", text: "Card: 6px radius + 2px gold gradient top border" },
+        { type: "check", text: "Ecosystem context bar — all 8 layer status dots" },
+        { type: "check", text: "Skeleton shimmer (#172335) — zero spinners anywhere" },
+        { type: "check", text: "Empty states: illustration + AI assistant CTA" },
+        { type: "check", text: "Transitions: 200ms ease — no abrupt state changes" },
+        { type: "check", text: "Phase + Layer comment at top of every file" },
+        { type: "check", text: "WCAG AA: 4.5:1 contrast, fully keyboard-navigable" },
+        { type: "check", text: "Touch targets: minimum 44px on all mobile views" },
+      ],
+      architecture: [
+        { type: "plan", text: "Cormorant Garamond — display headings, wt 300–600, italic gold accents" },
+        { type: "plan", text: "Syne 700–800 — section titles, platform names" },
+        { type: "plan", text: "Syne 400 — all body text, descriptions" },
+        { type: "plan", text: "Space Mono 9–11px — labels, badges, metadata, uppercase + letter-spacing" },
+      ],
+    },
+    chips: [
+      { text: "CSS Variables Only", class: "ice" },
+      { text: "Dark Mode Default", class: "ice" },
+      { text: "Light Mode Optional", class: "ice" },
+      { text: "Entrance Animations Staggered", class: "ice" },
+    ],
   },
   {
-    num: "03",
-    roman: "III",
+    id: "l3",
     name: "Componentised",
-    tagline: "One infrastructure. Eight expressions. Zero duplication.",
-    color: "var(--gold)",
-    colorDim: "var(--gold-dim)",
-    colorBorder: "rgba(201,168,76,0.2)",
-    status: "Build Now",
-    statusColor: { bg: "var(--gold-dim)", color: "var(--gold)", border: "rgba(201,168,76,0.2)" },
+    tagline: "One infrastructure. Eight expressions. Built once, deployed across the entire ecosystem.",
+    desc: `The ecosystem vision — one identity across 8 platforms — only becomes structurally real when a shared component library exists. The card pattern, context bar, skeleton loader, empty state, progress ring, and command palette are currently duplicated page by page. Level 3 extracts them into a single source of truth. The single most impactful outcome: the AssistantPanel — built once, it deploys NOVA into Community, SAGE into Academy, ATLAS into Market, and CIRCUIT into Work simultaneously.`,
+    badge: "Architecture Unlock",
+    badgeClass: "wa-lb-required",
     metrics: [
       { val: "8", label: "Platforms share one component lib", color: "var(--gold)" },
       { val: "9", label: "AI assistants need AssistantPanel", color: "var(--gold)" },
       { val: "1×", label: "Write once, deploy everywhere", color: "var(--gold)" },
     ],
-    gradient: "linear-gradient(90deg, var(--gold), transparent)",
     panels: {
-      state: {
-        title: "Shared Component Library",
-        items: [
-          { type: "todo", text: "src/components/ui/Card.tsx — card pattern as an importable component" },
-          { type: "todo", text: "src/components/ui/ContextBar.tsx — ecosystem breadcrumb, built once" },
-          { type: "todo", text: "src/components/ui/SkeletonLoader.tsx — shimmer, consistent system-wide" },
-          { type: "todo", text: "src/components/ui/EmptyState.tsx — illustration + AI CTA, never duplicated" },
-          { type: "todo", text: "src/components/ui/ProgressRing.tsx — SVG ring for profile and courses" },
-          { type: "todo", text: "src/components/ui/Badge.tsx — layer badges, trust scores, status pills" },
-          { type: "todo", text: "src/components/ai/AssistantPanel.tsx — the panel that wires all 9 AIs" },
-        ]
-      },
-      code: {
-        title: "Target Architecture",
-        snippet: [
-          { t: "comment", v: "// ✅ Level 3 — componentised" },
-          { t: "ice",   v: "import { Card } from '@/components/ui/Card';" },
-          { t: "ice",   v: "import { ContextBar } from '@/components/ui/ContextBar';" },
-          { t: "ice",   v: "import { AssistantPanel } from '@/components/ai';" },
-          { t: "dim",   v: "" },
-          { t: "gold",  v: "export function CommunityPage() {" },
-          { t: "dim",   v: "  return (" },
-          { t: "dim",   v: "    <>" },
-          { t: "green", v: "      <ContextBar layer='community' />" },
-          { t: "dim",   v: "      <Card>" },
-          { t: "dim",   v: "        <FeedContent />" },
-          { t: "dim",   v: "      </Card>" },
-          { t: "purple",v: "      <AssistantPanel ai='NOVA' />" },
-          { t: "dim",   v: "    </>" },
-          { t: "dim",   v: "  );" },
-          { t: "dim",   v: "}" },
-        ]
-      },
-      action: {
-        title: "Why This Unlocks Everything",
-        items: [
-          { type: "next", text: "AssistantPanel built once → NOVA, SAGE, ATLAS, CIRCUIT all go live simultaneously" },
-          { type: "next", text: "ContextBar built once → 8 platforms stay in sync with zero extra work" },
-          { type: "next", text: "EmptyState built once → consistent AI-powered empty states everywhere" },
-          { type: "next", text: "Badge built once → Trust Score renders identically across Community, Work, Market" },
-        ],
-        verdict: {
-          style: { background: "var(--gold-dim)", border: "1px solid rgba(201,168,76,0.15)" },
-          icon: "⬡",
-          text: "<b>This is the most impactful architectural upgrade available right now.</b> AssistantPanel alone unlocks NOVA, SAGE, ATLAS, and CIRCUIT going live across four platforms simultaneously."
-        }
-      }
-    }
+      componentLib: [
+        { type: "build", text: "Card.tsx — the card pattern as a component" },
+        { type: "build", text: "ContextBar.tsx — imported once, used everywhere" },
+        { type: "build", text: "SkeletonLoader.tsx — animated shimmer, consistent" },
+        { type: "build", text: "EmptyState.tsx — illustration + AI CTA" },
+        { type: "build", text: "ProgressRing.tsx — SVG ring for profile and courses" },
+        { type: "build", text: "Badge.tsx — layer, status, trust score badges" },
+        { type: "build", text: "CommandPalette.tsx — ⌘K, global" },
+      ],
+      architecture: [
+        { type: "ai", text: "AssistantPanel → CommunityPage (NOVA)" },
+        { type: "ai", text: "AssistantPanel → CoursePage (SAGE)" },
+        { type: "ai", text: "AssistantPanel → MarketPage (ATLAS)" },
+        { type: "ai", text: "AssistantPanel → WorkPage (CIRCUIT)" },
+        { type: "ai", text: "AssistantPanel → Intelligence (FORGE)" },
+        { type: "ai", text: "AssistantPanel → Dashboard (OMEGA)" },
+      ],
+    },
+    chips: [
+      { text: "Radix UI Primitives", class: "gold" },
+      { text: "Framer Motion", class: "gold" },
+      { text: "Lucide Icons", class: "gold" },
+    ],
   },
   {
-    num: "04",
-    roman: "IV",
-    name: "State-Driven",
-    tagline: "The Agentic Loop requires state that crosses platform boundaries.",
-    color: "var(--green)",
-    colorDim: "var(--green-dim)",
-    colorBorder: "rgba(45,212,160,0.2)",
-    status: "Design Phase",
-    statusColor: { bg: "var(--green-dim)", color: "var(--green)", border: "rgba(45,212,160,0.2)" },
+    id: "l4",
+    name: "State-Driven & Reactive",
+    tagline: "When OMEGA fires, every layer listens. The UI becomes the nervous system of the ecosystem.",
+    desc: `The Agentic Loop — the core value proposition — demands that events in one layer trigger visible, real-time responses in another. NOVA detecting a skill in Community should surface a recommendation badge on the Academy sidebar. OMEGA completing a cross-platform analysis should update the Wealth Dashboard while the user is reading a Work contract. This requires graduating from per-feature Zustand stores to an ecosystem-aware state architecture with an ecosystemStore at the centre.`,
+    badge: "Agentic Loop Enabler",
+    badgeClass: "wa-lb-advanced",
     metrics: [
-      { val: "9", label: "Assistants share one store", color: "var(--green)" },
-      { val: "∞", label: "Cross-layer events", color: "var(--green)" },
-      { val: "1", label: "Unified notification stream", color: "var(--green)" },
+      { val: "9", label: "Assistants share one store", color: "var(--purple)" },
+      { val: "∞", label: "Cross-layer events", color: "var(--purple)" },
+      { val: "1", label: "Unified notification stream", color: "var(--purple)" },
     ],
-    gradient: "linear-gradient(90deg, var(--green), transparent)",
     panels: {
-      state: {
-        title: "Global Store Architecture",
-        items: [
-          { type: "done", text: "authStore.ts — JWT + Google OAuth + 2FA state (built)" },
-          { type: "done", text: "dashboardStore.ts — IPv6 + stale cache + fallbacks (built)" },
-          { type: "done", text: "analyticsStore.ts — Revenue + forecast + summary (built)" },
-          { type: "todo", text: "ecosystemStore.ts — Layer health, OMEGA events, notification feed" },
-          { type: "todo", text: "assistantStore.ts — Active AI, conversation history, streaming state" },
-          { type: "todo", text: "agenticLoopStore.ts — Current loop stage, trigger, outcome tracking" },
-          { type: "todo", text: "notificationStore.ts — Unified inbox across all 8 platforms" },
-        ]
-      },
-      code: {
-        title: "ecosystemStore — Design",
-        snippet: [
-          { t: "comment", v: "// 🆕 ecosystemStore.ts" },
-          { t: "ice",   v: "import { create } from 'zustand';" },
-          { t: "dim",   v: "" },
-          { t: "gold",  v: "interface EcosystemState {" },
-          { t: "dim",   v: "  layers: LayerStatus[];" },
-          { t: "green", v: "  omegaEvents: OmegaEvent[];" },
-          { t: "purple",v: "  activeLoop: AgenticLoop | null;" },
-          { t: "ice",   v: "  unreadCount: number;" },
-          { t: "dim",   v: "  trustScore: number;" },
-          { t: "gold",  v: "}" },
-          { t: "dim",   v: "" },
-          { t: "ice",   v: "export const useEcosystem" },
-          { t: "ice",   v: "  = create<EcosystemState>()(...)" },
-        ]
-      },
-      action: {
-        title: "What This Enables",
-        items: [
-          { type: "next", text: "NOVA detects skill in Community → sidebar Academy badge updates in real time without page reload" },
-          { type: "next", text: "OMEGA completes analysis → Core Engine Wealth Dashboard widget updates instantly" },
-          { type: "next", text: "Certificate earned in Academy → Work sidebar shows new job match without user navigation" },
-          { type: "next", text: "Unified inbox aggregates DMs, job offers, order updates from all 8 platforms in one stream" },
-        ],
-        verdict: {
-          style: { background: "var(--green-dim)", border: "1px solid rgba(45,212,160,0.15)" },
-          icon: "⟳",
-          text: "<b>Without this level, the Agentic Loop is a diagram, not a product.</b> Real-time cross-layer state is what makes OMEGA's orchestration visible to the user."
-        }
-      }
-    }
+      stores: [
+        { type: "check", text: "authStore.ts — JWT + Google OAuth + 2FA (built)" },
+        { type: "check", text: "dashboardStore.ts — IPv6 + stale cache (built)" },
+        { type: "check", text: "analyticsStore.ts — Revenue + forecast (built)" },
+        { type: "build", text: "ecosystemStore.ts — Layer health, OMEGA events" },
+        { type: "build", text: "assistantStore.ts — Active AI, streaming state" },
+        { type: "build", text: "agenticLoopStore.ts — Current loop stage" },
+        { type: "build", text: "notificationStore.ts — Unified inbox" },
+      ],
+      hooks: [
+        { type: "build", text: "useMultimodalChat.ts — streaming + file upload" },
+        { type: "build", text: "useAssistant.ts — context-injected per route" },
+        { type: "build", text: "useAgenticLoop.ts — watch loop stage" },
+        { type: "build", text: "useEcosystemHealth.ts — poll layer statuses" },
+      ],
+    },
+    chips: [
+      { text: "Zustand Subscriptions", class: "purple" },
+      { text: "Socket.io Events", class: "purple" },
+      { text: "SSE Streaming", class: "purple" },
+      { text: "OMEGA Orchestrator", class: "purple" },
+    ],
   },
   {
-    num: "05",
-    roman: "V",
-    name: "Intelligent",
-    tagline: "The UI participates in the ecosystem. It learns, adapts, and acts.",
-    color: "var(--purple)",
-    colorDim: "var(--purple-dim)",
-    colorBorder: "rgba(155,111,255,0.2)",
-    status: "Endgame",
-    statusColor: { bg: "var(--purple-dim)", color: "var(--purple)", border: "rgba(155,111,255,0.2)" },
+    id: "l5",
+    name: "Intelligent & Self-Aware",
+    tagline: "The UI does not just display the ecosystem. It participates in it. It knows the user.",
+    desc: `At Level 5, every page is context-aware and AI-supervised. The floating AssistantPanel knows which page the user is on, what they did last, where they sit in the Agentic Loop, and adapts its intelligence accordingly. The ⌘K command palette suggests next actions based on the user's trust score and journey stage. Empty states on the Work page know whether the user holds an Academy certificate and change their CTA accordingly. OMEGA's daily briefing renders as an interactive intelligence card.`,
+    badge: "The Vision",
+    badgeClass: "wa-lb-vision",
     metrics: [
-      { val: "9", label: "AI supervisors active", color: "var(--purple)" },
-      { val: "∞", label: "Self-optimising loops", color: "var(--purple)" },
-      { val: "0", label: "Manual interventions needed", color: "var(--purple)" },
+      { val: "9", label: "AI supervisors active", color: "var(--green)" },
+      { val: "∞", label: "Self-optimising loops", color: "var(--green)" },
+      { val: "0", label: "Manual interventions needed", color: "var(--green)" },
     ],
-    gradient: "linear-gradient(90deg, var(--purple), transparent)",
     panels: {
-      state: {
-        title: "Intelligence-Level UI Capabilities",
-        items: [
-          { type: "todo", text: "AssistantPanel receives currentRoute + userContext — adapts prompts per page" },
-          { type: "todo", text: "⌘K command palette suggests actions based on user's Agentic Loop stage" },
-          { type: "todo", text: "Empty states on Work page check Academy cert status — CTA changes accordingly" },
-          { type: "todo", text: "OMEGA daily briefing renders as an interactive card, not a static notification" },
-          { type: "todo", text: "Every significant action fires an AgenticLoop event to the backend" },
-          { type: "todo", text: "AssistantPanel streaming visible in bottom-right across all pages simultaneously" },
-          { type: "todo", text: "Trust Score badge is live — recalculates as user earns certs, completes jobs" },
-        ]
-      },
-      code: {
-        title: "Self-Aware Page Pattern",
-        snippet: [
-          { t: "comment", v: "// Level 5 — the UI knows where it is" },
-          { t: "purple",v: "<AssistantPanel" },
-          { t: "ice",   v: "  ai='NOVA'" },
-          { t: "ice",   v: "  context={{" },
-          { t: "gold",  v: "    route: '/community'," },
-          { t: "gold",  v: "    userLoop: loop.currentStage," },
-          { t: "gold",  v: "    recentActivity: activity.last5," },
-          { t: "gold",  v: "    trustScore: user.trustScore," },
-          { t: "ice",   v: "  }}" },
-          { t: "ice",   v: "  onAction={(e) =>" },
-          { t: "green", v: "    omega.dispatch(e)" },
-          { t: "ice",   v: "  }" },
-          { t: "purple",v: "/>" },
-        ]
-      },
-      action: {
-        title: "Benchmarks at This Level",
-        items: [
-          { type: "next", text: "Linear.app — keyboard-first, every action available via ⌘K, UI feels telepathic" },
-          { type: "next", text: "Stripe Dashboard — data density with perfect breathing room, every number earns its place" },
-          { type: "next", text: "Anthropic Claude — streaming, file context, model awareness baked into every interaction" },
-          { type: "next", text: "Bloomberg Terminal — the benchmark for data-sovereign, professional-grade infrastructure" },
-        ],
-        verdict: {
-          style: { background: "var(--purple-dim)", border: "1px solid rgba(155,111,255,0.15)" },
-          icon: "🧠",
-          text: "<b>This is the vision.</b> The UI is no longer a skin over an API. It is a sovereign intelligence layer — every surface aware of the user's journey, every interaction feeding OMEGA's orchestration engine."
-        }
-      }
-    }
-  }
+      intelligence: [
+        { type: "check", text: "AssistantPanel receives currentRoute + userContext + loopStage" },
+        { type: "check", text: "Every significant user action fires an event to AgenticLoop" },
+        { type: "check", text: "OMEGA daily briefing: interactive card — user responds inline" },
+        { type: "check", text: "⌘K suggests actions based on trust score and journey stage" },
+        { type: "check", text: "Empty states are certificate-aware — CTA adapts per user state" },
+        { type: "check", text: "Wealth Dashboard updates live as Work contracts close" },
+      ],
+      distribution: [
+        { type: "plan", text: "Electron wrapper — auto-starts Ollama, offline-first" },
+        { type: "plan", text: "Expo mobile app — voice input, camera, all 9 assistants" },
+        { type: "plan", text: "PWA — install-to-homescreen, offline courses, FCM" },
+        { type: "plan", text: "Data-Lite Mode — text-first for African market connectivity" },
+      ],
+    },
+    chips: [
+      { text: "OMEGA Orchestrator Live", class: "green" },
+      { text: "Persistent AI Memory", class: "green" },
+      { text: "Autonomous Actions", class: "green" },
+      { text: "Agentic Loop Closed", class: "gold" },
+    ],
+  },
 ];
 
-const SPRINTS: Sprint[] = [
-  {
-    color: "var(--red)",
-    gradient: "linear-gradient(90deg, var(--red), transparent)",
-    label: "Sprint 1 — Immediate",
-    name: "Reach Level II Across All Pages",
-    items: [
-      "Global hex sweep — grep and replace all hardcoded colors",
-      "Fix CommunityPage.tsx and RevenueChart.tsx design drift",
-      "Lint reduction — target no-explicit-any and @ts-nocheck",
-      "First Vitest smoke tests — auth, API mounts, academy enroll",
-    ],
-    outcome: { color: "var(--orange)", text: "Every existing page passes design system checklist" }
-  },
-  {
-    color: "var(--gold)",
-    gradient: "linear-gradient(90deg, var(--gold), transparent)",
-    label: "Sprint 2 — This Week",
-    name: "Build the Level III Component Library",
-    items: [
-      "Extract Card, ContextBar, SkeletonLoader, EmptyState into src/components/ui/",
-      "Build AssistantPanel — wires NOVA, SAGE, ATLAS, CIRCUIT simultaneously",
-      "Refactor all existing pages to import shared components",
-      "Build FileDropZone + ModelSelector for AI Platform",
-    ],
-    outcome: { color: "var(--green)", text: "9 AI assistants deployable with a single import" }
-  },
-  {
-    color: "var(--green)",
-    gradient: "linear-gradient(90deg, var(--green), transparent)",
-    label: "Sprint 3 — Next Fortnight",
-    name: "Wire Level IV State Architecture",
-    items: [
-      "Build ecosystemStore — layer health, OMEGA events, live statuses",
-      "Build assistantStore — persistent conversation state across navigation",
-      "Wire Agentic Loop event stream — Community → Academy → Work",
-      "Unified notification inbox aggregating all 8 platforms",
-    ],
-    outcome: { color: "var(--purple)", text: "The Agentic Loop becomes visible, not just diagrammed" }
-  }
+// Roadmap data
+const ROADMAP = [
+  { num: "I", title: "Design Sweep", sprint: "Sprint 1 · Now", status: "done", tags: ["Hex → CSS vars", "Lint ↓", "Route wiring"] },
+  { num: "II", title: "Consistency Lock", sprint: "Sprint 1–2 · Baseline", status: "active", tags: ["All pages pass", "Context bar live", "Skeletons everywhere"] },
+  { num: "III", title: "Component Library", sprint: "Sprint 2–3 · Architecture", status: "next", tags: ["Card.tsx", "AssistantPanel", "⌘K Palette"] },
+  { num: "IV", title: "Reactive State", sprint: "Sprint 3–4 · Ecosystem", status: "future", tags: ["ecosystemStore", "assistantStore", "OMEGA events"] },
+  { num: "V", title: "Intelligence Live", sprint: "Sprint 4+ · Vision", status: "future", tags: ["AI Platform", "Agentic Loop", "Digital Sovereignty"] },
 ];
-
-// ── COMPONENT ───────────────────────────────────────────────────────────────────
 
 export default function WinnersUIArchitectureLevels() {
-  const [active, setActive] = useState<number>(2);
-  const [progressVisible, setProgressVisible] = useState<boolean>(false);
-  const progressRef = useRef<HTMLDivElement>(null);
+  const [openLevel, setOpenLevel] = useState<string | null>("l2");
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setProgressVisible(true); },
-      { threshold: 0.2 }
-    );
-    if (progressRef.current) observer.observe(progressRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  const toggle = (idx: number) => setActive(active === idx ? -1 : idx);
-
-  const progressBars = [
-    { label: "L I — Functional",      pct: 85, color: "var(--red)" },
-    { label: "L II — Consistent",     pct: 52, color: "var(--orange)" },
-    { label: "L III — Componentised",  pct: 8,  color: "var(--gold)" },
-    { label: "L IV — State-Driven",    pct: 3,  color: "var(--green)" },
-    { label: "L V — Intelligent",      pct: 0,  color: "var(--purple)" },
-  ];
-
-  const contextBarItems = [
-    ["⬡ Core Engine","live"],
-    ["🧑‍🤝‍🧑 Community","building"],
-    ["🎓 Academy","building"],
-    ["🛒 Market","planned"],
-    ["🤖 Intelligence","building"],
-    ["💼 Work","planned"],
-    ["📱 Mobile","planned"],
-    ["☁️ Cloud","planned"],
-  ] as const;
-
-  const summaryCols = [
-    { num:"01", name:"Functional",     desc:"Pages work,\ndata loads,\nactions fire.",        color:"var(--red)",    status:"Where you are",  statusBg:"var(--red-dim)",    statusBorder:"rgba(224,90,78,0.2)" },
-    { num:"02", name:"Consistent",     desc:"Design system\nenforced across\nall pages.",     color:"var(--orange)", status:"50% achieved",   statusBg:"var(--orange-dim)", statusBorder:"rgba(245,158,11,0.2)" },
-    { num:"03", name:"Componentised",  desc:"Shared library,\nzero duplication,\n8 platforms.",    color:"var(--gold)",  status:"Build sprint 2", statusBg:"var(--gold-dim)",   statusBorder:"rgba(201,168,76,0.2)" },
-    { num:"04", name:"State-Driven",   desc:"Agentic Loop\nstate crosses\nall layers.",       color:"var(--green)",  status:"Sprint 3",       statusBg:"var(--green-dim)",  statusBorder:"rgba(45,212,160,0.2)" },
-    { num:"05", name:"Intelligent",    desc:"UI participates\nin ecosystem\nintelligence.",   color:"var(--purple)", status:"The vision",     statusBg:"var(--purple-dim)", statusBorder:"rgba(155,111,255,0.2)" },
-  ];
-
-  const benchmarks = [
-    ["Linear.app","var(--ice)"],
-    ["Stripe","var(--green)"],
-    ["Bloomberg","var(--gold)"],
-    ["Claude.ai","var(--purple)"],
-    ["Binance","var(--orange)"],
-    ["Flutterwave","var(--green)"],
-  ];
+  const toggle = (id: string) => {
+    setOpenLevel(openLevel === id ? null : id);
+  };
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="wa-root">
+        <div className="wa-ambient-top" />
         <div className="wa-grid-bg" />
 
-        {/* HEADER */}
-        <header className="wa-header wa-animate wa-animate-1">
-          <div className="wa-header-eyebrow">
-            <div className="wa-header-eyebrow-line" />
-            <span className="wa-header-eyebrow-text">Winners Ecosystem · Engineering Standards</span>
-          </div>
-          <h1 className="wa-header-title">
-            UI Architecture<br /><em>Quality Framework</em>
-          </h1>
-          <p className="wa-header-sub">
-            Five levels of UI architecture quality mapped against the Winners Ecosystem vision.
-            Bloomberg Terminal meets a world-class creative studio. This is the engineering roadmap
-            that bridges your current codebase to that standard.
-          </p>
-          <div className="wa-header-meta">
-            <span className="wa-meta-tag gold"><span className="wa-meta-tag-dot" />Live · commit d48968b</span>
-            <span className="wa-meta-tag blue"><span className="wa-meta-tag-dot" />9 AI Supervisors</span>
-            <span className="wa-meta-tag green"><span className="wa-meta-tag-dot" />~45% Complete</span>
-          </div>
-        </header>
-
-        {/* CONTEXT BAR */}
-        <div className="wa-context-bar wa-animate wa-animate-2">
-          {contextBarItems.map(([label, status], i) => (
-            <span key={i} className={`wa-ctx-badge ${status}`}>{label}</span>
-          ))}
-        </div>
-
-        {/* PROGRESS STRIP */}
-        <div className="wa-progress-strip wa-animate wa-animate-2" ref={progressRef}>
-          {progressBars.map((pb, i) => (
-            <div key={i} className="wa-progress-col">
-              <span className="wa-progress-num" style={{ color: pb.color }}>
-                {progressVisible ? `${pb.pct}%` : "0%"}
-              </span>
-              <div className="wa-progress-bar-wrap">
-                <div
-                  className="wa-progress-bar-fill"
-                  style={{
-                    width: progressVisible ? `${pb.pct}%` : "0%",
-                    background: pb.color,
-                    transitionDelay: `${i * 0.1}s`
-                  }}
-                />
-              </div>
-              <span className="wa-progress-label" style={{ color: pb.color, opacity: 0.7 }}>
-                {pb.label}
-              </span>
+        <div className="wa-page-wrap">
+          {/* HEADER */}
+          <header className="wa-header wa-fi wa-fi-1">
+            <div className="wa-eyebrow">Winners Ecosystem · UI Architecture Framework</div>
+            <h1 className="wa-header-title">
+              The Five Levels of<br /><em>Interface Excellence</em>
+            </h1>
+            <p className="wa-header-sub">From functional code to sovereign digital infrastructure</p>
+            <div className="wa-header-meta">
+              <span>8 Platform Layers</span>
+              <span>9 AI Assistants</span>
+              <span>1 Design System</span>
+              <span>African & Diaspora First</span>
             </div>
-          ))}
-        </div>
+          </header>
 
-        {/* LEVELS */}
-        <main className="wa-main">
-          {LEVELS.map((lv, idx) => (
-            <div
-              key={idx}
-              className={`wa-level wa-animate wa-animate-${Math.min(idx + 1, 5)} ${active === idx ? "active" : ""}`}
-              onClick={() => toggle(idx)}
-            >
-              {/* Top accent border */}
-              <div className="wa-level-top-border" style={{ background: lv.gradient }} />
+          {/* STATUS STRIP */}
+          <div className="wa-status-strip wa-fi wa-fi-2">
+            <div className="wa-sdot live"><span className="wa-pip"></span>Core Engine</div>
+            <div className="wa-sdiv"></div>
+            <div className="wa-sdot build"><span className="wa-pip"></span>Community</div>
+            <div className="wa-sdiv"></div>
+            <div className="wa-sdot build"><span className="wa-pip"></span>Academy</div>
+            <div className="wa-sdiv"></div>
+            <div className="wa-sdot plan"><span className="wa-pip"></span>Market</div>
+            <div className="wa-sdiv"></div>
+            <div className="wa-sdot build"><span className="wa-pip"></span>Intelligence</div>
+            <div className="wa-sdiv"></div>
+            <div className="wa-sdot plan"><span className="wa-pip"></span>Work</div>
+            <div className="wa-sdiv"></div>
+            <div className="wa-sdot plan"><span className="wa-pip"></span>Mobile</div>
+            <div className="wa-sdiv"></div>
+            <div className="wa-sdot plan"><span className="wa-pip"></span>Cloud</div>
+          </div>
 
-              {/* Header row */}
-              <div className="wa-level-header">
-                {/* Number block */}
-                <div className="wa-level-num-block">
-                  <span className="wa-level-num" style={{ color: active === idx ? lv.color : "var(--text-faint)" }}>
-                    {lv.num}
-                  </span>
-                  <span className="wa-level-roman">{lv.roman}</span>
-                </div>
+          {/* INTRO */}
+          <div className="wa-fi wa-fi-3">
+            <div className="wa-sec-label">Architecture Quality Levels</div>
+            <p className="wa-sec-intro">
+              Five progressive tiers — from survival code to intelligent, self-aware infrastructure.
+              The vision is Level 5. Every sprint moves the needle. Here is the complete map.
+            </p>
+          </div>
 
-                {/* Title block */}
-                <div className="wa-level-title-block">
-                  <span className="wa-level-name" style={{ color: active === idx ? lv.color : "var(--text)" }}>
-                    {lv.name}
-                  </span>
-                  <span className="wa-level-tagline">{lv.tagline}</span>
-                </div>
-
-                {/* Right block */}
-                <div className="wa-level-right">
-                  <span
-                    className="wa-level-status-badge"
-                    style={{
-                      background: lv.statusColor.bg,
-                      color: lv.statusColor.color,
-                      border: `1px solid ${lv.statusColor.border}`,
-                    }}
-                  >
-                    {lv.status}
-                  </span>
-                  <span className="wa-level-chevron" style={{ color: active === idx ? lv.color : undefined }}>
-                    ▾
-                  </span>
-                </div>
-              </div>
-
-              {/* Expandable body */}
-              <div className="wa-level-body">
-                <div className="wa-level-body-inner" onClick={(e) => e.stopPropagation()}>
-
-                  {/* PANEL 1 — State */}
-                  <div className="wa-panel">
-                    <div className="wa-panel-title" style={{ color: lv.color }}>
-                      ◈ {lv.panels.state.title}
-                    </div>
-
-                    {/* Metrics */}
-                    <div className="wa-metrics">
-                      {lv.metrics.map((m, mi) => (
-                        <div key={mi} className="wa-metric">
-                          <div className="wa-metric-val" style={{ color: m.color }}>{m.val}</div>
-                          <div className="wa-metric-label">{m.label}</div>
+          {/* LEVELS */}
+          <div className="wa-levels">
+            {LEVELS.map((level, idx) => (
+              <div key={level.id}>
+                <div
+                  className={`wa-lcard l${idx + 1} wa-fi wa-fi-${Math.min(idx + 3, 8)} ${openLevel === level.id ? "open" : ""}`}
+                  onClick={() => toggle(level.id)}
+                >
+                  <div className="wa-linner">
+                    <div className="wa-ltop">
+                      <div className="wa-lnum-block">
+                        <div className="wa-lnum">{idx + 1}</div>
+                        <div className="wa-lnum-sub">Level</div>
+                      </div>
+                      <div className="wa-lmain">
+                        <div className="wa-lheader">
+                          <div className="wa-lname">{level.name}</div>
+                          <span className={`wa-lbadge ${level.badgeClass}`}>{level.badge}</span>
                         </div>
-                      ))}
-                    </div>
-
-                    {/* Checklist */}
-                    <div className="wa-checklist">
-                      {lv.panels.state.items?.map((item, ii) => (
-                        <div key={ii} className="wa-check-item">
-                          <div className={`wa-check-icon ${item.type}`}>
-                            {item.type === "done" ? "✓" : item.type === "warn" ? "!" : item.type === "next" ? "→" : "○"}
-                          </div>
-                          <span>{item.text}</span>
-                        </div>
-                      ))}
+                        <div className="wa-ltagline">{level.tagline}</div>
+                        <div className="wa-ldesc">{level.desc}</div>
+                        <button
+                          className={`wa-ltoggle ${openLevel === level.id ? "open" : ""}`}
+                          onClick={(e) => { e.stopPropagation(); toggle(level.id); }}
+                        >
+                          <div className="wa-larrow">{openLevel === level.id ? "↑" : "↓"}</div>
+                          {openLevel === level.id ? "Hide detail" : "View technical detail"}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* PANEL 2 — Code */}
-                  <div className="wa-panel">
-                    <div className="wa-panel-title" style={{ color: lv.color }}>
-                      ⟨/⟩ {lv.panels.code.title}
-                    </div>
-                    <div className="wa-code-block">
-                      {lv.panels.code.snippet?.map((line, li) => (
-                        <div key={li}>
-                          <span className={`wa-code-${line.t}`}>{line.v || "\u00A0"}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Architecture diagram for levels 3–5 */}
-                    {idx >= 2 && (
-                      <div className="wa-arch-diagram">
-                        {[
-                          { label: "src/components/ui/", color: lv.color },
-                          { label: "  ↳ Card · ContextBar · Badge", color: "var(--text-dim)" },
-                          { label: "  ↳ SkeletonLoader · EmptyState", color: "var(--text-dim)" },
-                          { label: "src/components/ai/", color: idx >= 3 ? "var(--purple)" : "var(--text-faint)" },
-                          { label: "  ↳ AssistantPanel · FileDropZone", color: idx >= 3 ? "var(--text-dim)" : "var(--text-faint)" },
-                          { label: "src/stores/ (ecosystem-wide)", color: idx >= 3 ? "var(--green)" : "var(--text-faint)" },
-                          { label: "  ↳ ecosystemStore · assistantStore", color: idx >= 3 ? "var(--text-dim)" : "var(--text-faint)" },
-                        ].map((row, ri) => (
-                          <div key={ri} className="wa-arch-layer"
-                            style={{ background: ri % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent" }}>
-                            <span style={{ color: row.color, fontSize: 10 }}>{row.label}</span>
+                  {/* Expanded content */}
+                  <div className={`wa-lexp ${openLevel === level.id ? "open" : ""}`}>
+                    <div className="wa-lexp-inner">
+                      {/* Metrics */}
+                      <div className="wa-mrow">
+                        {level.metrics.map((m, mi) => (
+                          <div key={mi} className="wa-mchip">
+                            <div className="wa-mval" style={{ color: m.color }}>{m.val}</div>
+                            <div className="wa-mlbl">{m.label}</div>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
 
-                  {/* PANEL 3 — Actions */}
-                  <div className="wa-panel">
-                    <div className="wa-panel-title" style={{ color: lv.color }}>
-                      ▸ {lv.panels.action.title}
-                    </div>
-
-                    <div className="wa-checklist">
-                      {lv.panels.action.items?.map((item, ii) => (
-                        <div key={ii} className="wa-check-item">
-                          <div className={`wa-check-icon ${item.type}`}>
-                            {item.type === "done" ? "✓" : item.type === "warn" ? "!" : "→"}
+                      {/* Detail grids */}
+                      <div className="wa-dgrid">
+                        {level.panels.violations && (
+                          <div className="wa-dblock">
+                            <div className="wa-dtitle" style={{ color: idx === 0 ? "var(--red)" : "var(--text-dim)" }}>
+                              {idx === 0 ? "Confirmed Violations" : "Compliance Checklist"}
+                            </div>
+                            <ul className="wa-ditems">
+                              {level.panels.violations.map((item, ii) => (
+                                <li key={ii}>
+                                  <span className={`wa-dicon wa-${item.type === "check" ? "ic-check" : item.type === "warn" ? "ic-warn" : "ic-plan"}`}>
+                                    {item.type === "check" ? "✓" : item.type === "warn" ? "!" : "→"}
+                                  </span>
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          <span>{item.text}</span>
-                        </div>
-                      ))}
-                    </div>
+                        )}
 
-                    {/* Benchmarks */}
-                    <div className="wa-panel-title" style={{ color: "var(--text-faint)", marginTop: 8 }}>
-                      ◆ Reference Benchmarks
-                    </div>
-                    <div className="wa-benchmarks">
-                      {benchmarks.slice(0, idx + 2).map(([name, color], bi) => (
-                        <div key={bi} className="wa-benchmark-chip">
-                          <span className="wa-benchmark-chip-dot" style={{ background: color }} />
-                          {name}
-                        </div>
-                      ))}
-                    </div>
+                        {level.panels.exitCriteria && (
+                          <div className="wa-dblock">
+                            <div className="wa-dtitle" style={{ color: "var(--gold)" }}>
+                              Exit Criteria — What Closes Level {idx + 1}
+                            </div>
+                            <ul className="wa-ditems">
+                              {level.panels.exitCriteria.map((item, ii) => (
+                                <li key={ii}>
+                                  <span className={`wa-dicon wa-${item.type === "build" ? "ic-build" : "ic-plan"}`}>
+                                    →
+                                  </span>
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
-                    {/* Verdict */}
-                    <div className="wa-verdict" style={lv.panels.action.verdict.style}>
-                      <span className="wa-verdict-icon" style={{ color: lv.color }}>
-                        {lv.panels.action.verdict.icon}
-                      </span>
-                      <span
-                        className="wa-verdict-text"
-                        dangerouslySetInnerHTML={{ __html: lv.panels.action.verdict.text }}
-                      />
+                        {level.panels.componentLib && (
+                          <div className="wa-dblock">
+                            <div className="wa-dtitle" style={{ color: "var(--gold)" }}>
+                              src/components/ui/ — Build These
+                            </div>
+                            <ul className="wa-ditems">
+                              {level.panels.componentLib.map((item, ii) => (
+                                <li key={ii}>
+                                  <span className={`wa-dicon wa-${item.type === "build" ? "ic-build" : "ic-check"}`}>
+                                    {item.type === "build" ? "→" : "✓"}
+                                  </span>
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {level.panels.architecture && (
+                          <div className="wa-dblock">
+                            <div className="wa-dtitle" style={{ color: idx === 1 ? "var(--ice)" : "var(--gold)" }}>
+                              {idx === 1 ? "Typography Hierarchy" : "AssistantPanel Deployment Map"}
+                            </div>
+                            <ul className="wa-ditems">
+                              {level.panels.architecture.map((item, ii) => (
+                                <li key={ii}>
+                                  <span className={`wa-dicon wa-${item.type === "ai" ? "ic-ai" : item.type === "check" ? "ic-check" : "ic-plan"}`}>
+                                    {item.type === "ai" ? "AI" : item.type === "check" ? "✓" : "→"}
+                                  </span>
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {level.panels.stores && (
+                          <div className="wa-dblock">
+                            <div className="wa-dtitle" style={{ color: "var(--purple)" }}>
+                              src/stores/ — Required
+                            </div>
+                            <ul className="wa-ditems">
+                              {level.panels.stores.map((item, ii) => (
+                                <li key={ii}>
+                                  <span className={`wa-dicon wa-${item.type === "check" ? "ic-check" : "ic-build"}`}>
+                                    {item.type === "check" ? "✓" : "→"}
+                                  </span>
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {level.panels.hooks && (
+                          <div className="wa-dblock">
+                            <div className="wa-dtitle" style={{ color: "var(--purple)" }}>
+                              New React Hooks
+                            </div>
+                            <ul className="wa-ditems">
+                              {level.panels.hooks.map((item, ii) => (
+                                <li key={ii}>
+                                  <span className="wa-dicon wa-ic-build">→</span>
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {level.panels.intelligence && (
+                          <div className="wa-dblock">
+                            <div className="wa-dtitle" style={{ color: "var(--green)" }}>
+                              What Level 5 Looks Like
+                            </div>
+                            <ul className="wa-ditems">
+                              {level.panels.intelligence.map((item, ii) => (
+                                <li key={ii}>
+                                  <span className={`wa-dicon wa-${item.type === "check" ? "ic-check" : "ic-plan"}`}>
+                                    {item.type === "check" ? "✓" : "→"}
+                                  </span>
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {level.panels.distribution && (
+                          <div className="wa-dblock">
+                            <div className="wa-dtitle" style={{ color: "var(--green)" }}>
+                              Distribution
+                            </div>
+                            <ul className="wa-ditems">
+                              {level.panels.distribution.map((item, ii) => (
+                                <li key={ii}>
+                                  <span className="wa-dicon wa-ic-plan">→</span>
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Chips */}
+                      <div className="wa-chips">
+                        {level.chips.map((chip, ci) => (
+                          <span key={ci} className={`wa-chip ${chip.class}`}>
+                            {chip.text}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-
                 </div>
+
+                {/* Connector between levels */}
+                {idx < LEVELS.length - 1 && (
+                  <div className="wa-connector wa-fi wa-fi-5">
+                    <div className="wa-cline"></div>
+                    <div className="wa-clabel">Phase Transition</div>
+                  </div>
+                )}
               </div>
+            ))}
+          </div>
+
+          {/* ROADMAP */}
+          <div className="wa-roadmap wa-fi wa-fi-7">
+            <div className="wa-sec-label" style={{ marginTop: 80 }}>Execution Roadmap</div>
+            <div className="wa-rmap-grid">
+              {ROADMAP.map((r, ri) => (
+                <div key={ri} className={`wa-rcell ${r.status}`}>
+                  <div className="wa-rnum">{r.num}</div>
+                  <div className="wa-rtitle">{r.title}</div>
+                  <div className="wa-rsprint">{r.sprint}</div>
+                  <div className="wa-rtags">
+                    {r.tags.map((tag, ti) => (
+                      <span key={ti} className="wa-rtag">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </main>
-
-        {/* SUMMARY GRID */}
-        <section className="wa-summary">
-          <div className="wa-roadmap-title">Current Status At A Glance</div>
-          <div className="wa-summary-grid">
-            {summaryCols.map((col, ci) => (
-              <div key={ci} className="wa-summary-col">
-                <div
-                  style={{
-                    position: "absolute", top: 0, left: 0, right: 0, height: 2,
-                    background: `linear-gradient(90deg, ${col.color}, transparent)`
-                  }}
-                />
-                <div className="wa-summary-col-num" style={{ color: col.color }}>{col.num}</div>
-                <div className="wa-summary-col-name" style={{ color: col.color }}>{col.name}</div>
-                <div className="wa-summary-col-desc">{col.desc}</div>
-                <span
-                  className="wa-summary-col-status"
-                  style={{ background: col.statusBg, color: col.color, border: `1px solid ${col.statusBorder}` }}
-                >
-                  {col.status}
-                </span>
-              </div>
-            ))}
           </div>
-        </section>
 
-        {/* SPRINT ROADMAP */}
-        <section className="wa-roadmap">
-          <div className="wa-roadmap-title">Three-Sprint Execution Path</div>
-          <div className="wa-roadmap-grid">
-            {SPRINTS.map((sp, si) => (
-              <div key={si} className="wa-sprint">
-                <div style={{
-                  position: "absolute", top: 0, left: 0, right: 0, height: 2,
-                  background: sp.gradient
-                }} />
-                <div className="wa-sprint-label" style={{ color: sp.color }}>{sp.label}</div>
-                <div className="wa-sprint-name">{sp.name}</div>
-                <div className="wa-sprint-items">
-                  {sp.items.map((item, ii) => (
-                    <div key={ii} className="wa-sprint-item">{item}</div>
-                  ))}
-                </div>
-                <div className="wa-sprint-outcome" style={{ color: sp.outcome.color }}>
-                  <span className="wa-sprint-outcome-dot" />
-                  {sp.outcome.text}
-                </div>
-              </div>
-            ))}
+          {/* MANIFESTO */}
+          <div className="wa-manifesto wa-fi wa-fi-8">
+            <div className="wa-mquote">
+              "The gap between the vision and the current code is entirely a
+              <strong> Level&nbsp;I → Level&nbsp;III problem.</strong>
+              The design is complete. The intelligence is specced. The execution bottleneck
+              is shared component infrastructure — and that is the most solvable problem on the list."
+            </div>
+            <div className="wa-mattr">Winners Ecosystem · UI Architecture Framework · 2026</div>
           </div>
-        </section>
 
+        </div>
       </div>
     </>
   );

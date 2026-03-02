@@ -8,6 +8,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
+// AI Components - Level II & III imports
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import AgenticLoopWidget from "../../components/ui/AgenticLoopWidget";
+import TrustScoreBadge from "../../components/ui/TrustScoreBadge";
+
 const API = API_BASE;
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Stats {
@@ -865,3 +871,4 @@ export default function DashboardPage() {
     </>
   );
 }
+

@@ -219,3 +219,94 @@ router.get("/insights/stream", async (req: Request, res: Response) => {
 });
 
 export default router;
+
+// ─── POST /ai/page-insight ─────────────────────────────────────────────────
+// Level II: AI-Present on Every Page - generates per-page insights
+
+router.post("/page-insight", async (req: Request, res: Response) => {
+  const { assistant, page, context } = req.body;
+  const tenantId = req.user!.tenantId;
+  
+  const assistantPrompts: Record<string, { system: string; topic: string }> = {
+    aria: {
+      system: "You are ARIA, the Core Engine Supervisor for Winners Ecosystem. You provide concise, data-driven insights about workspace performance.",
+      topic: "workspace dashboard",
+    },
+    nova: {
+      system: "You are NOVA, the Community Intelligence Supervisor for Winners Ecosystem. You help users grow their presence and detect trending topics.",
+      topic: "community engagement",
+    },
+    sage: {
+      system: "You are SAGE, the Academy Tutor for Winners Ecosystem. You help users progress in their learning journey and complete courses.",
+      topic: "learning progress",
+    },
+    atlas: {
+      system: "You are ATLAS, the Market Analyst for Winners Ecosystem. You help vendors find winning products and optimize their sales.",
+      topic: "marketplace performance",
+    },
+    circuit: {
+      system: "You are CIRCUIT, the Work Matchmaker for Winners Ecosystem. You help freelancers find jobs and optimize their proposals.",
+      topic: "work opportunities",
+    },
+    forge: {
+      system: "You are FORGE, the Intelligence Optimizer for Winners Ecosystem. You help users get the most out of their AI experience.",
+      topic: "AI assistant usage",
+    },
+    omega: {
+      system: "You are OMEGA, the Master Orchestrator for Winners Ecosystem. You see across all layers and provide strategic cross-platform insights.",
+      topic: "ecosystem overview",
+    },
+  };
+
+  const config = assistantPrompts[assistant] || assistantPrompts.aria;
+  
+  try {
+    const prompt = `${config.system}
+
+The user is on the ${page} page of the Winners Ecosystem. ${context ? `Context: ${JSON.stringify(context)}` : ""}
+
+Generate a single, concise insight (1-2 sentences, max 100 characters) that would be helpful for this user. This will be displayed as an AI insight banner at the top of the page.
+
+Return JSON: { "insight": "your insight here" }`;
+
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 200,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "{}";
+    let parsed;
+    try {
+      parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+    } catch {
+      parsed = { insight: text };
+    }
+
+    return res.json({
+      ...parsed,
+      assistant,
+      page,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("AI page insight error:", err);
+    
+    // Fallback insights based on page
+    const fallbackInsights: Record<string, string> = {
+      dashboard: "ARIA is analyzing your workspace. Check back for personalized insights.",
+      community: "NOVA is learning your interests. Post to unlock recommendations.",
+      academy: "SAGE is ready to guide your learning. Enroll in a course to begin.",
+      market: "ATLAS is monitoring trends. Set up your store to receive insights.",
+      work: "CIRCUIT is scanning for opportunities. Complete your profile to start.",
+      intelligence: "FORGE is optimizing your AI. Send a message to get started.",
+    };
+    
+    return res.json({
+      insight: fallbackInsights[page] || "AI insight loading...",
+      assistant,
+      page,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});

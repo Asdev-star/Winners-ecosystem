@@ -24,10 +24,10 @@ const css = `
   .ob-title-section h1 {
     font-size: 28px; font-weight: 800; color: var(--text); margin: 0 0 8px 0;
   }
-  .ob-subtitle { color: #5A7A96; font-size: 14px; }
+  .ob-subtitle { color: var(--text-dim); font-size: 14px; }
 
   .ob-create-btn {
-    background: linear-gradient(135deg, var(--gold) 0%, #a8863d 100%);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%);
     border: none; border-radius: 10px; padding: 12px 24px;
     color: var(--bg); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
     cursor: pointer; transition: all 0.2s;
@@ -43,8 +43,8 @@ const css = `
     font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
     padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
   }
-  .ob-tab:hover { background: rgba(201,168,76,0.1); color: #C9A84C; }
-  .ob-tab.active { background: rgba(201,168,76,0.15); color: #C9A84C; }
+  .ob-tab:hover { background: rgba(201,168,76,0.1); color: var(--gold); }
+  .ob-tab.active { background: rgba(201,168,76,0.15); color: var(--gold); }
 
   .ob-filters {
     display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
@@ -55,7 +55,7 @@ const css = `
     padding: 10px 16px; color: #E8EEF5; font-family: 'Syne', sans-serif;
     font-size: 13px; min-width: 150px; cursor: pointer;
   }
-  .ob-filter-select:focus { outline: none; border-color: #C9A84C; }
+  .ob-filter-select:focus { outline: none; border-color: var(--gold); }
 
   .ob-search {
     flex: 1; min-width: 200px;

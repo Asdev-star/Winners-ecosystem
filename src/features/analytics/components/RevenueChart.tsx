@@ -147,7 +147,7 @@ export default function RevenueChart() {
                 </linearGradient>
               </defs>
 
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(137, 196, 225, 0.06)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.3} />
 
               <XAxis
                 dataKey="date"

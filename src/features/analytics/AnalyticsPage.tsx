@@ -486,7 +486,7 @@ export default function AnalyticsPage() {
                 <div className="an-legend-item">
                   <div
                     className="an-legend-dash"
-                    style={{ borderColor: "#89C4E1" }}
+                    style={{ borderColor: "var(--ice)" }}
                   />
                   Prev Period
                 </div>
@@ -494,7 +494,7 @@ export default function AnalyticsPage() {
               <div className="an-legend-item">
                 <div
                   className="an-legend-dot"
-                  style={{ background: "#E05A4E" }}
+                  style={{ background: "var(--red)" }}
                 />
                 Spike
               </div>

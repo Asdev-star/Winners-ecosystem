@@ -8,6 +8,7 @@ import NotificationBell from "../../features/notifications/NotificationBell";
 import { useNotificationStore } from "../../features/notifications/notificationStore";
 import ThemeToggle from "../../features/theme/ThemeToggle";
 import GlobalSearch from "../../features/search/GlobalSearch";
+import ContextBar from "../ui/ContextBar";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -479,6 +480,7 @@ export default function MainLayout() {
         </header>
 
         <main className="ml-content">
+          <ContextBar showLabels={false} />
           <Outlet />
         </main>
       </div>

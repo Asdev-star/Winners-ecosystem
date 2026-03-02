@@ -55,8 +55,8 @@ const css = `
   .dm-sidebar-title { font-size: 18px; font-weight: 800; color: var(--text); }
   .dm-new-btn {
     width: 36px; height: 36px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--gold), #a8863d);
-    border: none; color: #0D1520; font-size: 20px; cursor: pointer;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    border: none; color: var(--bg); font-size: 20px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: transform 0.2s ease;
   }
@@ -95,7 +95,7 @@ const css = `
     font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim);
   }
   .dm-unread-badge {
-    background: var(--gold); color: #0D1520;
+    background: var(--gold); color: var(--bg);
     font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
     padding: 2px 6px; border-radius: 10px; min-width: 18px; text-align: center;
   }
@@ -103,7 +103,7 @@ const css = `
   /* Chat Area */
   .dm-chat {
     flex: 1; display: flex; flex-direction: column;
-    background: linear-gradient(180deg, #0D1520 0%, #111D2E 100%);
+    background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
   }
   .dm-chat-header {
     padding: 16px 24px; border-bottom: 1px solid var(--border);
@@ -134,8 +134,8 @@ const css = `
     padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5;
   }
   .dm-message.sent .dm-msg-bubble {
-    background: linear-gradient(135deg, var(--gold), #a8863d);
-    color: #0D1520; border-bottom-right-radius: 4px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color: var(--bg); border-bottom-right-radius: 4px;
   }
   .dm-message.received .dm-msg-bubble {
     background: var(--surface2); color: var(--text);
@@ -165,8 +165,8 @@ const css = `
   .dm-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201,168,76,0.1); }
   .dm-send-btn {
     width: 44px; height: 44px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--gold), #a8863d);
-    border: none; color: #0D1520; font-size: 18px; cursor: pointer;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    border: none; color: var(--bg); font-size: 18px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: transform 0.2s ease;
   }

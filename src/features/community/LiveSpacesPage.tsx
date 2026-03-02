@@ -28,7 +28,11 @@ export default function LiveSpacesPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [newSpace, setNewSpace] = useState({ title: "", description: "", scheduledAt: "" });
+  const [newSpace, setNewSpace] = useState({
+    title: "",
+    description: "",
+    scheduledAt: "",
+  });
   const [activeSpace, setActiveSpace] = useState<LiveSpace | null>(null);
   const [joining, setJoining] = useState<string | null>(null);
 
@@ -79,16 +83,16 @@ export default function LiveSpacesPage() {
         body: JSON.stringify({ role: "LISTENER" }),
       });
       if (res.ok) {
-        setActiveSpace(spaces.find(s => s.id === spaceId) || null);
+        setActiveSpace(spaces.find((s) => s.id === spaceId) || null);
       }
     } finally {
       setJoining(null);
     }
   };
 
-  const liveSpaces = spaces.filter(s => s.status === "LIVE");
-  const scheduledSpaces = spaces.filter(s => s.status === "SCHEDULED");
-  const endedSpaces = spaces.filter(s => s.status === "ENDED");
+  const liveSpaces = spaces.filter((s) => s.status === "LIVE");
+  const scheduledSpaces = spaces.filter((s) => s.status === "SCHEDULED");
+  const endedSpaces = spaces.filter((s) => s.status === "ENDED");
 
   return (
     <>
@@ -113,24 +117,38 @@ export default function LiveSpacesPage() {
                   type="text"
                   placeholder="Space title..."
                   value={newSpace.title}
-                  onChange={e => setNewSpace({ ...newSpace, title: e.target.value })}
+                  onChange={(e) =>
+                    setNewSpace({ ...newSpace, title: e.target.value })
+                  }
                   autoFocus
                 />
                 <textarea
                   placeholder="Description (optional)..."
                   value={newSpace.description}
-                  onChange={e => setNewSpace({ ...newSpace, description: e.target.value })}
+                  onChange={(e) =>
+                    setNewSpace({ ...newSpace, description: e.target.value })
+                  }
                 />
                 <input
                   type="datetime-local"
                   value={newSpace.scheduledAt}
-                  onChange={e => setNewSpace({ ...newSpace, scheduledAt: e.target.value })}
+                  onChange={(e) =>
+                    setNewSpace({ ...newSpace, scheduledAt: e.target.value })
+                  }
                 />
                 <div className="ls-modal-actions">
-                  <button type="button" className="ls-cancel-btn" onClick={() => setShowCreate(false)}>
+                  <button
+                    type="button"
+                    className="ls-cancel-btn"
+                    onClick={() => setShowCreate(false)}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="ls-submit-btn" disabled={creating || !newSpace.title.trim()}>
+                  <button
+                    type="submit"
+                    className="ls-submit-btn"
+                    disabled={creating || !newSpace.title.trim()}
+                  >
                     {creating ? "Creating..." : "Start Space"}
                   </button>
                 </div>
@@ -147,7 +165,7 @@ export default function LiveSpacesPage() {
               <section className="ls-section">
                 <h2 className="ls-section-title">🔴 Live Now</h2>
                 <div className="ls-grid">
-                  {liveSpaces.map(space => (
+                  {liveSpaces.map((space) => (
                     <div key={space.id} className="ls-card live">
                       <div className="ls-card-header">
                         <span className="ls-live-badge">● LIVE</span>
@@ -158,7 +176,9 @@ export default function LiveSpacesPage() {
                       <h3>{space.title}</h3>
                       {space.description && <p>{space.description}</p>}
                       <div className="ls-card-footer">
-                        <span className="ls-host">Hosted by {space.host.name}</span>
+                        <span className="ls-host">
+                          Hosted by {space.host.name}
+                        </span>
                         <button
                           className="ls-join-btn"
                           onClick={() => handleJoin(space.id)}
@@ -177,7 +197,7 @@ export default function LiveSpacesPage() {
               <section className="ls-section">
                 <h2 className="ls-section-title">📅 Upcoming</h2>
                 <div className="ls-grid">
-                  {scheduledSpaces.map(space => (
+                  {scheduledSpaces.map((space) => (
                     <div key={space.id} className="ls-card">
                       <div className="ls-card-header">
                         <span className="ls-scheduled-badge">SCHEDULED</span>
@@ -190,7 +210,9 @@ export default function LiveSpacesPage() {
                       <h3>{space.title}</h3>
                       {space.description && <p>{space.description}</p>}
                       <div className="ls-card-footer">
-                        <span className="ls-host">Hosted by {space.host.name}</span>
+                        <span className="ls-host">
+                          Hosted by {space.host.name}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -202,11 +224,13 @@ export default function LiveSpacesPage() {
               <section className="ls-section">
                 <h2 className="ls-section-title">✅ Past Spaces</h2>
                 <div className="ls-grid">
-                  {endedSpaces.slice(0, 6).map(space => (
+                  {endedSpaces.slice(0, 6).map((space) => (
                     <div key={space.id} className="ls-card ended">
                       <h3>{space.title}</h3>
                       <div className="ls-card-footer">
-                        <span className="ls-host">Hosted by {space.host.name}</span>
+                        <span className="ls-host">
+                          Hosted by {space.host.name}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -218,8 +242,14 @@ export default function LiveSpacesPage() {
               <div className="ls-empty">
                 <div className="ls-empty-icon">📡</div>
                 <h3>No Live Spaces</h3>
-                <p>Start a space to connect with the Winners community through live audio conversations.</p>
-                <button className="ls-create-btn" onClick={() => setShowCreate(true)}>
+                <p>
+                  Start a space to connect with the Winners community through
+                  live audio conversations.
+                </p>
+                <button
+                  className="ls-create-btn"
+                  onClick={() => setShowCreate(true)}
+                >
                   Start Your First Space
                 </button>
               </div>
@@ -272,7 +302,7 @@ const css = `
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  .ls-create-btn:hover { background: #d4b55a; }
+  .ls-create-btn:hover { background: var(--gold-light); }
 
   .ls-section { margin-bottom: 32px; }
   .ls-section-title {
@@ -365,7 +395,7 @@ const css = `
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  .ls-join-btn:hover:not(:disabled) { background: #8a5fe6; }
+  .ls-join-btn:hover:not(:disabled) { background: var(--purple-light); }
   .ls-join-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .ls-empty {
