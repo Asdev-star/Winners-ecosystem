@@ -4,20 +4,46 @@
   isolation: isolate;
 }
 
+/* AI Backdrop - decorative background layer */
+.ai-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ai-backdrop-logo,
+.ai-backdrop-logo-fallback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.03;
+  width: 80vmax;
+  height: 80vmax;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.ai-backdrop-logo-fallback {
+  font-family: Georgia, serif;
+  font-size: 40vmax;
+  font-weight: bold;
+  color: var(--gold, #C9A84C);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .app-route-layer {
   position: relative;
   z-index: 1;
   min-height: 100vh;
   animation: app-fade-in 180ms ease-out;
-}
-
-@keyframes app-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
