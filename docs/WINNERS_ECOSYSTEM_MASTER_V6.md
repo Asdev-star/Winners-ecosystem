@@ -1,8 +1,8 @@
 # 🏆 WINNERS ECOSYSTEM — MASTER PROJECT STATE V6
 
-### Single Source of Truth · Build Bible · Last Updated: March 1, 2026
+### Single Source of Truth · Build Bible · Last Updated: March 2, 2026
 
-### Incorporates: V5 + Live Repository Corrections (PROJECT_EVOLUTION.md · commit d48968b) + Universal AI Platform Spec + Design Strategy + Intelligence v2.0
+### Incorporates: V5 + Live Repository Corrections (PROJECT_EVOLUTION.md · commit d48968b) + Universal AI Platform Spec + Platform Design & Product Strategy Doc + Intelligence v2.0
 
 > **Live URL:** https://winners-empire-eco.up.railway.app
 > **Stack:** React 18 + TypeScript (Vite) · Node/Express · PostgreSQL (Prisma) · Railway
@@ -198,13 +198,28 @@ Every Winners platform must communicate: **this is infrastructure built for peop
 | Pattern | Where Used | Implementation |
 |---|---|---|
 | Gold gradient top border | Every card, modal, panel | `2px border-top: linear-gradient(90deg, var(--gold), transparent)` |
-| Ecosystem context bar | Every page header | 8 platform status dots — all layers linked |
+| Ecosystem context bar | Every page header | 8+ platform status dots — all layers linked |
 | Empty states with AI prompt | Every list/feed/table when empty | Illustration + AI assistant CTA — never just 'No data found' |
 | Skeleton loading | Every data-fetching component | Animated shimmer in `#172335` — no spinners |
 | Command palette (⌘K) | Global — all logged-in views | Search across platform + AI commands + navigation |
 | Progress rings | Profile completion, course progress | SVG rings in gold/green/ice — never plain progress bars |
-| Smart tooltips | Data labels, stats, badges | Context-aware — show relevant info |
+| Smart tooltips | Data labels, stats, badges | Context-aware — show relevant info, not just repeating the label |
 | Floating AI panel | All pages — bottom right | Minimisable assistant panel — always-on AI layer |
+
+### Design & Creative Resources
+
+| Resource | Type | Use Case |
+|---|---|---|
+| Cormorant Garamond | Font (Google Fonts) | Display headings — all 8 platforms |
+| Syne | Font (Google Fonts) | Body text and section titles |
+| Space Mono | Font (Google Fonts) | Data labels, code, metadata |
+| Lucide Icons | Icon Library | Consistent icon set — open source |
+| Framer Motion | Animation Library | Micro-interactions and page transitions |
+| Radix UI | Component Primitives | Accessible, unstyled — styled with CSS vars |
+| Recharts | Chart Library | All analytics visualisations |
+| Figma | Design Tool | All UI design before development |
+| Unsplash / Pexels | Stock Photography | African lifestyle imagery for empty states, landing pages |
+| Noun Project | African Icons | Culturally relevant iconography |
 
 ### Context Bar Pattern (required on every page)
 
@@ -298,11 +313,13 @@ src/components/layout/MainLayout.tsx              ✅ Sidebar + bottom nav
 
 | Feature | Description | Priority |
 |---|---|---|
-| 🗺️ Journey Map | Visual path showing user's progress across all 8 layers | 🟡 Medium |
-| 🏆 Achievement System | Cross-platform badges: 'Community Builder', 'Elite Freelancer' | 🟡 Medium |
-| 📊 Wealth Dashboard | Real-time earnings across all layers in one view | 🟡 Medium |
-| 🔔 Unified Inbox | All notifications from all 8 platforms aggregated | 🟢 Later |
-| 🛡️ Trust Score | Public score from Academy certs, Work reviews, Community reputation | 🟢 Later |
+| 📊 Wealth Dashboard | Real-time earnings across all layers — Academy royalties, Market sales, Work contracts — all in one view with charts | 🟡 Medium |
+| 🏆 Achievement System | Cross-platform badges and ranks: 'Community Builder', 'Master Trader', 'Elite Freelancer'. Unlock perks at each tier | 🟡 Medium |
+| 🗺️ Journey Map | Visual map showing user's path through all 8 layers — where they've been, what unlocks next | 🟡 Medium |
+| 📈 Growth Insights | AI-generated weekly growth report: 'Your community following grew 18% this week. OMEGA recommends launching a course' | 🟡 Medium |
+| ⚡ Quick Actions | ⌘K command palette: launch a course, post to community, create a product listing, start a contract — from anywhere | 🟡 Medium |
+| 🔔 Unified Inbox | All notifications from all 8 platforms aggregated — community DMs, course messages, job offers, order updates | 🟢 Later |
+| 🛡️ Trust Score | Public score from Academy certs, Work reviews, Community reputation — visible on every profile | 🟢 Later |
 
 ### Phase 1 — Remaining Pending
 
@@ -391,13 +408,16 @@ apiRouter.ts mounts: /posts, /groups               ✅ WIRED
 
 ### V1.4 — Creator Tools (Not Started)
 
-- [ ] 🎙️ Voice Posts — Record up to 3 minutes, NOVA auto-transcribes
-- [ ] 📡 Live Spaces — Twitter-Spaces-style audio rooms, recorded + transcribed
-- [ ] 🌍 Diaspora Directory — Browse members by country, skill, industry
-- [ ] 🔗 Opportunity Board — Members post jobs, collabs, mentorship, investment interest
-- [ ] 📊 Creator Analytics — reach, impressions, follower growth, top posts
-- [ ] 💎 Creator Economy — subscription tiers, exclusive posts, DMs (15% platform cut)
-- [ ] 🏅 Community Challenges — weekly AI-generated challenges, best post wins credits
+| Feature | Description |
+|---|---|
+| 🎙️ Voice Posts | Record up to 3 minutes, NOVA auto-transcribes — perfect for thought leaders sharing insights on the go |
+| 📡 Live Spaces | Twitter-Spaces-style audio rooms — host a space, invite panellists, get listeners, recorded + transcribed by NOVA |
+| 🌍 Diaspora Directory | Browse members by country, skill, industry — find the Kenyan UI designer in London or the Nigerian fintech founder in Lagos |
+| 🔗 Opportunity Board | Members post jobs, collabs, mentorship offers, investment interest — NOVA matches relevant profiles |
+| 📊 Creator Analytics | Deep analytics: reach, impressions, follower growth, top posts, audience demographics — comparable to Instagram Insights |
+| 🤝 Verified Collaborations | Formal collaboration requests — both parties agree on terms, documented in PDF, facilitated through Winners Work |
+| 💎 Creator Economy | Subscription tiers — fans pay for exclusive posts, DMs, or live sessions — 10–15% platform cut |
+| 🏅 Community Challenges | Weekly AI-generated challenges — best post wins credits, badges, or featured placement |
 
 ### V2.0 — AI Community — NOVA Goes Live
 
@@ -460,6 +480,20 @@ apiRouter.ts mount: /academy               ✅ WIRED
 | Health & Wellness | Personal training, nutrition, mental health | Certified Wellness Coach | Work coaching contracts, online programmes |
 | Language & Culture | African languages, diaspora cultural bridge | Certified Language Professional | Community creator, Work translation contracts |
 
+### Academy Niche Features — What Makes It Extraordinary
+
+| Feature | Description |
+|---|---|
+| 🤖 SAGE AI Tutor | AI tutor inside every course — SAGE knows the course content, answers questions, explains concepts, reviews submissions |
+| 📜 Verified Certificates | PDF certificates with public verification URL — linked to Trust Score, readable by CIRCUIT for Work matching |
+| 🎯 Skill-Based Paths | Pre-built paths: African Fintech Developer, Digital Marketer, E-commerce Entrepreneur — SAGE recommends the right path |
+| 🎤 Lecture-to-Notes | Upload a lecture audio → SAGE generates structured notes, key terms glossary, and quiz questions automatically |
+| 👨‍🏫 Instructor Studio | Full course creation dashboard — record lessons, upload PDFs, set quizzes, define certificate criteria, set pricing |
+| 🏆 Live Cohorts | Cohort-based learning with live sessions, peer projects, group accountability — premium pricing over self-paced |
+| 💼 Work-Linked Courses | Completing certain courses automatically triggers Work job suggestions — the Agentic Loop made visible to the learner |
+| 📊 Instructor Analytics | Detailed analytics: completion rates, drop-off points, revenue, top students, review sentiment |
+| 🌍 Local Language Support | Courses in English, French, Swahili, Pidgin, Amharic — AI-assisted subtitle translation |
+
 ### V1.0 — Still Needed
 
 - [ ] `InstructorDashboard.tsx` — course creation + management UI
@@ -509,16 +543,16 @@ Two modes: Shopper view (clean, conversion-optimised) and Vendor Dashboard (data
 
 | # | Vertical | What It Is | Target Seller | Revenue Model |
 |---|---|---|---|---|
-| 4A | 🛒 Commerce Hub | Physical + digital product marketplace | Retailers, artisans, brands | 10–20% commission per sale |
-| 4B | 📣 Digital Marketing Hub | Ad builder, SEO tools, social scheduler, email marketing | Agencies, small businesses | $49–$199/month subscription |
-| 4C | 📺 Winners Stream | Live streaming, VOD, pay-per-view, tipping | Artists, speakers, coaches | 15% subscriptions + 10% tips |
-| 4D | 📈 Trading & Signals | Copy trading, market signals, investment strategies | Traders, fintech creators | $49–$149/month subscriptions |
-| 4E | 📋 Business Launcher | Business plan AI, pitch decks, financial projections | First-time entrepreneurs | $29–$99 per plan or $49/month |
-| 4F | 📄 CV & Career Tools | ATS-optimised CV builder, cover letter AI, LinkedIn optimiser | Job seekers, diaspora professionals | $9.99–$29 per document |
-| 4G | 🎟 Winners Events | Event ticketing, virtual concerts, NFT passes | Event organisers, artists | 5–10% ticket commission |
-| 4H | 🏠 Winners Property | African property listings, diaspora investment guides | Property developers, agents | 3–5% commission on leads |
-| 4I | 💪 Health & Beauty | African beauty products, wellness packages | Beauty brands, health businesses | 10–15% commission |
-| 4J | 🍽️ Food & Agriculture | African food brands, farm-to-diaspora subscriptions | Farmers, food entrepreneurs | 8–12% commission |
+| 4A | 🛒 Commerce Hub | Physical + digital product marketplace — vendor onboarding, catalogue, cart, checkout | Retailers, artisans, brands | 10–20% commission per sale |
+| 4B | 📣 Digital Marketing Hub | Ad builder, SEO tools, social scheduler, email marketing campaigns | Agencies, small businesses | $49–$199/month subscription |
+| 4C | 📺 Winners Stream | Live streaming, VOD, pay-per-view events, virtual concerts, tipping | Artists, speakers, coaches | 15% subscriptions + 10% tips |
+| 4D | 📈 Trading & Signals | Copy trading, market signals, investment strategies, African stock data | Traders, fintech creators | $49–$149/month subscriptions |
+| 4E | 📋 Business Launcher | Business plan AI, pitch decks, financial projections, company registration guides | First-time entrepreneurs | $29–$99 per plan or $49/month |
+| 4F | 📄 CV & Career Tools | ATS-optimised CV builder, cover letter AI, LinkedIn optimiser, interview prep | Job seekers, diaspora professionals | $9.99–$29 per document |
+| 4G | 🏠 Real Estate | African property listings, diaspora investment guides, mortgage calculators | Property developers, agents | 3–5% commission on leads |
+| 4H | ✈️ Travel & Experiences | African travel packages, diaspora reunion trips, cultural experience bookings | Tour operators, travel agents | 8–12% booking commission |
+| 4I | 💪 Health & Beauty | African beauty products, wellness packages, healthcare appointment booking | Beauty brands, health businesses | 10–15% commission |
+| 4J | 🍽️ Food & Agriculture | African food brands, farm-to-diaspora subscriptions, agribusiness products | Farmers, food entrepreneurs | 8–12% commission |
 
 **Build sequence:** `4A → 4B → 4C → 4E → 4F → 4D → 4G → 4H → 4I → 4J`
 
@@ -664,6 +698,8 @@ desktop/main.js                                     🆕 Electron wrapper (auto-
 mobile/WinnersAI/                                   🆕 Expo React Native app
 ```
 
+**Full starter code for all above is in:** `Winners_Intelligence_v2_Complete.docx`
+
 ### Aria — Built (`WinnersChat.tsx`)
 
 - Token-by-token streaming via SSE (`POST /chat/message`)
@@ -674,7 +710,19 @@ mobile/WinnersAI/                                   🆕 Expo React Native app
 - Knows all 8+ platform layers + live status
 - Mobile responsive
 
-### 6 Specialized Agents (`WinnersIntelligencePage.tsx` — built)
+### Intelligence Niche Features — What Makes It Extraordinary
+
+| Feature | Description |
+|---|---|
+| 🔄 Multi-Provider Chat | Switch between Claude, GPT-4o, Gemini, and local Ollama mid-conversation — best answer wins, user chooses |
+| 📁 Full Multimodal | Send any file type to any assistant — images, PDFs, audio, video — auto-routed to the optimal provider |
+| 🖥️ Desktop App | Electron wrapper — works fully offline, auto-starts Ollama, no internet required for local models, single-click install |
+| 📱 Mobile Assistant | iOS + Android — voice input, camera input, access all 9 assistants, same JWT auth as web |
+| 🧠 Persistent Memory | Assistants remember the user across sessions — conversation history searchable, context carried forward |
+| ⚡ Autonomous Actions | Assistants execute pre-approved actions: send notifications, generate reports, trigger ecosystem events |
+| 📊 AI Usage Analytics | Track usage: tokens consumed, cost by provider, most-used assistants, file types analysed |
+| 🎛️ Custom Personas | Users create custom AI personas for specific workflows: 'My Marketing Assistant', 'Code Reviewer', 'Writing Coach' |
+| 🔌 Plugin System | Third-party plugins extend assistant capabilities: calendar integration, CRM connection, spreadsheet analysis |
 
 | Agent | Layer | Focus |
 |---|---|---|
@@ -827,7 +875,21 @@ EscrowPayment, EscrowRelease
 WorkReview
 ```
 
-### Key Features
+### Work Niche Features — What Makes It Extraordinary
+
+| Feature | Description |
+|---|---|
+| 🏅 Academy-Linked Profiles | Certificates from Winners Academy appear as verified skill badges — clients filter by certification |
+| 🤖 CIRCUIT AI Matching | AI reads job description + freelancer profiles, generates match scores, auto-suggests top 5 candidates to clients |
+| 📝 AI Proposal Generator | CIRCUIT writes a custom proposal for any job based on the freelancer's profile and job requirements — editable before sending |
+| 🔒 Escrow Protection | All contracts funded into escrow via Stripe + Flutterwave — funds release on milestone approval, dispute resolution built-in |
+| 🌍 African Talent Spotlight | Dedicated section showcasing top African talent by country and skill — featured profiles for diaspora-friendly remote roles |
+| 📊 Contract Analytics | Freelancers see lifetime earnings, on-time delivery rate, repeat client rate, skill demand trends |
+| ⚖️ Dispute Resolution | CIRCUIT reviews disputed work evidence (screenshots, code, files), provides assessment, recommends resolution |
+| 🚀 Launch Packages | New freelancers get 3 free bids + featured listing for 7 days after earning their first Academy certificate |
+| 💳 Multi-Currency Payments | USD, GBP, EUR, KES, NGN, GHS, ZAR, XOF — instant withdrawal via Stripe + Flutterwave |
+
+### Key Features Build Checklist
 
 - [ ] 🏅 Academy-Linked Profiles — certificates appear as verified skill badges
 - [ ] 🤖 CIRCUIT AI Matching — reads job description + freelancer profiles, generates match scores
@@ -844,10 +906,11 @@ WorkReview
 | Software Development | $500–$10K/project | High diaspora demand, global remote clients |
 | Digital Marketing | $200–$3K/month | African brands scaling globally |
 | Creative & Design | $300–$5K/project | Brand identity for African startups |
-| Writing & Content | $50–$500/article | African language localisation |
-| Financial Services | $100–$500/hour | Diaspora tax, African startup CFO |
-| Business Consulting | $500–$5K/engagement | Pan-African expansion advice |
-| Music & Entertainment | $200–$10K/project | Afrobeats global expansion |
+| Writing & Content | $50–$500/article | African language localisation, content farms |
+| Financial Services | $100–$500/hour | Diaspora tax, African startup CFO-as-a-service |
+| Business Consulting | $500–$5K/engagement | Pan-African expansion advice, diaspora investment |
+| Education & Coaching | $50–$200/hour | African students, diaspora skill development |
+| Music & Entertainment | $200–$10K/project | Afrobeats global expansion, African music industry |
 
 ### Work — Products & Services
 
@@ -871,7 +934,18 @@ Foundation exists via Universal AI Platform mobile spec (`mobile/WinnersAI/` Exp
 - Gesture-forward: swipe back, pull to refresh, long-press for quick actions
 - Offline-first: cached community feed, downloaded courses, local AI via Ollama
 
-**Build Checklist:**
+**Key Mobile Features:**
+
+| Feature | Description |
+|---|---|
+| 🎙️ Voice-First Interface | Tap to talk to any of the 9 assistants — voice posts to Community, voice-to-text in Work proposals and Academy notes |
+| 📸 Camera Integration | Photograph a product for ATLAS to analyse, an assignment for SAGE to review, or ID for verification |
+| 💳 Mobile Payments | M-Pesa, Airtel Money, Orange Money, MTN MoMo, Flutterwave — full African mobile money integration |
+| 📥 Offline Courses | Download up to 10 Academy lessons for offline viewing — progress syncs when online, perfect for low-connectivity |
+| 🔔 Smart Notifications | AI-curated push notifications — only what's relevant to the user's current goals, decided by OMEGA |
+| 🌍 Data-Lite Mode | Compresses images, reduces video quality, text-first rendering — critical for limited data in African markets |
+
+**Mobile Build Checklist:**
 - [ ] Service worker + manifest (PWA, install-to-homescreen)
 - [ ] Push notifications (Firebase FCM)
 - [ ] Biometric login, offline video sync
@@ -895,20 +969,21 @@ Technical, clean, documentation-forward — like Stripe Docs or Vercel. Code exa
 |---|---|---|
 | AI Assistant API | Call any of the 9 assistants via REST, multimodal support | Pay per token |
 | Identity Verification API | Verify Trust Score, Academy certs, Work history | $0.50/call or $49/month |
-| Payments API | Stripe + Flutterwave in one integration | Transaction-based |
+| Payments API | Stripe + Flutterwave in one integration — M-Pesa, MTN MoMo, bank transfer, card | Transaction-based |
+| Community Data API | Access public creator profiles, trending topics, community analytics | Tiered pricing |
 | Certificate Verification API | Verify Academy certificates in real-time | $0.50/call |
 | Plugin Marketplace | Build plugins extending any of the 9 assistants | 70% developer / 30% platform |
 
 **SDK Packages:**
 
-| SDK | Status | Build Order |
-|---|---|---|
-| JavaScript / TypeScript: `@winners/sdk` | 📋 Planned | First |
-| Python: `winners-py` | 📋 Planned | With JS |
-| Go: `winners-go` | 📋 Planned | Phase 2 |
-| Swift / Kotlin: `winners-mobile` | 📋 Planned | With mobile app |
+| SDK | Package Name | Key Methods | Status |
+|---|---|---|---|
+| JavaScript / TypeScript | `@winners/sdk` | `winners.chat()`, `winners.verify()`, `winners.pay()` | 📋 Build first |
+| Python | `winners-py` | `WinnersClient.chat()`, `.verify()`, `.pay()` | 📋 Build with JS |
+| Go | `winners-go` | `winners.NewClient()`, `.Chat()`, `.Verify()` | 📋 Phase 2 |
+| Swift / Kotlin | `winners-mobile` | `WinnersSDK.shared.chat()`, `.verify()` | 📋 With mobile app |
 
-**Build Checklist:**
+**Cloud Build Checklist:**
 - [ ] Public REST API + OpenAPI/Swagger docs
 - [ ] Developer portal + API key management + webhooks
 - [ ] SDK packages (JS, Python, Go)
@@ -1070,21 +1145,25 @@ Mobile:         Expo + React Native (planned)
 
 ### Technology Partners
 
-| Category | Tool | Why Winners Needs It |
-|---|---|---|
-| Payments | Stripe | Cards, subscriptions, escrow, payouts |
-| Payments Africa | Flutterwave | M-Pesa, MTN MoMo in 34 African countries |
-| Video | Mux / Cloudinary | Adaptive streaming + uploads |
-| AI Cloud | Anthropic Claude | ARIA, SAGE, OMEGA — best reasoning |
-| AI Cloud | OpenAI GPT-4o | Audio, vision, code — best multimodal |
-| AI Cloud | Google Gemini | Video analysis — native video support |
-| AI Local | Ollama | Free offline LLMs |
-| AI Images | ComfyUI + SDXL | Local image generation |
-| AI STT | faster-whisper | Offline speech-to-text |
-| Email | Resend | Transactional + campaigns |
-| Search | Meilisearch / Algolia | Cross-platform search |
-| Cache | Redis (Upstash) | Session, rate limiting, real-time counters |
-| Monitoring | Sentry | Error tracking across all 8 platforms |
+| Category | Tool | Why Winners Needs It | Cost |
+|---|---|---|---|
+| Auth | JWT + Google OAuth | SSO across all 8 subdomains — one login everywhere | $0–$240/month |
+| Payments | Stripe | Cards, subscriptions, escrow, payouts | 2.9% + $0.30/transaction |
+| Payments Africa | Flutterwave | M-Pesa, MTN MoMo in 34 African countries | 2.8%/transaction |
+| Video | Mux / Cloudinary | Adaptive streaming + uploads | $0.015/min stored |
+| Media Storage | Cloudinary | Images, audio, video + CDN + AI transforms | Free → $89/month |
+| Email | Resend | Transactional + campaigns | Free → $20/month |
+| Search | Meilisearch / Algolia | Cross-platform search | $0 (self-host) → $50/month |
+| Realtime | Socket.io | WebSocket for feeds, notifications, live spaces | Included in Node |
+| Cache | Redis (Upstash) | Session, rate limiting, real-time counters | $0–$20/month |
+| Hosting | Railway | Monorepo + AI Platform as second service | $20–$100/month |
+| Monitoring | Sentry | Error tracking across all 8 platforms | Free → $26/month |
+| AI Cloud | Anthropic Claude | ARIA, SAGE, OMEGA — best reasoning | ~$0.003/1K tokens |
+| AI Cloud | OpenAI GPT-4o | Audio, vision, code — best multimodal | ~$0.005/1K tokens |
+| AI Cloud | Google Gemini | Video analysis — native video support | ~$0.002/1K tokens |
+| AI Local | Ollama | Free offline LLMs | $0 — runs on device |
+| AI Images | ComfyUI + SDXL | Local image generation | $0 — GPU at scale |
+| AI STT | faster-whisper | Offline speech-to-text | $0 — runs on CPU |
 
 ---
 
@@ -1199,10 +1278,10 @@ AWS_S3_BUCKET=...
 **Replace all previous project knowledge documents with this single file.**
 **Update this file after every build session.**
 
-*Last updated: March 1, 2026 · Version 6.0 · winners-empire-eco.up.railway.app*
+*Last updated: March 2, 2026 · Version 6.0 Final · winners-empire-eco.up.railway.app*
 
 *Sources merged into V6:*
 - *V5 (February 28, 2026) — Design Strategy + AI Assistants + Intelligence v2.0 + Universal AI Platform Spec*
-- *PROJECT_EVOLUTION.md (commit d48968b) — Live repository corrections: community/academy wired, Groups built, RLS migrated, SSO prepped, backup automated*
-- *WINNERS_ECOSYSTEM_STATE.md — Original V1 architecture baseline*
+- *Platform Design & Product Strategy Doc (February 2026) — Niche features, updated Market verticals (4G Real Estate / 4H Travel & Experiences), SDK key methods, tech partner costs, Community Data API, Education & Coaching Work category, Design & Creative Resources*
+- *PROJECT_EVOLUTION.md (commit d48968b) — Live repo corrections: community/academy wired, Groups built, StudentDashboard exists, RLS migrated, SSO prepped, backup automated*
 - *All prior session transcripts (see /mnt/transcripts/)*
