@@ -22,9 +22,9 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  opacity: 0.03;
-  width: 80vmax;
-  height: 80vmax;
+  opacity: 0.1;
+  width: 100vmax;
+  height: 100vmax;
   object-fit: contain;
   pointer-events: none;
 }
