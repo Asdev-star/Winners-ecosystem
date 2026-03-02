@@ -2,12 +2,22 @@
 // Phase 2 — Community Layer V1.2: Groups
 // Route: /community/groups
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+// Predefined niche groups - featured communities
+const NICH_GROUPS = [
+  { id: "african-tech", name: "African Tech & Startups", slug: "AfricanTech", emoji: "🖥️", description: "Founders, developers, investors - building the future", memberCount: 12450 },
+  { id: "diaspora-business", name: "Diaspora In Business", slug: "DiasporaInBusiness", emoji: "✈️", description: "Africans abroad, returnees, global entrepreneurs", memberCount: 8920 },
+  { id: "winners-creators", name: "Winners Creators", slug: "WinnersCreators", emoji: "🎨", description: "Designers, artists, musicians, content creators", memberCount: 6730 },
+  { id: "afrobeats-marketing", name: "AfroBeat Marketing", slug: "AfroBeatMarketing", emoji: "🎵", description: "Music industry, brand deals, artist growth", memberCount: 5210 },
+  { id: "finance-invest", name: "Finance & Investment", slug: "FinanceInvest", emoji: "📈", description: "Trading, fintech, wealth building strategies", memberCount: 9840 },
+  { id: "beauty-fashion", name: "Beauty & Fashion", slug: "BeautyFashion", emoji: "💄", description: "Stylists, brands, influencers, fashion entrepreneurs", memberCount: 4150 },
+];
 
 interface Group {
   id: string;
@@ -454,6 +464,29 @@ function GroupDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
 
 // ─── Main GroupsPage ──────────────────────────────────────────────────────────
 
+// ─── Niche Group Card ─────────────────────────────────────────────────────────
+
+function NicheGroupCard({ niche, onJoin }: { niche: typeof NICH_GROUPS[0]; onJoin: (slug: string) => void }) {
+  return (
+    <div style={styles.nicheCard}>
+      <div style={styles.nicheEmoji}>{niche.emoji}</div>
+      <div style={styles.nicheInfo}>
+        <div style={styles.nicheName}>
+          #{niche.slug}
+          <span style={styles.nicheBadge}>Featured</span>
+        </div>
+        <div style={styles.nicheDesc}>{niche.description}</div>
+        <div style={styles.nicheMembers}>
+          {niche.memberCount.toLocaleString()} members
+        </div>
+      </div>
+      <button style={styles.nicheJoinBtn} onClick={() => onJoin(niche.slug)}>
+        Join
+      </button>
+    </div>
+  );
+}
+
 export default function GroupsPage() {
   const [groups, setGroups]         = useState<Group[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -603,6 +636,19 @@ export default function GroupsPage() {
         </div>
       ) : (
         <div style={styles.groupsGrid}>
+          {/* Featured Niche Groups */}
+          <div style={styles.nicheSection}>
+            <div style={styles.nicheSectionTitle}>
+              <span>⭐</span> Featured Communities
+            </div>
+            <div style={styles.nicheGrid}>
+              {NICH_GROUPS.slice(0, 4).map((niche) => (
+                <NicheGroupCard key={niche.id} niche={niche} onJoin={handleJoin} />
+              ))}
+            </div>
+          </div>
+
+          {/* User Groups */}
           {filtered.map((g) => (
             <GroupCard
               key={g.id}
@@ -1206,5 +1252,56 @@ const styles: Record<string, React.CSSProperties> = {
   errorState: {
     textAlign:  "center",
     padding:    "60px 20px",
+  },
+  // Niche groups styles
+  nicheSection: { marginBottom: "32px" },
+  nicheSectionTitle: {
+    fontFamily: "'Space Mono', monospace",
+    fontSize: "11px",
+    textTransform: "uppercase",
+    letterSpacing: "0.15em",
+    color: "var(--gold)",
+    marginBottom: "16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  nicheGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+    gap: "12px",
+  },
+  nicheCard: {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: "6px",
+    padding: "16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  nicheEmoji: { fontSize: "28px" },
+  nicheInfo: { flex: 1 },
+  nicheName: { fontSize: "14px", fontWeight: 700, color: "var(--text)", marginBottom: "4px" },
+  nicheBadge: {
+    fontFamily: "'Space Mono', monospace",
+    fontSize: "8px",
+    padding: "2px 6px",
+    background: "rgba(155, 111, 255, 0.15)",
+    color: "var(--purple)",
+    borderRadius: "3px",
+    marginLeft: "8px",
+  },
+  nicheDesc: { fontSize: "12px", color: "var(--text-dim)", marginBottom: "4px" },
+  nicheMembers: { fontFamily: "'Space Mono', monospace", fontSize: "10px", color: "var(--text-dim)" },
+  nicheJoinBtn: {
+    padding: "8px 16px",
+    borderRadius: "6px",
+    background: "var(--gold)",
+    color: "var(--bg)",
+    fontWeight: 700,
+    fontSize: "12px",
+    border: "none",
+    cursor: "pointer",
   },
 };

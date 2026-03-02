@@ -10,17 +10,17 @@ const css = `
 
   .cm-root {
     display: flex; gap: 0; min-height: 100vh;
-    background: #0D1520; font-family: 'Syne', sans-serif; padding-bottom: 80px;
+    background: var(--bg); font-family: 'Syne', sans-serif; padding-bottom: 80px;
   }
 
   .cm-feed { flex: 1; max-width: 680px; margin: 0 auto; padding: 28px 20px; }
 
   .cm-page-title {
-    font-size: 22px; font-weight: 800; color: #E8EEF5;
+    font-size: 22px; font-weight: 800; color: var(--text);
     margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
   }
   .cm-page-badge {
-    background: rgba(74,222,128,0.1); color: #4ade80;
+    background: rgba(74,222,128,0.1); color: var(--green);
     font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em;
     text-transform: uppercase; padding: 3px 10px; border-radius: 20px;
     border: 1px solid rgba(74,222,128,0.2);
@@ -41,7 +41,7 @@ const css = `
   .cm-avatar {
     width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
     background: rgba(201,168,76,0.12); display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 700; color: #C9A84C; border: 1px solid rgba(201,168,76,0.2);
+    font-size: 13px; font-weight: 700; color: var(--gold); border: 1px solid rgba(201,168,76,0.2);
   }
   .cm-compose-input {
     flex: 1; background: rgba(137,196,225,0.04); border: 1px solid #1E3248; border-radius: 10px;
@@ -55,15 +55,15 @@ const css = `
     display: flex; align-items: center; justify-content: space-between;
     margin-top: 10px; padding-top: 10px; border-top: 1px solid #1E3248;
   }
-  .cm-tag-input { background: transparent; border: none; outline: none; font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; width: 160px; }
+  .cm-tag-input { background: transparent; border: none; outline: none; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); width: 160px; }
   .cm-tag-input::placeholder { color: #2E3D4F; }
 
   .cm-media-btn {
-    background: none; border: none; color: #5A7A96; font-size: 16px; cursor: pointer;
+    background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer;
     padding: 6px 10px; border-radius: 8px; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
   }
   .cm-media-btn:hover { background: rgba(201,168,76,0.1); color: #C9A84C; }
-  .cm-media-btn.recording { background: rgba(224,90,78,0.15); color: #E05A4E; animation: pulse-rec 1s infinite; }
+  .cm-media-btn.recording { background: rgba(224,90,78,0.15); color: var(--red); animation: pulse-rec 1s infinite; }
   @keyframes pulse-rec { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
   .cm-voice-recording {
@@ -75,10 +75,10 @@ const css = `
     display: flex; align-items: center; gap: 2px; height: 24px;
   }
   .cm-voice-bar {
-    width: 3px; background: #E05A4E; border-radius: 2px; animation: voice-bar 0.5s ease infinite alternate;
+    width: 3px; background: var(--red); border-radius: 2px; animation: voice-bar 0.5s ease infinite alternate;
   }
   @keyframes voice-bar { 0% { height: 6px; } 100% { height: 20px; } }
-  .cm-voice-time { font-family: 'Space Mono', monospace; font-size: 12px; color: #E05A4E; }
+  .cm-voice-time { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--red); }
   .cm-voice-cancel {
     margin-left: auto; background: none; border: none; color: #5A7A96; cursor: pointer; font-size: 12px;
   }
@@ -102,7 +102,7 @@ const css = `
   .cm-post-author { flex: 1; }
   .cm-post-name { font-size: 13px; font-weight: 700; color: #E8EEF5; }
   .cm-post-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; margin-top: 1px; }
-  .cm-post-body { padding: 12px 16px; font-size: 14px; color: #E8EEF5; line-height: 1.65; white-space: pre-wrap; }
+  .cm-post-body { padding: 12px 16px; font-size: 14px; color: var(--text); line-height: 1.65; white-space: pre-wrap; }
 
   .cm-post-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
   .cm-tag { font-family: 'Space Mono', monospace; font-size: 10px; color: #C9A84C; background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.15); border-radius: 20px; padding: 2px 10px; }
@@ -124,11 +124,11 @@ const css = `
   .cm-comment-avatar {
     width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
     background: rgba(137,196,225,0.08); display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: #89C4E1; border: 1px solid rgba(137,196,225,0.15);
+    font-size: 10px; font-weight: 700; color: var(--ice); border: 1px solid rgba(137,196,225,0.15);
   }
   .cm-comment-bubble { flex: 1; background: rgba(137,196,225,0.04); border: 1px solid #1E3248; border-radius: 10px; padding: 8px 12px; }
   .cm-comment-author { font-size: 11px; font-weight: 700; color: #E8EEF5; margin-bottom: 2px; }
-  .cm-comment-text { font-size: 13px; color: #5A7A96; line-height: 1.5; }
+  .cm-comment-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
 
   .cm-comment-form { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
   .cm-comment-input {
@@ -608,7 +608,7 @@ export default function CommunityPage() {
               </div>
             ))}
             {members.length === 0 && (
-              <div style={{ fontSize: 11, color: "#5A7A96", fontFamily: "Space Mono, monospace" }}>No members yet</div>
+              <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Space Mono, monospace" }}>No members yet</div>
             )}
           </div>
 
