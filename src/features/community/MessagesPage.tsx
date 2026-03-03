@@ -7,8 +7,12 @@ import { useAuthStore } from "../auth/authStore";
 import { usePresence } from "./usePresence";
 
 // Backend routes mounted at /messages (not /api/v1/messages)
-
 const API = "";
+
+function getAuthHeaders() {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface Conversation {
   id: string;
@@ -219,7 +223,7 @@ export default function MessagesPage() {
 
   // Fetch conversations
   useEffect(() => {
-    fetch(`${API}/messages`, { credentials: "include" })
+    fetch(`${API}/messages`, { headers: getAuthHeaders(), credentials: "include" })
       .then((r) => r.json())
       .then(setConversations)
       .catch(console.error)
@@ -229,7 +233,7 @@ export default function MessagesPage() {
   // Fetch messages when conversation selected
   useEffect(() => {
     if (!conversationId) return;
-    fetch(`${API}/messages/${conversationId}`, { credentials: "include" })
+    fetch(`${API}/messages/${conversationId}`, { headers: getAuthHeaders(), credentials: "include" })
       .then((r) => r.json())
       .then((data) => setMessages(data.messages || []))
       .catch(console.error);
@@ -244,7 +248,7 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !conversationId) return;
     const res = await fetch(`${API}/messages/${conversationId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       credentials: "include",
       body: JSON.stringify({ content: newMessage }),
     });
