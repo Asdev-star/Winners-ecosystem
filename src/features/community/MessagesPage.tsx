@@ -5,9 +5,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import { usePresence } from "./usePresence";
-import { API_BASE } from "../../lib/api";
 
-const API = API_BASE;
+// Backend routes mounted at /messages (not /api/v1/messages)
+
+const API = "";
 
 interface Conversation {
   id: string;
