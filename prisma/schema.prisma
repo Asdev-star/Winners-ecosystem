@@ -100,6 +100,7 @@ model User {
   givenEndorsements  SkillEndorsement[]  @relation("Endorser")
   learningTracks     GroupLearningTrack[] @relation("LearningTrackCreator")
   novaSkills         NovaSkillDetection[]
+  postReactions      PostReaction[]
 
   // Diaspora Directory fields
   country             String?
@@ -108,7 +109,7 @@ model User {
   skills              String[] // Array of skills for directory
   industry            String?
   isPublicProfile     Boolean   @default(true)
-  profileViews        Int       @default(0)
+  metadata            Json      @default("{}")
   
   // Trust Score system (0-100)
   trustScore          Int       @default(50)
@@ -312,31 +313,34 @@ enum ChangelogType {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Post {
-  id        String    @id @default(cuid())
-  tenantId  String
-  authorId  String
-  content   String
-  mediaUrl  String?
-  mediaType String?
-  linkUrl   String?
-  linkTitle String?
-  edited    Boolean   @default(false)
-  isPinned  Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-  groupId   String?
+  id            String    @id @default(cuid())
+  tenantId      String
+  authorId      String
+  content       String
+  mediaUrl      String?
+  mediaType     String?
+  linkUrl       String?
+  linkTitle     String?
+  edited        Boolean   @default(false)
+  isPinned      Boolean   @default(false)
+  engagementScore Int     @default(0)
+  quotedPostId  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  groupId       String?
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id])
   author   User      @relation("PostAuthor", fields: [authorId], references: [id])
   comments Comment[]
   likes    Like[]
+  reactions PostReaction[]
   tags     PostTag[]
   group    Group?    @relation("GroupPosts", fields: [groupId], references: [id])
   savedPosts SavedPost[]
-  quotingPosts QuotePost[] @relation("QuotingPost")
-  quotedPosts   QuotePost[] @relation("QuotedPost")
   novaSkills  NovaSkillDetection[]
+  quotedPost  Post?    @relation("QuotedPost", fields: [quotedPostId], references: [id])
+  quotingPosts QuotePost[] @relation("QuotingPost")
 
   @@index([tenantId, createdAt(sort: Desc)])
   @@index([authorId])
@@ -383,6 +387,22 @@ model Like {
   @@index([postId])
   @@index([commentId])
   @@map("likes")
+}
+
+// Six-reaction system for community posts
+model PostReaction {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  reaction  String   // like, celebrate, support, insightful, funny, curious
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, reaction])
+  @@index([postId])
+  @@index([reaction])
 }
 
 model Follow {
@@ -774,13 +794,17 @@ model NovaSkillDetection {
   userId      String
   skill       String
   confidence  Float    // 0-100
-  source      String   // 'post', 'comment', 'voice', 'bio'
+  category    String?  // 'technical', 'creative', 'business', 'soft', 'language'
+  source      String   @default("post") // 'post', 'comment', 'voice', 'bio'
   loopStage   String?  // 'skill', 'course', 'income'
+  isActioned  Boolean  @default(false)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation("UserNovaSkills", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, postId, skill])
   @@index([postId])
   @@index([skill])
   @@index([userId])
@@ -855,10 +879,12 @@ model AgenticLoopProgress {
   userId        String
   stage         Int      @default(1) // 1-7
   stageName     String   // 'skill_detection', 'learning', 'certification', 'work_match', 'contract', 'vendor', 'compound'
+  currentStage  String?  // 'community', 'academy', 'work', 'market', 'compound' - for display
   postsCount    Int      @default(0)
   skillsDetected Int     @default(0)
   coursesTaken  Int      @default(0)
   contractsWon  Int      @default(0)
+  lastActivity  DateTime?
   updatedAt     DateTime @updatedAt
   createdAt     DateTime @default(now())
 
