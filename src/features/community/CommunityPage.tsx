@@ -1260,6 +1260,8 @@ interface Post {
   author: { id: string; name: string; role?: string };
   tags: { tag: { name: string } }[];
   likes: { userId: string }[];
+  reactions?: { reaction: string; userId: string }[];
+  userReaction?: string;
   comments: Comment[];
   isPinned: boolean;
   createdAt: string;
@@ -1435,7 +1437,7 @@ const DEMO_GROUPS = [
 
 const LOOP_STAGES = ["community", "academy", "work", "market", "income"];
 
-const REACTIONS = ["❤️", "🙌", "💡", "💪", "😂", "🤩"];
+const REACTIONS = ["❤️", "🔥", "💡", "👏", "😂", "😱"];
 
 const NOVA_INSIGHTS = [
   "Your last 3 posts got 2.4× more engagement than your average. Posting today compounds that momentum.",
@@ -1725,6 +1727,36 @@ export default function CommunityPage() {
         return p;
       })
     );
+  };
+
+  // Handle six-reaction system
+  const handleReaction = async (postId: string, reaction: string) => {
+    try {
+      const res = await fetch(`${API}/community/posts/${postId}/react`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ reaction }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPosts((prev) =>
+          prev.map((p) => {
+            if (p.id !== postId) return p;
+            return {
+              ...p,
+              reactions: (data.reactions || (p as any).reactions) as any,
+              userReaction: reaction,
+            };
+          })
+        );
+      } else {
+        // Fallback to like if reaction endpoint not available
+        handleLike(postId);
+      }
+    } catch {
+      // Fallback to like on error
+      handleLike(postId);
+    }
   };
 
   const handleDelete = async (postId: string) => {

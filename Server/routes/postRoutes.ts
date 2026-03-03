@@ -374,6 +374,64 @@ router.post("/:id/like", async (req: Request, res: Response) => {
   }
 });
 
+// ─── POST /posts/:id/react — six-reaction system ─────────────────────────────────
+
+const REACTION_TYPES = ["❤️", "🔥", "💡", "👏", "😂", "😱"];
+
+router.post("/:id/react", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
+  const postId   = String(req.params.id);
+  const reaction = String(req.body?.reaction || "");
+
+  if (!REACTION_TYPES.includes(reaction)) {
+    return res.status(400).json({ message: "Invalid reaction type" });
+  }
+
+  try {
+    const post = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+    });
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    // Check existing reaction
+    const existing = await db.postReaction.findFirst({
+      where: { userId, postId },
+    });
+
+    if (existing) {
+      if (existing.reaction === reaction) {
+        // Remove reaction if same
+        await db.postReaction.delete({ where: { id: existing.id } });
+      } else {
+        // Update to new reaction
+        await db.postReaction.update({
+          where: { id: existing.id },
+          data: { reaction },
+        });
+      }
+    } else {
+      // Create new reaction
+      await db.postReaction.create({
+        data: { userId, postId, reaction },
+      });
+    }
+
+    // Get all reactions for this post
+    const reactions = await db.postReaction.findMany({
+      where: { postId },
+      select: { reaction: true, userId: true },
+    });
+
+    const userReaction = reactions.find((r) => r.userId === userId)?.reaction || null;
+
+    return res.json({ reactions, userReaction });
+  } catch (err: any) {
+    console.error("Reaction error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // ─── GET /posts/:id/comments ──────────────────────────────────────────────────
 
 router.get("/:id/comments", async (req: Request, res: Response) => {
