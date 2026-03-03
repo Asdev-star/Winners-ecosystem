@@ -4,13 +4,19 @@
 // Install: npm install express-rate-limit helmet
 // Register in Server/index.ts BEFORE all routes
 
-import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { Request, Response, NextFunction } from "express";
 
 // Helper to get IP safely for rate limiting (handles IPv6)
+// Uses req.ip which Express normalizes (includes IPv6 handling)
 function getClientIp(req: Request): string {
-  return ipKeyGenerator(req);
+  // Get IP from various headers and fallback to socket
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = typeof forwarded === 'string' 
+    ? forwarded.split(',')[0].trim() 
+    : req.ip ?? req.socket.remoteAddress ?? 'unknown';
+  return ip;
 }
 
 // ─── Security Headers (helmet) ────────────────────────────────────────────────
@@ -63,8 +69,8 @@ export const authLimiter = rateLimit({
     retryAfter: "15 minutes",
   },
   keyGenerator: (req: Request) => {
-    // Rate limit per IP + email combo - use ipKeyGenerator for IPv6 support
-    const ip = ipKeyGenerator(req);
+    // Rate limit per IP + email combo
+    const ip = getClientIp(req);
     const email = typeof req.body?.email === 'string' ? req.body.email : '';
     return `${ip}:${email}`;
   },
@@ -97,9 +103,9 @@ export const postLimiter = rateLimit({
     message: "You've posted too frequently. Try again in an hour.",
   },
   keyGenerator: (req: Request) => {
-    // Per user ID if authenticated, otherwise use ipKeyGenerator for IPv6
+    // Per user ID if authenticated, otherwise IP
     const userId = (req as any).user?.userId;
-    return userId ?? ipKeyGenerator(req);
+    return userId ?? getClientIp(req);
   },
 });
 
@@ -115,7 +121,7 @@ export const aiLimiter = rateLimit({
     error:   "AI limit reached",
     message: "You've used your AI recommendation quota for this hour.",
   },
-  keyGenerator: (req: Request) => (req as any).user?.userId ?? ipKeyGenerator(req),
+  keyGenerator: (req: Request) => (req as any).user?.userId ?? getClientIp(req),
 });
 
 // ─── XSS / Injection Sanitizer ───────────────────────────────────────────────
