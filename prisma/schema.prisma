@@ -96,6 +96,10 @@ model User {
   challengeSubmissions CommunityChallengeSubmission[]
   challengeWins       CommunityChallengeWinner[]
   savedPosts         SavedPost[]
+  endorsedSkills     SkillEndorsement[]  @relation("Endorsee")
+  givenEndorsements  SkillEndorsement[]  @relation("Endorser")
+  learningTracks     GroupLearningTrack[] @relation("LearningTrackCreator")
+  novaSkills         NovaSkillDetection[]
 
   // Diaspora Directory fields
   country             String?
@@ -110,6 +114,11 @@ model User {
   trustScore          Int       @default(50)
   trustScoreTier      String    @default("SILVER") // BRONZE, SILVER, GOLD, PLATINUM
   trustScoreUpdatedAt DateTime?
+
+  // Open to Opportunities signal (V2 feature)
+  openToOpportunities Boolean   @default(false)
+  opportunityStatus   String?   // LOOKING_FOR_WORK, OPEN_TO_COLLAB, HIRING
+  opportunityBio     String?   // Brief description of what user is open to
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -325,6 +334,9 @@ model Post {
   tags     PostTag[]
   group    Group?    @relation("GroupPosts", fields: [groupId], references: [id])
   savedPosts SavedPost[]
+  quotingPosts QuotePost[] @relation("QuotingPost")
+  quotedPosts   QuotePost[] @relation("QuotedPost")
+  novaSkills  NovaSkillDetection[]
 
   @@index([tenantId, createdAt(sort: Desc)])
   @@index([authorId])
@@ -423,10 +435,11 @@ model Group {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant                   Tenant        @relation(fields: [tenantId], references: [id])
-  createdBy                User          @relation("GroupCreator", fields: [createdById], references: [id])
+  tenant                   Tenant              @relation(fields: [tenantId], references: [id])
+  createdBy                User                @relation("GroupCreator", fields: [createdById], references: [id])
   members                  GroupMember[]
-  posts                    Post[]        @relation("GroupPosts")
+  posts                    Post[]              @relation("GroupPosts")
+  learningTracks           GroupLearningTrack[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -453,6 +466,30 @@ enum GroupMemberRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+// Group Learning Tracks (Facebook Events adapted for professional development)
+model GroupLearningTrack {
+  id          String   @id @default(cuid())
+  groupId     String
+  title       String
+  description String?
+  currentWeek Int      @default(1)
+  totalWeeks  Int      @default(4)
+  startDate   DateTime
+  endDate     DateTime
+  courseId    String?  // optional link to Academy course
+  participants Int    @default(0)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator     User     @relation("LearningTrackCreator", fields: [createdById], references: [id])
+
+  @@index([groupId])
+  @@index([createdById])
+  @@map("group_learning_tracks")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -721,6 +758,9 @@ model SkillEndorsement {
   weight       Float    @default(1.0) // Weight based on endorser's trust score
   createdAt    DateTime @default(now())
 
+  endorsee    User     @relation("Endorsee", fields: [userId], references: [id], onDelete: Cascade)
+  endorser    User     @relation("Endorser", fields: [endorserId], references: [id], onDelete: Cascade)
+
   @@unique([endorserId, userId, skill])
   @@index([userId, skill])
   @@index([endorserId])
@@ -737,6 +777,9 @@ model NovaSkillDetection {
   source      String   // 'post', 'comment', 'voice', 'bio'
   loopStage   String?  // 'skill', 'course', 'income'
   createdAt   DateTime @default(now())
+
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([skill])
@@ -776,6 +819,22 @@ model SavedPost {
   @@index([userId])
   @@index([postId])
   @@map("saved_posts")
+}
+
+// Quote-Share (X-inspired) - when users share with commentary
+model QuotePost {
+  id           String   @id @default(cuid())
+  postId       String   // the quoting post
+  quotedPostId String   // the original post being quoted
+  createdAt    DateTime @default(now())
+
+  post         Post     @relation("QuotingPost", fields: [postId], references: [id], onDelete: Cascade)
+  quotedPost   Post     @relation("QuotedPost", fields: [quotedPostId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, quotedPostId])
+  @@index([postId])
+  @@index([quotedPostId])
+  @@map("quote_posts")
 }
 
 // User Feed Preferences
