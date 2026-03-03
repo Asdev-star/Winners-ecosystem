@@ -1,15 +1,14 @@
 // Server/routes/liveSpaceRoutes.ts — Winners Community Live Spaces API
 import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
-import { PrismaClient } from "@prisma/client";
+import db from "../db.js";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /spaces — List all live spaces
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const spaces = await prisma.liveSpace.findMany({
+    const spaces = await db.liveSpace.findMany({
       where: { tenantId: req.user!.tenantId },
       include: {
         host: { select: { id: true, name: true } },
@@ -28,7 +27,7 @@ router.get("/", authMiddleware, async (req, res) => {
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     const spaceId = String(req.params.id);
-    const space = await prisma.liveSpace.findFirst({
+    const space = await db.liveSpace.findFirst({
       where: { id: spaceId, tenantId: req.user!.tenantId },
       include: {
         host: { select: { id: true, name: true } },
@@ -51,7 +50,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { title, description, scheduledAt, maxSpeakers, maxListeners, isRecorded } = req.body;
-    const space = await prisma.liveSpace.create({
+    const space = await db.liveSpace.create({
       data: {
         title,
         description,
@@ -76,7 +75,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
   try {
     const spaceId = String(req.params.id);
     const { title, description, status, scheduledAt } = req.body;
-    const space = await prisma.liveSpace.updateMany({
+    const space = await db.liveSpace.updateMany({
       where: { id: spaceId, hostId: req.user!.userId },
       data: { title, description, status, scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined },
     });
@@ -95,7 +94,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
     const spaceId = String(req.params.id);
-    await prisma.liveSpace.deleteMany({
+    await db.liveSpace.deleteMany({
       where: { id: spaceId, hostId: req.user!.userId },
     });
     res.json({ success: true });
@@ -109,7 +108,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 router.post("/:id/join", authMiddleware, async (req, res) => {
   try {
     const spaceId = String(req.params.id);
-    await prisma.liveSpaceParticipant.create({
+    await db.liveSpaceParticipant.create({
       data: {
         spaceId,
         userId: req.user!.userId,
@@ -127,7 +126,7 @@ router.post("/:id/join", authMiddleware, async (req, res) => {
 router.post("/:id/leave", authMiddleware, async (req, res) => {
   try {
     const spaceId = String(req.params.id);
-    await prisma.liveSpaceParticipant.deleteMany({
+    await db.liveSpaceParticipant.deleteMany({
       where: { spaceId, userId: req.user!.userId },
     });
     res.json({ success: true });

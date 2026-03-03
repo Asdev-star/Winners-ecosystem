@@ -4,13 +4,13 @@
 // Install: npm install express-rate-limit helmet
 // Register in Server/index.ts BEFORE all routes
 
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import helmet from "helmet";
 import { Request, Response, NextFunction } from "express";
 
 // Helper to get IP safely for rate limiting (handles IPv6)
 function getClientIp(req: Request): string {
-  return req.ip ?? req.socket.remoteAddress ?? 'unknown';
+  return ipKeyGenerator(req);
 }
 
 // ─── Security Headers (helmet) ────────────────────────────────────────────────
@@ -63,8 +63,8 @@ export const authLimiter = rateLimit({
     retryAfter: "15 minutes",
   },
   keyGenerator: (req: Request) => {
-    // Rate limit per IP + email combo
-    const ip = getClientIp(req);
+    // Rate limit per IP + email combo - use ipKeyGenerator for IPv6 support
+    const ip = ipKeyGenerator(req);
     const email = typeof req.body?.email === 'string' ? req.body.email : '';
     return `${ip}:${email}`;
   },
@@ -97,9 +97,9 @@ export const postLimiter = rateLimit({
     message: "You've posted too frequently. Try again in an hour.",
   },
   keyGenerator: (req: Request) => {
-    // Per user ID if authenticated, otherwise IP
+    // Per user ID if authenticated, otherwise use ipKeyGenerator for IPv6
     const userId = (req as any).user?.userId;
-    return userId ?? getClientIp(req);
+    return userId ?? ipKeyGenerator(req);
   },
 });
 
@@ -115,7 +115,7 @@ export const aiLimiter = rateLimit({
     error:   "AI limit reached",
     message: "You've used your AI recommendation quota for this hour.",
   },
-  keyGenerator: (req: Request) => (req as any).user?.userId ?? req.ip,
+  keyGenerator: (req: Request) => (req as any).user?.userId ?? ipKeyGenerator(req),
 });
 
 // ─── XSS / Injection Sanitizer ───────────────────────────────────────────────

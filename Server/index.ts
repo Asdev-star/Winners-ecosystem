@@ -30,6 +30,12 @@ import chatRoutes from "./routes/chatRoutes.js";
 // ── Message Routes (Phase 2 — Winners Community DMs) ───────────────────────
 import messageRoutes from "./routes/messageRoutes.js";
 
+// ── Post Routes (Phase 2 — Winners Community Feed) ───────────────────────────
+import postRoutes from "./routes/postRoutes.js";
+
+// ── Group Routes (Phase 2 V1.2 — Winners Community Groups) ───────────────────────
+import groupRoutes from "./routes/groupRoutes.js";
+
 // ── Live Space Routes (Phase 2 V1.4 — Winners Community Live Spaces) ───────
 import liveSpaceRoutes from "./routes/liveSpaceRoutes.js";
 
@@ -123,6 +129,8 @@ app.use("/api/v1", v1Router);
 app.use("/academy", academyRoutes);
 app.use("/chat", chatRoutes);
 app.use("/messages", messageRoutes);
+app.use("/posts", postRoutes);
+app.use("/groups", groupRoutes);
 app.use("/spaces", liveSpaceRoutes);
 app.use("/opportunities", opportunityRoutes);
 // app.use("/creator", creatorRoutes);
