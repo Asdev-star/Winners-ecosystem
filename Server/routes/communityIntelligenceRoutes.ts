@@ -35,7 +35,7 @@ router.get("/skills/detections", async (req: Request, res: Response) => {
 router.get("/skills/aggregate", async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId || req.user!.userId;
-    
+
     const detections = await db.novaSkillDetection.findMany({
       where: { userId },
       select: { skill: true, confidence: true },
@@ -43,7 +43,7 @@ router.get("/skills/aggregate", async (req: Request, res: Response) => {
 
     // Aggregate by skill with weighted confidence
     const skillMap = new Map<string, { total: number; count: number }>();
-    detections.forEach(d => {
+    detections.forEach((d) => {
       const existing = skillMap.get(d.skill) || { total: 0, count: 0 };
       skillMap.set(d.skill, {
         total: existing.total + d.confidence,
@@ -63,6 +63,219 @@ router.get("/skills/aggregate", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to aggregate skills" });
   }
 });
+
+// ============================================
+// NOVA SKILL DETECTION - Claude API Integration
+// ============================================
+
+// Detect skills in post content using Claude API
+router.post("/skills/detect", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { postId, content } = req.body;
+
+    if (!content || content.trim().length < 20) {
+      return res.json({ skills: [], summary: "" });
+    }
+
+    // Get user's existing skills for context
+    const existingSkills = await db.novaSkillDetection.findMany({
+      where: { userId },
+      select: { skill: true },
+      distinct: ["skill"],
+      orderBy: { confidence: "desc" },
+      take: 10,
+    });
+
+    const existingSkillNames = existingSkills.map((s) => s.skill).join(", ");
+
+    // Build the prompt for NOVA
+    const prompt = `You are NOVA, the Winners Ecosystem Community Intelligence Supervisor.
+
+Analyse this post and identify professional skills demonstrated or discussed.
+Return ONLY valid JSON — no preamble, no markdown, just the JSON object.
+
+{
+  "skills": [
+    { "name": "string", "confidence": 0.0-1.0, "category": "technical|creative|business|soft|language" }
+  ],
+  "summary": "one sentence describing what skill area this person is developing"
+}
+
+Rules:
+- Only include skills with confidence above 0.65
+- Maximum 5 skills per post
+- Be specific: "React" not "programming", "Copywriting" not "writing"
+- Do not hallucinate skills not evidenced in the text
+- Existing skills for context: ${existingSkillNames || "none yet"}
+
+Post content: "${content.replace(/"/g, '\\"').slice(0, 2000)}"`;
+
+    // Call Claude API for skill detection
+    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+
+    if (!anthropicApiKey) {
+      console.warn("ANTHROPIC_API_KEY not set, using mock detection");
+      // Fallback to mock detection if no API key
+      const mockSkills = extractMockSkills(content);
+      return res.json({
+        skills: mockSkills,
+        summary: mockSkills[0]?.category || "technical",
+      });
+    }
+
+    const anthropicResponse = await fetch(
+      "https://api.anthropic.com/v1/messages",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicApiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6-20250514",
+          max_tokens: 500,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      },
+    );
+
+    if (!anthropicResponse.ok) {
+      const errorText = await anthropicResponse.text();
+      console.error("Claude API error:", errorText);
+      // Fallback to mock detection
+      const mockSkills = extractMockSkills(content);
+      return res.json({
+        skills: mockSkills,
+        summary: mockSkills[0]?.category || "technical",
+      });
+    }
+
+    const anthropicData = await anthropicResponse.json();
+    const rawText = anthropicData.content?.[0]?.text || "{}";
+
+    let parsed;
+    try {
+      // Extract JSON from response
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      parsed = jsonMatch
+        ? JSON.parse(jsonMatch[0])
+        : { skills: [], summary: "" };
+    } catch {
+      console.error("Failed to parse Claude response:", rawText);
+      parsed = { skills: [], summary: "" };
+    }
+
+    // Store detections above threshold
+    const skills = (parsed.skills || [])
+      .filter((s: any) => s.confidence >= 0.75)
+      .slice(0, 5);
+
+    const detections = await Promise.all(
+      skills.map((s: any) =>
+        db.novaSkillDetection.upsert({
+          where: { userId_skill: { userId, skill: s.name } },
+          create: {
+            userId,
+            postId,
+            skill: s.name,
+            confidence: s.confidence,
+            category: s.category || "technical",
+          },
+          update: {
+            confidence: Math.max(s.confidence, 0),
+            postId,
+            updatedAt: new Date(),
+          },
+        }),
+      ),
+    );
+
+    // Fire cross-layer event if high-confidence skills detected
+    if (detections.length > 0) {
+      // Update Agentic Loop progress
+      await db.agenticLoopProgress.upsert({
+        where: { userId },
+        create: { userId, currentStage: "academy", lastActivity: new Date() },
+        update: { currentStage: "academy", lastActivity: new Date() },
+      });
+
+      // Create community insight
+      await db.communityInsight.create({
+        data: {
+          userId,
+          type: "skill_detected",
+          title: "New Skill Detected",
+          content: `NOVA detected ${skills.length} skill(s) in your recent post: ${skills.map((s: any) => s.name).join(", ")}`,
+          metadata: JSON.stringify({ skills }),
+        },
+      });
+    }
+
+    res.json({
+      skills: detections.map((d: any) => ({
+        skillName: d.skill,
+        confidence: d.confidence,
+        category: d.category,
+      })),
+      summary: parsed.summary || "",
+    });
+  } catch (error) {
+    console.error("Failed to detect skills:", error);
+    res.status(500).json({ error: "Failed to detect skills" });
+  }
+});
+
+// Helper function for mock skill extraction when Claude API is unavailable
+function extractMockSkills(
+  content: string,
+): Array<{ skillName: string; confidence: number; category: string }> {
+  const skillPatterns = [
+    { pattern: /react\b/gi, skill: "React", category: "technical" },
+    { pattern: /node\.js|nodejs/gi, skill: "Node.js", category: "technical" },
+    {
+      pattern: /typescript|ts\b/gi,
+      skill: "TypeScript",
+      category: "technical",
+    },
+    { pattern: /python/gi, skill: "Python", category: "technical" },
+    {
+      pattern: /javascript|js\b/gi,
+      skill: "JavaScript",
+      category: "technical",
+    },
+    { pattern: /next\.?js|nextjs/gi, skill: "Next.js", category: "technical" },
+    { pattern: /tailwind/gi, skill: "Tailwind CSS", category: "technical" },
+    { pattern: /figma/gi, skill: "Figma", category: "creative" },
+    { pattern: /docker/gi, skill: "Docker", category: "technical" },
+    { pattern: /aws|amazon web/gi, skill: "AWS", category: "technical" },
+    { pattern: /marketing/gi, skill: "Marketing", category: "business" },
+    { pattern: /seo|search engine/gi, skill: "SEO", category: "business" },
+    { pattern: /copywriting/gi, skill: "Copywriting", category: "creative" },
+    { pattern: /design\b/gi, skill: "Design", category: "creative" },
+    { pattern: /leadership/gi, skill: "Leadership", category: "soft" },
+    { pattern: /communication/gi, skill: "Communication", category: "soft" },
+  ];
+
+  const detected: Array<{
+    skillName: string;
+    confidence: number;
+    category: string;
+  }> = [];
+
+  for (const { pattern, skill, category } of skillPatterns) {
+    if (pattern.test(content)) {
+      detected.push({
+        skillName: skill,
+        confidence: 0.75 + Math.random() * 0.2,
+        category,
+      });
+    }
+  }
+
+  return detected.slice(0, 5);
+}
 
 // ============================================
 // COMMUNITY INSIGHTS (NOVA CHANNELS)
@@ -149,7 +362,7 @@ router.post("/skills/endorse", async (req: Request, res: Response) => {
       select: { trustScore: true },
     });
 
-    const weight = endorser?.trustScore 
+    const weight = endorser?.trustScore
       ? Math.max(0.5, Math.min(2.0, endorser.trustScore / 50))
       : 1.0;
 
@@ -170,39 +383,45 @@ router.post("/skills/endorse", async (req: Request, res: Response) => {
 });
 
 // Get endorsements received by a user
-router.get("/skills/endorsements/:userId", async (req: Request, res: Response) => {
-  try {
-    const { userId } = req.params;
+router.get(
+  "/skills/endorsements/:userId",
+  async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
 
-    const endorsements = await db.skillEndorsement.findMany({
-      where: { userId },
-      include: {
-        endorser: { select: { id: true, name: true, trustScore: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Group by skill
-    const bySkill = endorsements.reduce((acc, e) => {
-      if (!acc[e.skill]) {
-        acc[e.skill] = { skill: e.skill, endorsers: [], totalWeight: 0 };
-      }
-      acc[e.skill].endorsers.push({
-        id: e.endorser.id,
-        name: e.endorser.name,
-        trustScore: e.endorser.trustScore,
-        weight: e.weight,
+      const endorsements = await db.skillEndorsement.findMany({
+        where: { userId },
+        include: {
+          endorser: { select: { id: true, name: true, trustScore: true } },
+        },
+        orderBy: { createdAt: "desc" },
       });
-      acc[e.skill].totalWeight += e.weight;
-      return acc;
-    }, {} as Record<string, any>);
 
-    res.json({ endorsements, bySkill: Object.values(bySkill) });
-  } catch (error) {
-    console.error("Failed to get endorsements:", error);
-    res.status(500).json({ error: "Failed to get endorsements" });
-  }
-});
+      // Group by skill
+      const bySkill = endorsements.reduce(
+        (acc, e) => {
+          if (!acc[e.skill]) {
+            acc[e.skill] = { skill: e.skill, endorsers: [], totalWeight: 0 };
+          }
+          acc[e.skill].endorsers.push({
+            id: e.endorser.id,
+            name: e.endorser.name,
+            trustScore: e.endorser.trustScore,
+            weight: e.weight,
+          });
+          acc[e.skill].totalWeight += e.weight;
+          return acc;
+        },
+        {} as Record<string, any>,
+      );
+
+      res.json({ endorsements, bySkill: Object.values(bySkill) });
+    } catch (error) {
+      console.error("Failed to get endorsements:", error);
+      res.status(500).json({ error: "Failed to get endorsements" });
+    }
+  },
+);
 
 // ============================================
 // FEED PREFERENCES
@@ -281,7 +500,8 @@ router.get("/loop-progress", async (req: Request, res: Response) => {
 router.patch("/loop-progress", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { stage, postsCount, skillsDetected, coursesTaken, contractsWon } = req.body;
+    const { stage, postsCount, skillsDetected, coursesTaken, contractsWon } =
+      req.body;
 
     const progress = await db.agenticLoopProgress.upsert({
       where: { userId },
@@ -400,7 +620,7 @@ router.get("/feed/intelligence", async (req: Request, res: Response) => {
       select: { skill: true },
       distinct: ["skill"],
     });
-    const skillNames = userSkills.map(s => s.skill);
+    const skillNames = userSkills.map((s) => s.skill);
 
     // Get posts from users with related skills
     const posts = await db.post.findMany({
@@ -455,7 +675,7 @@ async function recalculateTrustScore(userId: string) {
   });
 
   const endorsementScore = endorsements.reduce((sum, e) => sum + e.weight, 0);
-  
+
   // Get user's own trust score components
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -465,12 +685,12 @@ async function recalculateTrustScore(userId: string) {
   // Blend existing score with endorsement score (weighted)
   const newScore = Math.min(
     100,
-    Math.round((user?.trustScore || 50) * 0.7 + endorsementScore * 2)
+    Math.round((user?.trustScore || 50) * 0.7 + endorsementScore * 2),
   );
 
   await db.user.update({
     where: { id: userId },
-    data: { 
+    data: {
       trustScore: newScore,
       trustScoreTier: getTrustTier(newScore),
       trustScoreUpdatedAt: new Date(),
