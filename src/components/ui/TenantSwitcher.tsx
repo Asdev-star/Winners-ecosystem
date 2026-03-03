@@ -14,9 +14,9 @@ const css = `
     transition: border-color 0.15s; width: 100%; box-sizing: border-box;
     font-family: 'Syne', sans-serif;
   }
-  .ts-trigger:hover { border-color: var(--gold, #F5C842); }
-  .ts-trigger.open  { border-color: var(--gold, #F5C842); background: rgba(245,200,66,0.05); }
-  .ts-avatar { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; background: rgba(245,200,66,0.15); color: var(--gold, #F5C842); }
+  .ts-trigger:hover { border-color: var(--gold, var(--gold)); }
+  .ts-trigger.open  { border-color: var(--gold, var(--gold)); background: rgba(245,200,66,0.05); }
+  .ts-avatar { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; background: rgba(245,200,66,0.15); color: var(--gold, var(--gold)); }
   .ts-info { flex: 1; min-width: 0; }
   .ts-name { font-size: 12px; font-weight: 700; color: var(--text, #E8EDF2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ts-plan { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim, #5A6878); text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; }
@@ -30,14 +30,14 @@ const css = `
   .ts-item-avatar { width: 26px; height: 26px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
   .ts-item-name  { font-size: 12px; font-weight: 600; color: var(--text, #E8EDF2); flex: 1; }
   .ts-item-plan  { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim, #5A6878); }
-  .ts-item-check { color: var(--gold, #F5C842); font-size: 12px; }
+  .ts-item-check { color: var(--gold, var(--gold)); font-size: 12px; }
   .ts-divider    { height: 1px; background: var(--border, #1E2A38); }
   .ts-action { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; transition: background 0.12s; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, #5A6878); }
-  .ts-action:hover { background: rgba(245,200,66,0.05); color: var(--gold, #F5C842); }
+  .ts-action:hover { background: rgba(245,200,66,0.05); color: var(--gold, var(--gold)); }
   @keyframes ts-drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 `;
 
-const COLORS = ["#F5C842", "#4A9EFF", "#2DD4A0", "#9B6FFF", "#FF5975"];
+const COLORS = ["var(--gold)", "var(--blue)", "var(--green)", "var(--purple)", "var(--red)"];
 
 interface Tenant { id: string; name: string; plan: string; }
 interface Props  { onCreateNew?: () => void; }

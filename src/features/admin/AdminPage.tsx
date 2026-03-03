@@ -1,7 +1,8 @@
 // src/features/admin/AdminPage.tsx
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -120,7 +121,7 @@ const css = `
     outline: none; margin-bottom: 14px;
   }
   .adm-modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-  .adm-btn { background: var(--gold); color: #080B10; border: none; border-radius: 3px; padding: 8px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .adm-btn { background: var(--gold); color: var(--bg); border: none; border-radius: 3px; padding: 8px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; }
   .adm-btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
 
   /* ── States ── */
@@ -151,7 +152,7 @@ function fmt(n: number) {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  FREE: "#5A7A96", PRO: "#C9A84C", ENTERPRISE: "#9B6FFF",
+  FREE: "#5A7A96", PRO: "var(--gold)", ENTERPRISE: "var(--purple)",
 };
 
 export default function AdminPage() {

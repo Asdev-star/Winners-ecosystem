@@ -2,10 +2,10 @@
 // ─── Block 1 Complete: Security + API Gateway + Health + GDPR + Registry ──────
 
 import "dotenv/config";
-import express                from "express";
-import cors                   from "cors";
-import path                   from "path";
-import { fileURLToPath }      from "url";
+import express from "express";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // ── Core Infrastructure: Security Layer (Block 1 — Item 1) ─────────────────────
 import {
@@ -28,16 +28,13 @@ import academyRoutes from "./routes/academyRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 
 // ── Message Routes (Phase 2 — Winners Community DMs) ───────────────────────
-// TEMPORARILY DISABLED - awaiting Prisma client regeneration
-// import messageRoutes from "./routes/messageRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 
 // ── Live Space Routes (Phase 2 V1.4 — Winners Community Live Spaces) ───────
-// TEMPORARILY DISABLED - awaiting Prisma client regeneration
-// import liveSpaceRoutes from "./routes/liveSpaceRoutes.js";
+import liveSpaceRoutes from "./routes/liveSpaceRoutes.js";
 
 // ── Opportunity Routes (Phase 2 — Winners Community Opportunity Board) ──────────
-// TEMPORARILY DISABLED - awaiting Prisma client regeneration
-// import opportunityRoutes from "./routes/opportunityRoutes.js";
+import opportunityRoutes from "./routes/opportunityRoutes.js";
 
 // ── Creator Routes (Phase 2 — Winners Community Creator Economy) ─────────────────
 // TEMPORARILY DISABLED - awaiting Prisma client regeneration
@@ -49,10 +46,10 @@ import { startEmailScheduler } from "./services/emailScheduler.js";
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-const app    = express();
-const PORT   = process.env.PORT ?? 3001;
+const app = express();
+const PORT = process.env.PORT ?? 3001;
 const isProd = process.env.NODE_ENV === "production";
 
 type ErrorWithMeta = Error & {
@@ -73,15 +70,22 @@ app.use(helmetMiddleware);
 app.use(requestSizeGuard);
 
 // 3. CORS — scoped to known origins only
-app.use(cors({
-  origin: isProd
-    ? [process.env.APP_URL ?? "", /\.railway\.app$/, /\.winnersempire\.io$/]
-    : ["http://localhost:5173", "http://localhost:3000"],
-  credentials: true,
-  methods:     ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID", "X-Tenant-ID"],
-  exposedHeaders: ["X-Request-ID", "X-API-Version", "X-RateLimit-Remaining"],
-}));
+app.use(
+  cors({
+    origin: isProd
+      ? [process.env.APP_URL ?? "", /\.railway\.app$/, /\.winnersempire\.io$/]
+      : ["http://localhost:5173", "http://localhost:3000"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Request-ID",
+      "X-Tenant-ID",
+    ],
+    exposedHeaders: ["X-Request-ID", "X-API-Version", "X-RateLimit-Remaining"],
+  }),
+);
 
 // 4. Body Parsing
 app.use(express.json({ limit: "10mb" }));
@@ -97,11 +101,11 @@ app.use(xssSanitizer);
 
 app.get("/health", (_req, res) => {
   res.json({
-    status:    "ok",
-    version:   "1.1.0",
-    env:       process.env.NODE_ENV ?? "development",
+    status: "ok",
+    version: "1.1.0",
+    env: process.env.NODE_ENV ?? "development",
     timestamp: new Date().toISOString(),
-    uptime:    Math.round(process.uptime()),
+    uptime: Math.round(process.uptime()),
   });
 });
 
@@ -118,10 +122,9 @@ app.use("/api/v1", v1Router);
 // ── Direct Route Mounts — Academy + Chat + Messages + Live Spaces ────────────
 app.use("/academy", academyRoutes);
 app.use("/chat", chatRoutes);
-// TEMPORARILY DISABLED - awaiting Prisma client regeneration
-// app.use("/messages", messageRoutes);
-// app.use("/spaces", liveSpaceRoutes);
-// app.use("/opportunities", opportunityRoutes);
+app.use("/messages", messageRoutes);
+app.use("/spaces", liveSpaceRoutes);
+app.use("/opportunities", opportunityRoutes);
 // app.use("/creator", creatorRoutes);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -130,10 +133,29 @@ app.use("/chat", chatRoutes);
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LEGACY_ROUTES = [
-  "/auth", "/tenants", "/users", "/analytics", "/export", "/billing",
-  "/ai", "/profile", "/email", "/notifications", "/stripe", "/search",
-  "/activity", "/referral", "/admin", "/changelog", "/2fa", "/posts", "/groups",
-  "/gdpr", "/registry", "/slack", "/sso",
+  "/auth",
+  "/tenants",
+  "/users",
+  "/analytics",
+  "/export",
+  "/billing",
+  "/ai",
+  "/profile",
+  "/email",
+  "/notifications",
+  "/stripe",
+  "/search",
+  "/activity",
+  "/referral",
+  "/admin",
+  "/changelog",
+  "/2fa",
+  "/posts",
+  "/groups",
+  "/gdpr",
+  "/registry",
+  "/slack",
+  "/sso",
 ];
 
 for (const route of LEGACY_ROUTES) {
@@ -164,25 +186,35 @@ if (isProd) {
 // GLOBAL ERROR HANDLER
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
-  void next;
-  const normalized: ErrorWithMeta =
-    err instanceof Error ? (err as ErrorWithMeta) : new Error("Unknown error");
-  const status = normalized.status ?? normalized.statusCode ?? 500;
-  const message = isProd && status === 500 ? "Internal server error" : normalized.message;
+app.use(
+  (
+    err: unknown,
+    _req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    void next;
+    const normalized: ErrorWithMeta =
+      err instanceof Error
+        ? (err as ErrorWithMeta)
+        : new Error("Unknown error");
+    const status = normalized.status ?? normalized.statusCode ?? 500;
+    const message =
+      isProd && status === 500 ? "Internal server error" : normalized.message;
 
-  console.error(`[ERROR] ${status} — ${normalized.message}`, {
-    stack: normalized.stack,
-    code: normalized.code,
-  });
+    console.error(`[ERROR] ${status} — ${normalized.message}`, {
+      stack: normalized.stack,
+      code: normalized.code,
+    });
 
-  res.status(status).json({
-    error:     message,
-    code:      normalized.code ?? "INTERNAL_ERROR",
-    requestId: normalized.requestId,
-    timestamp: new Date().toISOString(),
-  });
-});
+    res.status(status).json({
+      error: message,
+      code: normalized.code ?? "INTERNAL_ERROR",
+      requestId: normalized.requestId,
+      timestamp: new Date().toISOString(),
+    });
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SERVER STARTUP

@@ -1,7 +1,7 @@
 // src/features/academy/InstructorDashboard.tsx — Instructor Dashboard
 // Phase 3: Academy Layer — Manage courses, modules, lessons, and view analytics
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAcademyStore, type Course } from "./academyStore";
 

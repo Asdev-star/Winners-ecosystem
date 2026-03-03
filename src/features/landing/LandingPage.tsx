@@ -11,24 +11,24 @@ const css = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --gold:    #C9A84C;
-    --gold2:   #E8C97A;
-    --gold3:   #8B6914;
-    --gold-dim: rgba(201,168,76,0.08);
-    --blue:    #2B5F8E;
-    --blue2:   #3A7BC0;
-    --ice:     #89C4E1;
-    --green:   #2DD4A0;
-    --purple:  #9B6FFF;
-    --red:     #E05A4E;
-    --bg:      #0D1520;
-    --surface: #111D2E;
-    --surface2:#172335;
-    --border:  #1E3248;
+    --gold:    var(--gold, #F0B429);
+    --gold2:   var(--gold-bright, #F5C842);
+    --gold3:   var(--gold-dim, #B8841A);
+    --gold-dim: rgba(240,180,76,0.08);
+    --blue:    var(--blue, #4A9EFF);
+    --blue2:   var(--blue-bright, #6BB3FF);
+    --ice:     var(--ice, #89C4E1);
+    --green:   var(--green, #2DD4A0);
+    --purple:  var(--purple, #9B6FFF);
+    --red:     var(--red, #E05A4E);
+    --bg:      var(--bg, #080E1A);
+    --surface: var(--surface, #0D1826);
+    --surface2:var(--surface2, #121F30);
+    --border:  var(--border, #1A2E45);
     --border2: rgba(30,50,72,0.6);
-    --text:    #E8EEF5;
-    --text-dim:#5A7A96;
-    --text-faint: #2E4A64;
+    --text:    var(--text, #E8EEF5);
+    --text-dim:var(--text-dim, #5A7A96);
+    --text-faint: #2A4560;
   }
 
   html { scroll-behavior: smooth; }

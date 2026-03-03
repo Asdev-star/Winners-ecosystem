@@ -27,7 +27,7 @@ const LAYERS: LayerStatus[] = [
 export default function ContextBar({ activeLayer, showLabels = true }: ContextBarProps) {
   return (
     <div className="eco-bar" role="navigation" aria-label="Ecosystem platforms">
-      {LAYERS.map((layer, index) => (
+      {LAYERS.map((layer, _index) => (
         <a
           key={layer.key}
           href={layer.href}

@@ -9,10 +9,7 @@ import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 // AI Components - Level II & III imports
-import AIInsightBanner from "../../components/ui/AIInsightBanner";
-import AssistantPanel from "../../components/ui/AssistantPanel";
-import AgenticLoopWidget from "../../components/ui/AgenticLoopWidget";
-import TrustScoreBadge from "../../components/ui/TrustScoreBadge";
+// (Available for future use: AIInsightBanner, AssistantPanel, AgenticLoopWidget, TrustScoreBadge)
 
 const API = API_BASE;
 // ─── Types ────────────────────────────────────────────────────────────────────

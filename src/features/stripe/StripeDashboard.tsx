@@ -9,22 +9,22 @@ const css = `
   .sd-wrap { padding: 32px; max-width: 1100px; margin: 0 auto; }
   .sd-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
   .sd-title { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
-  .sd-title span { color: var(--gold, #F5C842); }
-  .sd-tag { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim, #5A6878); margin-bottom: 6px; }
+  .sd-title span { color: var(--gold, var(--gold)); }
+  .sd-tag { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim, var(--text-dim)); margin-bottom: 6px; }
   .sd-actions { display: flex; gap: 10px; flex-wrap: wrap; }
   .sd-btn {
     padding: 9px 18px; border-radius: 4px; font-family: 'Syne', sans-serif;
     font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; border: none;
   }
-  .sd-btn-gold { background: var(--gold, #F5C842); color: #080B10; }
+  .sd-btn-gold { background: var(--gold, var(--gold)); color: var(--bg); }
   .sd-btn-gold:hover { opacity: 0.88; }
-  .sd-btn-outline { background: transparent; border: 1px solid var(--border, #1E2A38); color: var(--text, #E8EDF2); }
-  .sd-btn-outline:hover { border-color: var(--gold, #F5C842); color: var(--gold, #F5C842); }
+  .sd-btn-outline { background: transparent; border: 1px solid var(--border, var(--border)); color: var(--text, var(--text)); }
+  .sd-btn-outline:hover { border-color: var(--gold, var(--gold)); color: var(--gold, var(--gold)); }
   .sd-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .sd-status {
     display: flex; align-items: center; gap: 8px; padding: 10px 16px;
-    background: var(--surface, #0D1117); border: 1px solid var(--border, #1E2A38);
+    background: var(--surface, var(--surface)); border: 1px solid var(--border, var(--border));
     border-radius: 4px; margin-bottom: 24px;
     font-family: 'Space Mono', monospace; font-size: 11px;
   }
@@ -32,23 +32,23 @@ const css = `
 
   .sd-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
   .sd-kpi {
-    background: var(--surface, #0D1117); border: 1px solid var(--border, #1E2A38);
+    background: var(--surface, var(--surface)); border: 1px solid var(--border, var(--border));
     border-radius: 6px; padding: 20px; position: relative; overflow: hidden;
   }
-  .sd-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--gold, #F5C842); }
-  .sd-kpi:nth-child(2)::before { background: #2DD4A0; }
-  .sd-kpi:nth-child(3)::before { background: #4A9EFF; }
+  .sd-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--gold, var(--gold)); }
+  .sd-kpi:nth-child(2)::before { background: var(--green); }
+  .sd-kpi:nth-child(3)::before { background: var(--blue); }
   .sd-kpi:nth-child(4)::before { background: #9B6FFF; }
-  .sd-kpi-label { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim, #5A6878); margin-bottom: 8px; }
+  .sd-kpi-label { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim, var(--text-dim)); margin-bottom: 8px; }
   .sd-kpi-val { font-size: 26px; font-weight: 800; letter-spacing: -1px; }
-  .sd-kpi-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, #5A6878); margin-top: 4px; }
+  .sd-kpi-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, var(--text-dim)); margin-top: 4px; }
 
   .sd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .sd-card { background: var(--surface, #0D1117); border: 1px solid var(--border, #1E2A38); border-radius: 6px; padding: 20px; }
+  .sd-card { background: var(--surface, var(--surface)); border: 1px solid var(--border, var(--border)); border-radius: 6px; padding: 20px; }
   .sd-card-title { font-size: 13px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
   .sd-table { width: 100%; border-collapse: collapse; font-family: 'Space Mono', monospace; font-size: 11px; }
-  .sd-table th { color: var(--text-dim, #5A6878); text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border, #1E2A38); font-weight: 400; }
+  .sd-table th { color: var(--text-dim, var(--text-dim)); text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border, var(--border)); font-weight: 400; }
   .sd-table td { padding: 10px 4px; border-bottom: 1px solid rgba(30,42,56,0.5); }
   .sd-table tr:last-child td { border-bottom: none; }
 
@@ -56,20 +56,20 @@ const css = `
     display: inline-block; padding: 2px 8px; border-radius: 3px;
     font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
   }
-  .sd-badge-green { background: rgba(45,212,160,0.12); color: #2DD4A0; }
-  .sd-badge-test  { background: rgba(74,158,255,0.12); color: #4A9EFF; }
+  .sd-badge-green { background: rgba(45,212,160,0.12); color: var(--green); }
+  .sd-badge-test  { background: rgba(74,158,255,0.12); color: var(--blue); }
 
   .sd-plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
-  .sd-plan { background: var(--surface, #0D1117); border: 1px solid var(--border, #1E2A38); border-radius: 6px; padding: 24px; text-align: center; transition: border-color 0.2s; }
+  .sd-plan { background: var(--surface, var(--surface)); border: 1px solid var(--border, var(--border)); border-radius: 6px; padding: 24px; text-align: center; transition: border-color 0.2s; }
   .sd-plan:hover { border-color: rgba(245,200,66,0.3); }
-  .sd-plan.current { border-color: var(--gold, #F5C842); background: rgba(245,200,66,0.04); }
-  .sd-plan-name { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim, #5A6878); margin-bottom: 12px; }
+  .sd-plan.current { border-color: var(--gold, var(--gold)); background: rgba(245,200,66,0.04); }
+  .sd-plan-name { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim, var(--text-dim)); margin-bottom: 12px; }
   .sd-plan-price { font-size: 36px; font-weight: 900; letter-spacing: -2px; margin-bottom: 4px; }
-  .sd-plan.current .sd-plan-price { color: var(--gold, #F5C842); }
-  .sd-plan-period { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, #5A6878); margin-bottom: 20px; }
+  .sd-plan.current .sd-plan-price { color: var(--gold, var(--gold)); }
+  .sd-plan-period { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, var(--text-dim)); margin-bottom: 20px; }
   .sd-plan-btn { width: 100%; padding: 10px; border-radius: 3px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
 
-  .sd-empty { text-align: center; padding: 32px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, #5A6878); }
+  .sd-empty { text-align: center; padding: 32px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, var(--text-dim)); }
 
   @media (max-width: 900px) {
     .sd-kpis { grid-template-columns: repeat(2, 1fr); }
@@ -144,7 +144,7 @@ export default function StripeDashboard() {
   return (
     <div className="sd-wrap">
       {toast && (
-        <div style={{ position: "fixed", top: 20, right: 20, zIndex: 999, background: "#2DD4A0", color: "#080B10", padding: "10px 20px", borderRadius: 4, fontFamily: "Space Mono", fontSize: 12, fontWeight: 700 }}>
+        <div style={{ position: "fixed", top: 20, right: 20, zIndex: 999, background: "var(--green)", color: "var(--bg)", padding: "10px 20px", borderRadius: 4, fontFamily: "Space Mono", fontSize: 12, fontWeight: 700 }}>
           {toast}
         </div>
       )}
@@ -164,11 +164,11 @@ export default function StripeDashboard() {
 
       {status && (
         <div className="sd-status">
-          <div className="sd-status-dot" style={{ background: status.configured ? "#2DD4A0" : "#FF5975", boxShadow: `0 0 6px ${status.configured ? "#2DD4A0" : "#FF5975"}` }} />
-          <span style={{ color: status.configured ? "#2DD4A0" : "#FF5975" }}>{status.message}</span>
+          <div className="sd-status-dot" style={{ background: status.configured ? "var(--green)" : "var(--red)", boxShadow: `0 0 6px ${status.configured ? "var(--green)" : "var(--red)"}` }} />
+          <span style={{ color: status.configured ? "var(--green)" : "var(--red)" }}>{status.message}</span>
           {status.configured && (
             <span style={{ marginLeft: 8, color: "var(--text-dim)" }}>
-              · Mode: <span style={{ color: status.mode === "live" ? "#2DD4A0" : "#4A9EFF" }}>{status.mode}</span>
+              · Mode: <span style={{ color: status.mode === "live" ? "var(--green)" : "var(--blue)" }}>{status.mode}</span>
             </span>
           )}
         </div>

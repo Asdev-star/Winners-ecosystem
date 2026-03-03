@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -51,17 +52,17 @@ const css = `
     width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: 15px;
   }
-  .sp-item-icon.member       { background: rgba(74,158,255,0.15);  color: #4A9EFF; }
+  .sp-item-icon.member       { background: rgba(74,158,255,0.15);  color: var(--blue); }
   .sp-item-icon.revenue      { background: rgba(245,200,66,0.15);  color: var(--gold); }
-  .sp-item-icon.notification { background: rgba(155,111,255,0.15); color: #9B6FFF; }
+  .sp-item-icon.notification { background: rgba(155,111,255,0.15); color: var(--purple); }
 
   .sp-item-title { font-size: 13px; font-weight: 600; }
   .sp-item-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 2px; }
   .sp-item-right { margin-left: auto; text-align: right; }
   .sp-item-badge { font-family: 'Space Mono', monospace; font-size: 10px; padding: 2px 8px; border-radius: 2px; }
-  .sp-item-badge.member       { background: rgba(74,158,255,0.1);  color: #4A9EFF; }
+  .sp-item-badge.member       { background: rgba(74,158,255,0.1);  color: var(--blue); }
   .sp-item-badge.revenue      { background: rgba(245,200,66,0.1);  color: var(--gold); }
-  .sp-item-badge.notification { background: rgba(155,111,255,0.1); color: #9B6FFF; }
+  .sp-item-badge.notification { background: rgba(155,111,255,0.1); color: var(--purple); }
   .sp-item-date { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); margin-top: 3px; }
 
   .sp-highlight { color: var(--gold); font-weight: 700; }

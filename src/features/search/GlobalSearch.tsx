@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -11,15 +12,15 @@ const css = `
 
   .gs-trigger {
     display: flex; align-items: center; gap: 8px;
-    background: var(--surface2, #141B24); border: 1px solid var(--border, #1E2A38);
+    background: var(--surface2, var(--surface2)); border: 1px solid var(--border, var(--border));
     border-radius: 4px; padding: 7px 12px; cursor: pointer;
-    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, #5A6878);
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, var(--text-dim));
     transition: all 0.15s; min-width: 180px;
   }
-  .gs-trigger:hover { border-color: var(--gold, #F5C842); color: var(--text, #E8EDF2); }
+  .gs-trigger:hover { border-color: var(--gold, var(--gold)); color: var(--text, var(--text)); }
   .gs-trigger-icon { font-size: 13px; }
   .gs-trigger-kbd {
-    margin-left: auto; background: var(--surface, #0D1117); border: 1px solid var(--border, #1E2A38);
+    margin-left: auto; background: var(--surface, var(--surface)); border: 1px solid var(--border, var(--border));
     border-radius: 2px; padding: 1px 5px; font-size: 9px;
   }
 
@@ -30,7 +31,7 @@ const css = `
   }
 
   .gs-modal {
-    background: var(--surface, #0D1117); border: 1px solid var(--border, #1E2A38);
+    background: var(--surface, var(--surface)); border: 1px solid var(--border, var(--border));
     border-radius: 8px; width: 100%; max-width: 580px; overflow: hidden;
     box-shadow: 0 24px 64px rgba(0,0,0,0.6);
     animation: gs-in 0.15s ease forwards;
@@ -38,17 +39,17 @@ const css = `
 
   .gs-input-wrap {
     display: flex; align-items: center; gap: 12px;
-    padding: 16px 20px; border-bottom: 1px solid var(--border, #1E2A38);
+    padding: 16px 20px; border-bottom: 1px solid var(--border, var(--border));
   }
-  .gs-input-icon { font-size: 16px; color: var(--text-dim, #5A6878); flex-shrink: 0; }
+  .gs-input-icon { font-size: 16px; color: var(--text-dim, var(--text-dim)); flex-shrink: 0; }
   .gs-input {
     flex: 1; background: transparent; border: none; outline: none;
-    font-family: 'Syne', sans-serif; font-size: 15px; color: var(--text, #E8EDF2);
+    font-family: 'Syne', sans-serif; font-size: 15px; color: var(--text, var(--text));
   }
-  .gs-input::placeholder { color: var(--text-dim, #5A6878); }
+  .gs-input::placeholder { color: var(--text-dim, var(--text-dim)); }
   .gs-esc {
-    font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim, #5A6878);
-    background: var(--surface2, #141B24); border: 1px solid var(--border, #1E2A38);
+    font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim, var(--text-dim));
+    background: var(--surface2, var(--surface2)); border: 1px solid var(--border, var(--border));
     border-radius: 2px; padding: 2px 6px; cursor: pointer; flex-shrink: 0;
   }
 
@@ -56,7 +57,7 @@ const css = `
 
   .gs-section-label {
     font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px;
-    text-transform: uppercase; color: var(--text-dim, #5A6878);
+    text-transform: uppercase; color: var(--text-dim, var(--text-dim));
     padding: 10px 20px 4px;
   }
 
@@ -71,25 +72,25 @@ const css = `
     width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: 13px;
   }
-  .gs-item-icon.member { background: rgba(74,158,255,0.15); color: #4A9EFF; }
-  .gs-item-icon.revenue { background: rgba(245,200,66,0.15); color: var(--gold, #F5C842); }
-  .gs-item-icon.notification { background: rgba(155,111,255,0.15); color: #9B6FFF; }
+  .gs-item-icon.member { background: rgba(74,158,255,0.15); color: var(--blue); }
+  .gs-item-icon.revenue { background: rgba(245,200,66,0.15); color: var(--gold, var(--gold)); }
+  .gs-item-icon.notification { background: rgba(155,111,255,0.15); color: var(--purple); }
 
   .gs-item-title { font-size: 13px; font-weight: 600; }
-  .gs-item-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, #5A6878); margin-top: 1px; }
-  .gs-item-right { margin-left: auto; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, #5A6878); }
+  .gs-item-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, var(--text-dim)); margin-top: 1px; }
+  .gs-item-right { margin-left: auto; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, var(--text-dim)); }
 
-  .gs-empty { padding: 32px; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, #5A6878); }
-  .gs-loading { padding: 24px; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, #5A6878); }
+  .gs-empty { padding: 32px; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, var(--text-dim)); }
+  .gs-loading { padding: 24px; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, var(--text-dim)); }
 
   .gs-footer {
-    padding: 10px 20px; border-top: 1px solid var(--border, #1E2A38);
+    padding: 10px 20px; border-top: 1px solid var(--border, var(--border));
     display: flex; gap: 16px; align-items: center;
-    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, #5A6878);
+    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, var(--text-dim));
   }
-  .gs-footer-key { background: var(--surface2, #141B24); border: 1px solid var(--border, #1E2A38); border-radius: 2px; padding: 1px 5px; margin-right: 4px; }
+  .gs-footer-key { background: var(--surface2, var(--surface2)); border: 1px solid var(--border, var(--border)); border-radius: 2px; padding: 1px 5px; margin-right: 4px; }
 
-  .gs-highlight { color: var(--gold, #F5C842); font-weight: 700; }
+  .gs-highlight { color: var(--gold, var(--gold)); font-weight: 700; }
 
   @keyframes gs-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 

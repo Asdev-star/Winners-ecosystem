@@ -42,7 +42,7 @@ export default function AIInsightBanner({ assistant, page, userId, context }: AI
   const [insight, setInsight] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, _setError] = useState(false); // For future error handling
 
   useEffect(() => {
     // Check localStorage for dismissed state

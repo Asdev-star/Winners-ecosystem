@@ -1,7 +1,8 @@
 // src/features/referral/ReferralPage.tsx
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -22,9 +23,9 @@ const css = `
 
   .rr-link-box { display: flex; gap: 8px; max-width: 560px; }
   .rr-link-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 11px 14px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text); outline: none; box-sizing: border-box; }
-  .rr-copy-btn { background: var(--gold); color: #080B10; border: none; border-radius: 3px; padding: 11px 20px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; flex-shrink: 0; }
+  .rr-copy-btn { background: var(--gold); color: var(--bg); border: none; border-radius: 3px; padding: 11px 20px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; flex-shrink: 0; }
   .rr-copy-btn:hover { opacity: 0.88; }
-  .rr-copy-btn.copied { background: #2DD4A0; }
+  .rr-copy-btn.copied { background: var(--green); }
 
   .rr-share { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
   .rr-share-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 8px 16px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); cursor: pointer; transition: all 0.15s; }
@@ -48,7 +49,7 @@ const css = `
   .rr-item-email { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
   .rr-item-right { margin-left: auto; text-align: right; }
   .rr-badge { font-family: 'Space Mono', monospace; font-size: 9px; padding: 2px 7px; border-radius: 2px; }
-  .rr-badge.converted { background: rgba(45,212,160,0.1); color: #2DD4A0; border: 1px solid rgba(45,212,160,0.2); }
+  .rr-badge.converted { background: rgba(45,212,160,0.1); color: var(--green); border: 1px solid rgba(45,212,160,0.2); }
   .rr-badge.pending   { background: rgba(245,200,66,0.1); color: var(--gold); border: 1px solid rgba(245,200,66,0.2); }
   .rr-item-date { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); margin-top: 3px; }
 
@@ -63,7 +64,7 @@ const css = `
 
   .rr-empty { padding: 32px; text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
   .rr-loading { padding: 40px 24px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
-  .rr-error { padding: 20px 24px; font-family: 'Space Mono', monospace; font-size: 11px; color: #FF5975; background: rgba(255,89,117,0.08); border: 1px solid rgba(255,89,117,0.2); border-radius: 4px; margin-bottom: 16px; }
+  .rr-error { padding: 20px 24px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--red); background: rgba(255,89,117,0.08); border: 1px solid rgba(255,89,117,0.2); border-radius: 4px; margin-bottom: 16px; }
 
   @media (max-width: 768px) {
     .rr-stats { grid-template-columns: repeat(2, 1fr); }

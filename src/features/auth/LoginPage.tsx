@@ -4,18 +4,29 @@ import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore, type AuthUser } from "./authStore";
-
 
 import { API_BASE } from "../../lib/api";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
+  :root {
+    --gold: #F0B429;
+    --gold-bright: #F5C842;
+    --gold-dim: #B8841A;
+    --bg: #080E1A;
+    --surface: #0D1826;
+    --surface2: #121F30;
+    --border: #1A2E45;
+    --text: #E8EEF5;
+    --text-dim: #5A7A96;
+    --green: #2DD4A0;
+    --red: #E05A4E;
+    --blue: #4A9EFF;
+    --ice: #89C4E1;
+  }
+
   .lp-root {
-    --gold: #C9A84C; --gold2: #E8C97A; --gold3: #8B6914;
-    --bg: #0D1520; --surface: #111D2E; --surface2: #172335;
-    --border: #1E3248; --text: #E8EEF5; --text-dim: #5A7A96;
-    --green: #4ade80; --red: #f87171; --blue: #2B5F8E; --ice: #89C4E1;
     min-height: 100vh; background: var(--bg);
     display: flex; flex-direction: row; align-items: stretch;
     font-family: 'Syne', sans-serif; color: var(--text); overflow: hidden;
@@ -158,23 +169,59 @@ const css = `
 `;
 
 const PLATFORMS = [
-  { icon: "⬡",  name: "Core Engine",         desc: "Auth · Billing · Analytics · API Gateway",  status: "live",    active: true  },
-  { icon: "🧑‍🤝‍🧑", name: "Winners Community",   desc: "Social feed · Chat · Groups · Creators",    status: "live",    active: true  },
-  { icon: "🎓", name: "Winners Academy",      desc: "Courses · Certificates · AI Tutor",         status: "soon",    active: false },
-  { icon: "🛒", name: "Winners Market",       desc: "Products · Vendors · Dropshipping",         status: "soon",    active: false },
-  { icon: "🤖", name: "Winners Intelligence", desc: "Agentic AI · Smart Automation · Search",    status: "planned", active: false },
-  { icon: "💼", name: "Winners Work",         desc: "Freelance · Jobs · Escrow · Matching",      status: "planned", active: false },
+  {
+    icon: "⬡",
+    name: "Core Engine",
+    desc: "Auth · Billing · Analytics · API Gateway",
+    status: "live",
+    active: true,
+  },
+  {
+    icon: "🧑‍🤝‍🧑",
+    name: "Winners Community",
+    desc: "Social feed · Chat · Groups · Creators",
+    status: "live",
+    active: true,
+  },
+  {
+    icon: "🎓",
+    name: "Winners Academy",
+    desc: "Courses · Certificates · AI Tutor",
+    status: "soon",
+    active: false,
+  },
+  {
+    icon: "🛒",
+    name: "Winners Market",
+    desc: "Products · Vendors · Dropshipping",
+    status: "soon",
+    active: false,
+  },
+  {
+    icon: "🤖",
+    name: "Winners Intelligence",
+    desc: "Agentic AI · Smart Automation · Search",
+    status: "planned",
+    active: false,
+  },
+  {
+    icon: "💼",
+    name: "Winners Work",
+    desc: "Freelance · Jobs · Escrow · Matching",
+    status: "planned",
+    active: false,
+  },
 ];
 
 const TICKER = [
-  { label: "Community",  val: "● Live",   cls: "up" },
-  { label: "AI Core",    val: "Online",   cls: "up" },
-  { label: "Phase 2",    val: "Building", cls: "up" },
-  { label: "Stripe",     val: "Synced",   cls: "up" },
-  { label: "2FA",        val: "Active",   cls: "up" },
-  { label: "Academy",    val: "Q2 2026",  cls: "dn" },
-  { label: "Market",     val: "Q3 2026",  cls: "dn" },
-  { label: "AI Agents",  val: "Phase 5",  cls: "dn" },
+  { label: "Community", val: "● Live", cls: "up" },
+  { label: "AI Core", val: "Online", cls: "up" },
+  { label: "Phase 2", val: "Building", cls: "up" },
+  { label: "Stripe", val: "Synced", cls: "up" },
+  { label: "2FA", val: "Active", cls: "up" },
+  { label: "Academy", val: "Q2 2026", cls: "dn" },
+  { label: "Market", val: "Q3 2026", cls: "dn" },
+  { label: "AI Agents", val: "Phase 5", cls: "dn" },
 ];
 
 function getErrorMessage(err: unknown, fallback: string) {
@@ -183,7 +230,13 @@ function getErrorMessage(err: unknown, fallback: string) {
 
 // ─── OTP Input ─────────────────────────────────────────────────────────────
 
-function OtpInput({ onComplete, hasError }: { onComplete: (code: string) => void; hasError: boolean }) {
+function OtpInput({
+  onComplete,
+  hasError,
+}: {
+  onComplete: (code: string) => void;
+  hasError: boolean;
+}) {
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -197,11 +250,15 @@ function OtpInput({ onComplete, hasError }: { onComplete: (code: string) => void
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
+    if (e.key === "Backspace" && !digits[i] && i > 0)
+      refs.current[i - 1]?.focus();
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
     if (pasted.length === 6) {
       setDigits(pasted.split(""));
       refs.current[5]?.focus();
@@ -215,9 +272,14 @@ function OtpInput({ onComplete, hasError }: { onComplete: (code: string) => void
       {digits.map((d, i) => (
         <input
           key={i}
-          ref={(el) => { refs.current[i] = el; }}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
           className={`lp-otp-box${d ? " filled" : ""}${hasError ? " otp-error" : ""}`}
-          type="text" inputMode="numeric" maxLength={1} value={d}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={d}
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
@@ -231,29 +293,32 @@ function OtpInput({ onComplete, hasError }: { onComplete: (code: string) => void
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
-  const navigate         = useNavigate();
-  const login            = useAuthStore((s) => s.login);
-  const verifyTwoFactor  = useAuthStore((s) => s.verifyTwoFactor);
+  const navigate = useNavigate();
+  const login = useAuthStore((s) => s.login);
+  const verifyTwoFactor = useAuthStore((s) => s.verifyTwoFactor);
   const pendingTwoFactor = useAuthStore((s) => s.pendingTwoFactor);
-  const user             = useAuthStore((s) => s.user);
+  const user = useAuthStore((s) => s.user);
 
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [fieldErr, setFieldErr] = useState({ email: false, password: false });
   const [otpError, setOtpError] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [imgError, setImgError]   = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const id = "lp-styles";
     if (!document.getElementById(id)) {
       const tag = document.createElement("style");
-      tag.id = id; tag.textContent = css;
+      tag.id = id;
+      tag.textContent = css;
       document.head.appendChild(tag);
     }
-    return () => { document.getElementById(id)?.remove(); };
+    return () => {
+      document.getElementById(id)?.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -275,9 +340,10 @@ export default function LoginPage() {
       }
 
       try {
-        const userData: AuthUser = typeof rawUser === "string"
-          ? JSON.parse(decodeURIComponent(rawUser)) as AuthUser
-          : rawUser as AuthUser;
+        const userData: AuthUser =
+          typeof rawUser === "string"
+            ? (JSON.parse(decodeURIComponent(rawUser)) as AuthUser)
+            : (rawUser as AuthUser);
 
         localStorage.setItem("we_token", token);
         localStorage.setItem("we_user", JSON.stringify(userData));
@@ -293,20 +359,28 @@ export default function LoginPage() {
     };
 
     const params = new URLSearchParams(window.location.search);
-    const code   = params.get("code");
-    const token  = params.get("token");
+    const code = params.get("code");
+    const token = params.get("token");
     const userJson = params.get("user");
     const oauthErr = params.get("error");
 
-    if (oauthErr) { setError("Google sign-in failed."); window.history.replaceState({}, "", "/login"); return; }
+    if (oauthErr) {
+      setError("Google sign-in failed.");
+      window.history.replaceState({}, "", "/login");
+      return;
+    }
 
     if (code) {
       window.history.replaceState({}, "", "/login");
       setLoading(true);
       const API = API_BASE;
       fetch(`${API}/auth/google/exchange`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, redirectUri: `${window.location.origin}/login` }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          redirectUri: `${window.location.origin}/login`,
+        }),
       })
         .then(async (r) => {
           const data = await r.json().catch(() => ({}));
@@ -343,59 +417,99 @@ export default function LoginPage() {
     setError("");
     if (!validate()) return;
     setLoading(true);
-    try { await login(email, password); }
-    catch (err: unknown) { setError(getErrorMessage(err, "Invalid credentials.")); }
-    finally { setLoading(false); }
+    try {
+      await login(email, password);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Invalid credentials."));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOtpComplete = async (code: string) => {
     setOtpError(false);
     setLoading(true);
-    try { await verifyTwoFactor(code); }
-    catch (err: unknown) { setOtpError(true); setError(getErrorMessage(err, "Invalid code.")); }
-    finally { setLoading(false); }
+    try {
+      await verifyTwoFactor(code);
+    } catch (err: unknown) {
+      setOtpError(true);
+      setError(getErrorMessage(err, "Invalid code."));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResend = async () => {
-    setCountdown(30); setError("");
-    try { await login(email, password); } catch { /* silent */ }
+    setCountdown(30);
+    setError("");
+    try {
+      await login(email, password);
+    } catch {
+      /* silent */
+    }
   };
 
   const handleGoogle = () => {
-    const clientId    = "148507996421-2di0upcp6d7fi4gojr8d74n5l3udk9tu.apps.googleusercontent.com";
+    const clientId =
+      "148507996421-2di0upcp6d7fi4gojr8d74n5l3udk9tu.apps.googleusercontent.com";
     const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
-    const scope       = encodeURIComponent("openid email profile");
+    const scope = encodeURIComponent("openid email profile");
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=select_account`;
   };
 
-  const fillDemo = () => { setEmail("demo@winners.io"); setPassword("demo1234"); setError(""); setFieldErr({ email: false, password: false }); };
-  const doubled  = [...TICKER, ...TICKER];
+  const fillDemo = () => {
+    setEmail("demo@winners.io");
+    setPassword("demo1234");
+    setError("");
+    setFieldErr({ email: false, password: false });
+  };
+  const doubled = [...TICKER, ...TICKER];
 
   return (
     <div className="lp-root">
-
       {/* ── LEFT ── */}
       <div className="lp-left">
         <div className="lp-card">
-
           {/* ── OTP Screen ── */}
           {pendingTwoFactor ? (
             <div className="lp-otp-screen">
-              <button className="lp-back-btn" onClick={() => { useAuthStore.setState({ pendingTwoFactor: null }); setError(""); }}>
+              <button
+                className="lp-back-btn"
+                onClick={() => {
+                  useAuthStore.setState({ pendingTwoFactor: null });
+                  setError("");
+                }}
+              >
                 ← Back to login
               </button>
-              <div className="lp-otp-icon">{pendingTwoFactor.method === "totp" ? "🔐" : "📧"}</div>
-              <h1 className="lp-otp-title">Verify <span>Identity</span></h1>
+              <div className="lp-otp-icon">
+                {pendingTwoFactor.method === "totp" ? "🔐" : "📧"}
+              </div>
+              <h1 className="lp-otp-title">
+                Verify <span>Identity</span>
+              </h1>
               <p className="lp-otp-subtitle">
-                {pendingTwoFactor.method === "totp"
-                  ? <>Enter the 6-digit code from your <strong>authenticator app</strong>.</>
-                  : <>Enter the code sent to <strong>{email}</strong>.</>
-                }
+                {pendingTwoFactor.method === "totp" ? (
+                  <>
+                    Enter the 6-digit code from your{" "}
+                    <strong>authenticator app</strong>.
+                  </>
+                ) : (
+                  <>
+                    Enter the code sent to <strong>{email}</strong>.
+                  </>
+                )}
               </p>
               {error && <div className="lp-alert">{error}</div>}
               <OtpInput onComplete={handleOtpComplete} hasError={otpError} />
               <button className="lp-submit" disabled={loading}>
-                {loading ? <span className="lp-loading"><span className="lp-spinner" /> Verifying...</span> : "Verify & Enter →"}
+                {loading ? (
+                  <span className="lp-loading">
+                    <span className="lp-spinner" /> Verifying...
+                  </span>
+                ) : (
+                  "Verify & Enter →"
+                )}
               </button>
               {pendingTwoFactor.method === "email_otp" && (
                 <div className="lp-otp-resend">
@@ -406,58 +520,131 @@ export default function LoginPage() {
                 </div>
               )}
             </div>
-
           ) : (
             /* ── Login Form ── */
             <>
               <div className="lp-logo-area">
-                {!imgError
-                  ? <img src="/logo.jpg" alt="Winners Empire" className="lp-logo-img" onError={() => setImgError(true)} />
-                  : <div className="lp-logo-fallback">🏆</div>}
+                {!imgError ? (
+                  <img
+                    src="/logo.jpg"
+                    alt="Winners Empire"
+                    className="lp-logo-img"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="lp-logo-fallback">🏆</div>
+                )}
                 <div>
                   <div className="lp-logo-name">Winners Empire</div>
                   <div className="lp-logo-tag">Digital Ecosystem</div>
                 </div>
               </div>
 
-              <h1 className="lp-title">Welcome <span>Back</span></h1>
+              <h1 className="lp-title">
+                Welcome <span>Back</span>
+              </h1>
               <p className="lp-subtitle">Sign in to your ecosystem workspace</p>
               {error && <div className="lp-alert">{error}</div>}
 
               <button className="lp-google" onClick={handleGoogle}>
                 <svg className="lp-google-icon" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
                 </svg>
                 Continue with Google
               </button>
 
-              <div className="lp-divider"><div className="lp-divider-line" /><span className="lp-divider-text">or email</span><div className="lp-divider-line" /></div>
+              <div className="lp-divider">
+                <div className="lp-divider-line" />
+                <span className="lp-divider-text">or email</span>
+                <div className="lp-divider-line" />
+              </div>
 
               <form onSubmit={handleSubmit} noValidate>
                 <div className="lp-field">
-                  <label className="lp-label" htmlFor="email">Email</label>
-                  <input id="email" type="email" className={`lp-input${fieldErr.email ? " error" : ""}`} placeholder="you@company.com" value={email} onChange={(e) => { setEmail(e.target.value); setFieldErr((f) => ({ ...f, email: false })); }} autoComplete="email" autoFocus />
-                  {fieldErr.email && <div className="lp-field-error">› Valid email required</div>}
+                  <label className="lp-label" htmlFor="email">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    className={`lp-input${fieldErr.email ? " error" : ""}`}
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setFieldErr((f) => ({ ...f, email: false }));
+                    }}
+                    autoComplete="email"
+                    autoFocus
+                  />
+                  {fieldErr.email && (
+                    <div className="lp-field-error">› Valid email required</div>
+                  )}
                 </div>
                 <div className="lp-field">
-                  <label className="lp-label" htmlFor="password">Password</label>
-                  <input id="password" type="password" className={`lp-input${fieldErr.password ? " error" : ""}`} placeholder="••••••••" value={password} onChange={(e) => { setPassword(e.target.value); setFieldErr((f) => ({ ...f, password: false })); }} autoComplete="current-password" />
-                  {fieldErr.password && <div className="lp-field-error">› Minimum 6 characters</div>}
+                  <label className="lp-label" htmlFor="password">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    className={`lp-input${fieldErr.password ? " error" : ""}`}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setFieldErr((f) => ({ ...f, password: false }));
+                    }}
+                    autoComplete="current-password"
+                  />
+                  {fieldErr.password && (
+                    <div className="lp-field-error">› Minimum 6 characters</div>
+                  )}
                 </div>
-                <div className="lp-forgot"><span onClick={() => navigate("/forgot-password")}>Forgot password?</span></div>
+                <div className="lp-forgot">
+                  <span onClick={() => navigate("/forgot-password")}>
+                    Forgot password?
+                  </span>
+                </div>
                 <button type="submit" className="lp-submit" disabled={loading}>
-                  {loading ? <span className="lp-loading"><span className="lp-spinner" /> Signing in...</span> : "Enter Ecosystem →"}
+                  {loading ? (
+                    <span className="lp-loading">
+                      <span className="lp-spinner" /> Signing in...
+                    </span>
+                  ) : (
+                    "Enter Ecosystem →"
+                  )}
                 </button>
               </form>
 
-              <div className="lp-divider"><div className="lp-divider-line" /><span className="lp-divider-text">or</span><div className="lp-divider-line" /></div>
-              <button className="lp-demo" onClick={fillDemo}>Try demo → <span>demo@winners.io</span></button>
+              <div className="lp-divider">
+                <div className="lp-divider-line" />
+                <span className="lp-divider-text">or</span>
+                <div className="lp-divider-line" />
+              </div>
+              <button className="lp-demo" onClick={fillDemo}>
+                Try demo → <span>demo@winners.io</span>
+              </button>
 
               <div className="lp-card-footer">
-                Don't have an account? <a onClick={() => navigate("/register")}>Create one free</a><br />
+                Don't have an account?{" "}
+                <a onClick={() => navigate("/register")}>Create one free</a>
+                <br />
                 Winners Ecosystem · Digital Sovereign Infrastructure
               </div>
             </>
@@ -471,26 +658,57 @@ export default function LoginPage() {
         <div className="lp-right-glow" />
         <div className="lp-right-content">
           <div className="lp-panel-eyebrow">Platform of Platforms</div>
-          <h2 className="lp-panel-title">One <span>Ecosystem.</span><br /><span className="ice">Infinite</span> Possibilities.</h2>
-          <p className="lp-panel-desc">A central AI-powered operating system hosting multiple digital platforms —<br />community, learning, commerce, and intelligence — all under one identity.</p>
+          <h2 className="lp-panel-title">
+            One <span>Ecosystem.</span>
+            <br />
+            <span className="ice">Infinite</span> Possibilities.
+          </h2>
+          <p className="lp-panel-desc">
+            A central AI-powered operating system hosting multiple digital
+            platforms —<br />
+            community, learning, commerce, and intelligence — all under one
+            identity.
+          </p>
           <div className="lp-stats">
-            <div className="lp-stat"><div className="lp-stat-value">6</div><div className="lp-stat-label">Platforms</div></div>
-            <div className="lp-stat"><div className="lp-stat-value">1</div><div className="lp-stat-label">Identity</div></div>
-            <div className="lp-stat"><div className="lp-stat-value">AI</div><div className="lp-stat-label">Powered</div></div>
+            <div className="lp-stat">
+              <div className="lp-stat-value">6</div>
+              <div className="lp-stat-label">Platforms</div>
+            </div>
+            <div className="lp-stat">
+              <div className="lp-stat-value">1</div>
+              <div className="lp-stat-label">Identity</div>
+            </div>
+            <div className="lp-stat">
+              <div className="lp-stat-value">AI</div>
+              <div className="lp-stat-label">Powered</div>
+            </div>
           </div>
           <div className="lp-ai-status">
             <div className="lp-ai-dot" />
-            <div className="lp-ai-text"><strong>Winners AI Core · Online</strong><br />Phase 2 active — Community Layer live. Academy & Market building.</div>
+            <div className="lp-ai-text">
+              <strong>Winners AI Core · Online</strong>
+              <br />
+              Phase 2 active — Community Layer live. Academy & Market building.
+            </div>
           </div>
           <div className="lp-platforms">
             {PLATFORMS.map((p) => (
-              <div key={p.name} className={`lp-platform-row${p.active ? " active" : ""}`}>
+              <div
+                key={p.name}
+                className={`lp-platform-row${p.active ? " active" : ""}`}
+              >
                 <div className="lp-platform-icon">{p.icon}</div>
                 <div className="lp-platform-info">
                   <div className="lp-platform-name">{p.name}</div>
                   <div className="lp-platform-desc">{p.desc}</div>
                 </div>
-                <span className={`lp-platform-badge ${p.status}`}>{p.status === "live" ? "● Live" : p.status === "soon" ? "Soon" : "Planned"}</span>
+                <span className={`lp-platform-badge ${p.status}`}>
+                  {p.status === "live"
+                    ? "● Live"
+                    : p.status === "soon"
+                      ? "Soon"
+                      : "Planned"}
+                </span>
               </div>
             ))}
           </div>
@@ -498,14 +716,15 @@ export default function LoginPage() {
             <div className="lp-ticker-track">
               {doubled.map((t, i) => (
                 <div key={i} className="lp-ticker-item">
-                  <span>{t.label}</span><span className={t.cls}>{t.val}</span><span style={{ color: "var(--border)" }}>·</span>
+                  <span>{t.label}</span>
+                  <span className={t.cls}>{t.val}</span>
+                  <span style={{ color: "var(--border)" }}>·</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
-
     </div>
   );
 }

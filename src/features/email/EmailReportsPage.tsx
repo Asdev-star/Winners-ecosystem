@@ -9,9 +9,9 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
   .er-root {
-    --gold: #F5C842; --bg: #080B10; --surface: #0D1117; --surface2: #141B24;
-    --border: #1E2A38; --text: #E8EDF2; --text-dim: #5A6878;
-    --green: #2DD4A0; --red: #FF5975; --blue: #4A9EFF; --purple: #9B6FFF;
+    --gold: var(--gold); --bg: var(--bg); --surface: var(--surface); --surface2: var(--surface2);
+    --border: var(--border); --text: var(--text); --text-dim: var(--text-dim);
+    --green: var(--green); --red: var(--red); --blue: var(--blue); --purple: var(--purple);
     background: var(--bg); color: var(--text);
     font-family: 'Syne', sans-serif; min-height: 100vh; padding: 32px 24px 80px;
   }
@@ -78,7 +78,7 @@ const css = `
   .er-last-sent   { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); }
 
   .er-send-btn {
-    background: var(--gold); color: #080B10; border: none; border-radius: 3px;
+    background: var(--gold); color: var(--bg); border: none; border-radius: 3px;
     padding: 7px 16px; font-family: 'Space Mono', monospace; font-size: 10px;
     font-weight: 700; cursor: pointer; transition: opacity 0.15s; letter-spacing: 0.5px;
   }
@@ -86,7 +86,7 @@ const css = `
   .er-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .er-send-btn.monthly  { background: var(--blue);   color: white; }
   .er-send-btn.anomaly  { background: var(--red);    color: white; }
-  .er-send-btn.team     { background: var(--green);  color: #080B10; }
+  .er-send-btn.team     { background: var(--green);  color: var(--bg); }
   .er-send-btn.invoice  { background: var(--purple); color: white; }
 
   /* Schedule info */

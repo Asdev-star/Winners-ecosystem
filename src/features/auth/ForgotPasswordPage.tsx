@@ -1,7 +1,8 @@
 // src/features/auth/ForgotPasswordPage.tsx
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -10,12 +11,12 @@ const css = `
 
   .fp-root {
     min-height: 100vh;
-    background: #0D1520;
+    background: var(--bg);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Syne', sans-serif;
-    color: #E8EDF2;
+    color: var(--text);
     padding: 24px;
     position: relative;
     overflow: hidden;
@@ -47,7 +48,7 @@ const css = `
   }
 
   .fp-card {
-    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%);
     border: 1px solid rgba(137,196,225,0.12);
     border-radius: 16px;
     padding: 44px;
@@ -64,7 +65,7 @@ const css = `
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
     border-radius: 16px 16px 0 0;
     opacity: 0.8;
   }
@@ -74,7 +75,7 @@ const css = `
     font-size: 10px;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: #C9A84C;
+    color: var(--gold);
     margin-bottom: 32px;
     display: flex;
     align-items: center;
@@ -85,7 +86,7 @@ const css = `
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #C9A84C;
+    background: var(--gold);
     box-shadow: 0 0 8px rgba(201,168,76,0.6);
   }
 
@@ -97,12 +98,12 @@ const css = `
     color: #f0f4f8;
   }
 
-  .fp-title span { color: #C9A84C; }
+  .fp-title span { color: var(--gold); }
 
   .fp-subtitle {
     font-family: 'Space Mono', monospace;
     font-size: 11px;
-    color: #4B5869;
+    color: var(--text-dim);
     margin-bottom: 32px;
     line-height: 1.7;
   }
@@ -113,7 +114,7 @@ const css = `
     font-size: 10px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: #4B5869;
+    color: var(--text-dim);
     margin-bottom: 8px;
   }
 
@@ -125,14 +126,14 @@ const css = `
     padding: 13px 16px;
     font-family: 'Space Mono', monospace;
     font-size: 13px;
-    color: #E8EDF2;
+    color: var(--text);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
     box-sizing: border-box;
     margin-bottom: 20px;
   }
 
-  .fp-input::placeholder { color: #2E3D4F; }
+  .fp-input::placeholder { color: var(--text-faint); }
 
   .fp-input:focus {
     border-color: rgba(201,168,76,0.5);
@@ -141,8 +142,8 @@ const css = `
 
   .fp-btn {
     width: 100%;
-    background: #C9A84C;
-    color: #0D1520;
+    background: var(--gold);
+    color: var(--bg);
     border: none;
     border-radius: 8px;
     padding: 14px;
@@ -170,7 +171,7 @@ const css = `
     margin-top: 24px;
     font-family: 'Space Mono', monospace;
     font-size: 11px;
-    color: #4B5869;
+    color: var(--text-dim);
     cursor: pointer;
     transition: color 0.15s;
     background: none;
@@ -178,7 +179,7 @@ const css = `
     width: 100%;
   }
 
-  .fp-back:hover { color: #89C4E1; }
+  .fp-back:hover { color: var(--ice); }
 
   .fp-alert {
     border-radius: 8px;
@@ -192,13 +193,13 @@ const css = `
   .fp-alert.error {
     background: rgba(248,113,113,0.08);
     border: 1px solid rgba(248,113,113,0.2);
-    color: #f87171;
+    color: var(--red);
   }
 
   .fp-alert.success {
     background: rgba(74,222,128,0.08);
     border: 1px solid rgba(74,222,128,0.2);
-    color: #4ade80;
+    color: var(--green);
   }
 
   .fp-success-icon {
@@ -226,11 +227,11 @@ const css = `
     text-align: center;
     font-family: 'Space Mono', monospace;
     font-size: 11px;
-    color: #4B5869;
+    color: var(--text-dim);
     line-height: 1.7;
   }
 
-  .fp-success-text strong { color: #89C4E1; }
+  .fp-success-text strong { color: var(--ice); }
 
   @keyframes fp-fadeUp {
     from { opacity: 0; transform: translateY(16px); }

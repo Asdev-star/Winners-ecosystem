@@ -5,7 +5,8 @@ import type { FormEvent } from "react";
 import { useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
-import { useInviteStore } from "../team/inviteStore";
+import { useInviteStore } from "../team/inviteStore";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;

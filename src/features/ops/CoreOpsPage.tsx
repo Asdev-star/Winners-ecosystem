@@ -67,7 +67,7 @@ const css = `
     margin: 0 auto;
     padding: 24px 20px 72px;
     font-family: 'Syne', sans-serif;
-    color: var(--text, #E8EEF5);
+    color: var(--text, var(--text));
   }
 
   .ops-context {
@@ -82,19 +82,19 @@ const css = `
     font-size: 9px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    border: 1px solid var(--border, #1E3248);
+    border: 1px solid var(--border, var(--border));
     border-radius: 999px;
     padding: 4px 10px;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim, var(--text-dim));
     background: rgba(17, 29, 46, 0.75);
   }
   .ops-context-chip.active {
-    color: var(--gold, #C9A84C);
+    color: var(--gold, var(--gold));
     border-color: rgba(201, 168, 76, 0.35);
     background: rgba(201, 168, 76, 0.08);
   }
   .ops-context-sep {
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim, var(--text-dim));
     font-family: 'Space Mono', monospace;
     font-size: 10px;
   }
@@ -115,14 +115,14 @@ const css = `
   }
   .ops-sub {
     margin-top: 6px;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim, var(--text-dim));
     font-size: 13px;
     line-height: 1.5;
   }
   .ops-refresh {
-    border: 1px solid var(--border, #1E3248);
-    background: var(--surface2, #172335);
-    color: var(--text, #E8EEF5);
+    border: 1px solid var(--border, var(--border));
+    background: var(--surface2, var(--surface2));
+    color: var(--text, var(--text));
     font-family: 'Space Mono', monospace;
     font-size: 10px;
     letter-spacing: 0.08em;
@@ -132,7 +132,7 @@ const css = `
     cursor: pointer;
     transition: border-color 0.15s;
   }
-  .ops-refresh:hover { border-color: var(--gold, #C9A84C); }
+  .ops-refresh:hover { border-color: var(--gold, var(--gold)); }
   .ops-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
 
   .ops-grid {
@@ -143,8 +143,8 @@ const css = `
   }
   .ops-card {
     position: relative;
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
+    background: var(--surface, var(--surface));
+    border: 1px solid var(--border, var(--border));
     border-radius: 6px;
     padding: 14px 16px;
     overflow: hidden;
@@ -156,27 +156,27 @@ const css = `
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--gold, #C9A84C), transparent);
+    background: linear-gradient(90deg, var(--gold, var(--gold)), transparent);
   }
   .ops-kpi-label {
     font-family: 'Space Mono', monospace;
     font-size: 8px;
     text-transform: uppercase;
     letter-spacing: 0.16em;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim, var(--text-dim));
     margin-bottom: 8px;
   }
   .ops-kpi-value {
     font-size: 24px;
     font-weight: 800;
     letter-spacing: -0.8px;
-    color: var(--gold, #C9A84C);
+    color: var(--gold, var(--gold));
     line-height: 1;
   }
   .ops-kpi-sub {
     margin-top: 6px;
     font-family: 'Space Mono', monospace;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim, var(--text-dim));
     font-size: 9px;
   }
 
@@ -187,8 +187,8 @@ const css = `
   }
   .ops-panel {
     position: relative;
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
+    background: var(--surface, var(--surface));
+    border: 1px solid var(--border, var(--border));
     border-radius: 6px;
     padding: 16px;
     overflow: hidden;
@@ -200,7 +200,7 @@ const css = `
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--ice, #89C4E1), transparent);
+    background: linear-gradient(90deg, var(--ice, var(--ice)), transparent);
   }
   .ops-panel-title {
     margin: 0 0 12px;
@@ -208,7 +208,7 @@ const css = `
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
-    color: var(--ice, #89C4E1);
+    color: var(--ice, var(--ice));
   }
 
   .ops-service-row {
@@ -216,7 +216,7 @@ const css = `
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    border-bottom: 1px solid var(--border, #1E3248);
+    border-bottom: 1px solid var(--border, var(--border));
     padding: 10px 0;
   }
   .ops-service-row:last-child {
@@ -235,7 +235,7 @@ const css = `
     margin-top: 2px;
     font-family: 'Space Mono', monospace;
     font-size: 9px;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim, var(--text-dim));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -251,23 +251,23 @@ const css = `
     flex-shrink: 0;
   }
   .ops-pill.ok {
-    color: var(--green, #2DD4A0);
+    color: var(--green, var(--green));
     border-color: rgba(45, 212, 160, 0.3);
     background: rgba(45, 212, 160, 0.08);
   }
   .ops-pill.degraded {
-    color: var(--gold, #C9A84C);
+    color: var(--gold, var(--gold));
     border-color: rgba(201, 168, 76, 0.3);
     background: rgba(201, 168, 76, 0.08);
   }
   .ops-pill.down {
-    color: var(--red, #E05A4E);
+    color: var(--red, var(--red));
     border-color: rgba(224, 90, 78, 0.3);
     background: rgba(224, 90, 78, 0.08);
   }
   .ops-pill.planned {
-    color: var(--text-dim, #5A7A96);
-    border-color: var(--border, #1E3248);
+    color: var(--text-dim, var(--text-dim));
+    border-color: var(--border, var(--border));
     background: rgba(90, 122, 150, 0.08);
   }
 
@@ -276,7 +276,7 @@ const css = `
     grid-template-columns: 1fr auto;
     align-items: center;
     gap: 8px;
-    border-bottom: 1px solid var(--border, #1E3248);
+    border-bottom: 1px solid var(--border, var(--border));
     padding: 9px 0;
   }
   .ops-registry-row:last-child {
@@ -290,7 +290,7 @@ const css = `
   .ops-registry-meta {
     font-family: 'Space Mono', monospace;
     font-size: 9px;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim, var(--text-dim));
     margin-top: 2px;
   }
 
@@ -298,7 +298,7 @@ const css = `
     margin-bottom: 12px;
     border: 1px solid rgba(224, 90, 78, 0.3);
     background: rgba(224, 90, 78, 0.08);
-    color: var(--red, #E05A4E);
+    color: var(--red, var(--red));
     border-radius: 6px;
     padding: 10px 12px;
     font-family: 'Space Mono', monospace;

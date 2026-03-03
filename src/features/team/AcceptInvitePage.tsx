@@ -5,9 +5,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 const css = `
   .ai-root {
-    --gold: #F5C842; --bg: #080B10; --surface: #0D1117; --surface2: #141B24;
-    --border: #1E2A38; --text: #E8EDF2; --text-dim: #5A6878;
-    --green: #2DD4A0; --red: #FF5975;
+    --gold: var(--gold); --bg: var(--bg); --surface: var(--surface); --surface2: var(--surface2);
+    --border: var(--border); --text: var(--text); --text-dim: var(--text-dim);
+    --green: var(--green); --red: var(--red);
     min-height: 100vh; background: var(--bg); display: flex;
     align-items: center; justify-content: center;
     font-family: 'Syne', sans-serif; color: var(--text); padding: 24px;
@@ -53,7 +53,7 @@ const css = `
   .ai-input:focus { border-color: var(--gold); }
   .ai-input::placeholder { color: var(--text-dim); }
 
-  .ai-btn { width: 100%; background: var(--gold); color: #080B10; border: none; border-radius: 3px; padding: 13px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; margin-top: 4px; }
+  .ai-btn { width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 3px; padding: 13px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; margin-top: 4px; }
   .ai-btn:hover:not(:disabled) { opacity: 0.9; }
   .ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 

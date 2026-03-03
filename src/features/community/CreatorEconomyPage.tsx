@@ -255,7 +255,7 @@ const styles = {
 
 export default function CreatorEconomyPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'tier' | 'subscribers' | 'subscriptions'>('overview');
-  const { user } = useAuthStore();
+  const { user } = useAuthStore(); // For future use: display creator profile
   const {
     tier,
     subscribers,

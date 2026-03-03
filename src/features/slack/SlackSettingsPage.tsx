@@ -1,7 +1,8 @@
 // src/features/slack/SlackSettingsPage.tsx
 
 import { useEffect, useState } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -17,11 +18,11 @@ const css = `
   .sl-section-body { padding: 20px; }
 
   .sl-status { font-family: 'Space Mono', monospace; font-size: 10px; padding: 3px 9px; border-radius: 2px; }
-  .sl-status.connected    { background: rgba(45,212,160,0.1); color: #2DD4A0; border: 1px solid rgba(45,212,160,0.2); }
+  .sl-status.connected    { background: rgba(45,212,160,0.1); color: var(--green); border: 1px solid rgba(45,212,160,0.2); }
   .sl-status.disconnected { background: rgba(90,104,120,0.1); color: var(--text-dim); border: 1px solid var(--border); }
 
   .sl-label { display: block; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
-  .sl-input { width: 100%; background: var(--surface2, #141B24); border: 1px solid var(--border); border-radius: 3px; padding: 11px 14px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text); outline: none; transition: border-color 0.15s; box-sizing: border-box; margin-bottom: 12px; }
+  .sl-input { width: 100%; background: var(--surface2, var(--surface2)); border: 1px solid var(--border); border-radius: 3px; padding: 11px 14px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text); outline: none; transition: border-color 0.15s; box-sizing: border-box; margin-bottom: 12px; }
   .sl-input:focus { border-color: var(--gold); }
   .sl-input::placeholder { color: var(--text-dim); }
 
@@ -31,15 +32,15 @@ const css = `
   .sl-btn:hover { opacity: 0.88; }
   .sl-btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
   .sl-btn.ghost:hover { border-color: var(--gold); color: var(--gold); }
-  .sl-btn.danger { background: transparent; border: 1px solid rgba(255,89,117,0.3); color: #FF5975; }
+  .sl-btn.danger { background: transparent; border: 1px solid rgba(255,89,117,0.3); color: var(--red); }
   .sl-btn.danger:hover { background: rgba(255,89,117,0.08); }
   .sl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .sl-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
   .sl-alert { font-family: 'Space Mono', monospace; font-size: 11px; padding: 10px 14px; border-radius: 3px; margin-bottom: 12px; }
-  .sl-alert.success { background: rgba(45,212,160,0.08); border: 1px solid rgba(45,212,160,0.2); color: #2DD4A0; }
-  .sl-alert.error   { background: rgba(255,89,117,0.08); border: 1px solid rgba(255,89,117,0.2); color: #FF5975; }
+  .sl-alert.success { background: rgba(45,212,160,0.08); border: 1px solid rgba(45,212,160,0.2); color: var(--green); }
+  .sl-alert.error   { background: rgba(255,89,117,0.08); border: 1px solid rgba(255,89,117,0.2); color: var(--red); }
 
   .sl-how { background: rgba(245,200,66,0.04); border: 1px solid rgba(245,200,66,0.12); border-radius: 4px; padding: 16px 20px; margin-bottom: 24px; }
   .sl-how-title { font-size: 12px; font-weight: 700; color: var(--gold); margin-bottom: 8px; }

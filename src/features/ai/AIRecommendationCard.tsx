@@ -39,7 +39,7 @@ const css = `
   .ai-period-btn:hover  { border-color: var(--gold); color: var(--gold); }
   .ai-period-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.08); }
   .ai-refresh-btn {
-    background: var(--gold); color: #080B10; border: none; border-radius: 2px;
+    background: var(--gold); color: var(--bg); border: none; border-radius: 2px;
     padding: 4px 12px; font-family: 'Space Mono', monospace; font-size: 9px;
     cursor: pointer; font-weight: 700; transition: opacity 0.15s; letter-spacing: 0.5px;
   }
@@ -114,7 +114,7 @@ const css = `
   }
   .ai-empty-icon { font-size: 28px; margin-bottom: 8px; }
   .ai-empty-btn {
-    margin-top: 12px; background: var(--gold); color: #080B10; border: none;
+    margin-top: 12px; background: var(--gold); color: var(--bg); border: none;
     border-radius: 3px; padding: 7px 18px; font-family: 'Syne', sans-serif;
     font-size: 12px; font-weight: 700; cursor: pointer; transition: opacity 0.15s;
   }

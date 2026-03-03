@@ -1,7 +1,8 @@
 // src/features/auth/ResetPasswordPage.tsx
 
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -10,12 +11,12 @@ const css = `
 
   .rp-root {
     min-height: 100vh;
-    background: #0D1520;
+    background: var(--bg);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Syne', sans-serif;
-    color: #E8EEF5;
+    color: var(--text);
     padding: 24px;
     position: relative;
     overflow: hidden;
@@ -41,7 +42,7 @@ const css = `
   }
 
   .rp-card {
-    background: linear-gradient(135deg, #0f1923 0%, #0D1520 100%);
+    background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%);
     border: 1px solid rgba(137,196,225,0.12);
     border-radius: 16px;
     padding: 44px;
@@ -53,7 +54,7 @@ const css = `
   .rp-card::before {
     content: '';
     position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
     border-radius: 16px 16px 0 0;
     opacity: 0.8;
   }
@@ -61,19 +62,19 @@ const css = `
   .rp-logo {
     font-family: 'Space Mono', monospace;
     font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
-    color: #C9A84C; margin-bottom: 32px;
+    color: var(--gold); margin-bottom: 32px;
     display: flex; align-items: center; gap: 8px;
   }
   .rp-logo-dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: #C9A84C; box-shadow: 0 0 8px rgba(201,168,76,0.6);
+    background: var(--gold); box-shadow: 0 0 8px rgba(201,168,76,0.6);
   }
 
-  .rp-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; color: #f0f4f8; }
-  .rp-title span { color: #C9A84C; }
-  .rp-subtitle { font-family: 'Space Mono', monospace; font-size: 11px; color: #4B5869; margin-bottom: 32px; line-height: 1.6; }
+  .rp-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; color: var(--text); }
+  .rp-title span { color: var(--gold); }
+  .rp-subtitle { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 32px; line-height: 1.6; }
 
-  .rp-label { display: block; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #4B5869; margin-bottom: 8px; }
+  .rp-label { display: block; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
 
   .rp-input-wrap { position: relative; margin-bottom: 8px; }
   .rp-input {
@@ -82,11 +83,11 @@ const css = `
     border: 1px solid rgba(137,196,225,0.12);
     border-radius: 8px;
     padding: 13px 16px;
-    font-family: 'Space Mono', monospace; font-size: 13px; color: #E8EEF5;
+    font-family: 'Space Mono', monospace; font-size: 13px; color: var(--text);
     outline: none; transition: border-color 0.15s, box-shadow 0.15s;
     box-sizing: border-box;
   }
-  .rp-input::placeholder { color: #2E3D4F; }
+  .rp-input::placeholder { color: var(--text-faint); }
   .rp-input:focus { border-color: rgba(201,168,76,0.5); box-shadow: 0 0 0 3px rgba(201,168,76,0.08); }
   .rp-input.match   { border-color: rgba(74,222,128,0.4); }
   .rp-input.mismatch { border-color: rgba(248,113,113,0.4); }
@@ -102,7 +103,7 @@ const css = `
   .rp-field { margin-bottom: 4px; }
 
   .rp-btn {
-    width: 100%; background: #C9A84C; color: #0D1520; border: none; border-radius: 8px;
+    width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 8px;
     padding: 14px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
     cursor: pointer; transition: opacity 0.15s, transform 0.15s; margin-top: 8px;
   }
@@ -113,15 +114,15 @@ const css = `
   .rp-back {
     display: flex; align-items: center; justify-content: center; gap: 6px;
     margin-top: 24px; font-family: 'Space Mono', monospace; font-size: 11px;
-    color: #4B5869; cursor: pointer; transition: color 0.15s;
+    color: var(--text-dim); cursor: pointer; transition: color 0.15s;
     background: none; border: none; width: 100%;
   }
-  .rp-back:hover { color: #89C4E1; }
+  .rp-back:hover { color: var(--ice); }
 
   .rp-alert { border-radius: 8px; padding: 12px 16px; font-family: 'Space Mono', monospace; font-size: 11px; margin-bottom: 20px; line-height: 1.6; }
-  .rp-alert.error   { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2);  color: #f87171; }
-  .rp-alert.success { background: rgba(74,222,128,0.08);  border: 1px solid rgba(74,222,128,0.2);   color: #4ade80; }
-  .rp-alert.warning { background: rgba(201,168,76,0.08);  border: 1px solid rgba(201,168,76,0.2);   color: #C9A84C; }
+  .rp-alert.error   { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2);  color: var(--red); }
+  .rp-alert.success { background: rgba(74,222,128,0.08);  border: 1px solid rgba(74,222,128,0.2);   color: var(--green); }
+  .rp-alert.warning { background: rgba(201,168,76,0.08);  border: 1px solid rgba(201,168,76,0.2);   color: var(--gold); }
 
   /* Success state */
   .rp-success-icon {
@@ -130,13 +131,13 @@ const css = `
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 20px; font-size: 22px;
   }
-  .rp-success-title { text-align: center; font-size: 18px; font-weight: 700; color: #f0f4f8; margin-bottom: 8px; }
-  .rp-success-text  { text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: #4B5869; line-height: 1.7; }
+  .rp-success-title { text-align: center; font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .rp-success-text  { text-align: center; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); line-height: 1.7; }
 
   /* Token checking skeleton */
   .rp-checking { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 0; }
-  .rp-spinner { width: 28px; height: 28px; border: 2px solid rgba(201,168,76,0.15); border-top-color: #C9A84C; border-radius: 50%; animation: rp-spin 0.8s linear infinite; }
-  .rp-checking-text { font-family: 'Space Mono', monospace; font-size: 11px; color: #4B5869; }
+  .rp-spinner { width: 28px; height: 28px; border: 2px solid rgba(201,168,76,0.15); border-top-color: var(--gold); border-radius: 50%; animation: rp-spin 0.8s linear infinite; }
+  .rp-checking-text { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
 
   @keyframes rp-fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes rp-spin   { to { transform: rotate(360deg); } }
@@ -144,10 +145,10 @@ const css = `
 
 function getStrength(pw: string): { pct: number; color: string; label: string } {
   if (pw.length === 0) return { pct: 0,   color: "transparent",  label: "" };
-  if (pw.length < 6)  return { pct: 20,  color: "#f87171",      label: "Too short" };
-  if (pw.length < 8)  return { pct: 45,  color: "#C9A84C",      label: "Weak" };
-  if (pw.length < 12) return { pct: 70,  color: "#89C4E1",      label: "Good" };
-  return               { pct: 100, color: "#4ade80",      label: "Strong" };
+  if (pw.length < 6)  return { pct: 20,  color: "var(--red)",      label: "Too short" };
+  if (pw.length < 8)  return { pct: 45,  color: "var(--gold)",      label: "Weak" };
+  if (pw.length < 12) return { pct: 70,  color: "var(--ice)",      label: "Good" };
+  return               { pct: 100, color: "var(--green)",      label: "Strong" };
 }
 
 export default function ResetPasswordPage() {
@@ -290,7 +291,7 @@ export default function ResetPasswordPage() {
               </div>
 
               {confirm.length > 0 && (
-                <p className="rp-match-hint" style={{ color: matches ? "#4ade80" : "#f87171" }}>
+                <p className="rp-match-hint" style={{ color: matches ? "var(--green)" : "var(--red)" }}>
                   {matches ? "✓ Passwords match" : "✗ Passwords do not match"}
                 </p>
               )}

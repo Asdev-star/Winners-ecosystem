@@ -59,9 +59,9 @@ function getAllowedOriginsFromEnv(): Set<string> {
 
   const origins = new Set<string>();
   raw.split(",")
-    .map((part) => part.trim())
+    .map((part: string) => part.trim())
     .filter(Boolean)
-    .forEach((entry) => {
+    .forEach((entry: string) => {
       try {
         origins.add(normalizeOrigin(entry).origin);
       } catch {

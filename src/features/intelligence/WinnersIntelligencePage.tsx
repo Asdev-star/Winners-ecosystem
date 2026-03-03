@@ -72,7 +72,7 @@ const ASSISTANTS = [
     emoji: "💼",
     role: "Work",
     description: "Job matching, proposal writing, contract review, code review",
-    color: "#F59E0B",
+    color: "var(--gold)",
     status: "planned",
     capabilities: ["Job matching", "Proposals", "Contracts", "Code review"]
   },
@@ -82,7 +82,7 @@ const ASSISTANTS = [
     emoji: "☁️",
     role: "Cloud",
     description: "API guidance, SDK support, integration troubleshooting",
-    color: "#06B6D4",
+    color: "var(--blue)",
     status: "planned",
     capabilities: ["API docs", "SDK support", "Integrations", "Developer help"]
   },
@@ -92,7 +92,7 @@ const ASSISTANTS = [
     emoji: "🧬",
     role: "AI Platform",
     description: "Ollama management, GPU routing, model benchmarking",
-    color: "#EC4899",
+    color: "var(--purple)",
     status: "building",
     capabilities: ["Local AI", "GPU management", "Benchmarks", "Model deployment"]
   }
@@ -535,9 +535,9 @@ export default function WinnersIntelligencePage() {
             <div className="neural-node" style={{background: "var(--purple)"}}>🛒</div>
             <div className="neural-node" style={{background: "var(--red)"}}>🤖</div>
             <div className="neural-line"></div>
-            <div className="neural-node" style={{background: "#F59E0B"}}>💼</div>
-            <div className="neural-node" style={{background: "#06B6D4"}}>☁️</div>
-            <div className="neural-node" style={{background: "#EC4899"}}>🧬</div>
+            <div className="neural-node" style={{background: "var(--gold)"}}>💼</div>
+            <div className="neural-node" style={{background: "var(--blue)"}}>☁️</div>
+            <div className="neural-node" style={{background: "var(--purple)"}}>🧬</div>
           </div>
         </div>
 

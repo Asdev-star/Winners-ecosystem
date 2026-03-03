@@ -9,7 +9,7 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
   .ep-root {
-    --gold: #F5C842; --bg: #080B10; --surface: #0D1117; --surface2: #141B24;
+    --gold: var(--gold); --bg: var(--bg); --surface: var(--surface); --surface2: #141B24;
     --border: #1E2A38; --text: #E8EDF2; --text-dim: #5A6878;
     --green: #2DD4A0; --blue: #4A9EFF; --red: #FF5975; --purple: #9B6FFF;
     background: var(--bg); color: var(--text);
@@ -52,7 +52,7 @@ const css = `
     position: absolute; top: 10px; right: 10px;
     width: 16px; height: 16px; border-radius: 50%;
     background: var(--gold); display: flex; align-items: center; justify-content: center;
-    font-size: 9px; color: #080B10; font-weight: 700; opacity: 0; transition: opacity 0.15s;
+    font-size: 9px; color: var(--bg); font-weight: 700; opacity: 0; transition: opacity 0.15s;
   }
   .ep-option.selected .ep-check { opacity: 1; }
 

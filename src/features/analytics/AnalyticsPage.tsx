@@ -574,7 +574,7 @@ export default function AnalyticsPage() {
               {showComparison && (
                 <Line
                   dataKey="prevRevenue"
-                  stroke="#89C4E1"
+                  stroke="var(--ice)"
                   strokeWidth={1.5}
                   strokeDasharray="5 3"
                   dot={false}
@@ -606,8 +606,8 @@ export default function AnalyticsPage() {
                   x={point.date}
                   y={point.revenue}
                   r={5}
-                  fill="#E05A4E"
-                  stroke="#E05A4E"
+                  fill="var(--red)"
+                  stroke="var(--red)"
                   strokeOpacity={0.3}
                   strokeWidth={6}
                 />
@@ -626,19 +626,19 @@ export default function AnalyticsPage() {
               >
                 <defs>
                   <linearGradient id="actGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2B5F8E" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#2B5F8E" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--blue)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--blue)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#1E3248"
+                  stroke="var(--border)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="date"
                   tick={{
-                    fill: "#5A7A96",
+                    fill: "var(--text-dim)",
                     fontSize: 9,
                     fontFamily: "Space Mono",
                   }}
@@ -648,7 +648,7 @@ export default function AnalyticsPage() {
                 />
                 <YAxis
                   tick={{
-                    fill: "#5A7A96",
+                    fill: "var(--text-dim)",
                     fontSize: 9,
                     fontFamily: "Space Mono",
                   }}
@@ -658,7 +658,7 @@ export default function AnalyticsPage() {
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   dataKey="activity"
-                  stroke="#89C4E1"
+                  stroke="var(--ice)"
                   strokeWidth={2}
                   fill="url(#actGrad)"
                   dot={false}
@@ -679,13 +679,13 @@ export default function AnalyticsPage() {
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="#1E3248"
+                  stroke="var(--border)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="date"
                   tick={{
-                    fill: "#5A7A96",
+                    fill: "var(--text-dim)",
                     fontSize: 9,
                     fontFamily: "Space Mono",
                   }}
@@ -695,7 +695,7 @@ export default function AnalyticsPage() {
                 />
                 <YAxis
                   tick={{
-                    fill: "#5A7A96",
+                    fill: "var(--text-dim)",
                     fontSize: 9,
                     fontFamily: "Space Mono",
                   }}

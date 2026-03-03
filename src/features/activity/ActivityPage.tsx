@@ -1,7 +1,8 @@
 // src/features/activity/ActivityPage.tsx
 
 import { useEffect, useState, useCallback } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { useAuthStore } from "../auth/authStore";
+
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
@@ -93,7 +94,7 @@ const css = `
   .ac-cat-badge.auth     { background: rgba(137,196,225,0.1);  color: var(--ice); }
   .ac-cat-badge.team     { background: rgba(45,212,160,0.1);   color: var(--green); }
   .ac-cat-badge.billing  { background: rgba(201,168,76,0.1);   color: var(--gold); }
-  .ac-cat-badge.export   { background: rgba(155,111,255,0.1);  color: #B794F6; }
+  .ac-cat-badge.export   { background: rgba(155,111,255,0.1);  color: var(--purple); }
   .ac-cat-badge.settings { background: rgba(201,168,76,0.08);  color: var(--gold); }
   .ac-cat-badge.stripe   { background: rgba(43,95,142,0.15);   color: var(--ice); }
 

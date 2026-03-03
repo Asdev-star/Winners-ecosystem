@@ -23,7 +23,7 @@ interface LiveSpace {
 
 export default function LiveSpacesPage() {
   const token = useAuthStore((s) => s.token);
-  const user = useAuthStore((s) => s.user);
+  const user = useAuthStore((s) => s.user); // For future use: display user info
   const [spaces, setSpaces] = useState<LiveSpace[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -33,7 +33,7 @@ export default function LiveSpacesPage() {
     description: "",
     scheduledAt: "",
   });
-  const [activeSpace, setActiveSpace] = useState<LiveSpace | null>(null);
+  const [_activeSpace, setActiveSpace] = useState<LiveSpace | null>(null);
   const [joining, setJoining] = useState<string | null>(null);
 
   const headers = { Authorization: `Bearer ${token}` };

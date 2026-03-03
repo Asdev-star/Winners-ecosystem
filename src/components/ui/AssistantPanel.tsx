@@ -101,7 +101,7 @@ export default function AssistantPanel({
   context,
   page,
   userId,
-  initialMessage,
+  initialMessage, // For future use: pre-populate chat
 }: AssistantPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");

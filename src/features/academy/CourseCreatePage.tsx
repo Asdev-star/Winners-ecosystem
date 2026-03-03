@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAcademyStore } from "./academyStore";
-import type { Course, Module, Lesson } from "./academyStore";
 
 const CATEGORIES = [
   "Digital Marketing",

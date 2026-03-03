@@ -54,23 +54,23 @@ export default function TrustScoreBadge({
       >
         <defs>
           <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#2DD4A0" />
+            <stop offset="0%" stopColor="var(--green)" />
             <stop offset="100%" stopColor="#10B981" />
           </linearGradient>
           <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#F0B429" />
-            <stop offset="100%" stopColor="#D4A12A" />
+            <stop offset="0%" stopColor="var(--gold)" />
+            <stop offset="100%" stopColor="var(--gold-dim)" />
           </linearGradient>
           <linearGradient id="iceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#89C4E1" />
+            <stop offset="0%" stopColor="var(--ice)" />
             <stop offset="100%" stopColor="#60A5C8" />
           </linearGradient>
           <linearGradient id="dimGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#5A7A96" />
+            <stop offset="0%" stopColor="var(--text-dim)" />
             <stop offset="100%" stopColor="#4A6A86" />
           </linearGradient>
           <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#E05A4E" />
+            <stop offset="0%" stopColor="var(--red)" />
             <stop offset="100%" stopColor="#DC2626" />
           </linearGradient>
         </defs>

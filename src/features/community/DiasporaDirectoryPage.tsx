@@ -24,26 +24,26 @@ const css = `
   .dd-title-section h1 {
     font-size: 28px; font-weight: 800; color: var(--text); margin: 0 0 8px 0;
   }
-  .dd-subtitle { color: #5A7A96; font-size: 14px; }
+  .dd-subtitle { color: var(--text-dim); font-size: 14px; }
 
   .dd-filters {
     display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
   }
 
   .dd-filter-select {
-    background: #111D2E; border: 1px solid #1E3248; border-radius: 10px;
-    padding: 10px 16px; color: #E8EEF5; font-family: 'Syne', sans-serif;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 16px; color: var(--text); font-family: 'Syne', sans-serif;
     font-size: 13px; min-width: 160px; cursor: pointer;
   }
-  .dd-filter-select:focus { outline: none; border-color: #C9A84C; }
+  .dd-filter-select:focus { outline: none; border-color: var(--gold); }
 
   .dd-search {
     flex: 1; min-width: 200px;
-    background: #111D2E; border: 1px solid #1E3248; border-radius: 10px;
-    padding: 10px 16px; color: #E8EEF5; font-family: 'Syne', sans-serif;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 16px; color: var(--text); font-family: 'Syne', sans-serif;
     font-size: 13px;
   }
-  .dd-search:focus { outline: none; border-color: #C9A84C; }
+  .dd-search:focus { outline: none; border-color: var(--gold); }
 
   .dd-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -57,7 +57,7 @@ const css = `
   }
   .dd-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
   }
   .dd-card:hover {
     transform: translateY(-4px);
@@ -76,7 +76,7 @@ const css = `
   }
   .dd-avatar.online::after {
     content: ''; position: absolute; bottom: 2px; right: 2px; width: 14px; height: 14px;
-    background: #2DD4A0; border-radius: 50%; border: 2px solid #111D2E;
+    background: var(--green); border-radius: 50%; border: 2px solid var(--surface);
   }
 
   .dd-user-info h3 {
@@ -84,19 +84,19 @@ const css = `
   }
 
   .dd-location {
-    font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96;
+    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim);
     display: flex; align-items: center; gap: 4px;
   }
 
   .dd-industry-badge {
-    display: inline-block; background: rgba(137,196,225,0.1); color: #89C4E1;
+    display: inline-block; background: rgba(137,196,225,0.1); color: var(--ice);
     font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em;
     text-transform: uppercase; padding: 4px 10px; border-radius: 20px;
     margin-bottom: 12px;
   }
 
   .dd-bio {
-    font-size: 13px; color: #B8C5D4; line-height: 1.5; margin-bottom: 16px;
+    font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
   }
 
@@ -105,37 +105,37 @@ const css = `
   }
 
   .dd-skill-tag {
-    background: rgba(155,111,255,0.1); color: #9B6FFF;
+    background: rgba(155,111,255,0.1); color: var(--purple);
     font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.05em;
     padding: 4px 8px; border-radius: 4px;
   }
 
   .dd-card-footer {
     display: flex; justify-content: space-between; align-items: center;
-    padding-top: 12px; border-top: 1px solid #1E3248;
+    padding-top: 12px; border-top: 1px solid var(--border);
   }
 
   .dd-profile-link {
-    background: linear-gradient(135deg, #C9A84C 0%, #A88A3C 100%);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--blue) 100%);
     border: none; border-radius: 8px; padding: 8px 16px;
     color: var(--bg); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
     cursor: pointer; transition: all 0.2s;
   }
   .dd-profile-link:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
 
-  .dd-stats { font-family: 'Space Mono', monospace; font-size: 10px; color: #5A7A96; }
+  .dd-stats { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
 
   .dd-empty {
-    text-align: center; padding: 60px 20px; color: #5A7A96;
+    text-align: center; padding: 60px 20px; color: var(--text-dim);
   }
   .dd-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
-  .dd-empty h3 { font-size: 18px; color: #E8EEF5; margin-bottom: 8px; }
+  .dd-empty h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
 
   .dd-loading {
     display: flex; justify-content: center; align-items: center; padding: 60px;
   }
   .dd-spinner {
-    width: 32px; height: 32px; border: 3px solid #1E3248; border-top-color: #C9A84C;
+    width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--gold);
     border-radius: 50%; animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -147,35 +147,35 @@ const css = `
   }
 
   .dd-modal-content {
-    background: #111D2E; border: 1px solid #1E3248; border-radius: 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
     width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
     position: relative;
   }
   .dd-modal-content::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
   }
 
   .dd-modal-header {
-    padding: 20px; border-bottom: 1px solid #1E3248;
+    padding: 20px; border-bottom: 1px solid var(--border);
     display: flex; justify-content: space-between; align-items: center;
   }
-  .dd-modal-header h2 { font-size: 18px; color: #E8EEF5; margin: 0; }
-  .dd-close-btn { background: none; border: none; color: #5A7A96; font-size: 24px; cursor: pointer; }
+  .dd-modal-header h2 { font-size: 18px; color: var(--text); margin: 0; }
+  .dd-close-btn { background: none; border: none; color: var(--text-dim); font-size: 24px; cursor: pointer; }
 
   .dd-modal-body { padding: 20px; }
 
   .dd-form-group { margin-bottom: 16px; }
   .dd-form-group label {
     display: block; font-family: 'Space Mono', monospace; font-size: 10px;
-    color: #5A7A96; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
+    color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
   }
   .dd-form-input, .dd-form-textarea, .dd-form-select {
-    width: 100%; background: #0D1520; border: 1px solid #1E3248; border-radius: 8px;
-    padding: 12px; color: #E8EEF5; font-family: 'Syne', sans-serif; font-size: 14px;
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px;
   }
   .dd-form-input:focus, .dd-form-textarea:focus, .dd-form-select:focus {
-    outline: none; border-color: #C9A84C;
+    outline: none; border-color: var(--gold);
   }
   .dd-form-textarea { min-height: 80px; resize: vertical; }
 
@@ -183,13 +183,13 @@ const css = `
     display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
   }
   .dd-skill-tag.input {
-    background: rgba(201,168,76,0.1); color: #C9A84C;
+    background: rgba(201,168,76,0.1); color: var(--gold);
     padding: 6px 12px; cursor: pointer;
   }
   .dd-skill-tag.input:hover { background: rgba(201,168,76,0.2); }
 
   .dd-modal-footer {
-    padding: 16px 20px; border-top: 1px solid #1E3248;
+    padding: 16px 20px; border-top: 1px solid var(--border);
     display: flex; justify-content: flex-end; gap: 12px;
   }
 
@@ -198,11 +198,11 @@ const css = `
     font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
   }
   .dd-btn-secondary {
-    background: transparent; border: 1px solid #1E3248; color: #5A7A96;
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
   }
-  .dd-btn-secondary:hover { border-color: #5A7A96; color: #E8EEF5; }
+  .dd-btn-secondary:hover { border-color: var(--text-dim); color: var(--text); }
   .dd-btn-primary {
-    background: linear-gradient(135deg, var(--gold) 0%, #a8863d 100%); border: none; color: var(--bg);
+    background: linear-gradient(135deg, var(--gold) 0%, var(--blue) 100%); border: none; color: var(--bg);
   }
   .dd-btn-primary:hover { box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
 
@@ -210,13 +210,13 @@ const css = `
     display: flex; align-items: center; gap: 10px;
   }
   .dd-toggle-switch {
-    width: 44px; height: 24px; background: #1E3248; border-radius: 12px; position: relative;
+    width: 44px; height: 24px; background: var(--border); border-radius: 12px; position: relative;
     cursor: pointer; transition: background 0.2s;
   }
-  .dd-toggle-switch.active { background: #2DD4A0; }
+  .dd-toggle-switch.active { background: var(--green); }
   .dd-toggle-switch::after {
     content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
-    background: #E8EEF5; border-radius: 50%; transition: transform 0.2s;
+    background: var(--text); border-radius: 50%; transition: transform 0.2s;
   }
   .dd-toggle-switch.active::after { transform: translateX(20px); }
 
@@ -623,7 +623,7 @@ export default function DiasporaDirectoryPage() {
                       })
                     }
                   />
-                  <span style={{ color: "#E8EEF5", fontSize: "13px" }}>
+                  <span style={{ color: "var(--text)", fontSize: "13px" }}>
                     Make my profile visible in directory
                   </span>
                 </div>

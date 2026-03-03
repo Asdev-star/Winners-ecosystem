@@ -3,7 +3,7 @@
 // Zero Tailwind · CSS variables only · Winners design system
 // Inspired by premium design: ambient lighting, pip animations, sophisticated typography
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap');
