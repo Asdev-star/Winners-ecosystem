@@ -718,4 +718,588 @@ function getStageName(stage: number): string {
   return stages[Math.min(stage - 1, stages.length - 1)] || "skill_detection";
 }
 
+// ============================================
+// QUOTE-SHARE (X-INSPIRED)
+// ============================================
+
+// Create a quote-post (share with commentary)
+router.post("/posts/:postId/quote", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { postId } = req.params;
+    const { commentary } = req.body;
+
+    // Verify the original post exists
+    const originalPost = await db.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!originalPost) {
+      return res.status(404).json({ error: "Original post not found" });
+    }
+
+    // Create the quote post
+    const quotePost = await db.post.create({
+      data: {
+        tenantId: originalPost.tenantId,
+        authorId: userId,
+        content: commentary || "",
+        // Link to original via QuotePost relation
+      },
+    });
+
+    // Create the quote relation
+    await db.quotePost.create({
+      data: {
+        quotingPostId: quotePost.id,
+        quotedPostId: postId,
+      },
+    });
+
+    res.json({ post: quotePost, originalPost });
+  } catch (error) {
+    console.error("Failed to create quote post:", error);
+    res.status(500).json({ error: "Failed to create quote post" });
+  }
+});
+
+// Get quote posts for a post
+router.get("/posts/:postId/quotes", async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+
+    const quotes = await db.quotePost.findMany({
+      where: { quotedPostId: postId },
+      include: {
+        quotingPost: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                trustScore: true,
+                trustScoreTier: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.json({ quotes });
+  } catch (error) {
+    console.error("Failed to get quotes:", error);
+    res.status(500).json({ error: "Failed to get quotes" });
+  }
+});
+
+// ============================================
+// SIX-REACTION SYSTEM (NOVA WEIGHTED)
+// ============================================
+
+// Reaction types with NOVA weight multipliers
+const REACTION_WEIGHTS: Record<string, number> = {
+  like: 1.0,
+  fire: 1.5, // High engagement - trending
+  celebrate: 2.0, // Achievement/ milestone
+  insight: 2.5, // Valuable content - triggers skill detection
+  helpful: 2.0,
+  clap: 1.2,
+};
+
+// Add reaction to post
+router.post("/posts/:postId/react", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { postId } = req.params;
+    const { reactionType } = req.body;
+
+    if (!REACTION_WEIGHTS[reactionType]) {
+      return res.status(400).json({ error: "Invalid reaction type" });
+    }
+
+    // Check if user already reacted
+    const existingReaction = await db.like.findFirst({
+      where: { userId, postId },
+    });
+
+    if (existingReaction) {
+      // Update existing like to include reaction type
+      // For now, just return success - would need Like model update for full implementation
+      return res.json({ success: true, message: "Already reacted" });
+    }
+
+    // Create new reaction
+    await db.like.create({
+      data: {
+        userId,
+        postId,
+      },
+    });
+
+    // Calculate NOVA-weighted engagement score
+    const weight = REACTION_WEIGHTS[reactionType];
+
+    // Update post engagement score (would need field added to Post model)
+    // For now, just return success
+
+    // If "insight" reaction, trigger skill detection for author
+    if (reactionType === "insight") {
+      const post = await db.post.findUnique({
+        where: { id: postId },
+        select: { authorId: true, content: true },
+      });
+
+      if (post) {
+        // Queue skill detection for the original post
+        // This would be handled by a background job in production
+      }
+    }
+
+    res.json({ success: true, reactionType, weight });
+  } catch (error) {
+    console.error("Failed to react:", error);
+    res.status(500).json({ error: "Failed to react" });
+  }
+});
+
+// Get reaction counts for a post
+router.get("/posts/:postId/reactions", async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+
+    // For now, return mock data - full implementation would track reaction types
+    const reactions = {
+      like: 0,
+      fire: 0,
+      celebrate: 0,
+      insight: 0,
+      helpful: 0,
+      clap: 0,
+      total: 0,
+    };
+
+    // Get actual like count
+    const likeCount = await db.like.count({
+      where: { postId },
+    });
+
+    reactions.like = likeCount;
+    reactions.total = likeCount;
+
+    res.json({ reactions });
+  } catch (error) {
+    console.error("Failed to get reactions:", error);
+    res.status(500).json({ error: "Failed to get reactions" });
+  }
+});
+
+// ============================================
+// ACHIEVEMENT SHARE CARDS
+// ============================================
+
+// Generate achievement share card data
+router.get(
+  "/achievements/:type/share-card",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.userId;
+      const { type } = req.params;
+      const { id } = req.query; // Optional ID for specific achievement
+
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: { name: true, trustScore: true, trustScoreTier: true },
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      let cardData: any = {
+        user: {
+          name: user.name,
+          trustScore: user.trustScore,
+          tier: user.trustScoreTier,
+        },
+        achievement: {},
+        shareUrl: `${process.env.APP_URL || "https://winnersempire.io"}/profile/${userId}`,
+        generatedAt: new Date().toISOString(),
+      };
+
+      switch (type) {
+        case "certificate":
+          // Get certificate details
+          const certificate = id
+            ? await db.certificate.findUnique({ where: { id: id as string } })
+            : await db.certificate.findFirst({
+                where: { recipientId: userId },
+                orderBy: { issuedAt: "desc" },
+              });
+
+          if (certificate) {
+            cardData.achievement = {
+              type: "certificate",
+              title: certificate.title || "Winners Academy Certificate",
+              issuedAt: certificate.issuedAt,
+              credentialId: certificate.id,
+            };
+          }
+          break;
+
+        case "trust-upgrade":
+          cardData.achievement = {
+            type: "trust_upgrade",
+            title: `Reached ${user.trustScoreTier} Trust Level`,
+            score: user.trustScore,
+          };
+          break;
+
+        case "contract":
+          // Would fetch from Work contracts
+          cardData.achievement = {
+            type: "contract",
+            title: "Completed First Contract",
+          };
+          break;
+
+        case "loop-complete":
+          cardData.achievement = {
+            type: "loop_complete",
+            title: "Completed First Agentic Loop",
+          };
+          break;
+
+        default:
+          return res.status(400).json({ error: "Invalid achievement type" });
+      }
+
+      res.json({ card: cardData });
+    } catch (error) {
+      console.error("Failed to generate share card:", error);
+      res.status(500).json({ error: "Failed to generate share card" });
+    }
+  },
+);
+
+// ============================================
+// NOVA WEEKLY INTELLIGENCE REPORT
+// ============================================
+
+router.get("/weekly-report", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Get user's posts from last week
+    const weeklyPosts = await db.post.findMany({
+      where: {
+        authorId: userId,
+        createdAt: { gte: weekAgo },
+      },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        likes: { select: { id: true } },
+        comments: { select: { id: true } },
+      },
+    });
+
+    // Calculate reach metrics
+    const totalImpressions = weeklyPosts.reduce(
+      (sum, post) => sum + post.likes.length + post.comments.length,
+      0,
+    );
+
+    // Get skills detected this week
+    const weeklySkills = await db.novaSkillDetection.findMany({
+      where: {
+        userId,
+        createdAt: { gte: weekAgo },
+      },
+      select: { skill: true },
+      distinct: ["skill"],
+    });
+
+    // Get profile views this week (would need tracking)
+    const profileViews = 0; // Placeholder
+
+    // Get missed opportunities (jobs that matched user's skills)
+    const missedOpportunities = []; // Placeholder - would integrate with Work
+
+    // Get loop progress
+    const loopProgress = await db.agenticLoopProgress.findUnique({
+      where: { userId },
+    });
+
+    // Generate NOVA's recommendation
+    let novaRecommendation = "";
+    if (weeklyPosts.length === 0) {
+      novaRecommendation =
+        "You haven't posted this week. Start with a quick insight about what you're building.";
+    } else if (totalImpressions > 50) {
+      novaRecommendation =
+        "Great engagement this week! Your content is resonating. Consider posting about your learning journey.";
+    } else {
+      novaRecommendation =
+        "Try posting during peak hours (9AM-11AM WAT) to increase your reach.";
+    }
+
+    const report = {
+      period: {
+        start: weekAgo.toISOString(),
+        end: now.toISOString(),
+      },
+      metrics: {
+        postsCount: weeklyPosts.length,
+        totalImpressions,
+        profileViews,
+        newSkillsDetected: weeklySkills.length,
+      },
+      skills: weeklySkills.map((s) => s.skill),
+      missedOpportunities,
+      loopProgress,
+      novaRecommendation,
+      generatedAt: now.toISOString(),
+    };
+
+    res.json({ report });
+  } catch (error) {
+    console.error("Failed to generate weekly report:", error);
+    res.status(500).json({ error: "Failed to generate weekly report" });
+  }
+});
+
+// ============================================
+// OPEN TO OPPORTUNITIES STATUS
+// ============================================
+
+// Get user's opportunity status
+router.get("/opportunity-status", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        openToOpportunities: true,
+        opportunityStatus: true,
+        opportunityBio: true,
+      },
+    });
+
+    res.json({
+      openToOpportunities: user?.openToOpportunities || false,
+      status: user?.opportunityStatus || null,
+      bio: user?.opportunityBio || null,
+    });
+  } catch (error) {
+    console.error("Failed to get opportunity status:", error);
+    res.status(500).json({ error: "Failed to get opportunity status" });
+  }
+});
+
+// Update opportunity status
+router.patch("/opportunity-status", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { openToOpportunities, status, bio } = req.body;
+
+    const user = await db.user.update({
+      where: { id: userId },
+      data: {
+        openToOpportunities: openToOpportunities ?? true,
+        opportunityStatus: status || null,
+        opportunityBio: bio || null,
+      },
+      select: {
+        openToOpportunities: true,
+        opportunityStatus: true,
+        opportunityBio: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      openToOpportunities: user.openToOpportunities,
+      status: user.opportunityStatus,
+      bio: user.opportunityBio,
+    });
+  } catch (error) {
+    console.error("Failed to update opportunity status:", error);
+    res.status(500).json({ error: "Failed to update opportunity status" });
+  }
+});
+
+// ============================================
+// GROUP LEARNING TRACKS
+// ============================================
+
+// Get learning tracks for a group
+router.get(
+  "/groups/:groupId/learning-tracks",
+  async (req: Request, res: Response) => {
+    try {
+      const { groupId } = req.params;
+
+      const tracks = await db.groupLearningTrack.findMany({
+        where: { groupId },
+        include: {
+          creator: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: { startDate: "desc" },
+      });
+
+      res.json({ tracks });
+    } catch (error) {
+      console.error("Failed to get learning tracks:", error);
+      res.status(500).json({ error: "Failed to get learning tracks" });
+    }
+  },
+);
+
+// Create a learning track (group owner/admin only)
+router.post(
+  "/groups/:groupId/learning-tracks",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.userId;
+      const { groupId } = req.params;
+      const { title, description, totalWeeks, startDate, endDate, courseId } =
+        req.body;
+
+      // Verify user is group owner/admin
+      const membership = await db.groupMember.findFirst({
+        where: {
+          groupId,
+          userId,
+          role: { in: ["OWNER", "ADMIN"] },
+        },
+      });
+
+      if (!membership) {
+        return res
+          .status(403)
+          .json({ error: "Only group admins can create learning tracks" });
+      }
+
+      const track = await db.groupLearningTrack.create({
+        data: {
+          groupId,
+          title,
+          description,
+          totalWeeks: totalWeeks || 4,
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+          courseId,
+          createdById: userId,
+        },
+      });
+
+      res.json({ track });
+    } catch (error) {
+      console.error("Failed to create learning track:", error);
+      res.status(500).json({ error: "Failed to create learning track" });
+    }
+  },
+);
+
+// ============================================
+// COMMUNITY HEALTH MONITOR (ADMIN ONLY)
+// ============================================
+
+router.get("/health-metrics", async (req: Request, res: Response) => {
+  try {
+    // Check if user is admin
+    const userId = req.user!.userId;
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role !== "ADMIN") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    const now = new Date();
+    const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+    // Calculate health metrics
+    const [totalPosts, postsToday, postsThisHour] = await Promise.all([
+      db.post.count(),
+      db.post.count({ where: { createdAt: { gte: dayAgo } } }),
+      db.post.count({ where: { createdAt: { gte: hourAgo } } }),
+    ]);
+
+    const [totalUsers, activeUsers] = await Promise.all([
+      db.user.count(),
+      db.post.findMany({
+        where: { createdAt: { gte: dayAgo } },
+        select: { authorId: true },
+        distinct: ["authorId"],
+      }),
+    ]);
+
+    const [totalGroups, activeGroups] = await Promise.all([
+      db.group.count(),
+      db.group.findMany({
+        where: {
+          members: {
+            some: {
+              joinedAt: { gte: dayAgo },
+            },
+          },
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    // Calculate engagement rate
+    const engagementRate =
+      totalPosts > 0
+        ? ((activeUsers.length / totalUsers) * 100).toFixed(1)
+        : "0";
+
+    // Get trending skills
+    const trendingSkills = await db.novaSkillDetection.groupBy({
+      by: ["skill"],
+      _count: { skill: true },
+      orderBy: { _count: { skill: "desc" } },
+      take: 10,
+    });
+
+    const metrics = {
+      posts: {
+        total: totalPosts,
+        today: postsToday,
+        thisHour: postsThisHour,
+      },
+      users: {
+        total: totalUsers,
+        active: activeUsers.length,
+        engagementRate: parseFloat(engagementRate),
+      },
+      groups: {
+        total: totalGroups,
+        active: activeGroups.length,
+      },
+      trendingSkills: trendingSkills.map((s) => ({
+        skill: s.skill,
+        count: s._count.skill,
+      })),
+      calculatedAt: now.toISOString(),
+    };
+
+    res.json({ metrics });
+  } catch (error) {
+    console.error("Failed to get health metrics:", error);
+    res.status(500).json({ error: "Failed to get health metrics" });
+  }
+});
+
 export default router;
