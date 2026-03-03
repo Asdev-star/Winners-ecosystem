@@ -7,7 +7,7 @@ import { Router, Request, Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
-import { getOnlineUsers } from "../services/wsService.js";
+import { getOnlineUsers, broadcastToTenant, WS_EVENTS } from "../services/wsService.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -146,6 +146,13 @@ router.post("/", async (req: Request, res: Response) => {
         _count:   { select: { likes: true, comments: true } },
         tags:     { include: { tag: true } },
       },
+    });
+
+    // Broadcast new post to all connected clients for live feed updates
+    broadcastToTenant(tenantId, {
+      type:    WS_EVENTS.NEW_POST,
+      post:   { id: post.id, content: post.content, author: { id: authorId } },
+      subtype: "FEED_POST",
     });
 
     return res.status(201).json({

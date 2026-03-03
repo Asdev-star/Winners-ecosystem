@@ -49,6 +49,9 @@ import opportunityRoutes from "./routes/opportunityRoutes.js";
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 import { startEmailScheduler } from "./services/emailScheduler.js";
 
+// ── WebSocket Server (Phase 2 V1.1 — Real-time) ────────────────────────────────
+import { initWebSocketServer } from "./services/wsService.js";
+
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 const __filename = fileURLToPath(import.meta.url);
@@ -237,6 +240,9 @@ const server = app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`   Ready:       http://localhost:${PORT}/api/v1/health/ready\n`);
 
   if (isProd) startEmailScheduler();
+
+  // Initialize WebSocket server for real-time features (Community presence & notifications)
+  initWebSocketServer(server);
 });
 
 const shutdown = (signal: NodeJS.Signals) => {
