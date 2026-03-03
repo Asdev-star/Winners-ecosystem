@@ -1,23 +1,15 @@
 // Server/routes/opportunityRoutes.ts — Winners Community Opportunity Board API
 import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
-import { PrismaClient } from "@prisma/client";
+import db from "../db.js";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /opportunities — List all opportunities
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const { type, status, category } = req.query;
-    const where: Record<string, unknown> = { tenantId: req.user!.tenantId };
-    
-    if (type) where.type = String(type);
-    if (status) where.status = String(status);
-    if (category) where.category = String(category);
-    
-    const opportunities = await prisma.opportunity.findMany({
-      where,
+    const opportunities = await db.opportunity.findMany({
+      where: { tenantId: req.user!.tenantId },
       include: {
         user: { select: { id: true, name: true } },
       },
@@ -33,9 +25,9 @@ router.get("/", authMiddleware, async (req, res) => {
 // GET /opportunities/:id — Get single opportunity
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
-    const oppId = String(req.params.id);
-    const opportunity = await prisma.opportunity.findFirst({
-      where: { id: oppId, tenantId: req.user!.tenantId },
+    const opportunityId = String(req.params.id);
+    const opportunity = await db.opportunity.findFirst({
+      where: { id: opportunityId, tenantId: req.user!.tenantId },
       include: {
         user: { select: { id: true, name: true } },
       },
@@ -54,17 +46,16 @@ router.get("/:id", authMiddleware, async (req, res) => {
 // POST /opportunities — Create a new opportunity
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { title, description, type, budget, category, skills, location, expiresAt } = req.body;
-    const opportunity = await prisma.opportunity.create({
+    const { title, description, type, category, budget, location, skills } = req.body;
+    const opportunity = await db.opportunity.create({
       data: {
         title,
         description,
         type,
-        budget,
         category,
-        skills: skills ?? [],
+        budget,
         location,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        skills: skills || [],
         userId: req.user!.userId,
         tenantId: req.user!.tenantId,
         status: "ACTIVE",
@@ -80,19 +71,11 @@ router.post("/", authMiddleware, async (req, res) => {
 // PATCH /opportunities/:id — Update opportunity
 router.patch("/:id", authMiddleware, async (req, res) => {
   try {
-    const oppId = String(req.params.id);
-    const { title, description, status, budget, skills, location, expiresAt } = req.body;
-    const opportunity = await prisma.opportunity.updateMany({
-      where: { id: oppId, userId: req.user!.userId },
-      data: { 
-        title, 
-        description, 
-        status, 
-        budget, 
-        skills, 
-        location,
-        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-      },
+    const opportunityId = String(req.params.id);
+    const { title, description, status, budget } = req.body;
+    const opportunity = await db.opportunity.updateMany({
+      where: { id: opportunityId, userId: req.user!.userId },
+      data: { title, description, status, budget },
     });
     if (opportunity.count === 0) {
       res.status(404).json({ error: "Opportunity not found or unauthorized" });
@@ -108,9 +91,9 @@ router.patch("/:id", authMiddleware, async (req, res) => {
 // DELETE /opportunities/:id — Delete opportunity
 router.delete("/:id", authMiddleware, async (req, res) => {
   try {
-    const oppId = String(req.params.id);
-    await prisma.opportunity.deleteMany({
-      where: { id: oppId, userId: req.user!.userId },
+    const opportunityId = String(req.params.id);
+    await db.opportunity.deleteMany({
+      where: { id: opportunityId, userId: req.user!.userId },
     });
     res.json({ success: true });
   } catch (error) {
