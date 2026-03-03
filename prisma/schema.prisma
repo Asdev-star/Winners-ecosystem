@@ -109,6 +109,7 @@ model User {
   skills              String[] // Array of skills for directory
   industry            String?
   isPublicProfile     Boolean   @default(true)
+  profileViews        Int       @default(0)
   metadata            Json      @default("{}")
   
   // Trust Score system (0-100)
