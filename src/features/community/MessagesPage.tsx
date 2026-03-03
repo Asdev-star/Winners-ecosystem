@@ -224,9 +224,15 @@ export default function MessagesPage() {
   // Fetch conversations
   useEffect(() => {
     fetch(`${API}/messages`, { headers: getAuthHeaders(), credentials: "include" })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(r.status === 401 ? "Unauthorized" : "Failed");
+        return r.json();
+      })
       .then(setConversations)
-      .catch(console.error)
+      .catch((err) => {
+        console.error("Fetch conversations error:", err);
+        setConversations([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -234,9 +240,15 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!conversationId) return;
     fetch(`${API}/messages/${conversationId}`, { headers: getAuthHeaders(), credentials: "include" })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(r.status === 401 ? "Unauthorized" : "Failed");
+        return r.json();
+      })
       .then((data) => setMessages(data.messages || []))
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Fetch messages error:", err);
+        setMessages([]);
+      });
   }, [conversationId]);
 
   // Scroll to bottom on new messages
