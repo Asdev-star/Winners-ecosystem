@@ -95,6 +95,7 @@ model User {
   creatorTier          CreatorTier[]
   challengeSubmissions CommunityChallengeSubmission[]
   challengeWins       CommunityChallengeWinner[]
+  savedPosts         SavedPost[]
 
   // Diaspora Directory fields
   country             String?
@@ -104,6 +105,11 @@ model User {
   industry            String?
   isPublicProfile     Boolean   @default(true)
   profileViews        Int       @default(0)
+  
+  // Trust Score system (0-100)
+  trustScore          Int       @default(50)
+  trustScoreTier      String    @default("SILVER") // BRONZE, SILVER, GOLD, PLATINUM
+  trustScoreUpdatedAt DateTime?
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -318,6 +324,7 @@ model Post {
   likes    Like[]
   tags     PostTag[]
   group    Group?    @relation("GroupPosts", fields: [groupId], references: [id])
+  savedPosts SavedPost[]
 
   @@index([tenantId, createdAt(sort: Desc)])
   @@index([authorId])
@@ -540,6 +547,42 @@ model Opportunity {
   @@map("opportunities")
 }
 
+// ─── Community Notifications ──────────────────────────────────────────────────────
+
+model Notification {
+  id          String           @id @default(cuid())
+  tenantId    String
+  userId     String           // recipient
+  actorId    String?          // who triggered it
+  type       NotificationType // like | comment | follow | mention | skill_detected
+  title      String
+  body       String
+  entityId   String?          // postId, commentId, etc.
+  entityType String?          // post | comment | group | opportunity
+  link       String?          // navigation link
+  read       Boolean          @default(false)
+  
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  
+  @@index([userId, read])
+  @@index([tenantId])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  MENTION
+  SKILL_DETECTED
+  OPPORTUNITY_MATCH
+  TRUST_SCORE_UPDATE
+  CHALLENGE_COMPLETE
+  LOOP_ADVANCE
+  SYSTEM
+}
+
 enum OpportunityType {
   JOB
   COLLABORATION
@@ -662,6 +705,107 @@ model CommunityChallengeWinner {
 
   @@unique([challengeId, rank])
   @@map("challenge_winners")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY LAYER — PHASE 2 V2.0: INTELLIGENT UPGRADE
+// Skills Endorsement, NOVA Detection, Community Insights
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Skills Endorsement System (LinkedIn-inspired)
+model SkillEndorsement {
+  id           String   @id @default(cuid())
+  userId       String   // User being endorsed
+  endorserId   String   // User giving endorsement
+  skill        String
+  weight       Float    @default(1.0) // Weight based on endorser's trust score
+  createdAt    DateTime @default(now())
+
+  @@unique([endorserId, userId, skill])
+  @@index([userId, skill])
+  @@index([endorserId])
+  @@map("skill_endorsements")
+}
+
+// NOVA Skill Detection Results
+model NovaSkillDetection {
+  id          String   @id @default(cuid())
+  postId      String
+  userId      String
+  skill       String
+  confidence  Float    // 0-100
+  source      String   // 'post', 'comment', 'voice', 'bio'
+  loopStage   String?  // 'skill', 'course', 'income'
+  createdAt   DateTime @default(now())
+
+  @@index([postId])
+  @@index([skill])
+  @@index([userId])
+  @@map("nova_skill_detections")
+}
+
+// Community Insights (NOVA's intelligence)
+model CommunityInsight {
+  id          String   @id @default(cuid())
+  userId      String?
+  type        String   // 'posting_momentum', 'skill_detected', 'opportunity_match', 'engagement_alert'
+  title       String
+  content     String   @db.Text
+  metadata    Json?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([type])
+  @@index([createdAt(sort: Desc)])
+  @@map("community_insights")
+}
+
+// Saved Posts (Bookmarks)
+model SavedPost {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  isPublic  Boolean  @default(false) // Public bookmarks for social proof
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@map("saved_posts")
+}
+
+// User Feed Preferences
+model UserFeedPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  feedMode        String   @default("foryou") // 'foryou', 'following', 'intelligence'
+  novaIntelligence Boolean  @default(true)
+  quickPostEnabled Boolean @default(true)
+  updatedAt       DateTime @updatedAt
+
+  @@map("user_feed_preferences")
+}
+
+// Agentic Loop Tracking per User
+model AgenticLoopProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  stage         Int      @default(1) // 1-7
+  stageName     String   // 'skill_detection', 'learning', 'certification', 'work_match', 'contract', 'vendor', 'compound'
+  postsCount    Int      @default(0)
+  skillsDetected Int     @default(0)
+  coursesTaken  Int      @default(0)
+  contractsWon  Int      @default(0)
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@unique([userId])
+  @@index([userId])
+  @@map("agentic_loop_progress")
 }
 
 enum ChallengeStatus {

@@ -28,6 +28,8 @@ import academyRoutes from "./academyRoutes.js";
 import chatRoutes from "./chatRoutes.js";
 import messageRoutes from "./messageRoutes.js";
 import aiPlatformRoutes from "./aiPlatformRoutes.js";
+import liveSpaceRoutes from "./liveSpaceRoutes.js";
+import opportunityRoutes from "./opportunityRoutes.js";
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = Router();
@@ -106,5 +108,7 @@ router.use("/academy", academyRoutes);
 router.use("/chat", chatRoutes);
 router.use("/messages", messageRoutes);
 router.use("/ai-platform", aiPlatformRoutes);
+router.use("/spaces", liveSpaceRoutes);
+router.use("/opportunities", opportunityRoutes);
 
 export default router;

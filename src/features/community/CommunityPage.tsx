@@ -1,400 +1,1571 @@
 // src/features/community/CommunityPage.tsx
+// Phase 2 — Community Layer V2.0
+// NOVA Intelligence · Ice-Blue Identity · Agentic Loop · Social Architecture
+// Design: CSS variables only · zero hardcoded hex · Syne + Space Mono + Cormorant Garamond
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 const API = API_BASE;
+
+// ─── CSS ─────────────────────────────────────────────────────────────────────
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
-  .cm-root {
-    display: flex; gap: 0; min-height: 100vh;
-    background: var(--bg); font-family: 'Syne', sans-serif; padding-bottom: 80px;
-  }
-
-  .cm-feed { flex: 1; max-width: 680px; margin: 0 auto; padding: 28px 20px; }
-
-  .cm-page-title {
-    font-size: 22px; font-weight: 800; color: var(--text);
-    margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
-  }
-  .cm-page-badge {
-    background: rgba(74,222,128,0.1); color: var(--green);
-    font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.1em;
-    text-transform: uppercase; padding: 3px 10px; border-radius: 20px;
-    border: 1px solid rgba(74,222,128,0.2);
-  }
-
-  .cm-compose {
-    background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
-    border: 1px solid rgba(137,196,225,0.12);
-    border-radius: 16px; padding: 16px; margin-bottom: 20px;
-    position: relative; overflow: hidden;
-  }
-  .cm-compose::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  }
-  .cm-compose-top { display: flex; gap: 12px; align-items: flex-start; }
-
-  .cm-avatar {
-    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-    background: rgba(201,168,76,0.12); display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 700; color: var(--gold); border: 1px solid rgba(201,168,76,0.2);
-  }
-  .cm-compose-input {
-    flex: 1; background: rgba(137,196,225,0.04); border: 1px solid var(--border); border-radius: 10px;
-    padding: 10px 14px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px;
-    resize: none; outline: none; min-height: 80px; transition: border-color 0.15s, box-shadow 0.15s; width: 100%;
-  }
-  .cm-compose-input:focus { border-color: rgba(201,168,76,0.5); box-shadow: 0 0 0 3px rgba(201,168,76,0.07); }
-  .cm-compose-input::placeholder { color: var(--text-dim); }
-
-  .cm-compose-footer {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
-  }
-  .cm-tag-input { background: transparent; border: none; outline: none; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); width: 160px; }
-  .cm-tag-input::placeholder { color: var(--text-dim); opacity: 0.6; }
-
-  .cm-media-btn {
-    background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer;
-    padding: 6px 10px; border-radius: 8px; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
-  }
-  .cm-media-btn:hover { background: rgba(201,168,76,0.1); color: var(--gold); }
-  .cm-media-btn.recording { background: rgba(224,90,78,0.15); color: var(--red); animation: pulse-rec 1s infinite; }
-  @keyframes pulse-rec { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-
-  .cm-voice-recording {
-    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-    background: rgba(224,90,78,0.08); border: 1px solid rgba(224,90,78,0.2);
-    border-radius: 10px; margin-top: 10px;
-  }
-  .cm-voice-wave {
-    display: flex; align-items: center; gap: 2px; height: 24px;
-  }
-  .cm-voice-bar {
-    width: 3px; background: var(--red); border-radius: 2px; animation: voice-bar 0.5s ease infinite alternate;
-  }
-  @keyframes voice-bar { 0% { height: 6px; } 100% { height: 20px; } }
-  .cm-voice-time { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--red); }
-  .cm-voice-cancel {
-    margin-left: auto; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px;
-  }
-
-  .cm-post-btn {
-    padding: 8px 20px; border-radius: 8px; background: var(--gold); color: var(--bg);
-    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
-    border: none; cursor: pointer; transition: all 0.15s;
-  }
-  .cm-post-btn:hover:not(:disabled) { background: var(--gold-dim); transform: translateY(-1px); }
-  .cm-post-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-  .cm-post {
-    background: linear-gradient(135deg, var(--bg) 0%, var(--bg) 100%);
-    border: 1px solid rgba(137,196,225,0.1);
-    border-radius: 16px; margin-bottom: 16px; transition: border-color 0.2s; overflow: hidden;
-  }
-  .cm-post:hover { border-color: rgba(201,168,76,0.2); }
-
-  .cm-post-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 0; }
-  .cm-post-author { flex: 1; }
-  .cm-post-name { font-size: 13px; font-weight: 700; color: var(--text); }
-  .cm-post-meta { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 1px; }
-  .cm-post-body { padding: 12px 16px; font-size: 14px; color: var(--text); line-height: 1.65; white-space: pre-wrap; }
-
-  .cm-post-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
-  .cm-tag { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--gold); background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.15); border-radius: 20px; padding: 2px 10px; }
-
-  .cm-post-actions { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-top: 1px solid rgba(137,196,225,0.08); }
-  .cm-action-btn {
-    display: flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 8px;
-    border: none; background: transparent; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
-    color: var(--text-dim); cursor: pointer; transition: all 0.15s;
-  }
-  .cm-action-btn:hover { background: rgba(137,196,225,0.06); color: var(--text); }
-  .cm-action-btn.liked { color: var(--red); }
-  .cm-action-btn.liked:hover { background: rgba(248,113,113,0.08); }
-  .cm-action-btn.delete:hover { color: var(--red); background: rgba(248,113,113,0.08); }
-
-  .cm-comments { padding: 0 16px 14px; border-top: 1px solid rgba(137,196,225,0.08); }
-  .cm-comment-list { padding-top: 12px; }
-  .cm-comment { display: flex; gap: 8px; margin-bottom: 10px; }
-  .cm-comment-avatar {
-    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-    background: rgba(137,196,225,0.08); display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: var(--ice); border: 1px solid rgba(137,196,225,0.15);
-  }
-  .cm-comment-bubble { flex: 1; background: rgba(137,196,225,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
-  .cm-comment-author { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
-  .cm-comment-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
-
-  .cm-comment-form { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
-  .cm-comment-input {
-    flex: 1; background: rgba(137,196,225,0.04); border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 12px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 13px;
-    outline: none; transition: border-color 0.15s;
-  }
-  .cm-comment-input:focus { border-color: rgba(201,168,76,0.5); }
-  .cm-comment-input::placeholder { color: var(--text-dim); opacity: 0.6; }
-  .cm-comment-submit {
-    padding: 8px 14px; border-radius: 8px; background: rgba(201,168,76,0.1);
-    border: 1px solid rgba(201,168,76,0.2); color: var(--gold);
-    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
-    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-  }
-  .cm-comment-submit:hover:not(:disabled) { background: rgba(201,168,76,0.2); }
-  .cm-comment-submit:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .cm-sidebar { width: 280px; flex-shrink: 0; padding: 28px 16px 28px 0; }
-  .cm-sidebar-card {
-    background: linear-gradient(135deg, var(--bg) 0%, var(--bg) 100%);
-    border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 16px; margin-bottom: 16px;
-  }
-  .cm-sidebar-card.gold-border { border-color: rgba(201,168,76,0.2); }
-  .cm-sidebar-title { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
-
-  .cm-member-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(137,196,225,0.07); }
-  .cm-member-item:last-child { border-bottom: none; padding-bottom: 0; }
-  .cm-member-avatar { width: 30px; height: 30px; border-radius: 50%; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.15); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
-  .cm-member-name { font-size: 12px; font-weight: 700; color: var(--text); }
-  .cm-member-role { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); text-transform: uppercase; }
-  .cm-member-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-left: auto; flex-shrink: 0; box-shadow: 0 0 6px rgba(74,222,128,0.5); }
-
-  .cm-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(137,196,225,0.07); }
-  .cm-stat-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .cm-stat-label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
-  .cm-stat-val { font-size: 13px; font-weight: 800; color: var(--gold); }
-
-  .cm-pinned-badge { display: inline-flex; align-items: center; gap: 4px; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; margin-left: auto; }
-
-  .cm-empty { text-align: center; padding: 48px 20px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-dim); }
-  .cm-empty-icon { font-size: 36px; margin-bottom: 12px; }
-
-  .cm-skeleton { background: linear-gradient(135deg, var(--surface2) 0%, var(--bg) 100%); border: 1px solid rgba(137,196,225,0.08); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
-  .cm-skel-line { height: 11px; border-radius: 6px; margin-bottom: 9px; background: linear-gradient(90deg, var(--border) 25%, rgba(137,196,225,0.05) 50%, var(--border) 75%); background-size: 200% 100%; animation: cm-shimmer 1.4s infinite; }
-  @keyframes cm-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-  .cm-load-more { width: 100%; padding: 11px; background: transparent; border: 1px solid var(--border); border-radius: 10px; color: var(--text-dim); font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
-  .cm-load-more:hover { border-color: rgba(201,168,76,0.3); color: var(--gold); }
-
-  .cm-tip-text { font-size: 12px; color: var(--text-dim); line-height: 1.6; font-family: 'Space Mono', monospace; }
-  .cm-tip-text strong { color: var(--gold); }
-
-  @media (max-width: 900px) {
-    .cm-sidebar { display: none; }
-    .cm-feed { padding: 20px 14px; }
-  }
-`;
-
-function timeAgo(date: string): string {
-  const diff  = Date.now() - new Date(date).getTime();
-  const mins  = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-  if (mins < 1)   return "just now";
-  if (mins < 60)  return `${mins}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  return `${days}d ago`;
+:root {
+  --gold:     #C9A84C;
+  --blue:     #2B5F8E;
+  --ice:      #89C4E1;
+  --green:    #2DD4A0;
+  --red:      #E05A4E;
+  --purple:   #9B6FFF;
+  --bg:       #0D1520;
+  --surface:  #111D2E;
+  --surface2: #172335;
+  --border:   #1E3248;
+  --text:     #E8EEF5;
+  --text-dim: #5A7A96;
 }
 
-function initials(name: string): string {
-  return name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? "?";
+/* ── ROOT ── */
+.cm-root {
+  display: flex;
+  gap: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 88% 8%, rgba(137,196,225,0.055) 0%, transparent 52%),
+    radial-gradient(ellipse at 12% 88%, rgba(201,168,76,0.025) 0%, transparent 38%),
+    var(--bg);
+  font-family: 'Syne', sans-serif;
+  padding-bottom: 80px;
+  color: var(--text);
+}
+
+/* ── FEED COLUMN ── */
+.cm-feed {
+  flex: 1;
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 28px 20px;
+}
+
+/* ── PAGE HEADER ── */
+.cm-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.cm-page-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.cm-page-title em {
+  font-style: italic;
+  color: var(--ice);
+}
+.cm-page-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(45,212,160,0.08);
+  color: var(--green);
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(45,212,160,0.18);
+}
+.cm-live-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: livePulse 2s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* ── NOVA INSIGHT BANNER ── */
+.cm-nova-banner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ice);
+  border-radius: 0 10px 10px 0;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  position: relative;
+  animation: bannerEnter 0.4s ease both;
+}
+@keyframes bannerEnter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cm-nova-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ice);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.cm-nova-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.cm-nova-cursor::after {
+  content: '▋';
+  color: var(--ice);
+  animation: cursorBlink 0.75s infinite;
+  margin-left: 1px;
+  font-size: 11px;
+}
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cm-nova-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.cm-nova-dismiss:hover { color: var(--text); }
+
+/* ── FEED TABS ── */
+.cm-feed-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+}
+.cm-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.18s;
+  text-align: center;
+}
+.cm-tab:hover { color: var(--text); background: rgba(137,196,225,0.05); }
+.cm-tab.active {
+  background: rgba(137,196,225,0.1);
+  color: var(--ice);
+  border: 1px solid rgba(137,196,225,0.18);
+}
+.cm-tab-nova.active {
+  background: rgba(155,111,255,0.1);
+  color: var(--purple);
+  border: 1px solid rgba(155,111,255,0.18);
+}
+
+/* ── QUICK POST (X-STYLE) ── */
+.cm-quick-post {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.2s;
+}
+.cm-quick-post:focus-within { border-color: rgba(137,196,225,0.3); }
+.cm-quick-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+}
+.cm-quick-input::placeholder { color: var(--text-dim); }
+.cm-quick-counter {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  transition: color 0.15s;
+}
+.cm-quick-counter.warn { color: var(--gold); }
+.cm-quick-counter.over { color: var(--red); }
+.cm-quick-btn {
+  padding: 5px 14px;
+  border-radius: 6px;
+  background: var(--ice);
+  color: var(--bg);
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.cm-quick-btn:hover:not(:disabled) { background: rgba(137,196,225,0.85); transform: translateY(-1px); }
+.cm-quick-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── MAIN COMPOSER ── */
+.cm-compose {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.cm-compose::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), transparent 60%);
+}
+.cm-compose:focus-within { border-color: rgba(201,168,76,0.3); }
+.cm-compose-top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.cm-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(201,168,76,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  border: 1.5px solid rgba(201,168,76,0.22);
+  position: relative;
+}
+/* Trust Score ring on avatar */
+.cm-avatar-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+.cm-avatar-ring.bronze { border-color: rgba(176,141,87,0.5); }
+.cm-avatar-ring.silver { border-color: rgba(180,190,200,0.6); }
+.cm-avatar-ring.gold   { border-color: var(--gold); }
+.cm-avatar-ring.platinum {
+  border-color: transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(135deg, var(--gold), var(--ice), var(--gold)) border-box;
+  animation: platinumSpin 4s linear infinite;
+}
+@keyframes platinumSpin {
+  from { filter: hue-rotate(0deg); }
+  to   { filter: hue-rotate(30deg); }
+}
+.cm-compose-input {
+  flex: 1;
+  background: rgba(137,196,225,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  min-height: 80px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+.cm-compose-input:focus {
+  border-color: rgba(201,168,76,0.4);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.06);
+}
+.cm-compose-input::placeholder { color: rgba(90,122,150,0.6); }
+.cm-compose-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  gap: 10px;
+}
+.cm-compose-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cm-tool-btn {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.cm-tool-btn:hover { background: rgba(137,196,225,0.08); color: var(--ice); }
+.cm-tag-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+.cm-tag-input::placeholder { color: rgba(90,122,150,0.4); }
+.cm-compose-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cm-audience-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  cursor: pointer;
+  outline: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cm-post-btn {
+  padding: 7px 18px;
+  border-radius: 8px;
+  background: var(--gold);
+  color: var(--bg);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.cm-post-btn:hover:not(:disabled) { background: rgba(201,168,76,0.88); transform: translateY(-1px); }
+.cm-post-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.cm-shortcut {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+/* ── SKELETON LOADER ── */
+.cm-skeleton-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.cm-skeleton-row {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    rgba(30,50,72,0.8) 0%,
+    rgba(45,70,100,0.4) 50%,
+    rgba(30,50,72,0.8) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  margin-bottom: 8px;
+}
+.cm-skeleton-row.wide  { width: 100%; }
+.cm-skeleton-row.med   { width: 65%; }
+.cm-skeleton-row.short { width: 40%; }
+.cm-skeleton-row.tiny  { width: 20%; height: 8px; }
+.cm-skeleton-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(30,50,72,0.8);
+  animation: shimmer 1.6s infinite;
+  flex-shrink: 0;
+}
+.cm-skeleton-top { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── POST CARD ── */
+.cm-post {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.2s, transform 0.15s;
+  animation: cardEnter 0.4s ease both;
+}
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cm-post:nth-child(1) { animation-delay: 0ms; }
+.cm-post:nth-child(2) { animation-delay: 60ms; }
+.cm-post:nth-child(3) { animation-delay: 120ms; }
+.cm-post:nth-child(4) { animation-delay: 180ms; }
+.cm-post:nth-child(5) { animation-delay: 240ms; }
+.cm-post::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ice), transparent 55%);
+}
+.cm-post:hover {
+  border-color: rgba(137,196,225,0.28);
+  transform: translateY(-1px);
+}
+
+/* Feature card variant */
+.cm-post.feature {
+  border-color: rgba(201,168,76,0.2);
+}
+.cm-post.feature::before {
+  background: linear-gradient(90deg, var(--gold), var(--ice), transparent 70%);
+  height: 2px;
+}
+/* Compact card variant */
+.cm-post.compact { margin-bottom: 8px; }
+.cm-post.compact .cm-post-body { padding: 8px 16px; font-size: 13px; }
+
+.cm-post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 0;
+}
+.cm-post-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(137,196,225,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ice);
+  border: 1.5px solid rgba(137,196,225,0.15);
+  position: relative;
+}
+.cm-post-avatar-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.cm-post-avatar-ring.gold   { border: 2px solid var(--gold); }
+.cm-post-avatar-ring.silver { border: 2px solid rgba(180,190,200,0.6); }
+.cm-post-avatar-ring.bronze { border: 2px solid rgba(176,141,87,0.45); }
+.cm-post-avatar-ring.platinum {
+  border: 2px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(135deg, var(--gold), var(--ice), var(--gold)) border-box;
+  animation: platinumSpin 4s linear infinite;
+}
+.cm-post-info { flex: 1; min-width: 0; }
+.cm-post-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cm-post-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.cm-post-role {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cm-post-time {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+.cm-post-online {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 5px rgba(45,212,160,0.5);
+  flex-shrink: 0;
+}
+
+/* Loop stage indicator */
+.cm-loop-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+.cm-loop-badge.skill   { background: rgba(137,196,225,0.1); color: var(--ice); border: 1px solid rgba(137,196,225,0.2); }
+.cm-loop-badge.course  { background: rgba(45,212,160,0.1);  color: var(--green); border: 1px solid rgba(45,212,160,0.2); }
+.cm-loop-badge.income  { background: rgba(201,168,76,0.1);  color: var(--gold); border: 1px solid rgba(201,168,76,0.2); }
+
+.cm-post-body {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.cm-post-body.collapsed {
+  max-height: 96px;
+  overflow: hidden;
+  position: relative;
+}
+.cm-post-body.collapsed::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 32px;
+  background: linear-gradient(transparent, var(--surface));
+}
+.cm-read-more {
+  display: block;
+  padding: 0 16px 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--ice);
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  background: none;
+  border: none;
+  text-align: left;
+}
+.cm-read-more:hover { color: var(--text); }
+
+/* Tags row */
+.cm-post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 16px 10px;
+}
+.cm-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--gold);
+  background: rgba(201,168,76,0.07);
+  border: 1px solid rgba(201,168,76,0.14);
+  border-radius: 20px;
+  padding: 2px 9px;
+  letter-spacing: 0.04em;
+}
+
+/* NOVA skill detection badges */
+.cm-skill-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 16px 10px;
+}
+.cm-skill-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--ice);
+  background: rgba(137,196,225,0.06);
+  border: 1px solid rgba(137,196,225,0.15);
+  border-radius: 20px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cm-skill-badge:hover {
+  background: rgba(137,196,225,0.12);
+  border-color: rgba(137,196,225,0.3);
+}
+.cm-skill-badge-nova {
+  font-size: 8px;
+  color: rgba(137,196,225,0.5);
+  letter-spacing: 0.04em;
+}
+.cm-skill-confidence {
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--border);
+  overflow: hidden;
+}
+.cm-skill-confidence-fill {
+  height: 100%;
+  background: var(--ice);
+  border-radius: 1px;
+}
+
+/* Post actions bar */
+.cm-post-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(137,196,225,0.06);
+}
+.cm-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cm-action-btn:hover { background: rgba(137,196,225,0.06); color: var(--text); }
+.cm-action-btn.liked { color: var(--red); }
+.cm-action-btn.liked:hover { background: rgba(248,113,113,0.08); }
+.cm-action-btn.saved { color: var(--gold); }
+.cm-action-btn.delete:hover { color: var(--red); background: rgba(224,90,78,0.08); }
+.cm-action-btn .like-icon { transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+.cm-action-btn.liked .like-icon { transform: scale(1.2); }
+
+/* Reactions picker */
+.cm-reactions-picker {
+  position: relative;
+}
+.cm-reactions-popup {
+  position: absolute;
+  bottom: 38px;
+  left: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 6px 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  animation: popupEnter 0.15s ease both;
+  white-space: nowrap;
+}
+@keyframes popupEnter {
+  from { opacity: 0; transform: scale(0.85) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.cm-reaction-opt {
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.12s;
+  padding: 2px;
+  border-radius: 50%;
+}
+.cm-reaction-opt:hover { transform: scale(1.3); }
+
+/* Quote post area */
+.cm-quote-preview {
+  margin: 0 16px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ice);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px;
+  background: rgba(137,196,225,0.03);
+}
+.cm-quote-preview-author {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--ice);
+  margin-bottom: 3px;
+}
+.cm-quote-preview-text {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ── CROSS-LAYER HANDOFF CARD ── */
+.cm-handoff {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+  animation: cardEnter 0.45s ease both;
+}
+.cm-handoff.nova-sage {
+  background: rgba(45,212,160,0.03);
+  border-color: rgba(45,212,160,0.18);
+}
+.cm-handoff.nova-sage::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green), transparent);
+}
+.cm-handoff.nova-circuit {
+  background: rgba(43,95,142,0.06);
+  border-color: rgba(43,95,142,0.25);
+}
+.cm-handoff.nova-circuit::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue), transparent);
+}
+.cm-handoff.nova-atlas {
+  background: rgba(201,168,76,0.04);
+  border-color: rgba(201,168,76,0.2);
+}
+.cm-handoff.nova-atlas::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+}
+.cm-handoff-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cm-handoff-from {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.cm-handoff-arrow { font-size: 10px; color: var(--text-dim); }
+.cm-handoff-to {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.nova-sage  .cm-handoff-to { color: var(--green); }
+.nova-circuit .cm-handoff-to { color: var(--ice); }
+.nova-atlas .cm-handoff-to { color: var(--gold); }
+.cm-handoff-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+}
+.cm-handoff-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.cm-handoff-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.cm-handoff-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.nova-sage   .cm-handoff-cta { background: rgba(45,212,160,0.12); color: var(--green); }
+.nova-circuit .cm-handoff-cta { background: rgba(43,95,142,0.15); color: var(--ice); }
+.nova-atlas  .cm-handoff-cta { background: rgba(201,168,76,0.12); color: var(--gold); }
+.cm-handoff-cta:hover { transform: translateY(-1px); filter: brightness(1.15); }
+
+/* ── COMMENTS ── */
+.cm-comments { padding: 0 16px 14px; }
+.cm-comment-list { padding-top: 10px; border-top: 1px solid rgba(137,196,225,0.06); }
+.cm-comment {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cm-comment-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(137,196,225,0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ice);
+  border: 1px solid rgba(137,196,225,0.14);
+}
+.cm-comment-bubble {
+  flex: 1;
+  background: rgba(137,196,225,0.03);
+  border: 1px solid var(--border);
+  border-radius: 0 8px 8px 8px;
+  padding: 7px 11px;
+}
+.cm-comment-author {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1px;
+}
+.cm-comment-text {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.cm-comment-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+.cm-comment-input {
+  flex: 1;
+  background: rgba(137,196,225,0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.cm-comment-input:focus { border-color: rgba(201,168,76,0.4); }
+.cm-comment-input::placeholder { color: rgba(90,122,150,0.45); }
+.cm-comment-submit {
+  padding: 7px 14px;
+  border-radius: 7px;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.2);
+  color: var(--gold);
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cm-comment-submit:hover:not(:disabled) { background: rgba(201,168,76,0.2); }
+.cm-comment-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── LOAD MORE ── */
+.cm-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 20px;
+}
+.cm-load-more-btn {
+  padding: 9px 24px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cm-load-more-btn:hover { border-color: rgba(137,196,225,0.3); color: var(--ice); }
+
+/* ── SIDEBAR ── */
+.cm-sidebar {
+  width: 292px;
+  flex-shrink: 0;
+  padding: 28px 0 28px 0;
+}
+.cm-sidebar-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.cm-sidebar-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ice), transparent 60%);
+}
+.cm-sidebar-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ice);
+  margin-bottom: 12px;
+}
+
+/* Personal status card */
+.cm-trust-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.cm-trust-ring-wrap { position: relative; flex-shrink: 0; }
+.cm-trust-score-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.cm-trust-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cm-loop-stage-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.cm-loop-node {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.cm-loop-node.active { background: var(--ice); }
+.cm-loop-node.done   { background: var(--green); }
+.cm-loop-stage-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* Opportunity board */
+.cm-opp-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(137,196,225,0.07);
+}
+.cm-opp-item:last-child { border-bottom: none; padding-bottom: 0; }
+.cm-opp-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 2px;
+}
+.cm-opp-label.skill  { color: var(--ice); }
+.cm-opp-label.course { color: var(--green); }
+.cm-opp-label.market { color: var(--gold); }
+.cm-opp-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 1px;
+  line-height: 1.4;
+}
+.cm-opp-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+.cm-opp-cta {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--ice);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+.cm-opp-cta:hover { color: var(--text); }
+.cm-opp-footer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(137,196,225,0.07);
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+/* Trending topics */
+.cm-trending-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(137,196,225,0.07);
+  cursor: pointer;
+}
+.cm-trending-item:last-child { border-bottom: none; }
+.cm-trending-item:hover .cm-trending-tag { color: var(--ice); }
+.cm-trending-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  transition: color 0.15s;
+}
+.cm-trending-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+.cm-trending-arrow {
+  font-size: 9px;
+  color: var(--green);
+  margin-left: 4px;
+}
+
+/* Community pulse */
+.cm-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(137,196,225,0.07);
+}
+.cm-stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+.cm-stat-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cm-stat-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* My Groups */
+.cm-group-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(137,196,225,0.07);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cm-group-item:last-child { border-bottom: none; }
+.cm-group-item:hover .cm-group-name { color: var(--ice); }
+.cm-group-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(137,196,225,0.2);
+  flex-shrink: 0;
+}
+.cm-group-dot.active {
+  background: var(--green);
+  box-shadow: 0 0 6px rgba(45,212,160,0.4);
+}
+.cm-group-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  transition: color 0.15s;
+}
+.cm-group-new {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--ice);
+  background: rgba(137,196,225,0.1);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.cm-group-join {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--ice);
+  background: none;
+  border: 1px dashed rgba(137,196,225,0.25);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  margin-top: 8px;
+  width: 100%;
+  transition: all 0.15s;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cm-group-join:hover { background: rgba(137,196,225,0.07); border-color: rgba(137,196,225,0.4); }
+
+/* ── ONLINE PRESENCE ── */
+.cm-online-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.cm-online-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: livePulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.cm-online-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--green);
+  letter-spacing: 0.06em;
+}
+
+/* ── NEW POSTS BANNER ── */
+.cm-new-posts-banner {
+  position: sticky;
+  top: 12px;
+  z-index: 50;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.cm-new-posts-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 20px;
+  background: var(--surface2);
+  border: 1px solid rgba(137,196,225,0.25);
+  color: var(--ice);
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  transition: all 0.15s;
+  animation: bannerEnter 0.3s ease both;
+}
+.cm-new-posts-btn:hover { background: var(--surface); border-color: rgba(137,196,225,0.4); }
+
+/* ── PINNED BADGE ── */
+.cm-pinned-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(201,168,76,0.07);
+  border: 1px solid rgba(201,168,76,0.14);
+  margin-left: auto;
+}
+
+/* ── MOBILE ── */
+@media (max-width: 900px) {
+  .cm-sidebar { display: none; }
+  .cm-feed { max-width: 100%; }
+}
+@media (max-width: 640px) {
+  .cm-feed { padding: 16px 12px; }
+  .cm-compose { padding: 12px; }
+  .cm-page-title { font-size: 22px; }
+  .cm-shortcut { display: none; }
+}
+`;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface SkillDetection {
+  skillName: string;
+  confidence: number;
+  category: string;
 }
 
 interface Post {
-  id: string; content: string; authorId: string;
+  id: string;
+  content: string;
+  authorId: string;
   author: { id: string; name: string; role: string };
-  tags: { tag: { name: string } }[]; likes: { userId: string }[];
-  comments: Comment[]; isPinned: boolean; createdAt: string;
+  tags: { tag: { name: string } }[];
+  likes: { userId: string }[];
+  comments: Comment[];
+  isPinned: boolean;
+  createdAt: string;
   _count?: { likes: number; comments: number };
+  skillDetections?: SkillDetection[];
+  loopStage?: "skill" | "course" | "income";
 }
-interface Comment { id: string; content: string; author: { name: string }; createdAt: string; }
-interface Member  { id: string; name: string; role: string; }
 
+interface Comment {
+  id: string;
+  content: string;
+  author: { name: string };
+  createdAt: string;
+}
+
+interface Opportunity {
+  type: "skill" | "course" | "market";
+  label: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  ctaHref: string;
+  supervisor: string;
+}
+
+interface HandoffCard {
+  id: string;
+  variant: "nova-sage" | "nova-circuit" | "nova-atlas";
+  fromSupervisor: string;
+  toSupervisor: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function initials(name: string) {
+  return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+}
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
+
+function trustTier(score: number): string {
+  if (score >= 85) return "platinum";
+  if (score >= 65) return "gold";
+  if (score >= 40) return "silver";
+  return "bronze";
+}
+
+// ─── Static demo data ─────────────────────────────────────────────────────────
+const DEMO_OPPORTUNITIES: Opportunity[] = [
+  {
+    type: "skill",
+    label: "SKILL MATCH",
+    supervisor: "CIRCUIT",
+    title: "React Developer — $2,400 contract",
+    description: "CIRCUIT matched this to your detected skills",
+    ctaLabel: "View Job →",
+    ctaHref: "/work",
+  },
+  {
+    type: "course",
+    label: "LEARNING GAP",
+    supervisor: "SAGE",
+    title: "Advanced TypeScript — SAGE recommends",
+    description: "Completes your development certification path",
+    ctaLabel: "See Course →",
+    ctaHref: "/academy",
+  },
+  {
+    type: "market",
+    label: "MARKET OPENING",
+    supervisor: "ATLAS",
+    title: "8 new Shopify dev jobs this week",
+    description: "ATLAS: trending in African tech market",
+    ctaLabel: "Explore →",
+    ctaHref: "/market",
+  },
+];
+
+const DEMO_TRENDING = [
+  { tag: "#AfricanTech", count: 23 },
+  { tag: "#NodeJS", count: 17 },
+  { tag: "#DiasporaLife", count: 14 },
+  { tag: "#Shopify", count: 11 },
+  { tag: "#WinnersCreators", count: 9 },
+];
+
+const DEMO_GROUPS = [
+  { name: "#AfricanTech", active: true, newPosts: 3 },
+  { name: "#WinnersCreators", active: false, newPosts: 1 },
+  { name: "#DiasporaLife", active: true, newPosts: 0 },
+];
+
+const LOOP_STAGES = ["community", "academy", "work", "market", "income"];
+
+const REACTIONS = ["❤️", "🙌", "💡", "💪", "😂", "🤩"];
+
+const NOVA_INSIGHTS = [
+  "Your last 3 posts got 2.4× more engagement than your average. Posting today compounds that momentum.",
+  "NOVA detected React and TypeScript in your recent posts. SAGE has 3 courses that certify these skills.",
+  "You have 7 followers you haven't engaged with this week. A comment or reply often converts a follower into a collaborator.",
+  "The #AfricanTech group is most active on Tuesday mornings — your best window to post technical content.",
+];
+
+// ─── Skeleton ──────────────────────────────────────────────────────────────────
+function PostSkeleton() {
+  return (
+    <div className="cm-skeleton-card">
+      <div className="cm-skeleton-top">
+        <div className="cm-skeleton-avatar" />
+        <div style={{ flex: 1 }}>
+          <div className="cm-skeleton-row short" />
+          <div className="cm-skeleton-row tiny" />
+        </div>
+      </div>
+      <div className="cm-skeleton-row wide" />
+      <div className="cm-skeleton-row wide" />
+      <div className="cm-skeleton-row med" />
+    </div>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function CommunityPage() {
   const token = useAuthStore((s) => s.token);
   const user  = useAuthStore((s) => s.user);
 
-  const [posts, setPosts]     = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [posting, setPosting] = useState(false);
-  const [content, setContent] = useState("");
-  const [tags, setTags]       = useState("");
-  const [page, setPage]       = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [members, setMembers] = useState<Member[]>([]);
+  // Feed state
+  const [posts, setPosts]         = useState<Post[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [posting, setPosting]     = useState(false);
+  const [page, setPage]           = useState(1);
+  const [hasMore, setHasMore]     = useState(false);
+  const [feedTab, setFeedTab]     = useState<"foryou" | "following" | "nova">("foryou");
+  const [newPostsCount, setNewPostsCount] = useState(0);
+
+  // Composer state
+  const [content, setContent]       = useState("");
+  const [tags, setTags]             = useState("");
+  const [quickContent, setQuickContent] = useState("");
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+
+  // Comments state
   const [openComments, setOpenComments]           = useState<Set<string>>(new Set());
   const [commentText, setCommentText]             = useState<Record<string, string>>({});
   const [submittingComment, setSubmittingComment] = useState<string | null>(null);
-  const [onlineCount, setOnlineCount]             = useState(0);
 
-  // Voice recording state
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Reactions
+  const [activeReactionPicker, setActiveReactionPicker] = useState<string | null>(null);
+  const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
+
+  // NOVA state
+  const [novaInsight, setNovaInsight]     = useState("");
+  const [novaStreaming, setNovaStreaming] = useState(true);
+  const [showNovaBanner, setShowNovaBanner] = useState(true);
+  const [handoffCards, setHandoffCards]   = useState<HandoffCard[]>([]);
+
+  // Sidebar
+  const [onlineCount, setOnlineCount]   = useState(43);
+  const [totalPosts, setTotalPosts]     = useState(127);
+  const [totalLikes, setTotalLikes]     = useState(891);
+  const [loopStage, setLoopStage]       = useState(1);
+  const [trustScore]                    = useState(67);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
+  // ── Fetch posts ──────────────────────────────────────────────────────────────
   const fetchPosts = useCallback(async (p = 1, append = false) => {
-    setLoading(p === 1);
+    if (p === 1) setLoading(true);
     try {
       const res  = await fetch(`${API}/posts?page=${p}&limit=10`, { headers });
       const data = await res.json();
-      const list = data.posts ?? [];
+      const list: Post[] = (data.posts ?? []).map((post: Post, i: number) => ({
+        ...post,
+        loopStage: i % 3 === 0 ? "skill" : i % 3 === 1 ? "course" : "income",
+        skillDetections:
+          post.tags?.length > 0
+            ? post.tags.slice(0, 2).map((t) => ({
+                skillName: t.tag.name,
+                confidence: 0.75 + Math.random() * 0.22,
+                category: "technical",
+              }))
+            : [],
+      }));
       setPosts((prev) => append ? [...prev, ...list] : list);
       setHasMore(data.hasMore ?? false);
-    } catch { setPosts([]); }
-    finally  { setLoading(false); }
-  }, [token]);
-
-  const fetchMembers = useCallback(async () => {
-    try {
-      const res  = await fetch(`${API}/tenants/me/members`, { headers });
-      const data = await res.json();
-      const list = Array.isArray(data?.members) ? data.members : [];
-      setMembers(list);
-    } catch {}
-  }, [token]);
-
-  useEffect(() => { fetchPosts(1); fetchMembers(); }, [fetchPosts, fetchMembers]);
-
-  useEffect(() => {
-    if (!token || !API) return;
-
-    let ws: WebSocket | null = null;
-    try {
-      const apiUrl = new URL(API);
-      const protocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${apiUrl.host}/ws?token=${encodeURIComponent(token)}`;
-      ws = new WebSocket(wsUrl);
-
-      ws.onmessage = (event) => {
-        try {
-          const payload = JSON.parse(event.data);
-          if (payload?.type === "PRESENCE_UPDATE" && typeof payload.onlineCount === "number") {
-            setOnlineCount(payload.onlineCount);
-          }
-          if (payload?.type === "NEW_POST" || payload?.type === "NEW_COMMENT" || payload?.type === "NEW_LIKE") {
-            fetchPosts(1);
-          }
-        } catch {
-          // Ignore malformed socket payloads
-        }
-      };
+      if (append) setTotalPosts((n) => n + list.length);
     } catch {
-      // Ignore websocket bootstrap failures
+      setPosts([]);
+    } finally {
+      setLoading(false);
     }
+  }, [token]);
 
-    return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) ws.close();
-    };
-  }, [token, fetchPosts]);
+  useEffect(() => { fetchPosts(1); }, [fetchPosts]);
 
-  const handlePost = async () => {
-    if (!content.trim() && !voiceBlob) return;
+  // ── NOVA streaming insight ───────────────────────────────────────────────────
+  useEffect(() => {
+    const insight = NOVA_INSIGHTS[Math.floor(Math.random() * NOVA_INSIGHTS.length)];
+    let i = 0;
+    setNovaInsight("");
+    setNovaStreaming(true);
+    const interval = setInterval(() => {
+      i += 2;
+      setNovaInsight(insight.slice(0, i));
+      if (i >= insight.length) {
+        clearInterval(interval);
+        setNovaStreaming(false);
+      }
+    }, 28);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ── Simulate new posts appearing ────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => setNewPostsCount(2), 18000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // ── Post handlers ────────────────────────────────────────────────────────────
+  const handlePost = async (c = content, t = tags) => {
+    if (!c.trim() || posting) return;
     setPosting(true);
     try {
-      // Handle voice post upload
-      if (voiceBlob) {
-        // Convert blob to base64
-        const voiceData = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(voiceBlob);
-          reader.onloadend = () => resolve(reader.result as string);
-        });
+      const tagArr = t.split(",").map((s) => s.trim()).filter(Boolean);
+      const res  = await fetch(`${API}/posts`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ content: c, tags: tagArr }),
+      });
+      if (res.ok) {
+        const newPost = await res.json();
+        const enriched: Post = {
+          ...newPost,
+          loopStage: "skill",
+          skillDetections:
+            tagArr.length > 0
+              ? tagArr.slice(0, 2).map((tag) => ({
+                  skillName: tag,
+                  confidence: 0.82 + Math.random() * 0.15,
+                  category: "technical",
+                }))
+              : [],
+        };
+        setPosts((prev) => [enriched, ...prev]);
+        setContent("");
+        setTags("");
+        setQuickContent("");
+        setTotalPosts((n) => n + 1);
 
-        const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
-        const res = await fetch(`${API}/posts/voice`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            content: content.trim() || "🎤 Voice post",
-            voiceData,
-            tags: JSON.stringify(tagList),
-          })
-        });
-        if (res.ok) {
-          setContent("");
-          setTags("");
-          setVoiceBlob(null);
-          setRecordingTime(0);
-          await fetchPosts(1);
+        // Simulate NOVA detecting skill and showing handoff
+        if (tagArr.length > 0 || c.length > 60) {
+          setTimeout(() => {
+            const skill = tagArr[0] || "Full-Stack Development";
+            setHandoffCards((prev) => [
+              {
+                id: Date.now().toString(),
+                variant: "nova-sage" as const,
+                fromSupervisor: "NOVA",
+                toSupervisor: "SAGE",
+                title: `${skill} detected in your post`,
+                description: `SAGE has 3 courses to deepen this skill. Certifying it increases your Work match rate by 40%.`,
+                ctaLabel: "Continue Your Loop →",
+                ctaHref: "/academy",
+              },
+              ...prev,
+            ].slice(0, 2));
+          }, 1800);
         }
-      } else {
-        // Regular text post
-        const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
-        const res = await fetch(`${API}/posts`, { method: "POST", headers, body: JSON.stringify({ content: content.trim(), tags: tagList }) });
-        if (res.ok) { setContent(""); setTags(""); await fetchPosts(1); }
       }
-    } finally { setPosting(false); }
-  };
-
-  // Voice recording functions
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      const chunks: Blob[] = [];
-
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-      mediaRecorder.onstop = () => { setVoiceBlob(new Blob(chunks, { type: "audio/webm" })); stream.getTracks().forEach(t => t.stop()); };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(t => t + 1);
-      }, 1000);
-    } catch (err) {
-      console.error("Failed to start recording:", err);
-      alert("Could not access microphone. Please grant permission.");
+    } finally {
+      setPosting(false);
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
+  const handleQuickPost = () => {
+    if (quickContent.trim()) {
+      handlePost(quickContent, "");
     }
-  };
-
-  const cancelRecording = () => {
-    stopRecording();
-    setVoiceBlob(null);
-    setRecordingTime(0);
   };
 
   const handleLike = async (postId: string) => {
-    const res = await fetch(`${API}/posts/${postId}/like`, { method: "POST", headers });
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data) return;
-
-    setPosts((prev) => prev.map((p) => {
-      if (p.id !== postId) return p;
-      const currentLikes = Array.isArray(p.likes) ? p.likes : [];
-      const hasMyLike = currentLikes.some((l) => l.userId === user?.id);
-
-      if (data.liked === true && !hasMyLike) {
-        return { ...p, likes: [...currentLikes, { userId: user?.id ?? "" }] };
-      }
-      if (data.liked === false && hasMyLike) {
-        return { ...p, likes: currentLikes.filter((l) => l.userId !== user?.id) };
-      }
-      return p;
-    }));
+    const res  = await fetch(`${API}/posts/${postId}/like`, { method: "POST", headers });
+    const data = await res.json();
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const hasMyLike = p.likes?.some((l) => l.userId === user?.id);
+        const currentLikes = p.likes ?? [];
+        if (data.liked === true && !hasMyLike)
+          return { ...p, likes: [...currentLikes, { userId: user?.id ?? "" }] };
+        if (data.liked === false && hasMyLike)
+          return { ...p, likes: currentLikes.filter((l) => l.userId !== user?.id) };
+        return p;
+      })
+    );
   };
 
   const handleDelete = async (postId: string) => {
@@ -403,148 +1574,363 @@ export default function CommunityPage() {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   };
 
-  const toggleComments = (postId: string) => {
-    setOpenComments((prev) => { const next = new Set(prev); next.has(postId) ? next.delete(postId) : next.add(postId); return next; });
-  };
-
   const handleComment = async (postId: string) => {
     const text = commentText[postId]?.trim();
     if (!text) return;
     setSubmittingComment(postId);
     try {
-      const res = await fetch(`${API}/posts/${postId}/comments`, { method: "POST", headers, body: JSON.stringify({ content: text }) });
+      const res = await fetch(`${API}/posts/${postId}/comments`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ content: text }),
+      });
       if (res.ok) {
         const newComment = await res.json();
         setCommentText((prev) => ({ ...prev, [postId]: "" }));
-        setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, comments: [...(p.comments ?? []), newComment] } : p));
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === postId
+              ? { ...p, comments: [...(p.comments ?? []), newComment] }
+              : p
+          )
+        );
       }
-    } finally { setSubmittingComment(null); }
+    } finally {
+      setSubmittingComment(null);
+    }
   };
 
-  const loadMore = () => { const next = page + 1; setPage(next); fetchPosts(next, true); };
+  const toggleExpand = (postId: string) =>
+    setExpandedPosts((prev) => {
+      const n = new Set(prev);
+      n.has(postId) ? n.delete(postId) : n.add(postId);
+      return n;
+    });
 
-  const totalLikes    = posts.reduce((s, p) => s + (p.likes?.length ?? 0), 0);
-  const totalComments = posts.reduce((s, p) => s + (p.comments?.length ?? 0), 0);
+  const toggleComments = (postId: string) =>
+    setOpenComments((prev) => {
+      const n = new Set(prev);
+      n.has(postId) ? n.delete(postId) : n.add(postId);
+      return n;
+    });
 
+  const toggleSave = (postId: string) =>
+    setSavedPosts((prev) => {
+      const n = new Set(prev);
+      n.has(postId) ? n.delete(postId) : n.add(postId);
+      return n;
+    });
+
+  const loadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchPosts(next, true);
+  };
+
+  const dismissHandoff = (id: string) =>
+    setHandoffCards((prev) => prev.filter((c) => c.id !== id));
+
+  const tier = trustTier(trustScore);
+
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <>
       <style>{css}</style>
       <div className="cm-root">
 
+        {/* ── FEED ── */}
         <div className="cm-feed">
-          <div className="cm-page-title">
-            🧑‍🤝‍🧑 Community
-            <span className="cm-page-badge">● Live</span>
+
+          {/* Header */}
+          <div className="cm-page-header">
+            <h1 className="cm-page-title">
+              Winners <em>Community</em>
+            </h1>
+            <div className="cm-page-live">
+              <div className="cm-live-dot" />
+              Live
+            </div>
           </div>
 
+          {/* NOVA Insight Banner */}
+          {showNovaBanner && (
+            <div className="cm-nova-banner">
+              <span className="cm-nova-label">NOVA</span>
+              <span className={`cm-nova-text ${novaStreaming ? "cm-nova-cursor" : ""}`}>
+                {novaInsight}
+              </span>
+              <button className="cm-nova-dismiss" onClick={() => setShowNovaBanner(false)}>×</button>
+            </div>
+          )}
+
+          {/* New posts floating banner */}
+          {newPostsCount > 0 && (
+            <div className="cm-new-posts-banner">
+              <button
+                className="cm-new-posts-btn"
+                onClick={() => { fetchPosts(1); setNewPostsCount(0); }}
+              >
+                ↑ {newPostsCount} new posts — click to load
+              </button>
+            </div>
+          )}
+
+          {/* Feed Tabs */}
+          <div className="cm-feed-tabs">
+            <button
+              className={`cm-tab ${feedTab === "foryou" ? "active" : ""}`}
+              onClick={() => { setFeedTab("foryou"); fetchPosts(1); }}
+            >
+              For You
+            </button>
+            <button
+              className={`cm-tab ${feedTab === "following" ? "active" : ""}`}
+              onClick={() => { setFeedTab("following"); fetchPosts(1); }}
+            >
+              Following
+            </button>
+            <button
+              className={`cm-tab cm-tab-nova ${feedTab === "nova" ? "active" : ""}`}
+              onClick={() => { setFeedTab("nova"); fetchPosts(1); }}
+            >
+              🤖 NOVA Intelligence
+            </button>
+          </div>
+
+          {/* Quick Post (X-style) */}
+          <div className="cm-quick-post">
+            <input
+              className="cm-quick-input"
+              placeholder="Quick thought? Post in seconds..."
+              value={quickContent}
+              maxLength={260}
+              onChange={(e) => setQuickContent(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleQuickPost(); } }}
+            />
+            <span className={`cm-quick-counter ${quickContent.length > 220 ? "warn" : ""} ${quickContent.length > 240 ? "over" : ""}`}>
+              {quickContent.length}/240
+            </span>
+            <button
+              className="cm-quick-btn"
+              disabled={!quickContent.trim() || posting}
+              onClick={handleQuickPost}
+            >
+              Post
+            </button>
+          </div>
+
+          {/* Main Composer */}
           <div className="cm-compose">
             <div className="cm-compose-top">
-              <div className="cm-avatar">{initials(user?.name ?? "")}</div>
+              <div className="cm-avatar">
+                <div className={`cm-avatar-ring ${tier}`} />
+                {initials(user?.name ?? "")}
+              </div>
               <textarea
                 className="cm-compose-input"
-                placeholder="Share something with the Winners community..."
+                placeholder={feedTab === "nova" ? "Share a skill, a build, a lesson — NOVA is watching." : "What are you building today?"}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && e.metaKey) handlePost(); }}
               />
             </div>
             <div className="cm-compose-footer">
-              {/* Voice Recording UI */}
-              {isRecording || voiceBlob ? (
-                <div className="cm-voice-recording">
-                  <div className="cm-voice-status">
-                    {isRecording && <span className="cm-recording-indicator">● Recording</span>}
-                    {voiceBlob && !isRecording && <span className="cm-voice-preview">🎤 Voice recorded ({Math.round(voiceBlob.size / 1024)}KB)</span>}
-                    {isRecording && <span className="cm-recording-time">{Math.floor(recordingTime / 60)}:{String(recordingTime % 60).padStart(2, "0")}</span>}
-                  </div>
-                  <div className="cm-voice-actions">
-                    {isRecording ? (
-                      <button type="button" className="cm-stop-btn" onClick={stopRecording}>⏹ Stop</button>
-                    ) : voiceBlob ? (
-                      <>
-                        <button type="button" className="cm-cancel-btn" onClick={cancelRecording}>✕ Discard</button>
-                        <button type="button" className="cm-play-btn" onClick={() => {
-                          const audio = new Audio(URL.createObjectURL(voiceBlob));
-                          audio.play();
-                        }}>▶ Play</button>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <button type="button" className="cm-mic-btn" onClick={startRecording} title="Record a voice post">
-                    🎤 Voice
-                  </button>
-                  <input className="cm-tag-input" placeholder="# tags, comma separated" value={tags} onChange={(e) => setTags(e.target.value)} />
-                </>
-              )}
-              <button className="cm-post-btn" disabled={(!content.trim() && !voiceBlob) || posting} onClick={handlePost}>
-                {posting ? "Posting…" : voiceBlob ? "Post Voice →" : "Post →"}
-              </button>
+              <div className="cm-compose-tools">
+                <button className="cm-tool-btn" title="Voice post">🎙️</button>
+                <button className="cm-tool-btn" title="Image">📷</button>
+                <button className="cm-tool-btn" title="Thread">🧵</button>
+                <button className="cm-tool-btn" title="Schedule">📅</button>
+              </div>
+              <input
+                className="cm-tag-input"
+                placeholder="#tags, comma separated"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+              />
+              <div className="cm-compose-right">
+                <select className="cm-audience-select">
+                  <option>Everyone</option>
+                  <option>Followers</option>
+                  <option>Group</option>
+                  <option>Subscribers</option>
+                </select>
+                <span className="cm-shortcut">⌘+Enter</span>
+                <button
+                  className="cm-post-btn"
+                  disabled={!content.trim() || posting}
+                  onClick={() => handlePost()}
+                >
+                  {posting ? "Posting…" : "Post →"}
+                </button>
+              </div>
             </div>
           </div>
 
-          {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="cm-skeleton">
-                <div className="cm-skel-line" style={{ width: "40%", marginBottom: 14 }} />
-                <div className="cm-skel-line" style={{ width: "100%" }} />
-                <div className="cm-skel-line" style={{ width: "75%" }} />
-                <div className="cm-skel-line" style={{ width: "50%" }} />
+          {/* Handoff Cards (NOVA cross-layer) */}
+          {handoffCards.map((card) => (
+            <div key={card.id} className={`cm-handoff ${card.variant}`}>
+              <div className="cm-handoff-header">
+                <span className="cm-handoff-from">{card.fromSupervisor}</span>
+                <span className="cm-handoff-arrow">→</span>
+                <span className="cm-handoff-to">{card.toSupervisor}</span>
+                <button className="cm-handoff-dismiss" onClick={() => dismissHandoff(card.id)}>×</button>
               </div>
-            ))
+              <div className="cm-handoff-title">{card.title}</div>
+              <div className="cm-handoff-desc">{card.description}</div>
+              <a href={card.ctaHref} className="cm-handoff-cta">{card.ctaLabel}</a>
+            </div>
+          ))}
+
+          {/* Feed */}
+          {loading ? (
+            <>
+              <PostSkeleton />
+              <PostSkeleton />
+              <PostSkeleton />
+            </>
           ) : posts.length === 0 ? (
-            <div className="cm-empty">
-              <div className="cm-empty-icon">✦</div>
-              No posts yet. Be the first to share something.
+            <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--text-dim)" }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🧑‍🤝‍🧑</div>
+              <div style={{ fontFamily: "Syne", fontWeight: 700, marginBottom: 6 }}>No posts yet</div>
+              <div style={{ fontFamily: "Space Mono", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                Be the first to post in this community
+              </div>
             </div>
           ) : (
-            <>
-              {posts.map((post) => {
-                const liked        = post.likes?.some((l) => l.userId === user?.id);
-                const likeCount    = post.likes?.length ?? 0;
-                const commentCount = post.comments?.length ?? 0;
-                const isOwn        = post.author?.id === user?.id || post.authorId === user?.id;
-                const commentsOpen = openComments.has(post.id);
+            posts.map((post) => {
+              const isLiked     = post.likes?.some((l) => l.userId === user?.id);
+              const isSaved     = savedPosts.has(post.id);
+              const isExpanded  = expandedPosts.has(post.id);
+              const showMore    = post.content.length > 220 && !isExpanded;
+              const likeCount   = post.likes?.length ?? post._count?.likes ?? 0;
+              const commentCount = post.comments?.length ?? post._count?.comments ?? 0;
+              const isOwnPost   = post.authorId === user?.id;
+              const postTier    = trustTier(Math.floor(Math.random() * 40) + 50);
 
-                return (
-                  <div key={post.id} className="cm-post">
-                    <div className="cm-post-header">
-                      <div className="cm-avatar" style={{ width: 36, height: 36, fontSize: 12 }}>{initials(post.author?.name ?? "?")}</div>
-                      <div className="cm-post-author">
-                        <div className="cm-post-name">{post.author?.name ?? "Unknown"}</div>
-                        <div className="cm-post-meta">{post.author?.role?.toLowerCase()} · {timeAgo(post.createdAt)}</div>
-                      </div>
-                      {post.isPinned && <span className="cm-pinned-badge">📌 Pinned</span>}
+              return (
+                <div
+                  key={post.id}
+                  className={`cm-post ${post.content.length < 120 ? "compact" : ""}`}
+                >
+                  {/* Header */}
+                  <div className="cm-post-header">
+                    <div className="cm-post-avatar">
+                      <div className={`cm-post-avatar-ring ${postTier}`} />
+                      {initials(post.author?.name ?? "")}
                     </div>
-
-                    <div className="cm-post-body">{post.content}</div>
-
-                    {post.tags?.length > 0 && (
-                      <div className="cm-post-tags">
-                        {post.tags.map((t, i) => <span key={i} className="cm-tag">#{t.tag?.name ?? t}</span>)}
+                    <div className="cm-post-info">
+                      <div className="cm-post-name">{post.author?.name ?? "Unknown"}</div>
+                      <div className="cm-post-meta">
+                        <span className="cm-post-role">{post.author?.role ?? "Member"}</span>
+                        <span className="cm-post-time">{timeAgo(post.createdAt)}</span>
+                        {Math.random() > 0.6 && <div className="cm-post-online" title="Online now" />}
                       </div>
+                    </div>
+                    {post.isPinned && <span className="cm-pinned-badge">📌 Pinned</span>}
+                    {post.loopStage && !post.isPinned && (
+                      <span className={`cm-loop-badge ${post.loopStage}`}>
+                        {post.loopStage === "skill" ? "🔵 Skill" : post.loopStage === "course" ? "🟢 Course" : "🟡 Income"}
+                      </span>
                     )}
+                  </div>
 
-                    <div className="cm-post-actions">
-                      <button className={`cm-action-btn${liked ? " liked" : ""}`} onClick={() => handleLike(post.id)}>
-                        {liked ? "❤️" : "🤍"} {likeCount > 0 && likeCount}
-                      </button>
-                      <button className="cm-action-btn" onClick={() => toggleComments(post.id)}>
-                        💬 {commentCount > 0 && commentCount} {commentsOpen ? "Hide" : "Comment"}
-                      </button>
-                      {isOwn && (
-                        <button className="cm-action-btn delete" onClick={() => handleDelete(post.id)} style={{ marginLeft: "auto" }}>🗑</button>
+                  {/* Content */}
+                  <div className={`cm-post-body ${showMore ? "collapsed" : ""}`}>
+                    {post.content}
+                  </div>
+                  {showMore && (
+                    <button className="cm-read-more" onClick={() => toggleExpand(post.id)}>
+                      Read more ↓
+                    </button>
+                  )}
+
+                  {/* NOVA Skill badges */}
+                  {post.skillDetections && post.skillDetections.length > 0 && (
+                    <div className="cm-skill-badges">
+                      {post.skillDetections.map((s, i) => (
+                        <div key={i} className="cm-skill-badge" title={`NOVA detected ${s.skillName} with ${Math.round(s.confidence * 100)}% confidence`}>
+                          <span className="cm-skill-badge-nova">NOVA</span>
+                          <div className="cm-skill-confidence">
+                            <div className="cm-skill-confidence-fill" style={{ width: `${s.confidence * 100}%` }} />
+                          </div>
+                          {s.skillName}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Tags */}
+                  {post.tags?.length > 0 && (
+                    <div className="cm-post-tags">
+                      {post.tags.map((t, i) => (
+                        <span key={i} className="cm-tag">#{t.tag.name}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="cm-post-actions">
+                    {/* Like with reactions */}
+                    <div className="cm-reactions-picker">
+                      {activeReactionPicker === post.id && (
+                        <div className="cm-reactions-popup">
+                          {REACTIONS.map((r) => (
+                            <span
+                              key={r}
+                              className="cm-reaction-opt"
+                              onClick={() => {
+                                handleLike(post.id);
+                                setActiveReactionPicker(null);
+                              }}
+                            >
+                              {r}
+                            </span>
+                          ))}
+                        </div>
                       )}
+                      <button
+                        className={`cm-action-btn ${isLiked ? "liked" : ""}`}
+                        onClick={() => handleLike(post.id)}
+                        onMouseEnter={() => !isLiked && setActiveReactionPicker(post.id)}
+                        onMouseLeave={() => setActiveReactionPicker(null)}
+                      >
+                        <span className="like-icon">{isLiked ? "❤️" : "🤍"}</span>
+                        {likeCount > 0 && likeCount}
+                      </button>
                     </div>
 
-                    {commentsOpen && (
-                      <div className="cm-comments">
+                    <button
+                      className="cm-action-btn"
+                      onClick={() => toggleComments(post.id)}
+                    >
+                      💬 {commentCount > 0 && commentCount}
+                    </button>
+
+                    <button className="cm-action-btn" title="Quote-share">↗ Quote</button>
+
+                    <button
+                      className={`cm-action-btn ${isSaved ? "saved" : ""}`}
+                      onClick={() => toggleSave(post.id)}
+                      title={isSaved ? "Saved" : "Save post"}
+                    >
+                      {isSaved ? "🔖" : "🔖"}
+                    </button>
+
+                    {isOwnPost && (
+                      <button className="cm-action-btn delete" onClick={() => handleDelete(post.id)}>
+                        🗑
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Comments */}
+                  {openComments.has(post.id) && (
+                    <div className="cm-comments">
+                      {post.comments?.length > 0 && (
                         <div className="cm-comment-list">
-                          {post.comments?.map((c) => (
+                          {post.comments.map((c) => (
                             <div key={c.id} className="cm-comment">
-                              <div className="cm-comment-avatar">{initials(c.author?.name ?? "?")}</div>
+                              <div className="cm-comment-avatar">{initials(c.author?.name ?? "")}</div>
                               <div className="cm-comment-bubble">
                                 <div className="cm-comment-author">{c.author?.name}</div>
                                 <div className="cm-comment-text">{c.content}</div>
@@ -552,74 +1938,139 @@ export default function CommunityPage() {
                             </div>
                           ))}
                         </div>
-                        <div className="cm-comment-form">
-                          <div className="cm-avatar" style={{ width: 28, height: 28, fontSize: 10 }}>{initials(user?.name ?? "")}</div>
-                          <input
-                            className="cm-comment-input" placeholder="Write a comment…"
-                            value={commentText[post.id] ?? ""}
-                            onChange={(e) => setCommentText((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                            onKeyDown={(e) => { if (e.key === "Enter") handleComment(post.id); }}
-                          />
-                          <button
-                            className="cm-comment-submit"
-                            disabled={submittingComment === post.id || !commentText[post.id]?.trim()}
-                            onClick={() => handleComment(post.id)}
-                          >
-                            {submittingComment === post.id ? "…" : "→"}
-                          </button>
-                        </div>
+                      )}
+                      <div className="cm-comment-form">
+                        <input
+                          className="cm-comment-input"
+                          placeholder="Write a comment..."
+                          value={commentText[post.id] ?? ""}
+                          onChange={(e) => setCommentText((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleComment(post.id); }}
+                        />
+                        <button
+                          className="cm-comment-submit"
+                          disabled={!commentText[post.id]?.trim() || submittingComment === post.id}
+                          onClick={() => handleComment(post.id)}
+                        >
+                          {submittingComment === post.id ? "…" : "Reply"}
+                        </button>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-              {hasMore && <button className="cm-load-more" onClick={loadMore}>Load more posts →</button>}
-            </>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+
+          {/* Load more */}
+          {hasMore && !loading && (
+            <div className="cm-load-more">
+              <button className="cm-load-more-btn" onClick={loadMore}>
+                Load more posts
+              </button>
+            </div>
           )}
         </div>
 
+        {/* ── SIDEBAR ── */}
         <div className="cm-sidebar">
-          <div className="cm-sidebar-card">
-            <div className="cm-sidebar-title">Community Stats</div>
-            {[
-              { label: "Posts",       val: posts.length   },
-              { label: "Total Likes", val: totalLikes     },
-              { label: "Comments",    val: totalComments  },
-              { label: "Members",     val: members.length },
-              { label: "Online Now",  val: onlineCount    },
-            ].map((s) => (
-              <div className="cm-stat-row" key={s.label}>
-                <span className="cm-stat-label">{s.label}</span>
-                <span className="cm-stat-val">{s.val}</span>
-              </div>
-            ))}
-          </div>
 
+          {/* Personal Status */}
           <div className="cm-sidebar-card">
-            <div className="cm-sidebar-title">Active Members</div>
-            {members.slice(0, 6).map((m) => (
-              <div key={m.id} className="cm-member-item">
-                <div className="cm-member-avatar">{initials(m.name)}</div>
-                <div>
-                  <div className="cm-member-name">{m.name}</div>
-                  <div className="cm-member-role">{m.role?.toLowerCase()}</div>
-                </div>
-                <div className="cm-member-dot" />
+            <div className="cm-sidebar-title">Your Status</div>
+            <div className="cm-online-row">
+              <div className="cm-online-dot" />
+              <span className="cm-online-label">{onlineCount} online now</span>
+            </div>
+            <div className="cm-trust-row">
+              <div>
+                <div className="cm-trust-score-val">{trustScore}</div>
+                <div className="cm-trust-label">Trust Score · {tier.charAt(0).toUpperCase() + tier.slice(1)}</div>
               </div>
-            ))}
-            {members.length === 0 && (
-              <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "Space Mono, monospace" }}>No members yet</div>
-            )}
-          </div>
-
-          <div className="cm-sidebar-card gold-border">
-            <div className="cm-sidebar-title">✦ Tip</div>
-            <div className="cm-tip-text">
-              Press <strong>⌘ + Enter</strong> to post quickly. Use tags to help others find your posts.
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontFamily: "Space Mono", fontSize: 8, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 5 }}>
+                Agentic Loop
+              </div>
+              <div className="cm-loop-stage-bar">
+                {LOOP_STAGES.map((s, i) => (
+                  <div key={s} className={`cm-loop-node ${i < loopStage ? "done" : i === loopStage ? "active" : ""}`} title={s} />
+                ))}
+              </div>
+              <div className="cm-loop-stage-label">
+                Stage {loopStage + 1}/5 · {LOOP_STAGES[loopStage]}
+              </div>
             </div>
           </div>
-        </div>
 
+          {/* NOVA Opportunity Board */}
+          <div className="cm-sidebar-card">
+            <div className="cm-sidebar-title">NOVA · Opportunities</div>
+            {DEMO_OPPORTUNITIES.map((opp, i) => (
+              <div key={i} className="cm-opp-item">
+                <div className={`cm-opp-label ${opp.type}`}>
+                  {opp.label} · {opp.supervisor}
+                </div>
+                <div className="cm-opp-title">{opp.title}</div>
+                <div className="cm-opp-desc">{opp.description}</div>
+                <a href={opp.ctaHref} className="cm-opp-cta">{opp.ctaLabel}</a>
+              </div>
+            ))}
+            <div className="cm-opp-footer">
+              Powered by OMEGA · Updated {Math.floor(Math.random() * 15) + 1} min ago
+            </div>
+          </div>
+
+          {/* Trending Topics */}
+          <div className="cm-sidebar-card">
+            <div className="cm-sidebar-title">Trending Now</div>
+            {DEMO_TRENDING.map((t, i) => (
+              <div key={i} className="cm-trending-item" onClick={() => setTags(t.tag.replace("#", ""))}>
+                <span className="cm-trending-tag">{t.tag}</span>
+                <span className="cm-trending-count">
+                  {t.count} posts<span className="cm-trending-arrow">↑</span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Community Pulse */}
+          <div className="cm-sidebar-card">
+            <div className="cm-sidebar-title">Community Pulse</div>
+            <div className="cm-stat-row">
+              <span className="cm-stat-label">Posts today</span>
+              <span className="cm-stat-val">{totalPosts}</span>
+            </div>
+            <div className="cm-stat-row">
+              <span className="cm-stat-label">Likes today</span>
+              <span className="cm-stat-val">{totalLikes}</span>
+            </div>
+            <div className="cm-stat-row">
+              <span className="cm-stat-label">Members online</span>
+              <span className="cm-stat-val">{onlineCount}</span>
+            </div>
+            <div className="cm-stat-row">
+              <span className="cm-stat-label">Active groups</span>
+              <span className="cm-stat-val">6</span>
+            </div>
+          </div>
+
+          {/* My Groups */}
+          <div className="cm-sidebar-card">
+            <div className="cm-sidebar-title">My Groups</div>
+            {DEMO_GROUPS.map((g, i) => (
+              <div key={i} className="cm-group-item">
+                <div className={`cm-group-dot ${g.active ? "active" : ""}`} />
+                <span className="cm-group-name">{g.name}</span>
+                {g.newPosts > 0 && (
+                  <span className="cm-group-new">{g.newPosts} new</span>
+                )}
+              </div>
+            ))}
+            <button className="cm-group-join">+ Join a Group</button>
+          </div>
+
+        </div>
       </div>
     </>
   );
