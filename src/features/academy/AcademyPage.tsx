@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
+import LayerSubNav from "../../components/ui/LayerSubNav";
 
 interface Course {
   id: string;
@@ -92,6 +93,25 @@ export default function AcademyPage() {
   return (
     <div style={{ padding: 20 }}>
       {ctxBar}
+      
+      {/* Academy Sub-Navigation */}
+      <LayerSubNav
+        layer="academy"
+        accentColor="--green"
+        items={[
+          { id: "explore", label: "Explore", href: "/academy", icon: "🔍" },
+          { id: "learning", label: "My Learning", href: "/academy/my-learning", icon: "📚", badge: 3, badgeType: "normal" },
+          { id: "certificates", label: "Certificates", href: "/academy/certificates", icon: "🏆" },
+          { id: "paths", label: "Learning Paths", href: "/academy/paths", icon: "🛤️" },
+          { id: "instructor", label: "Instructor Studio", href: "/academy/instructor", icon: "🎬" },
+        ]}
+        smartAction={{
+          label: "Continue your React course",
+          supervisor: "SAGE",
+          href: "/academy/courses/react-fundamentals",
+          urgency: "normal",
+        }}
+      />
 
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>

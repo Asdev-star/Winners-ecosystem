@@ -8,7 +8,8 @@ import NotificationBell from "../../features/notifications/NotificationBell";
 import { useNotificationStore } from "../../features/notifications/notificationStore";
 import ThemeToggle from "../../features/theme/ThemeToggle";
 import GlobalSearch from "../../features/search/GlobalSearch";
-import ContextBar from "../ui/ContextBar";
+import LayerSubNav from "../navigation/LayerSubNav";
+import { getLayerSubNavForPath } from "../navigation/layerSubNavConfigs";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -335,6 +336,7 @@ export default function MainLayout() {
     ? initialsSource.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
     : "??";
   const pageName = ALL_NAV.find((n) => location.pathname.startsWith(n.path))?.label ?? "Dashboard";
+  const layerSubNav = getLayerSubNavForPath(location.pathname);
   const closeSidebar = () => setSidebarOpen(false);
 
   const NavItem = ({ item }: { item: NavEntry }) => (
@@ -480,7 +482,7 @@ export default function MainLayout() {
         </header>
 
         <main className="ml-content">
-          <ContextBar showLabels={false} />
+          <LayerSubNav config={layerSubNav} />
           <Outlet />
         </main>
       </div>

@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
+import LayerSubNav from "../../components/ui/LayerSubNav";
+import CommandPalette from "../../components/ui/CommandPalette";
 
 const API = API_BASE;
 
@@ -1499,6 +1501,9 @@ export default function CommunityPage() {
   const [showNovaBanner, setShowNovaBanner] = useState(true);
   const [handoffCards, setHandoffCards]   = useState<HandoffCard[]>([]);
 
+  // Command Palette state
+  const [cmdOpen, setCmdOpen] = useState(false);
+
   // Sidebar
   const [onlineCount, setOnlineCount]   = useState(43);
   const [totalPosts, setTotalPosts]     = useState(127);
@@ -1541,6 +1546,18 @@ export default function CommunityPage() {
       setLoading(false);
     }
   }, [feedTab, headers, user?.id]);
+
+  // Command Palette keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCmdOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   useEffect(() => { fetchPosts(1); }, [fetchPosts]);
 
@@ -1863,6 +1880,27 @@ export default function CommunityPage() {
   return (
     <>
       <style>{css}</style>
+      
+      {/* Universal Sub-Navigation */}
+      <LayerSubNav
+        layer="community"
+        accentColor="--ice"
+        items={[
+          { id: "feed", label: "Feed", href: "/community", icon: "📰" },
+          { id: "groups", label: "Groups", href: "/community/groups", icon: "👥", badge: 3, badgeType: "normal" },
+          { id: "discover", label: "Discover", href: "/community/discover", icon: "🔍" },
+          { id: "messages", label: "Messages", href: "/messages", icon: "💬", badge: 2, badgeType: "alert" },
+          { id: "saved", label: "Saved", href: "/community/saved", icon: "🔖" },
+          { id: "analytics", label: "Analytics", href: "/community/analytics", icon: "📊" },
+        ]}
+        smartAction={{
+          label: "3 posts match your skills",
+          supervisor: "NOVA",
+          href: "/community?nova=insights",
+          urgency: "normal",
+        }}
+      />
+      
       <div className="cm-root">
 
         {/* ── FEED ── */}
@@ -2305,6 +2343,9 @@ export default function CommunityPage() {
 
         </div>
       </div>
+
+      {/* Command Palette (⌘K) */}
+      <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} />
     </>
   );
 }
