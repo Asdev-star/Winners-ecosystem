@@ -9,7 +9,7 @@ import { usePresence } from "./usePresence";
 // Backend routes mounted at /messages (not /api/v1/messages)
 const API = "";
 
-function getAuthHeaders() {
+function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
@@ -290,7 +290,7 @@ export default function MessagesPage() {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  const currentConv = conversations.find((c) => c.id === conversationId);
+  const currentConv = (conversations || []).find((c: Conversation) => c.id === conversationId);
 
   return (
     <>
