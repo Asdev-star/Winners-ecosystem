@@ -31,7 +31,8 @@ async function detectSkillsWithNOVA(content: string): Promise<Array<{skill: stri
 
   for (const { pattern, skill, category } of skillPatterns) {
     if (pattern.test(content)) {
-      skills.push({ skill, confidence: 0.85 + Math.random() * 0.1, category });
+      // Stored confidence is 0-100 for analytics consistency.
+      skills.push({ skill, confidence: 85 + Math.random() * 10, category });
     }
   }
 
@@ -41,29 +42,59 @@ async function detectSkillsWithNOVA(content: string): Promise<Array<{skill: stri
 // POST /community-intelligence/skills/detect
 router.post("/skills/detect", async (req: Request, res: Response) => {
   try {
+    const tenantId = req.user!.tenantId;
     const userId = req.user!.userId;
-    const { content, postId } = req.body;
+    const content = String(req.body?.content ?? "");
+    const postId = req.body?.postId ? String(req.body.postId) : null;
 
-    if (!content) {
+    if (!content.trim()) {
       return res.status(400).json({ error: "Content is required" });
     }
 
     const detectedSkills = await detectSkillsWithNOVA(content);
 
     if (postId) {
-      // Just store the skills as JSON in post metadata for now
-      const post = await (db as any).post.findUnique({ where: { id: postId } });
-      if (post) {
-        const metadata = typeof post.metadata === 'object' ? post.metadata : {};
-        await (db as any).post.update({
-          where: { id: postId },
-          data: { metadata: { ...metadata, novaSkills: detectedSkills } }
-        });
+      const post = await db.post.findFirst({
+        where: { id: postId, tenantId, deletedAt: null },
+        select: { id: true },
+      });
+
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
       }
+
+      await Promise.all(
+        detectedSkills.map((skill) =>
+          db.novaSkillDetection.upsert({
+            where: {
+              userId_postId_skill: {
+                userId,
+                postId,
+                skill: skill.skill,
+              },
+            },
+            create: {
+              userId,
+              postId,
+              skill: skill.skill,
+              confidence: skill.confidence,
+              category: skill.category.toLowerCase(),
+              source: "post",
+            },
+            update: {
+              confidence: skill.confidence,
+              category: skill.category.toLowerCase(),
+            },
+          }),
+        ),
+      );
     }
 
     res.json({ 
-      skills: detectedSkills,
+      skills: detectedSkills.map((skill) => ({
+        ...skill,
+        confidence: Number((skill.confidence / 100).toFixed(2)),
+      })),
       message: detectedSkills.length > 0 
         ? `NOVA detected ${detectedSkills.length} skill(s) in your post`
         : "No skills detected in this post"
@@ -78,23 +109,29 @@ router.post("/skills/detect", async (req: Request, res: Response) => {
 router.get("/skills/detected", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    
-    // Get posts by user with skills in metadata
-    const posts = await (db as any).post.findMany({
-      where: { authorId: userId },
-      select: { id: true, metadata: true }
+
+    const detections = await db.novaSkillDetection.findMany({
+      where: { userId },
+      select: { skill: true, confidence: true, category: true },
+      orderBy: { createdAt: "desc" },
     });
 
     const allSkills: Record<string, {skill: string, confidence: number, category: string, count: number}> = {};
-    posts.forEach((post: any) => {
-      if (post.metadata?.novaSkills) {
-        post.metadata.novaSkills.forEach((s: any) => {
-          if (!allSkills[s.skill]) {
-            allSkills[s.skill] = { ...s, count: 1 };
-          } else {
-            allSkills[s.skill].count++;
-          }
-        });
+    detections.forEach((detection) => {
+      const normalizedConfidence = Number((detection.confidence / 100).toFixed(2));
+      if (!allSkills[detection.skill]) {
+        allSkills[detection.skill] = {
+          skill: detection.skill,
+          confidence: normalizedConfidence,
+          category: detection.category ?? "general",
+          count: 1,
+        };
+      } else {
+        allSkills[detection.skill].count += 1;
+        allSkills[detection.skill].confidence = Math.max(
+          allSkills[detection.skill].confidence,
+          normalizedConfidence,
+        );
       }
     });
 
@@ -112,26 +149,52 @@ router.get("/skills/detected", async (req: Request, res: Response) => {
 
 router.post("/posts/:postId/quote", async (req: Request, res: Response) => {
   try {
+    const tenantId = req.user!.tenantId;
     const userId = req.user!.userId;
     const postId = String(req.params.postId || "");
     if (!postId) return res.status(400).json({ error: "Post ID required" });
-    const { commentary } = req.body;
+    const commentary = String(req.body?.commentary ?? "").trim();
 
-    const originalPost = await (db as any).post.findUnique({ where: { id: postId } });
+    const originalPost = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+      select: { id: true, tenantId: true, content: true, authorId: true, createdAt: true },
+    });
     if (!originalPost) {
       return res.status(404).json({ error: "Original post not found" });
     }
 
-    const quotePost = await (db as any).post.create({
-      data: {
-        tenantId: originalPost.tenantId,
-        authorId: userId,
-        content: commentary || "",
-        metadata: { quotedFrom: postId }
-      },
+    const quotePost = await db.$transaction(async (tx) => {
+      const createdPost = await tx.post.create({
+        data: {
+          tenantId: originalPost.tenantId,
+          authorId: userId,
+          content: commentary || "Shared a quote post",
+          quotedPostId: postId,
+        },
+        include: {
+          author: { select: { id: true, name: true, email: true } },
+          _count: { select: { likes: true, comments: true } },
+          tags: { include: { tag: true } },
+        },
+      });
+
+      await tx.quotePost.create({
+        data: { postId: createdPost.id, quotedPostId: postId },
+      });
+
+      return createdPost;
     });
 
-    res.json({ post: quotePost, quotedPost: originalPost });
+    res.status(201).json({
+      post: {
+        ...quotePost,
+        likeCount: quotePost._count.likes,
+        commentCount: quotePost._count.comments,
+        liked: false,
+        tags: quotePost.tags.map((t) => t.tag.name),
+      },
+      quotedPost: originalPost,
+    });
   } catch (error) {
     console.error("Quote post error:", error);
     res.status(500).json({ error: "Failed to create quote post" });
@@ -140,20 +203,38 @@ router.post("/posts/:postId/quote", async (req: Request, res: Response) => {
 
 router.get("/posts/:postId/quotes", async (req: Request, res: Response) => {
   try {
+    const tenantId = req.user!.tenantId;
+    const userId = req.user!.userId;
     const postId = String(req.params.postId || "");
     if (!postId) return res.status(400).json({ error: "Post ID required" });
 
-    const quotes = await (db as any).post.findMany({
-      where: { 
-        metadata: { path: ["quotedFrom"], equals: postId }
+    const quotes = await db.quotePost.findMany({
+      where: {
+        quotedPostId: postId,
+        post: { tenantId, deletedAt: null },
       },
       include: {
-        author: { select: { id: true, name: true } },
+        post: {
+          include: {
+            author: { select: { id: true, name: true, email: true } },
+            _count: { select: { likes: true, comments: true } },
+            likes: { where: { userId }, select: { id: true } },
+            tags: { include: { tag: true } },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    res.json({ quotes });
+    res.json({
+      quotes: quotes.map((quote) => ({
+        ...quote.post,
+        likeCount: quote.post._count.likes,
+        commentCount: quote.post._count.comments,
+        liked: quote.post.likes.length > 0,
+        tags: quote.post.tags.map((t) => t.tag.name),
+      })),
+    });
   } catch (error) {
     console.error("Get quotes error:", error);
     res.status(500).json({ error: "Failed to get quotes" });
@@ -171,7 +252,7 @@ router.post("/posts/:postId/save", async (req: Request, res: Response) => {
     if (!postId) return res.status(400).json({ error: "Post ID required" });
     const { isPublic } = req.body;
 
-    const saved = await (db as any).savedPost.upsert({
+    const saved = await db.savedPost.upsert({
       where: { userId_postId: { userId, postId } },
       create: { userId, postId, isPublic: isPublic || false },
       update: { isPublic: isPublic || false },
@@ -190,7 +271,7 @@ router.delete("/posts/:postId/save", async (req: Request, res: Response) => {
     const postId = String(req.params.postId || "");
     if (!postId) return res.status(400).json({ error: "Post ID required" });
 
-    await (db as any).savedPost.deleteMany({ where: { userId, postId } });
+    await db.savedPost.deleteMany({ where: { userId, postId } });
     res.json({ success: true });
   } catch (error) {
     console.error("Failed to unsave post:", error);
@@ -202,17 +283,17 @@ router.get("/posts/saved", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
 
-    const saved = await (db as any).savedPost.findMany({
+    const saved = await db.savedPost.findMany({
       where: { userId },
       include: {
         post: {
-          include: { author: { select: { id: true, name: true, avatar: true } } },
+          include: { author: { select: { id: true, name: true, email: true } } },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    res.json({ saved: saved.map((s: any) => s.post) });
+    res.json({ saved: saved.map((savedEntry) => savedEntry.post) });
   } catch (error) {
     console.error("Failed to get saved posts:", error);
     res.status(500).json({ error: "Failed to get saved posts" });
@@ -227,14 +308,12 @@ router.get("/achievements/share/:type", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const type = String(req.params.type || "");
-    const { id } = req.query;
-
-    const user = await (db as any).user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId },
       select: { name: true, trustScore: true, trustScoreTier: true },
     });
 
-    let cardData: any = {
+    const cardData: Record<string, unknown> = {
       type,
       user,
     };
@@ -273,12 +352,12 @@ router.get("/insights/weekly", async (req: Request, res: Response) => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
-    const posts = await (db as any).post.findMany({
+    const posts = await db.post.findMany({
       where: { authorId: userId, createdAt: { gte: weekAgo } },
       select: { id: true, content: true, createdAt: true },
     });
 
-    const followers = await (db as any).follow.findMany({
+    const followers = await db.follow.findMany({
       where: { followingId: userId, createdAt: { gte: weekAgo } },
     });
 
@@ -310,12 +389,12 @@ router.get("/insights/banner", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
 
-    const user = await (db as any).user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId },
       select: { name: true, trustScore: true },
     });
 
-    const lastPost = await (db as any).post.findFirst({
+    const lastPost = await db.post.findFirst({
       where: { authorId: userId },
       orderBy: { createdAt: "desc" },
     });
@@ -344,8 +423,6 @@ router.get("/insights/banner", async (req: Request, res: Response) => {
 
 router.get("/opportunities", async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
-
     const opportunities = [
       {
         type: "skill-match",
@@ -379,10 +456,10 @@ router.get("/opportunities", async (req: Request, res: Response) => {
 router.get("/feed-preferences", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    let prefs = await (db as any).userFeedPreference.findUnique({ where: { userId } });
+    let prefs = await db.userFeedPreference.findUnique({ where: { userId } });
 
     if (!prefs) {
-      prefs = await (db as any).userFeedPreference.create({
+      prefs = await db.userFeedPreference.create({
         data: { userId },
       });
     }
@@ -397,23 +474,40 @@ router.get("/feed-preferences", async (req: Request, res: Response) => {
 router.put("/feed-preferences", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { feedMode, selectedSkills, mutedUsers, followedOnly } = req.body;
+    const feedModeRaw = String(req.body?.feedMode ?? "foryou");
+    const allowedFeedModes = new Set(["foryou", "following", "intelligence"]);
+    const feedMode = allowedFeedModes.has(feedModeRaw) ? feedModeRaw : "foryou";
+    const novaIntelligence = req.body?.novaIntelligence;
+    const quickPostEnabled = req.body?.quickPostEnabled;
 
-    const prefs = await (db as any).userFeedPreference.upsert({
+    const createData: {
+      userId: string;
+      feedMode: string;
+      novaIntelligence?: boolean;
+      quickPostEnabled?: boolean;
+    } = {
+      userId,
+      feedMode,
+    };
+
+    if (typeof novaIntelligence === "boolean") createData.novaIntelligence = novaIntelligence;
+    if (typeof quickPostEnabled === "boolean") createData.quickPostEnabled = quickPostEnabled;
+
+    const updateData: {
+      feedMode: string;
+      novaIntelligence?: boolean;
+      quickPostEnabled?: boolean;
+    } = {
+      feedMode,
+    };
+
+    if (typeof novaIntelligence === "boolean") updateData.novaIntelligence = novaIntelligence;
+    if (typeof quickPostEnabled === "boolean") updateData.quickPostEnabled = quickPostEnabled;
+
+    const prefs = await db.userFeedPreference.upsert({
       where: { userId },
-      create: {
-        userId,
-        feedMode: feedMode ?? "for-you",
-        selectedSkills: selectedSkills ?? [],
-        mutedUsers: mutedUsers ?? [],
-        followedOnly: followedOnly ?? false,
-      },
-      update: {
-        feedMode: feedMode,
-        selectedSkills: selectedSkills,
-        mutedUsers: mutedUsers,
-        followedOnly: followedOnly,
-      },
+      create: createData,
+      update: updateData,
     });
 
     res.json({ preferences: prefs });
@@ -435,20 +529,29 @@ router.get("/feed/intelligence", async (req: Request, res: Response) => {
     const limit = parseInt(String(req.query.limit ?? "15"));
 
     // Get posts with high engagement
-    const posts = await (db as any).post.findMany({
+    const posts = await db.post.findMany({
       where: { tenantId, deletedAt: null },
       include: {
-        author: { select: { id: true, name: true, trustScore: true, avatar: true } },
+        author: { select: { id: true, name: true, trustScore: true } },
+        _count: { select: { likes: true, comments: true } },
+        likes: { where: { userId }, select: { id: true } },
+        tags: { include: { tag: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ engagementScore: "desc" }, { createdAt: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
     });
 
-    const total = await (db as any).post.count({ where: { tenantId, deletedAt: null } });
+    const total = await db.post.count({ where: { tenantId, deletedAt: null } });
 
     res.json({
-      posts,
+      posts: posts.map((post) => ({
+        ...post,
+        likeCount: post._count.likes,
+        commentCount: post._count.comments,
+        liked: post.likes.length > 0,
+        tags: post.tags.map((t) => t.tag.name),
+      })),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       novaContext: { recommendations: `NOVA selected ${posts.length} posts for your feed` },
     });

@@ -99,7 +99,7 @@ model User {
   endorsedSkills     SkillEndorsement[]  @relation("Endorsee")
   givenEndorsements  SkillEndorsement[]  @relation("Endorser")
   learningTracks     GroupLearningTrack[] @relation("LearningTrackCreator")
-  novaSkills         NovaSkillDetection[]
+  novaSkills         NovaSkillDetection[] @relation("UserNovaSkills")
   postReactions      PostReaction[]
 
   // Diaspora Directory fields
@@ -339,8 +339,10 @@ model Post {
   group    Group?    @relation("GroupPosts", fields: [groupId], references: [id])
   savedPosts SavedPost[]
   novaSkills  NovaSkillDetection[]
-  quotedPost  Post?    @relation("QuotedPost", fields: [quotedPostId], references: [id])
-  quotingPosts QuotePost[] @relation("QuotingPost")
+  quotedPost      Post?      @relation("SelfQuotedPost", fields: [quotedPostId], references: [id])
+  quotedByPosts   Post[]     @relation("SelfQuotedPost")
+  quotingPosts    QuotePost[] @relation("QuotingPost")
+  quotedInPosts   QuotePost[] @relation("QuotedPost")
 
   @@index([tenantId, createdAt(sort: Desc)])
   @@index([authorId])

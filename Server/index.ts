@@ -136,7 +136,6 @@ app.use("/posts", postRoutes);
 app.use("/groups", groupRoutes);
 app.use("/spaces", liveSpaceRoutes);
 app.use("/opportunities", opportunityRoutes);
-app.use("/community", (await import("./routes/communityIntelligenceRoutes.js")).default);
 // app.use("/creator", creatorRoutes);
 
 // ─────────────────────────────────────────────────────────────────────────────

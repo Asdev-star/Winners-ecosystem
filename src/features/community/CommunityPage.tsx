@@ -3,7 +3,7 @@
 // NOVA Intelligence · Ice-Blue Identity · Agentic Loop · Social Architecture
 // Design: CSS variables only · zero hardcoded hex · Syne + Space Mono + Cormorant Garamond
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
@@ -1257,13 +1257,16 @@ interface Post {
   id: string;
   content: string;
   authorId: string;
-  author: { id: string; name: string; role: string };
+  author: { id: string; name: string; role?: string };
   tags: { tag: { name: string } }[];
   likes: { userId: string }[];
   comments: Comment[];
   isPinned: boolean;
   createdAt: string;
   _count?: { likes: number; comments: number };
+  likeCount?: number;
+  commentCount?: number;
+  liked?: boolean;
   skillDetections?: SkillDetection[];
   loopStage?: "skill" | "course" | "income";
 }
@@ -1316,6 +1319,73 @@ function trustTier(score: number): string {
   if (score >= 65) return "gold";
   if (score >= 40) return "silver";
   return "bronze";
+}
+
+function normalizeConfidence(raw: number): number {
+  if (raw <= 1) return Number(raw.toFixed(2));
+  return Number((raw / 100).toFixed(2));
+}
+
+function mapDetectedSkills(skills: Array<{ skill: string; confidence: number; category?: string }>): SkillDetection[] {
+  return skills.map((skill) => ({
+    skillName: skill.skill,
+    confidence: normalizeConfidence(skill.confidence),
+    category: skill.category ?? "technical",
+  }));
+}
+
+function normalizeTags(tags: unknown): { tag: { name: string } }[] {
+  if (!Array.isArray(tags)) return [];
+  if (tags.length === 0) return [];
+
+  if (typeof tags[0] === "string") {
+    return (tags as string[]).map((tag) => ({ tag: { name: tag } }));
+  }
+
+  return (tags as Array<{ tag?: { name?: string } }>).map((item) => ({
+    tag: { name: item?.tag?.name ?? "" },
+  })).filter((item) => item.tag.name.length > 0);
+}
+
+function normalizePost(post: Partial<Post> & Record<string, unknown>, index: number, currentUserId?: string): Post {
+  const tags = normalizeTags(post.tags);
+  const likes = Array.isArray(post.likes)
+    ? (post.likes as Array<{ userId?: string }>).filter((like) => !!like.userId).map((like) => ({ userId: String(like.userId) }))
+    : [];
+  const liked = Boolean(post.liked) || likes.some((like) => like.userId === currentUserId);
+
+  const fallbackSkillDetections =
+    tags.length > 0
+      ? tags.slice(0, 2).map((tag) => ({
+          skillName: tag.tag.name,
+          confidence: 0.75 + Math.random() * 0.22,
+          category: "technical",
+        }))
+      : [];
+
+  return {
+    id: String(post.id ?? ""),
+    content: String(post.content ?? ""),
+    authorId: String(post.authorId ?? ""),
+    author: {
+      id: String((post.author as { id?: string } | undefined)?.id ?? ""),
+      name: String((post.author as { name?: string } | undefined)?.name ?? "Unknown"),
+      role: (post.author as { role?: string } | undefined)?.role ?? "Member",
+    },
+    tags,
+    likes: likes.length > 0 ? likes : liked && currentUserId ? [{ userId: currentUserId }] : [],
+    comments: Array.isArray(post.comments) ? (post.comments as Comment[]) : [],
+    isPinned: Boolean(post.isPinned),
+    createdAt: String(post.createdAt ?? new Date().toISOString()),
+    _count: post._count as { likes: number; comments: number } | undefined,
+    likeCount: typeof post.likeCount === "number" ? post.likeCount : undefined,
+    commentCount: typeof post.commentCount === "number" ? post.commentCount : undefined,
+    liked,
+    skillDetections: Array.isArray(post.skillDetections)
+      ? (post.skillDetections as SkillDetection[])
+      : fallbackSkillDetections,
+    loopStage: index % 3 === 0 ? "skill" : index % 3 === 1 ? "course" : "income",
+  };
 }
 
 // ─── Static demo data ─────────────────────────────────────────────────────────
@@ -1434,96 +1504,174 @@ export default function CommunityPage() {
   const [loopStage, setLoopStage]       = useState(1);
   const [trustScore]                    = useState(67);
 
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const headers = useMemo(
+    () => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }),
+    [token],
+  );
 
   // ── Fetch posts ──────────────────────────────────────────────────────────────
   const fetchPosts = useCallback(async (p = 1, append = false) => {
     if (p === 1) setLoading(true);
     try {
-      const res  = await fetch(`${API}/posts?page=${p}&limit=10`, { headers });
+      const endpoint =
+        feedTab === "nova"
+          ? `${API}/community/feed/intelligence?page=${p}&limit=10`
+          : `${API}/posts?page=${p}&limit=10`;
+      const res = await fetch(endpoint, { headers });
+      if (!res.ok) throw new Error("Failed to fetch posts");
+
       const data = await res.json();
-      const list: Post[] = (data.posts ?? []).map((post: Post, i: number) => ({
-        ...post,
-        loopStage: i % 3 === 0 ? "skill" : i % 3 === 1 ? "course" : "income",
-        skillDetections:
-          post.tags?.length > 0
-            ? post.tags.slice(0, 2).map((t) => ({
-                skillName: t.tag.name,
-                confidence: 0.75 + Math.random() * 0.22,
-                category: "technical",
-              }))
-            : [],
-      }));
+      const list: Post[] = (data.posts ?? []).map(
+        (post: Partial<Post> & Record<string, unknown>, i: number) => normalizePost(post, i, user?.id),
+      );
+
       setPosts((prev) => append ? [...prev, ...list] : list);
-      setHasMore(data.hasMore ?? false);
+      setHasMore(
+        Boolean(
+          data.hasMore ??
+          (typeof data?.pagination?.pages === "number" ? p < data.pagination.pages : false),
+        ),
+      );
       if (append) setTotalPosts((n) => n + list.length);
     } catch {
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [feedTab, headers, user?.id]);
 
   useEffect(() => { fetchPosts(1); }, [fetchPosts]);
 
-  // ── NOVA streaming insight ───────────────────────────────────────────────────
   useEffect(() => {
-    const insight = NOVA_INSIGHTS[Math.floor(Math.random() * NOVA_INSIGHTS.length)];
-    let i = 0;
-    setNovaInsight("");
-    setNovaStreaming(true);
-    const interval = setInterval(() => {
-      i += 2;
-      setNovaInsight(insight.slice(0, i));
-      if (i >= insight.length) {
-        clearInterval(interval);
-        setNovaStreaming(false);
-      }
-    }, 28);
-    return () => clearInterval(interval);
-  }, []);
+    let cancelled = false;
 
-  // ── Simulate new posts appearing ────────────────────────────────────────────
+    const loadSavedPosts = async () => {
+      try {
+        const res = await fetch(`${API}/community/posts/saved`, { headers });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+
+        const ids = new Set<string>(
+          Array.isArray(data?.saved)
+            ? data.saved.map((post: { id?: string }) => String(post?.id ?? "")).filter(Boolean)
+            : [],
+        );
+        setSavedPosts(ids);
+      } catch {
+        // Ignore transient saved-post fetch issues.
+      }
+    };
+
+    loadSavedPosts();
+    return () => {
+      cancelled = true;
+    };
+  }, [headers]);
+
   useEffect(() => {
+    let cancelled = false;
+    setNovaStreaming(true);
+
+    const loadInsight = async () => {
+      try {
+        const res = await fetch(`${API}/community/insights/banner`, { headers });
+        if (!res.ok) throw new Error("Failed to fetch insight");
+        const data = await res.json();
+        if (cancelled) return;
+        setNovaInsight(String(data?.insight ?? ""));
+      } catch {
+        const fallback = NOVA_INSIGHTS[Math.floor(Math.random() * NOVA_INSIGHTS.length)];
+        if (cancelled) return;
+        setNovaInsight(fallback);
+      } finally {
+        if (!cancelled) setNovaStreaming(false);
+      }
+    };
+
+    loadInsight();
+    return () => {
+      cancelled = true;
+    };
+  }, [headers]);
+
+  useEffect(() => {
+    const persistFeedMode = async () => {
+      const feedMode = feedTab === "nova" ? "intelligence" : feedTab;
+      try {
+        await fetch(`${API}/community/feed-preferences`, {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ feedMode }),
+        });
+      } catch {
+        // Feed preference sync failure should not block UI.
+      }
+    };
+
+    persistFeedMode();
+  }, [feedTab, headers]);
+
+  useEffect(() => {
+    if (feedTab === "nova") {
+      setNewPostsCount(0);
+      return;
+    }
     const t = setTimeout(() => setNewPostsCount(2), 18000);
     return () => clearTimeout(t);
-  }, []);
+  }, [feedTab]);
 
-  // ── Post handlers ────────────────────────────────────────────────────────────
+  // ── Post handlers ──────────────────────────────────────────────────────────── ────────────────────────────────────────────────────────────
   const handlePost = async (c = content, t = tags) => {
     if (!c.trim() || posting) return;
     setPosting(true);
     try {
       const tagArr = t.split(",").map((s) => s.trim()).filter(Boolean);
-      const res  = await fetch(`${API}/posts`, {
+      const res = await fetch(`${API}/posts`, {
         method: "POST",
         headers,
         body: JSON.stringify({ content: c, tags: tagArr }),
       });
       if (res.ok) {
         const newPost = await res.json();
-        const enriched: Post = {
-          ...newPost,
-          loopStage: "skill",
-          skillDetections:
-            tagArr.length > 0
-              ? tagArr.slice(0, 2).map((tag) => ({
-                  skillName: tag,
-                  confidence: 0.82 + Math.random() * 0.15,
-                  category: "technical",
-                }))
-              : [],
-        };
+        let skillDetections: SkillDetection[] = [];
+
+        try {
+          const skillRes = await fetch(`${API}/community/skills/detect`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ content: c, postId: newPost.id }),
+          });
+          if (skillRes.ok) {
+            const skillData = await skillRes.json();
+            if (Array.isArray(skillData?.skills)) {
+              skillDetections = mapDetectedSkills(skillData.skills);
+            }
+          }
+        } catch {
+          skillDetections = tagArr.slice(0, 2).map((tag) => ({
+            skillName: tag,
+            confidence: 0.85,
+            category: "technical",
+          }));
+        }
+
+        const enriched = normalizePost(
+          { ...newPost, skillDetections },
+          0,
+          user?.id,
+        );
+        enriched.loopStage = "skill";
+
         setPosts((prev) => [enriched, ...prev]);
         setContent("");
         setTags("");
         setQuickContent("");
         setTotalPosts((n) => n + 1);
 
-        // Simulate NOVA detecting skill and showing handoff
-        if (tagArr.length > 0 || c.length > 60) {
+        if (skillDetections.length > 0 || c.length > 60) {
           setTimeout(() => {
-            const skill = tagArr[0] || "Full-Stack Development";
+            const skill = skillDetections[0]?.skillName || tagArr[0] || "Full-Stack Development";
             setHandoffCards((prev) => [
               {
                 id: Date.now().toString(),
@@ -1552,17 +1700,28 @@ export default function CommunityPage() {
   };
 
   const handleLike = async (postId: string) => {
-    const res  = await fetch(`${API}/posts/${postId}/like`, { method: "POST", headers });
+    const res = await fetch(`${API}/posts/${postId}/like`, { method: "POST", headers });
     const data = await res.json();
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
         const hasMyLike = p.likes?.some((l) => l.userId === user?.id);
         const currentLikes = p.likes ?? [];
+        const currentLikeCount = p.likeCount ?? p._count?.likes ?? currentLikes.length;
         if (data.liked === true && !hasMyLike)
-          return { ...p, likes: [...currentLikes, { userId: user?.id ?? "" }] };
+          return {
+            ...p,
+            likes: [...currentLikes, { userId: user?.id ?? "" }],
+            liked: true,
+            likeCount: currentLikeCount + 1,
+          };
         if (data.liked === false && hasMyLike)
-          return { ...p, likes: currentLikes.filter((l) => l.userId !== user?.id) };
+          return {
+            ...p,
+            likes: currentLikes.filter((l) => l.userId !== user?.id),
+            liked: false,
+            likeCount: Math.max(0, currentLikeCount - 1),
+          };
         return p;
       })
     );
@@ -1614,12 +1773,48 @@ export default function CommunityPage() {
       return n;
     });
 
-  const toggleSave = (postId: string) =>
-    setSavedPosts((prev) => {
-      const n = new Set(prev);
-      n.has(postId) ? n.delete(postId) : n.add(postId);
-      return n;
+  const toggleSave = async (postId: string) => {
+    const isSaved = savedPosts.has(postId);
+    const method = isSaved ? "DELETE" : "POST";
+    const body = isSaved ? undefined : JSON.stringify({ isPublic: false });
+
+    const res = await fetch(`${API}/community/posts/${postId}/save`, {
+      method,
+      headers,
+      body,
     });
+    if (!res.ok) return;
+
+    setSavedPosts((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
+  };
+
+  const handleQuote = async (postId: string) => {
+    const commentary = prompt("Add commentary for your quote-share (optional):");
+    if (commentary === null) return;
+
+    const res = await fetch(`${API}/community/posts/${postId}/quote`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ commentary }),
+    });
+    if (!res.ok) return;
+
+    const data = await res.json();
+    if (!data?.post) return;
+
+    const normalized = normalizePost(data.post as Partial<Post> & Record<string, unknown>, 0, user?.id);
+    normalized.loopStage = "skill";
+    setPosts((prev) => [normalized, ...prev]);
+    setTotalPosts((n) => n + 1);
+  };
 
   const loadMore = () => {
     const next = page + 1;
@@ -1679,19 +1874,19 @@ export default function CommunityPage() {
           <div className="cm-feed-tabs">
             <button
               className={`cm-tab ${feedTab === "foryou" ? "active" : ""}`}
-              onClick={() => { setFeedTab("foryou"); fetchPosts(1); }}
+              onClick={() => { setPage(1); setFeedTab("foryou"); }}
             >
               For You
             </button>
             <button
               className={`cm-tab ${feedTab === "following" ? "active" : ""}`}
-              onClick={() => { setFeedTab("following"); fetchPosts(1); }}
+              onClick={() => { setPage(1); setFeedTab("following"); }}
             >
               Following
             </button>
             <button
               className={`cm-tab cm-tab-nova ${feedTab === "nova" ? "active" : ""}`}
-              onClick={() => { setFeedTab("nova"); fetchPosts(1); }}
+              onClick={() => { setPage(1); setFeedTab("nova"); }}
             >
               🤖 NOVA Intelligence
             </button>
@@ -1798,12 +1993,12 @@ export default function CommunityPage() {
             </div>
           ) : (
             posts.map((post) => {
-              const isLiked     = post.likes?.some((l) => l.userId === user?.id);
+              const isLiked     = post.liked ?? post.likes?.some((l) => l.userId === user?.id);
               const isSaved     = savedPosts.has(post.id);
               const isExpanded  = expandedPosts.has(post.id);
               const showMore    = post.content.length > 220 && !isExpanded;
-              const likeCount   = post.likes?.length ?? post._count?.likes ?? 0;
-              const commentCount = post.comments?.length ?? post._count?.comments ?? 0;
+              const likeCount   = post.likeCount ?? post._count?.likes ?? post.likes?.length ?? 0;
+              const commentCount = post.commentCount ?? post._count?.comments ?? post.comments?.length ?? 0;
               const isOwnPost   = post.authorId === user?.id;
               const postTier    = trustTier(Math.floor(Math.random() * 40) + 50);
 
@@ -1906,7 +2101,13 @@ export default function CommunityPage() {
                       💬 {commentCount > 0 && commentCount}
                     </button>
 
-                    <button className="cm-action-btn" title="Quote-share">↗ Quote</button>
+                    <button
+                      className="cm-action-btn"
+                      title="Quote-share"
+                      onClick={() => handleQuote(post.id)}
+                    >
+                      ↗ Quote
+                    </button>
 
                     <button
                       className={`cm-action-btn ${isSaved ? "saved" : ""}`}

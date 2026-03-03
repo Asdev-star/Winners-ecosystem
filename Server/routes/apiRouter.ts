@@ -30,6 +30,7 @@ import messageRoutes from "./messageRoutes.js";
 import aiPlatformRoutes from "./aiPlatformRoutes.js";
 import liveSpaceRoutes from "./liveSpaceRoutes.js";
 import opportunityRoutes from "./opportunityRoutes.js";
+import communityIntelligenceRoutes from "./communityIntelligenceRoutes.js";
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = Router();
@@ -64,6 +65,7 @@ const gatewayRoutes = [
   "/chat",
   "/messages",
   "/ai-platform",
+  "/community",
 ];
 
 router.get("/", (_req, res) => {
@@ -110,5 +112,6 @@ router.use("/messages", messageRoutes);
 router.use("/ai-platform", aiPlatformRoutes);
 router.use("/spaces", liveSpaceRoutes);
 router.use("/opportunities", opportunityRoutes);
+router.use("/community", communityIntelligenceRoutes);
 
 export default router;
