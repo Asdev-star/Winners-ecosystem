@@ -3,11 +3,11 @@
 // Autonomous actions, weekly reports, proposal scoring, credit management
 
 import { Router, Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import db from "../db.js";
 import Anthropic from "@anthropic-ai/sdk";
 
 const router = Router();
-const prisma = new PrismaClient();
+const prisma = db;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // Middleware to require authentication
