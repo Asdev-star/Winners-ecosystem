@@ -75,7 +75,7 @@ export async function startQuizAttempt(quizId: string, userId: string) {
   // Check for existing attempt
   const existing = await prisma.quizAttempt.findUnique({
     where: {
-      quizId_userId: { quizId, userId }
+      quiz_user_attempt: { quizId, userId }
     }
   });
 
@@ -223,7 +223,7 @@ export async function submitQuizAttempt(
       score: totalScore,
       percentage,
       passed,
-      answers: gradedAnswers,
+      answers: gradedAnswers as any,
       timeTakenSecs,
       completedAt: new Date()
     }
