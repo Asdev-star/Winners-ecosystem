@@ -117,7 +117,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
   const navigate = useNavigate();
   const config = ASSISTANT_CONFIG[assistant];
-  const defaultMsg = DEFAULT_MESSAGES[assistant] || DEFAULT_MESSAGES.default;
+  const defaultMsg = DEFAULT_MESSAGES[assistant] ?? { headline: 'No data yet', body: 'Start exploring to see content here.' };
   
   const displayHeadline = headline || defaultMsg.headline;
   const displayBody = body || defaultMsg.body;
