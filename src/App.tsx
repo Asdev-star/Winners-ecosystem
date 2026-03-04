@@ -53,6 +53,10 @@ import AIPlatformPage from "./features/intelligence/ai-platform/AIPlatformPage";
 import InstructorDashboard from "./features/academy/InstructorDashboard";
 import CourseCreatePage from "./features/academy/CourseCreatePage";
 import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
+import MarketPage from "./features/market/MarketPage";
+import WinnersMarketExpanded from "./features/market/WinnersMarketExpanded";
+import WinnersDropshipping from "./features/market/dropshipping/WinnersDropshipping";
+import CreatorProfilePage from "./features/community/CreatorProfilePage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -112,6 +116,7 @@ function App() {
             <Route path="community/opportunities" element={<OpportunityBoardPage />} />
             <Route path="community/analytics" element={<CreatorAnalyticsPage />} />
             <Route path="community/creator" element={<CreatorEconomyPage />} />
+            <Route path="community/profile/:id" element={<CreatorProfilePage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="messages/:conversationId" element={<MessagesPage />} />
             <Route path="academy" element={<AcademyPage />} />
@@ -123,6 +128,9 @@ function App() {
             <Route path="academy/instructor" element={<InstructorDashboard />} />
             <Route path="academy/instructor/create" element={<CourseCreatePage />} />
             <Route path="academy/instructor/edit/:id" element={<CourseCreatePage />} />
+            <Route path="market" element={<WinnersMarketExpanded />} />
+            <Route path="market/dropshipping" element={<WinnersDropshipping />} />
+            <Route path="market/:vertical" element={<MarketPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to={user ? "/dashboard" : "/landing"} replace />} />

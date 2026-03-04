@@ -1166,3 +1166,67 @@ model Review {
   @@index([courseId])
   @@map("reviews")
 }
+
+// ─── Quiz System ──────────────────────────────────────────────────────────────
+model Quiz {
+  id          String   @id @default(cuid())
+  courseId    String
+  moduleId    String?
+  title       String
+  description String?
+  passingScore Int     @default(70)  // percentage required to pass
+  timeLimit   Int?     // minutes, null = no limit
+  shuffleQuestions Boolean @default(false)
+  showResults Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([courseId])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id          String        @id @default(cuid())
+  quizId      String
+  question    String        @db.Text
+  questionType QuestionType @default(MULTIPLE_CHOICE)
+  options     Json          // array of option strings for MCQ
+  correctAnswer String      // for MCQ: option text, for TRUE_FALSE: "true"/"false"
+  explanation String?       @db.Text // shown after answer
+  points      Int           @default(1)
+  order       Int           @default(0)
+  createdAt   DateTime      @default(now())
+
+  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade, map: "QuizQuestions")
+
+  @@index([quizId])
+  @@map("quiz_questions")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+}
+
+model QuizAttempt {
+  id            String   @id @default(cuid())
+  quizId        String
+  userId        String
+  score         Int      // raw score
+  percentage    Float    // percentage score
+  passed        Boolean
+  answers       Json     // { questionId: selectedAnswer, isCorrect: boolean }[]
+  timeTakenSecs Int?
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  quiz     Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade, map: "QuizAttempts")
+
+  @@unique([quizId, userId], name: "quiz_user_attempt") // one attempt per user per quiz
+  @@index([userId])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}

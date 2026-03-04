@@ -1,38 +1,134 @@
 // Server/routes/communityIntelligenceRoutes.ts
 // Phase 2 V2.0: Community Intelligence Upgrade
-// Simplified version - avoids complex Prisma relations
+// NOVA AI-powered skill detection, insights, and cross-layer handoffs
 
 import { Router, Request, Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
 
+// Claude API client for NOVA intelligence
+let anthropic: any = null;
+try {
+  const Anthropic = require("@anthropic-ai/sdk");
+  anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+} catch (e) {
+  console.warn("[NOVA] Anthropic SDK not available - using fallback detection");
+}
+
 const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
 
 // ============================================
-// NOVA SKILL DETECTION
+// NOVA SKILL DETECTION - Claude API Powered
 // ============================================
 
-async function detectSkillsWithNOVA(content: string): Promise<Array<{skill: string, confidence: number, category: string}>> {
-  const skills: Array<{skill: string, confidence: number, category: string}> = [];
-  
+async function detectSkillsWithNOVA(
+  content: string,
+  userId: string
+): Promise<Array<{ skill: string; confidence: number; category: string }>> {
+  // If Claude API is available, use it for intelligent detection
+  if (anthropic) {
+    try {
+      // Get user's existing skills for context
+      const existingSkills = await db.novaSkillDetection.findMany({
+        where: { userId },
+        select: { skill: true },
+        distinct: ["skill"],
+        orderBy: { confidence: "desc" },
+        take: 10,
+      });
+
+      const existingSkillNames = existingSkills.map((s) => s.skill).join(", ");
+
+      const message = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 500,
+        messages: [
+          {
+            role: "user",
+            content: `You are NOVA, the Winners Ecosystem Community Intelligence Supervisor.
+
+Analyse this post and identify professional skills demonstrated or discussed.
+Return ONLY valid JSON — no preamble, no markdown, just the JSON object.
+
+{
+  "skills": [
+    { "name": "string", "confidence": 0.0-1.0, "category": "technical|creative|business|soft|language" }
+  ],
+  "summary": "one sentence describing what skill area this person is developing"
+}
+
+Rules:
+- Only include skills with confidence above 0.65
+- Maximum 5 skills per post
+- Be specific: "React" not "programming", "Copywriting" not "writing"
+- Do not hallucinate skills not evidenced in the text
+- Existing skills for context: ${existingSkillNames || "none yet"}
+
+Post content: "${content.substring(0, 2000)}"`,
+          },
+        ],
+      });
+
+      const raw =
+        message.content[0].type === "text" ? message.content[0].text : "{}";
+      let parsed;
+      try {
+        parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      } catch {
+        parsed = { skills: [], summary: "" };
+      }
+
+      if (parsed.skills && parsed.skills.length > 0) {
+        return parsed.skills
+          .filter((s: any) => s.confidence >= 0.65)
+          .slice(0, 5)
+          .map((s: any) => ({
+            skill: s.name,
+            confidence: Math.round(s.confidence * 100),
+            category: s.category || "technical",
+          }));
+      }
+    } catch (error) {
+      console.error("[NOVA] Claude API error, falling back to pattern matching:", error);
+    }
+  }
+
+  // Fallback: pattern-based detection
+  const skills: Array<{ skill: string; confidence: number; category: string }> = [];
+
   const skillPatterns = [
-    { pattern: /react|reactjs|react\.js/gi, skill: "React.js", category: "Frontend" },
-    { pattern: /typescript|ts\b/gi, skill: "TypeScript", category: "Frontend" },
-    { pattern: /node\.?js|express/gi, skill: "Node.js", category: "Backend" },
-    { pattern: /python/gi, skill: "Python", category: "Backend" },
-    { pattern: /next\.?js/gi, skill: "Next.js", category: "Frontend" },
-    { pattern: /figma/gi, skill: "Figma", category: "Design" },
-    { pattern: /docker|kubernetes|k8s/gi, skill: "DevOps", category: "Infrastructure" },
-    { pattern: /aws|azure|gcp/gi, skill: "Cloud Computing", category: "Infrastructure" },
+    { pattern: /react|reactjs|react\.js/gi, skill: "React.js", category: "technical" },
+    { pattern: /typescript|ts\b/gi, skill: "TypeScript", category: "technical" },
+    { pattern: /node\.?js|express/gi, skill: "Node.js", category: "technical" },
+    { pattern: /python/gi, skill: "Python", category: "technical" },
+    { pattern: /next\.?js/gi, skill: "Next.js", category: "technical" },
+    { pattern: /figma|ui\s*design/gi, skill: "UI/UX Design", category: "creative" },
+    { pattern: /docker|kubernetes|k8s/gi, skill: "DevOps", category: "technical" },
+    { pattern: /aws|azure|gcp/gi, skill: "Cloud Computing", category: "technical" },
+    { pattern: /python|ml|machine\s*learning|ai|artificial\s*intelligence/gi, skill: "AI/ML", category: "technical" },
+    { pattern: /javascript|js\b/gi, skill: "JavaScript", category: "technical" },
+    { pattern: /postgresql|mongodb|mysql|sql/gi, skill: "Databases", category: "technical" },
+    { pattern: /git|github|version\s*control/gi, skill: "Version Control", category: "technical" },
+    { pattern: /api|rest|graphql/gi, skill: "API Development", category: "technical" },
+    { pattern: /marketing|seo|advertising/gi, skill: "Digital Marketing", category: "business" },
+    { pattern: /copywriting|content\s*writing|blogging/gi, skill: "Content Writing", category: "creative" },
+    { pattern: /video\s*editing|animation|motion\s*graphics/gi, skill: "Video Editing", category: "creative" },
+    { pattern: /photography|photo\s*editing/gi, skill: "Photography", category: "creative" },
+    { pattern: /business\s*plan|startup|entrepreneurship/gi, skill: "Entrepreneurship", category: "business" },
+    { pattern: /accounting|bookkeeping|finance/gi, skill: "Finance", category: "business" },
+    { pattern: /public\s*speaking|presentation/gi, skill: "Public Speaking", category: "soft" },
+    { pattern: /leadership|team\s*management/gi, skill: "Leadership", category: "soft" },
   ];
 
   for (const { pattern, skill, category } of skillPatterns) {
     if (pattern.test(content)) {
-      // Stored confidence is 0-100 for analytics consistency.
-      skills.push({ skill, confidence: 85 + Math.random() * 10, category });
+      // Stored confidence is 0-100 for analytics consistency
+      skills.push({ skill, confidence: 75 + Math.random() * 20, category });
     }
   }
 
@@ -51,7 +147,7 @@ router.post("/skills/detect", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Content is required" });
     }
 
-    const detectedSkills = await detectSkillsWithNOVA(content);
+    const detectedSkills = await detectSkillsWithNOVA(content, userId);
 
     if (postId) {
       const post = await db.post.findFirst({
@@ -62,6 +158,9 @@ router.post("/skills/detect", async (req: Request, res: Response) => {
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
+
+      // Get io from app for WebSocket emission
+      const io = req.app.get("io");
 
       await Promise.all(
         detectedSkills.map((skill) =>
@@ -85,19 +184,48 @@ router.post("/skills/detect", async (req: Request, res: Response) => {
               confidence: skill.confidence,
               category: skill.category.toLowerCase(),
             },
-          }),
-        ),
+          })
+        )
       );
+
+      // Emit WebSocket event for real-time handoff card
+      if (io && detectedSkills.length > 0) {
+        io.to(`user:${userId}`).emit("nova:skill_detected", {
+          skills: detectedSkills,
+          postId,
+          timestamp: new Date(),
+        });
+
+        // Update Agentic Loop progress
+        await db.agenticLoopProgress.upsert({
+          where: { userId },
+          create: {
+            userId,
+            stage: 2,
+            stageName: "skill_detection",
+            currentStage: "academy",
+            skillsDetected: 1,
+            lastActivity: new Date(),
+          },
+          update: {
+            currentStage: "academy",
+            skillsDetected: { increment: 1 },
+            lastActivity: new Date(),
+          },
+        });
+      }
     }
 
-    res.json({ 
+    res.json({
       skills: detectedSkills.map((skill) => ({
-        ...skill,
-        confidence: Number((skill.confidence / 100).toFixed(2)),
+        name: skill.skill,
+        confidence: skill.confidence / 100,
+        category: skill.category,
       })),
-      message: detectedSkills.length > 0 
-        ? `NOVA detected ${detectedSkills.length} skill(s) in your post`
-        : "No skills detected in this post"
+      message:
+        detectedSkills.length > 0
+          ? `NOVA detected ${detectedSkills.length} skill(s) in your post`
+          : "No skills detected in this post",
     });
   } catch (error) {
     console.error("Skill detection error:", error);
@@ -116,9 +244,12 @@ router.get("/skills/detected", async (req: Request, res: Response) => {
       orderBy: { createdAt: "desc" },
     });
 
-    const allSkills: Record<string, {skill: string, confidence: number, category: string, count: number}> = {};
+    const allSkills: Record<
+      string,
+      { skill: string; confidence: number; category: string; count: number }
+    > = {};
     detections.forEach((detection) => {
-      const normalizedConfidence = Number((detection.confidence / 100).toFixed(2));
+      const normalizedConfidence = detection.confidence / 100;
       if (!allSkills[detection.skill]) {
         allSkills[detection.skill] = {
           skill: detection.skill,
@@ -130,7 +261,7 @@ router.get("/skills/detected", async (req: Request, res: Response) => {
         allSkills[detection.skill].count += 1;
         allSkills[detection.skill].confidence = Math.max(
           allSkills[detection.skill].confidence,
-          normalizedConfidence,
+          normalizedConfidence
         );
       }
     });
@@ -140,163 +271,6 @@ router.get("/skills/detected", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Get skills error:", error);
     res.status(500).json({ error: "Failed to get skills" });
-  }
-});
-
-// ============================================
-// QUOTE-SHARE (X-inspired)
-// ============================================
-
-router.post("/posts/:postId/quote", async (req: Request, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    const userId = req.user!.userId;
-    const postId = String(req.params.postId || "");
-    if (!postId) return res.status(400).json({ error: "Post ID required" });
-    const commentary = String(req.body?.commentary ?? "").trim();
-
-    const originalPost = await db.post.findFirst({
-      where: { id: postId, tenantId, deletedAt: null },
-      select: { id: true, tenantId: true, content: true, authorId: true, createdAt: true },
-    });
-    if (!originalPost) {
-      return res.status(404).json({ error: "Original post not found" });
-    }
-
-    const quotePost = await db.$transaction(async (tx) => {
-      const createdPost = await tx.post.create({
-        data: {
-          tenantId: originalPost.tenantId,
-          authorId: userId,
-          content: commentary || "Shared a quote post",
-          quotedPostId: postId,
-        },
-        include: {
-          author: { select: { id: true, name: true, email: true } },
-          _count: { select: { likes: true, comments: true } },
-          tags: { include: { tag: true } },
-        },
-      });
-
-      await tx.quotePost.create({
-        data: { postId: createdPost.id, quotedPostId: postId },
-      });
-
-      return createdPost;
-    });
-
-    res.status(201).json({
-      post: {
-        ...quotePost,
-        likeCount: quotePost._count.likes,
-        commentCount: quotePost._count.comments,
-        liked: false,
-        tags: quotePost.tags.map((t) => t.tag.name),
-      },
-      quotedPost: originalPost,
-    });
-  } catch (error) {
-    console.error("Quote post error:", error);
-    res.status(500).json({ error: "Failed to create quote post" });
-  }
-});
-
-router.get("/posts/:postId/quotes", async (req: Request, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    const userId = req.user!.userId;
-    const postId = String(req.params.postId || "");
-    if (!postId) return res.status(400).json({ error: "Post ID required" });
-
-    const quotes = await db.quotePost.findMany({
-      where: {
-        quotedPostId: postId,
-        post: { tenantId, deletedAt: null },
-      },
-      include: {
-        post: {
-          include: {
-            author: { select: { id: true, name: true, email: true } },
-            _count: { select: { likes: true, comments: true } },
-            likes: { where: { userId }, select: { id: true } },
-            tags: { include: { tag: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    res.json({
-      quotes: quotes.map((quote) => ({
-        ...quote.post,
-        likeCount: quote.post._count.likes,
-        commentCount: quote.post._count.comments,
-        liked: quote.post.likes.length > 0,
-        tags: quote.post.tags.map((t) => t.tag.name),
-      })),
-    });
-  } catch (error) {
-    console.error("Get quotes error:", error);
-    res.status(500).json({ error: "Failed to get quotes" });
-  }
-});
-
-// ============================================
-// SAVED POSTS (Bookmarks)
-// ============================================
-
-router.post("/posts/:postId/save", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const postId = String(req.params.postId || "");
-    if (!postId) return res.status(400).json({ error: "Post ID required" });
-    const { isPublic } = req.body;
-
-    const saved = await db.savedPost.upsert({
-      where: { userId_postId: { userId, postId } },
-      create: { userId, postId, isPublic: isPublic || false },
-      update: { isPublic: isPublic || false },
-    });
-
-    res.json({ saved });
-  } catch (error) {
-    console.error("Failed to save post:", error);
-    res.status(500).json({ error: "Failed to save post" });
-  }
-});
-
-router.delete("/posts/:postId/save", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const postId = String(req.params.postId || "");
-    if (!postId) return res.status(400).json({ error: "Post ID required" });
-
-    await db.savedPost.deleteMany({ where: { userId, postId } });
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Failed to unsave post:", error);
-    res.status(500).json({ error: "Failed to unsave post" });
-  }
-});
-
-router.get("/posts/saved", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-
-    const saved = await db.savedPost.findMany({
-      where: { userId },
-      include: {
-        post: {
-          include: { author: { select: { id: true, name: true, email: true } } },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    res.json({ saved: saved.map((savedEntry) => savedEntry.post) });
-  } catch (error) {
-    console.error("Failed to get saved posts:", error);
-    res.status(500).json({ error: "Failed to get saved posts" });
   }
 });
 
@@ -325,7 +299,24 @@ router.get("/achievements/share/:type", async (req: Request, res: Response) => {
         break;
       case "first-post":
         cardData.title = "📝 First Post Published";
-        cardData.description = "Started building in public on Winners Community";
+        cardData.description =
+          "Started building in public on Winners Community";
+        break;
+      case "skill-detected":
+        cardData.title = "🎯 First Skill Detected";
+        cardData.description = "NOVA identified your first skill";
+        break;
+      case "certificate":
+        cardData.title = "🎓 Course Completed";
+        cardData.description = "Earned a certificate on Winners Academy";
+        break;
+      case "contract":
+        cardData.title = "💼 First Contract Won";
+        cardData.description = "Started earning on Winners Work";
+        break;
+      case "loop-complete":
+        cardData.title = "🔄 Agentic Loop Complete";
+        cardData.description = "Completed your first Winners Loop";
         break;
       default:
         cardData.title = "🎉 Achievement Unlocked";
@@ -343,7 +334,7 @@ router.get("/achievements/share/:type", async (req: Request, res: Response) => {
 });
 
 // ============================================
-// WEEKLY INTELLIGENCE REPORT
+// NOVA WEEKLY INTELLIGENCE REPORT
 // ============================================
 
 router.get("/insights/weekly", async (req: Request, res: Response) => {
@@ -352,25 +343,62 @@ router.get("/insights/weekly", async (req: Request, res: Response) => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
-    const posts = await db.post.findMany({
-      where: { authorId: userId, createdAt: { gte: weekAgo } },
-      select: { id: true, content: true, createdAt: true },
+    const [posts, likes, comments, followers, skillsCount, loopProgress] =
+      await Promise.all([
+        db.post.findMany({
+          where: { authorId: userId, createdAt: { gte: weekAgo } },
+          select: { id: true, _count: { select: { likes: true, comments: true } } },
+        }),
+        db.like.count({ where: { post: { authorId: userId }, createdAt: { gte: weekAgo } } }),
+        db.comment.count({ where: { post: { authorId: userId }, createdAt: { gte: weekAgo } } }),
+        db.follow.count({ where: { followingId: userId, createdAt: { gte: weekAgo } } }),
+        db.novaSkillDetection.count({ where: { userId, createdAt: { gte: weekAgo } } }),
+        db.agenticLoopProgress.findUnique({ where: { userId } }),
+      ]);
+
+    const totalEngagement = likes + comments;
+    
+    // Find best post by engagement
+    let bestPostEngagement = 0;
+    for (const p of posts) {
+      const engagement = p._count.likes + p._count.comments;
+      if (engagement > bestPostEngagement) {
+        bestPostEngagement = engagement;
+      }
+    }
+
+    // Get job matches from Work layer (via opportunities)
+    const opportunities = await db.opportunity.findMany({
+      where: { status: "ACTIVE", expiresAt: { gte: new Date() } },
+      take: 10,
     });
 
-    const followers = await db.follow.findMany({
-      where: { followingId: userId, createdAt: { gte: weekAgo } },
-    });
-
-    const recommendation = posts.length === 0 
-      ? "Post your first update this week to start building your presence."
-      : "Keep building in public - your content is being noticed.";
+    let recommendation = "";
+    if (posts.length === 0) {
+      recommendation =
+        "Post your first update this week to start building your presence.";
+    } else if (totalEngagement < 5) {
+      recommendation =
+        "Your content is great but needs more visibility. Try adding more specific skill tags.";
+    } else if (skillsCount > 0 && !loopProgress?.currentStage?.includes("academy")) {
+      recommendation =
+        "NOVA detected skills in your posts. Consider taking a related course to certify them.";
+    } else {
+      recommendation =
+        "Keep building in public - your content is being noticed.";
+    }
 
     const report = {
       period: { from: weekAgo, to: new Date() },
       metrics: {
         postsPublished: posts.length,
-        followersGained: followers.length,
+        totalEngagement,
+        followersGained: followers,
+        skillsDetected: skillsCount,
+        bestPostEngagement,
       },
+      stage: loopProgress?.currentStage || "community",
+      opportunitiesCount: opportunities.length,
       recommendation,
     };
 
@@ -382,33 +410,79 @@ router.get("/insights/weekly", async (req: Request, res: Response) => {
 });
 
 // ============================================
-// NOVA INSIGHT BANNER
+// NOVA INSIGHT BANNER - Personalized Context
 // ============================================
 
 router.get("/insights/banner", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { name: true, trustScore: true },
-    });
+    // Gather user context (parallel queries)
+    const [user, recentPosts, topSkills, loopProgress, recentFollowers] =
+      await Promise.all([
+        db.user.findUnique({
+          where: { id: userId },
+          select: { name: true, trustScore: true, trustScoreTier: true },
+        }),
+        db.post.findMany({
+          where: { authorId: userId },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          include: { _count: { select: { likes: true, comments: true } } },
+        }),
+        db.novaSkillDetection.findMany({
+          where: { userId },
+          orderBy: { confidence: "desc" },
+          take: 3,
+        }),
+        db.agenticLoopProgress.findUnique({ where: { userId } }),
+        db.follow.count({
+          where: {
+            followingId: userId,
+            createdAt: { gte: new Date(Date.now() - 7 * 86400000) },
+          },
+        }),
+      ]);
 
-    const lastPost = await db.post.findFirst({
-      where: { authorId: userId },
-      orderBy: { createdAt: "desc" },
-    });
+    const topPostLikes = Math.max(
+      ...recentPosts.map((p) => p._count.likes),
+      0
+    );
+    const daysSinceLastPost = recentPosts[0]
+      ? Math.floor(
+          (Date.now() - new Date(recentPosts[0].createdAt).getTime()) /
+            86400000
+        )
+      : 99;
 
+    // Generate personalized insight
     let insight = "";
-    if (!lastPost) {
-      insight = `Welcome to Winners Community, ${user?.name || 'Builder'}! Share what you're working on and NOVA will help connect your skills to opportunities.`;
+
+    if (!recentPosts[0]) {
+      insight = `Welcome to Winners Community, ${
+        user?.name || "Builder"
+      }! Share what you're working on and NOVA will help connect your skills to opportunities.`;
+    } else if (daysSinceLastPost > 7) {
+      insight = `You haven't posted in ${daysSinceLastPost} days. Your audience is waiting!`;
+    } else if (topSkills.length > 0 && !loopProgress?.currentStage?.includes("academy")) {
+      insight = `NOVA detected ${topSkills[0].skill} in your posts. Certify it with a SAGE course to unlock Work opportunities.`;
+    } else if (recentFollowers > 5) {
+      insight = `${recentFollowers} new followers this week! Your ${topSkills[0]?.skill || "content"} is resonating.`;
+    } else if (topPostLikes > 20) {
+      insight = `Your post got ${topPostLikes} likes — your best this month! Keep posting about ${topSkills[0]?.skill || "your expertise"}.`;
     } else {
-      insight = `Your last post is getting attention. Keep posting consistently to build your presence.`;
+      insight = `Your Trust Score is ${user?.trustScore || 50}. Post consistently to build your presence.`;
     }
 
     res.json({
       insight,
-      user: { name: user?.name, trustScore: user?.trustScore },
+      user: {
+        name: user?.name,
+        trustScore: user?.trustScore,
+        trustScoreTier: user?.trustScoreTier,
+      },
+      skills: topSkills,
+      loopStage: loopProgress?.currentStage || "community",
       generatedAt: new Date(),
     });
   } catch (error) {
@@ -418,29 +492,78 @@ router.get("/insights/banner", async (req: Request, res: Response) => {
 });
 
 // ============================================
-// OPPORTUNITY BOARD
+// OPPORTUNITY BOARD - Cross-Layer Handoffs
 // ============================================
 
 router.get("/opportunities", async (req: Request, res: Response) => {
   try {
-    const opportunities = [
-      {
-        type: "skill-match",
-        title: "React Developer",
-        budget: "$2,400 contract",
-        description: "CIRCUIT matched this to your profile",
-        link: "/work",
-        priority: "medium",
+    const userId = req.user!.userId;
+
+    // Get user's detected skills
+    const userSkills = await db.novaSkillDetection.findMany({
+      where: { userId, confidence: { gte: 75 } },
+      select: { skill: true },
+      distinct: ["skill"],
+    });
+    const skillNames = userSkills.map((s) => s.skill);
+
+    // Get active opportunities from Work layer
+    const workOpportunities = await db.opportunity.findMany({
+      where: {
+        status: "ACTIVE",
+        expiresAt: { gte: new Date() },
       },
-      {
-        type: "learning-gap",
-        title: "Advanced Node.js",
-        budget: "SAGE recommends",
-        description: "Completes your learning path",
-        link: "/academy",
-        priority: "medium",
+      take: 5,
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Match opportunities to user skills
+    const matchedOpportunities = workOpportunities
+      .filter((opp) =>
+        skillNames.some((skill) =>
+          opp.title?.toLowerCase().includes(skill.toLowerCase()) ||
+          opp.description?.toLowerCase().includes(skill.toLowerCase())
+        )
+      )
+      .slice(0, 3);
+
+    const opportunities = {
+      skillMatch: {
+        type: "WORK",
+        label: "SKILL MATCH",
+        supervisor: "CIRCUIT",
+        title:
+          skillNames.length > 0
+            ? `${skillNames[0]} opportunities available`
+            : "Complete your profile to see matches",
+        description: `${skillNames.length} skills detected by NOVA`,
+        ctaLabel: "View Jobs →",
+        ctaHref: `/work?skills=${skillNames.join(",")}`,
+        items: matchedOpportunities.map((opp) => ({
+          title: opp.title,
+          budget: opp.budget,
+          link: `/work/opportunities/${opp.id}`,
+        })),
       },
-    ];
+      learningGap: {
+        type: "ACADEMY",
+        label: "LEARNING GAP",
+        supervisor: "SAGE",
+        title: "Courses matching your detected skills",
+        description: `${skillNames.length} skills ready to certify`,
+        ctaLabel: "See Courses →",
+        ctaHref: `/academy?skills=${skillNames.join(",")}`,
+      },
+      marketOpening: {
+        type: "MARKET",
+        label: "MARKET OPENING",
+        supervisor: "ATLAS",
+        title: "Products you could create from your skills",
+        description: "Based on your community activity",
+        ctaLabel: "Explore →",
+        ctaHref: "/market",
+      },
+    };
 
     res.json({ opportunities, lastUpdated: new Date() });
   } catch (error) {
@@ -450,114 +573,122 @@ router.get("/opportunities", async (req: Request, res: Response) => {
 });
 
 // ============================================
-// FEED PREFERENCES
+// USER OPPORTUNITY STATUS (Open to Opportunities)
 // ============================================
 
-router.get("/feed-preferences", async (req: Request, res: Response) => {
+router.get("/opportunity-status", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    let prefs = await db.userFeedPreference.findUnique({ where: { userId } });
 
-    if (!prefs) {
-      prefs = await db.userFeedPreference.create({
-        data: { userId },
-      });
-    }
-
-    res.json({ preferences: prefs });
-  } catch (error) {
-    console.error("Failed to get feed preferences:", error);
-    res.status(500).json({ error: "Failed to get feed preferences" });
-  }
-});
-
-router.put("/feed-preferences", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const feedModeRaw = String(req.body?.feedMode ?? "foryou");
-    const allowedFeedModes = new Set(["foryou", "following", "intelligence"]);
-    const feedMode = allowedFeedModes.has(feedModeRaw) ? feedModeRaw : "foryou";
-    const novaIntelligence = req.body?.novaIntelligence;
-    const quickPostEnabled = req.body?.quickPostEnabled;
-
-    const createData: {
-      userId: string;
-      feedMode: string;
-      novaIntelligence?: boolean;
-      quickPostEnabled?: boolean;
-    } = {
-      userId,
-      feedMode,
-    };
-
-    if (typeof novaIntelligence === "boolean") createData.novaIntelligence = novaIntelligence;
-    if (typeof quickPostEnabled === "boolean") createData.quickPostEnabled = quickPostEnabled;
-
-    const updateData: {
-      feedMode: string;
-      novaIntelligence?: boolean;
-      quickPostEnabled?: boolean;
-    } = {
-      feedMode,
-    };
-
-    if (typeof novaIntelligence === "boolean") updateData.novaIntelligence = novaIntelligence;
-    if (typeof quickPostEnabled === "boolean") updateData.quickPostEnabled = quickPostEnabled;
-
-    const prefs = await db.userFeedPreference.upsert({
-      where: { userId },
-      create: createData,
-      update: updateData,
-    });
-
-    res.json({ preferences: prefs });
-  } catch (error) {
-    console.error("Failed to update feed preferences:", error);
-    res.status(500).json({ error: "Failed to update feed preferences" });
-  }
-});
-
-// ============================================
-// INTELLIGENCE FEED MODE
-// ============================================
-
-router.get("/feed/intelligence", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const tenantId = req.user!.tenantId;
-    const page = parseInt(String(req.query.page ?? "1"));
-    const limit = parseInt(String(req.query.limit ?? "15"));
-
-    // Get posts with high engagement
-    const posts = await db.post.findMany({
-      where: { tenantId, deletedAt: null },
-      include: {
-        author: { select: { id: true, name: true, trustScore: true } },
-        _count: { select: { likes: true, comments: true } },
-        likes: { where: { userId }, select: { id: true } },
-        tags: { include: { tag: true } },
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        openToOpportunities: true,
+        opportunityStatus: true,
+        opportunityBio: true,
       },
-      orderBy: [{ engagementScore: "desc" }, { createdAt: "desc" }],
-      skip: (page - 1) * limit,
-      take: limit,
     });
-
-    const total = await db.post.count({ where: { tenantId, deletedAt: null } });
 
     res.json({
-      posts: posts.map((post) => ({
-        ...post,
-        likeCount: post._count.likes,
-        commentCount: post._count.comments,
-        liked: post.likes.length > 0,
-        tags: post.tags.map((t) => t.tag.name),
-      })),
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
-      novaContext: { recommendations: `NOVA selected ${posts.length} posts for your feed` },
+      isEnabled: user?.openToOpportunities || false,
+      status: user?.opportunityStatus || "EXPLORING",
+      bio: user?.opportunityBio || null,
     });
   } catch (error) {
-    console.error("Intelligence feed error:", error);
-    res.status(500).json({ error: "Failed to get intelligence feed" });
+    console.error("Get opportunity status error:", error);
+    res.status(500).json({ error: "Failed to get opportunity status" });
+  }
+});
+
+router.put("/opportunity-status", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { isEnabled, status, bio } = req.body;
+
+    const validStatuses = [
+      "LOOKING_FOR_WORK",
+      "OPEN_TO_COLLAB",
+      "HIRING",
+      "BUILDING",
+      "EXPLORING",
+    ];
+
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
+    const user = await db.user.update({
+      where: { id: userId },
+      data: {
+        openToOpportunities: isEnabled ?? true,
+        opportunityStatus: status,
+        opportunityBio: bio,
+      },
+      select: {
+        openToOpportunities: true,
+        opportunityStatus: true,
+        opportunityBio: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      ...user,
+    });
+  } catch (error) {
+    console.error("Update opportunity status error:", error);
+    res.status(500).json({ error: "Failed to update opportunity status" });
+  }
+});
+
+// ============================================
+// CROSS-LAYER HANDOFF EVENTS
+// ============================================
+
+router.get("/loop-status", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+
+    const loop = await db.agenticLoopProgress.findUnique({
+      where: { userId },
+    });
+
+    const skills = await db.novaSkillDetection.findMany({
+      where: { userId },
+      select: { skill: true, confidence: true, category: true },
+      orderBy: { confidence: "desc" },
+      take: 5,
+    });
+
+    // Get certificates with course info
+    const certs = await db.certificate.findMany({
+      where: { userId },
+      include: { course: { select: { title: true } } },
+      orderBy: { issuedAt: "desc" },
+      take: 3,
+    });
+
+    const certificatesWithTitle = certs.map((cert) => ({
+      id: cert.id,
+      courseName: cert.course.title,
+      issuedAt: cert.issuedAt,
+    }));
+
+    res.json({
+      loop: loop || {
+        stage: 1,
+        stageName: "community",
+        currentStage: "community",
+      },
+      skills,
+      certificates: certificatesWithTitle,
+      nextAction: loop?.currentStage === "academy" ? "Take a course" : 
+                   loop?.currentStage === "work" ? "Apply to jobs" :
+                   "Post more to trigger skill detection",
+    });
+  } catch (err: unknown) {
+    console.error("Get loop status error:", err);
+    res.status(500).json({ error: "Failed to get loop status" });
   }
 });
 

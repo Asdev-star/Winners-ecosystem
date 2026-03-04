@@ -39,6 +39,9 @@ import groupRoutes from "./routes/groupRoutes.js";
 // ── Live Space Routes (Phase 2 V1.4 — Winners Community Live Spaces) ───────
 import liveSpaceRoutes from "./routes/liveSpaceRoutes.js";
 
+// ── Community Intelligence Routes (Phase 2 V2.0 — NOVA AI Features) ──────────────
+import communityIntelligenceRoutes from "./routes/communityIntelligenceRoutes.js";
+
 // ── Opportunity Routes (Phase 2 — Winners Community Opportunity Board) ──────────
 import opportunityRoutes from "./routes/opportunityRoutes.js";
 
@@ -136,6 +139,7 @@ app.use("/posts", postRoutes);
 app.use("/groups", groupRoutes);
 app.use("/spaces", liveSpaceRoutes);
 app.use("/opportunities", opportunityRoutes);
+app.use("/community-intelligence", communityIntelligenceRoutes);
 // app.use("/creator", creatorRoutes);
 
 // ─────────────────────────────────────────────────────────────────────────────
