@@ -2,7 +2,7 @@
 # Winners Ecosystem - Railway Deployment Configuration
 
 [build]
-builder = "NIXPACKS"
+builder = "DOCKERFILE"
 buildCommand = "npm install && npx prisma generate && npm run build"
 
 [deploy]
