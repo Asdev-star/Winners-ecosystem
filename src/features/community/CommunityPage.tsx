@@ -15,20 +15,7 @@ const API = API_BASE;
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
-:root {
-  --gold:     #C9A84C;
-  --blue:     #2B5F8E;
-  --ice:      #89C4E1;
-  --green:    #2DD4A0;
-  --red:      #E05A4E;
-  --purple:   #9B6FFF;
-  --bg:       #0D1520;
-  --surface:  #111D2E;
-  --surface2: #172335;
-  --border:   #1E3248;
-  --text:     #E8EEF5;
-  --text-dim: #5A7A96;
-}
+// Use global CSS variables from index.css
 
 /* ── ROOT ── */
 .cm-root {

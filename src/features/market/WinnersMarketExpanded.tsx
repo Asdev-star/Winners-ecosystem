@@ -5,13 +5,29 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────
+// Using CSS variables from global design system - with fallbacks for development
 const T = {
-  bg: "#0D1520", surface: "#111D2E", surface2: "#172335", surface3: "#1C2B40",
-  border: "#1E3248", border2: "rgba(30,50,72,0.5)",
-  gold: "#C9A84C", gold2: "#E8C97A", gold3: "#8B6914", goldDim: "rgba(201,168,76,0.08)",
-  ice: "#89C4E1", blue: "#2B5F8E", green: "#2DD4A0", purple: "#9B6FFF",
-  red: "#E05A4E", orange: "#F0853A", teal: "#0DBFAD", pink: "#E06AA0",
-  text: "#E8EEF5", dim: "#5A7A96", faint: "#2E4A64",
+  bg: "var(--bg, #0D1520)", 
+  surface: "var(--surface, #111D2E)", 
+  surface2: "var(--surface2, #172335)", 
+  surface3: "var(--surface3, #1C2B40)",
+  border: "var(--border, #1E3248)", 
+  border2: "var(--border, rgba(30,50,72,0.5))",
+  gold: "var(--gold, #C9A84C)", 
+  gold2: "var(--gold, #E8C97A)", 
+  gold3: "var(--gold, #8B6914)", 
+  goldDim: "var(--gold, rgba(201,168,76,0.08))",
+  ice: "var(--ice, #89C4E1)", 
+  blue: "var(--blue, #2B5F8E)", 
+  green: "var(--green, #2DD4A0)", 
+  purple: "var(--purple, #9B6FFF)",
+  red: "var(--red, #E05A4E)", 
+  orange: "var(--gold, #F0853A)", 
+  teal: "var(--green, #0DBFAD)", 
+  pink: "var(--purple, #E06AA0)",
+  text: "var(--text, #E8EEF5)", 
+  dim: "var(--text-dim, #5A7A96)", 
+  faint: "var(--border, #2E4A64)",
 };
 
 // ─── All 10 Winners Market Verticals ───────────────────────────────────────
@@ -98,7 +114,7 @@ const VERTICALS = [
   },
   {
     id:"health", icon:"💪", label:"Winners Health",
-    color:"#5DD87A", badge:"V3 · Advanced",
+    color:"var(--green, #5DD87A)", badge:"V3 · Advanced",
     tagline:"Fitness · Nutrition · Mental Wellness",
     desc:"A wellness marketplace where certified coaches sell workout programs, nutrition plans, and mental health content. AI-powered workout tracking, health analytics, and telehealth booking — built for the African wellness market.",
     revenue:["Coach program sales 20% cut","Wellness subscription plans","Telehealth booking commission","Supplement referral sales","Corporate wellness packages"],
@@ -108,7 +124,7 @@ const VERTICALS = [
   },
   {
     id:"fintech", icon:"🏦", label:"Winners Finance",
-    color:"#FFD166", badge:"V3 · Advanced",
+    color:"var(--gold, #FFD166)", badge:"V3 · Advanced",
     tagline:"Payments · Savings · Micro-Loans",
     desc:"Embedded fintech for the ecosystem. Group savings (chamas), micro-investment pools, cross-border payment rails optimized for Africa, buy-now-pay-later for platform purchases, and financial literacy courses.",
     revenue:["Payment processing 1–2%","Savings pool management fee","Micro-loan interest 5–15%","BNPL service fee","Financial product referrals"],
@@ -580,7 +596,7 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
                     </div>
                     <div style={{fontFamily:"'Syne',sans-serif",fontSize:13,lineHeight:1.8,color:T.text,whiteSpace:"pre-wrap"}}>
                       {output.split("\n").map((ln,i)=>{
-                        const isH = ln.match(/^[🎯🔍💼📊🚀👥⚠️💰📋💡🌍📣📅📌🏆🛠✅🔑]/);
+                        const isH = ln.match(/^[🎯🔍💼📊🚀👥⚡💰📋💡🌍📣📅📌🏆🛠✅🔑]/u);
                         return <div key={i} style={{marginBottom:isH?8:3,color:isH?T.text:T.dim,fontWeight:isH?700:400,fontSize:isH?14:13}}>{ln}</div>;
                       })}
                       {streaming && <span style={{display:"inline-block",width:7,height:14,background:T.gold,animation:"pulse 0.7s step-end infinite",borderRadius:1,verticalAlign:"middle"}}/>}

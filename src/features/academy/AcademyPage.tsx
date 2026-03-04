@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
+import EmptyState from "../../components/ui/EmptyState";
+import { ACADEMY_SUBNAV } from "../../components/ui/subnav";
 
 interface Course {
   id: string;
@@ -98,16 +100,10 @@ export default function AcademyPage() {
       <LayerSubNav
         layer="academy"
         accentColor="--green"
-        items={[
-          { id: "explore", label: "Explore", href: "/academy", icon: "🔍" },
-          { id: "learning", label: "My Learning", href: "/academy/my-learning", icon: "📚", badge: 3, badgeType: "normal" },
-          { id: "certificates", label: "Certificates", href: "/academy/certificates", icon: "🏆" },
-          { id: "paths", label: "Learning Paths", href: "/academy/paths", icon: "🛤️" },
-          { id: "instructor", label: "Instructor Studio", href: "/academy/instructor", icon: "🎬" },
-        ]}
+        items={ACADEMY_SUBNAV}
         smartAction={{
           label: "Continue your React course",
-          supervisor: "SAGE",
+          supervisor: "sage",
           href: "/academy/courses/react-fundamentals",
           urgency: "normal",
         }}
@@ -193,11 +189,12 @@ export default function AcademyPage() {
 
       {/* Course Grid */}
       {filteredCourses.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'60px 20px', color:'var(--text-dim)' }}>
-          <div style={{ fontSize:32, marginBottom:12 }}>📚</div>
-          <div style={{ fontFamily:'Syne', fontSize:16, marginBottom:8 }}>No courses found</div>
-          <div style={{ fontFamily:'Space Mono', fontSize:11 }}>Try adjusting your search or filters</div>
-        </div>
+        <EmptyState
+          assistant="sage"
+          illustration="courses"
+          ctaLabel="Browse All Courses"
+          ctaPath="/academy"
+        />
       ) : (
         <div style={{
           display: 'grid',

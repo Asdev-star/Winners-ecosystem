@@ -4,11 +4,25 @@
 import { useState, useCallback, useRef } from "react";
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
+// Using CSS variables from global design system - with fallbacks for development
 const T = {
-  bg: "#0D1520", surface: "#111D2E", surface2: "#172335", surface3: "#1C2B40",
-  border: "#1E3248", gold: "#C9A84C", gold2: "#E8C97A", ice: "#89C4E1",
-  blue: "#2B5F8E", green: "#2DD4A0", purple: "#9B6FFF", red: "#E05A4E",
-  orange: "#F08C3A", teal: "#0DBFAD", text: "#E8EEF5", dim: "#5A7A96", faint: "#2E4A64",
+  bg: "var(--bg, #0D1520)", 
+  surface: "var(--surface, #111D2E)", 
+  surface2: "var(--surface2, #172335)", 
+  surface3: "var(--surface3, #1C2B40)",
+  border: "var(--border, #1E3248)", 
+  gold: "var(--gold, #C9A84C)", 
+  gold2: "var(--gold, #E8C97A)", 
+  ice: "var(--ice, #89C4E1)",
+  blue: "var(--blue, #2B5F8E)", 
+  green: "var(--green, #2DD4A0)", 
+  purple: "var(--purple, #9B6FFF)", 
+  red: "var(--red, #E05A4E)",
+  orange: "var(--gold, #F08C3A)", 
+  teal: "var(--green, #0DBFAD)", 
+  text: "var(--text, #E8EEF5)", 
+  dim: "var(--text-dim, #5A7A96)", 
+  faint: "var(--border, #2E4A64)",
 };
 
 // ─── Supplier Catalog ────────────────────────────────────────────────────────
@@ -84,11 +98,11 @@ const SUPPLIERS = [
 // ─── Niche Categories ────────────────────────────────────────────────────────
 const NICHES = [
   { id: "fashion", icon: "👗", name: "African Fashion", color: T.gold, demand: "Very High", competition: "Medium", margin: "40–65%", trend: "+34%", supplier: ["Printful", "Gelato", "CJ"] },
-  { id: "beauty", icon: "💄", name: "Beauty & Skincare", color: "#E06AA0", demand: "Very High", competition: "High", margin: "35–70%", trend: "+28%", supplier: ["Spocket", "Zendrop", "CJ"] },
+  { id: "beauty", icon: "💄", name: "Beauty & Skincare", color: "var(--purple, #E06AA0)", demand: "Very High", competition: "High", margin: "35–70%", trend: "+28%", supplier: ["Spocket", "Zendrop", "CJ"] },
   { id: "merch", icon: "👕", name: "Creator Merch", color: T.purple, demand: "High", competition: "Low", margin: "30–50%", trend: "+45%", supplier: ["Printful", "Gelato"] },
   { id: "homeware", icon: "🏠", name: "Home & Living", color: T.green, demand: "High", competition: "Medium", margin: "35–55%", trend: "+19%", supplier: ["Spocket", "AliExpress"] },
   { id: "tech", icon: "📱", name: "Tech Accessories", color: T.ice, demand: "Very High", competition: "High", margin: "25–45%", trend: "+22%", supplier: ["CJ", "AliExpress", "Zendrop"] },
-  { id: "fitness", icon: "💪", name: "Health & Fitness", color: "#5DD87A", demand: "High", competition: "Medium", margin: "40–60%", trend: "+38%", supplier: ["Zendrop", "Spocket"] },
+  { id: "fitness", icon: "💪", name: "Health & Fitness", color: "var(--green, #5DD87A)", demand: "High", competition: "Medium", margin: "40–60%", trend: "+38%", supplier: ["Zendrop", "Spocket"] },
   { id: "kids", icon: "🧸", name: "Kids & Education", color: T.orange, demand: "High", competition: "Low", margin: "35–55%", trend: "+15%", supplier: ["AliExpress", "CJ"] },
   { id: "digital", icon: "💾", name: "Digital Products", color: T.gold, demand: "Very High", competition: "Low", margin: "90–99%", trend: "+67%", supplier: ["Self-hosted via Winners"] },
 ];
@@ -726,7 +740,9 @@ Make the copy culturally authentic. Include local phrases where appropriate.`,
                       </div>
                       <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 13, lineHeight: 1.8, color: T.text, whiteSpace: "pre-wrap" }}>
                         {out.split("\n").map((ln, i) => {
-                          const isH = /^[🏆💰📦📈🎯📣⚡🏪💳📱📊⚠️🔄⚖️🚀📣🎬📱🔥🏷️🔍🌍🔑🎁]/u.test(ln);
+                          // Check for heading indicators (emoji or ASCII prefix)
+                          const headingChars = ['🏆','💰','📦','📈','🎯','📣','⚡','🏪','💳','📱','📊','🔄','⚖️','🚀','🎬','🔥','🏷️','🔍','🌍','🔑','🎁','>','#','=','-','*'];
+                          const isH = headingChars.some(c => ln.startsWith(c)) || /^\d+\./.test(ln);
                           return <div key={i} style={{ marginBottom: isH ? 6 : 2, color: isH ? T.text : T.dim, fontWeight: isH ? 700 : 400, fontSize: isH ? 13.5 : 13 }}>{ln}</div>;
                         })}
                         {loading && <span style={{ display: "inline-block", width: 7, height: 14, background: activeTool.color, animation: "blink 0.7s step-end infinite", borderRadius: 1, verticalAlign: "middle" }} />}

@@ -50,6 +50,7 @@ import CoreOpsPage from "./features/ops/CoreOpsPage";
 import WinnersChat from "./features/intelligence/WinnersChat";
 import WinnersIntelligencePage from "./features/intelligence/WinnersIntelligencePage";
 import AIPlatformPage from "./features/intelligence/ai-platform/AIPlatformPage";
+import OmegaDashboard from "./features/intelligence/OmegaDashboard";
 import InstructorDashboard from "./features/academy/InstructorDashboard";
 import CourseCreatePage from "./features/academy/CourseCreatePage";
 import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
@@ -124,6 +125,7 @@ function App() {
             <Route path="academy/courses/:slug" element={<CoursePage />} />
             <Route path="intelligence" element={<WinnersIntelligencePage />} />
             <Route path="intelligence/aria" element={<WinnersChat />} />
+            <Route path="intelligence/omega" element={<OmegaDashboard />} />
             <Route path="intelligence/platform" element={<AIPlatformPage />} />
             <Route path="academy/instructor" element={<InstructorDashboard />} />
             <Route path="academy/instructor/create" element={<CourseCreatePage />} />

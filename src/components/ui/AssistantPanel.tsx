@@ -101,17 +101,73 @@ export default function AssistantPanel({
   context,
   page,
   userId,
-  initialMessage, // For future use: pre-populate chat
+  initialMessage,
 }: AssistantPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [hasProactiveMessage, setHasProactiveMessage] = useState(false);
+  const [greeting, setGreeting] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const config = ASSISTANT_CONFIGS[assistant];
+
+  // Generate context-aware greeting on mount per AI Assistant Interaction Spec V2 Section 3.1
+  useEffect(() => {
+    const generateGreeting = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+      
+      // Context-aware greeting templates per supervisor per spec
+      const greetingTemplates: Record<AssistantKey, string[]> = {
+        omega: [
+          `Across your ecosystem today, ${timeGreeting}. OMEGA sees the full picture. What is your priority?`,
+          `${timeGreeting}. I have reviewed your cross-layer activity. There are three opportunities worth your attention.`,
+        ],
+        aria: [
+          `${timeGreeting}. Your workspace is healthy. Here is what needs your attention today.`,
+          `Platform overview ready. Your account setup is 87% complete.`,
+        ],
+        nova: [
+          `Your community is active. 847 impressions on your last post — 3x your average.`,
+          `${timeGreeting}. Two collaboration opportunities match your skills. Want to see them?`,
+        ],
+        sage: [
+          `Your React course is at 68%. 90 minutes remaining. The certificate unlocks three Work categories.`,
+          `${timeGreeting}. SAGE has reviewed your progress. Ready to continue where you left off?`,
+        ],
+        atlas: [
+          `Market data shows Afroprint hoodies at 34% margin above average. Three products matching your niche.`,
+          `${timeGreeting}. ATLAS has identified five winning products for your store.`,
+        ],
+        circuit: [
+          `A React contract at 94% match was posted 47 minutes ago. Budget: $4,000. Three applicants already.`,
+          `${timeGreeting}. Your proposal win rate is 71% — above the 58% platform average. Lead with that.`,
+        ],
+        forge: [
+          `You have used 312 of 2,000 monthly credits. Switching PDF analysis to Claude native saves 40%.`,
+          `${timeGreeting}. FORGE: Your AI infrastructure is running optimally.`,
+        ],
+        nexus: [
+          `NEXUS: Your API integration is live. Rate limit: 1000/hour. What would you like to build?`,
+          `${timeGreeting}. Developer context loaded. Which API would you like to explore?`,
+        ],
+        herald: [
+          `Benchmark data for your models is ready. Llama 3.1 outperforms GPT-4o on code tasks by 12%.`,
+          `${timeGreeting}. HERALD: Platform health signals are green across all layers.`,
+        ],
+      };
+      
+      const templates = greetingTemplates[assistant];
+      const randomGreeting = templates[Math.floor(Math.random() * templates.length)];
+      setGreeting(randomGreeting);
+    };
+
+    generateGreeting();
+  }, [assistant]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -319,9 +375,8 @@ export default function AssistantPanel({
           <div className="assistant-messages">
             {messages.length === 0 && (
               <div className="assistant-welcome">
-                <p>Hi! I'm {config.name}.</p>
-                <p>{config.tagline}</p>
-                <p className="welcome-prompt">How can I help you today?</p>
+                <p className="greeting-text">{greeting || `I'm ${config.name}.`}</p>
+                <p className="welcome-prompt">{config.tagline}</p>
               </div>
             )}
             
