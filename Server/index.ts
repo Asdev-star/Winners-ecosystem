@@ -143,17 +143,17 @@ app.use(globalRateLimiter);
 app.use("/api/v1", v1Router);
 
 // ── Direct Route Mounts — Academy + Chat + Messages + Live Spaces ────────────
-app.use("/academy", academyRoutes);
-app.use("/chat", chatRoutes);
-app.use("/messages", messageRoutes);
-app.use("/posts", postRoutes);
-app.use("/groups", groupRoutes);
-app.use("/spaces", liveSpaceRoutes);
-app.use("/opportunities", opportunityRoutes);
-app.use("/community-intelligence", communityIntelligenceRoutes);
-app.use("/omega", omegaRoutes);
-app.use("/supervisors", supervisorRoutes);
-app.use("/insights", autonomousRoutes);
+app.use("/api/v1/academy", academyRoutes);
+app.use("/api/v1/chat", chatRoutes);
+app.use("/api/v1/messages", messageRoutes);
+app.use("/api/v1/posts", postRoutes);
+app.use("/api/v1/groups", groupRoutes);
+app.use("/api/v1/spaces", liveSpaceRoutes);
+app.use("/api/v1/opportunities", opportunityRoutes);
+app.use("/api/v1/community-intelligence", communityIntelligenceRoutes);
+app.use("/api/v1/omega", omegaRoutes);
+app.use("/api/v1/supervisors", supervisorRoutes);
+app.use("/api/v1/insights", autonomousRoutes);
 // app.use("/creator", creatorRoutes);
 
 // ─────────────────────────────────────────────────────────────────────────────
