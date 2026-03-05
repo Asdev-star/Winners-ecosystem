@@ -1184,29 +1184,29 @@ model Certificate {
 
 // ─── External Course Integrations (Coursera, FreeCodeCamp, Udemy, etc.) ────────
 
-enum ExternalPlatform {
-  COURSERA
-  UNIATHENA
-  FREECODECAMP
-  UDEMY
-  EDX
-  KHAN_ACADEMY
-  PLURALSIGHT
-  LINKEDIN_LEARNING
-  GOOGLE_SKILLSHOP
-  HUBSPOT
-  ALISON
-  AWS_SKILLBUILDER
-  MICROSOFT_LEARN
-  ALX_AFRICA
-  ANDELA
-  OTHER
+model ExternalPlatform {
+  id        String          @id // COURSERA, FREECODECAMP, etc.
+  name      String
+  icon      String?
+  tenantId  String
+  createdAt DateTime        @default(now())
+}
+
+// FreeCodeCamp sync for username-based import
+model FreeCodeCampSync {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  fccUsername     String
+  lastSynced      DateTime  @default(now())
+  certifications  Json      @default("[]") // [{name, completedDate, verificationUrl}]
+  createdAt       DateTime  @default(now())
 }
 
 model ExternalCourse {
   id           String         @id @default(cuid())
   tenantId     String
-  platform     ExternalPlatform
+  platform     String         // References ExternalPlatform.id
+  platformName String?        // Denormalized for easier access
   externalId   String         // ID from external platform
   title        String
   description  String?
@@ -1262,17 +1262,6 @@ model ExternalCourseEnrollment {
   @@unique([userId, externalCourseId])
   @@index([userId])
   @@map("external_course_enrollments")
-}
-
-// FreeCodeCamp account sync model
-model FreeCodeCampSync {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  fccUsername     String
-  lastSynced      DateTime  @default(now())
-  certifications  Json      @default("[]") // [{name, completedDate, verificationUrl}]
-  createdAt       DateTime  @default(now())
-  @@map("freecodecamp_sync")
 }
 
 // User-saved external courses
