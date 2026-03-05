@@ -103,6 +103,13 @@ model User {
   novaSkills                 NovaSkillDetection[]           @relation("UserNovaSkills")
   postReactions              PostReaction[]
 
+  // Social Media Integrations
+  socialAccounts        SocialAccount[]
+  socialCrossPosts       SocialCrossPost[]
+  socialMetricSnapshots SocialMetricSnapshot[]
+  socialSkillSignals    SocialSkillSignal[]
+  socialScheduledPosts  SocialScheduledPost[]
+
   // SAGE Super-Intelligence V2 Relations
   flashcards         Flashcard[]
   flashcardReviews   FlashcardReview[]
@@ -1852,6 +1859,7 @@ model SocialAccount {
 model SocialCrossPost {
   id              String        @id @default(cuid())
   userId          String
+  user            User         @relation(fields:[userId], references:[id], onDelete: Cascade)
   communityPostId String?
   socialAccountId String
   socialAccount   SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
@@ -1870,6 +1878,7 @@ model SocialCrossPost {
 model SocialMetricSnapshot {
   id              String        @id @default(cuid())
   userId          String
+  user            User         @relation(fields:[userId], references:[id], onDelete: Cascade)
   socialAccountId String
   socialAccount   SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
   platform        String
@@ -1896,6 +1905,7 @@ model SocialMetricSnapshot {
 model SocialSkillSignal {
   id              String        @id @default(cuid())
   userId          String
+  user            User         @relation(fields:[userId], references:[id], onDelete: Cascade)
   socialAccountId String?
   socialAccount   SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
   platform        String
@@ -1917,6 +1927,7 @@ model SocialSkillSignal {
 model SocialScheduledPost {
   id              String        @id @default(cuid())
   userId          String
+  user            User         @relation(fields:[userId], references:[id], onDelete: Cascade)
   socialAccountId String?
   socialAccount   SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
   communityPostId String?
