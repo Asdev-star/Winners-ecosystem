@@ -58,6 +58,7 @@ export default function ExternalCoursesPage() {
   const [error, setError] = useState<string | null>(null);
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -106,6 +107,23 @@ export default function ExternalCoursesPage() {
   const handleEnroll = async (course: ExternalCourse) => {
     // Redirect to external course URL
     window.open(course.courseUrl, "_blank");
+  };
+
+  const handleSeed = async () => {
+    try {
+      setSeeding(true);
+      const baseUrl = API_BASE.startsWith('http') ? API_BASE : window.location.origin;
+      const response = await fetch(`${baseUrl}/api/v1/external-courses/seed`, { method: 'POST' });
+      if (response.ok) {
+        // Reload courses after seeding
+        fetchCourses();
+        fetchRecommended();
+      }
+    } catch (err) {
+      console.error("Failed to seed:", err);
+    } finally {
+      setSeeding(false);
+    }
   };
 
   return (
@@ -317,6 +335,24 @@ export default function ExternalCoursesPage() {
           }}>
             Try adjusting your filters or search term
           </div>
+          <button
+            onClick={handleSeed}
+            disabled={seeding}
+            style={{
+              marginTop: 16,
+              padding: "12px 24px",
+              background: "var(--gold)",
+              color: "var(--bg)",
+              border: "none",
+              borderRadius: 6,
+              fontFamily: "Syne, sans-serif",
+              fontWeight: 700,
+              cursor: seeding ? "not-allowed" : "pointer",
+              opacity: seeding ? 0.7 : 1
+            }}
+          >
+            {seeding ? "Seeding..." : "🌱 Seed Sample Courses"}
+          </button>
         </div>
       ) : (
         <div style={{ 
