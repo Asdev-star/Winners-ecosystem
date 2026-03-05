@@ -70,6 +70,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+// Trust proxy for Railway (handles X-Forwarded-For header for rate limiting)
+app.set('trust proxy', 1);
 const PORT = process.env.PORT ?? 3001;
 const isProd = process.env.NODE_ENV === "production";
 
