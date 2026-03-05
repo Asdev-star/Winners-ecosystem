@@ -546,8 +546,8 @@ router.get("/recommended", async (req, res) => {
   }
 });
 
-// Seed external platforms and courses (admin only)
-router.post("/seed", authMiddleware, async (req, res) => {
+// Seed external platforms and courses (public for initial setup)
+router.post("/seed", async (req, res) => {
   try {
     // First, ensure we have the default tenant
     const defaultTenant = await db.tenant.findFirst();
