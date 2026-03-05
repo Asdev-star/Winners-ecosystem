@@ -251,7 +251,9 @@ const PLATFORMS = [
     tag:    "v1.0",
     sub:    [
       { path: "/academy", label: "Browse" },
+      { path: "/academy/paths", label: "Learning Paths" },
       { path: "/academy/explore", label: "Explore Global" },
+      { path: "/academy/study-groups", label: "Study Groups" },
       { path: "/academy/instructor", label: "Instructor" },
       { path: "/academy/my-learning", label: "My Learning" },
     ],
