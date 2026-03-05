@@ -33,7 +33,7 @@ export const ACADEMY_SUBNAV: SubNavItem[] = [
   { id: "my-learning",  label: "My Learning",  href: "/academy/my-learning", badge: 0 },
   { id: "certificates", label: "Certificates", href: "/academy/certificates" },
   { id: "paths",        label: "Paths",        href: "/academy/paths",       badgeType: "new" },
-  { id: "teach",        label: "Teach",        href: "/academy/teach" },
+  { id: "teach",        label: "Teach",        href: "/academy/instructor" },
   { id: "cohorts",      label: "Cohorts",      href: "/academy/cohorts" },
 ];
 
