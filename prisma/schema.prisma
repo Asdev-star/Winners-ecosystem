@@ -102,6 +102,15 @@ model User {
   novaSkills         NovaSkillDetection[] @relation("UserNovaSkills")
   postReactions      PostReaction[]
 
+  // SAGE Super-Intelligence V2 Relations
+  flashcards         Flashcard[]
+  flashcardReviews   FlashcardReview[]
+  mentorProfile      Mentor?
+  mentorSessions     MentorSession[] @relation("MentorSessionLearner")
+  hostedLiveSessions LiveSession[]
+  attendedSessions   LiveSessionAttendee[]
+  learnerProfile    LearnerProfile?
+
   // Diaspora Directory fields
   country             String?
   city                String?
@@ -1035,6 +1044,12 @@ model Course {
   reviews      Review[]
   certificates Certificate[]
 
+  // SAGE Super-Intelligence V2 Relations
+  flashcards        Flashcard[]
+  knowledgeGraph   KnowledgeGraphNode[]
+  mentorSessions   MentorSession[]
+  liveSessions    LiveSession[]
+
   @@unique([tenantId, slug])
   @@index([tenantId, published])
   @@index([instructorId])
@@ -1229,4 +1244,231 @@ model QuizAttempt {
   @@index([userId])
   @@index([quizId])
   @@map("quiz_attempts")
+}
+
+// ─── SAGE Super-Intelligence V2 Models ────────────────────────────────────────
+// REC 02: AI Flashcard Engine with Spaced Repetition
+model Flashcard {
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String?
+  lessonId    String?
+  front       String   @db.Text  // question/prompt
+  back        String   @db.Text  // answer
+  tags        String[] // topic tags for organization
+  
+  // Spaced repetition fields (SM-2 algorithm)
+  easeFactor  Float    @default(2.5)    // SM-2 ease factor
+  interval    Int      @default(0)       // days until next review
+  repetitions Int      @default(0)       // successful reviews
+  nextReview  DateTime @default(now())   // next scheduled review
+  
+  // Source tracking
+  sourceType  String?   // "ai_generated", "user_created", "quiz_question"
+  sourceId    String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  reviews     FlashcardReview[]
+  
+  @@index([userId])
+  @@index([courseId])
+  @@index([nextReview])  // for fetching due cards
+  @@map("flashcards")
+}
+
+// REC 02: Flashcard Review History
+model FlashcardReview {
+  id          String   @id @default(cuid())
+  flashcardId String
+  userId      String
+  quality     Int      // 0-5 SM-2 quality rating
+  reviewedAt  DateTime @default(now())
+  
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([flashcardId])
+  @@index([userId])
+  @@map("flashcard_reviews")
+}
+
+// REC 01: Knowledge Graph - Course concept relationships
+model KnowledgeGraphNode {
+  id          String   @id @default(cuid())
+  courseId    String
+  concept     String   // e.g., "React Hooks", "API Design"
+  description String?  @db.Text
+  importance  Int      @default(1)  // 1-5 node size
+  xPos        Float?   // for visualization
+  yPos        Float?
+  
+  createdAt   DateTime @default(now())
+  
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  outgoing    KnowledgeGraphEdge[] @relation("EdgeFrom")
+  incoming    KnowledgeGraphEdge[] @relation("EdgeTo")
+  
+  @@unique([courseId, concept])
+  @@index([courseId])
+  @@map("knowledge_graph_nodes")
+}
+
+model KnowledgeGraphEdge {
+  id          String   @id @default(cuid())
+  fromNodeId  String
+  toNodeId    String
+  relation    String   // "prerequisites", "related", "builds_on", "example_of"
+  weight      Float    @default(1.0)
+  
+  fromNode    KnowledgeGraphNode @relation("EdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode      KnowledgeGraphNode @relation("EdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
+  
+  @@unique([fromNodeId, toNodeId, relation])
+  @@index([fromNodeId])
+  @@index([toNodeId])
+  @@map("knowledge_graph_edges")
+}
+
+// REC 05: Mentor Network
+model Mentor {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  bio             String?  @db.Text
+  expertise       String[] // skill areas
+  availability    String   @default("available")  // available, limited, unavailable
+  hourlyRate      Int?     // cents
+  timezone        String?
+  linkedInUrl     String?
+  
+  // Stats
+  sessionsCompleted Int   @default(0)
+  avgRating         Float @default(0)
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions        MentorSession[]
+  
+  @@index([userId])
+  @@map("mentors")
+}
+
+model MentorSession {
+  id          String   @id @default(cuid())
+  mentorId    String
+  learnerId   String
+  courseId    String?
+  
+  scheduledAt DateTime
+  durationMin Int      @default(60)
+  status      String   @default("scheduled")  // scheduled, completed, cancelled
+  
+  // Video/meeting
+  meetingUrl  String?
+  
+  // Feedback
+  learnerFeedback String? @db.Text
+  mentorRating    Int?
+  
+  createdAt   DateTime @default(now())
+  
+  mentor      Mentor   @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  learner     User     @relation("MentorSessionLearner", fields: [learnerId], references: [id], onDelete: Cascade)
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  
+  @@index([mentorId])
+  @@index([learnerId])
+  @@map("mentor_sessions")
+}
+
+// REC 06: Live Learning Sessions
+model LiveSession {
+  id          String   @id @default(cuid())
+  courseId    String?
+  hostId      String
+  title       String
+  description String?  @db.Text
+  
+  scheduledAt DateTime
+  durationMin Int      @default(60)
+  status      String   @default("scheduled")  // scheduled, live, ended, cancelled
+  
+  // Streaming
+  streamUrl   String?
+  recordingUrl String?
+  
+  // Capacity
+  maxParticipants Int @default(100)
+  currentParticipants Int @default(0)
+  
+  // Type
+  sessionType String   @default("workshop")  // workshop, qa, demo, cohort_call
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  host        User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  attendees   LiveSessionAttendee[]
+  
+  @@index([hostId])
+  @@index([courseId])
+  @@index([status])
+  @@map("live_sessions")
+}
+
+model LiveSessionAttendee {
+  id          String   @id @default(cuid())
+  sessionId   String
+  userId      String
+  joinedAt    DateTime @default(now())
+  leftAt      DateTime?
+  
+  session     LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@index([userId])
+  @@map("live_session_attendees")
+}
+
+// SAGE Learner Profile - 6-category memory system
+model LearnerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  
+  // Category 1: Skills & Competencies
+  skills          Json?    // { skill: string, level: 0-100, lastValidated: date }[]
+  
+  // Category 2: Learning History
+  learningHistory Json?    // { courseId, started, completed, certificateId }[]
+  
+  // Category 3: Preferences
+  preferences     Json?    // { pace: string, modality: string[], language: string }
+  
+  // Category 4: Goals
+  goals           Json?    // { goal: string, targetDate, priority }[]
+  
+  // Category 5: Engagement Patterns
+  engagement      Json?    // { peakHours: string[], avgSessionMin: number, streakDays: number }
+  
+  // Category 6: Performance Analytics
+  performance     Json?    // { quizAvg: number, strongestTopic: string, weakestTopic: string }
+  
+  // Tone preference (SAGE Tone Engine)
+  preferredTone   String   @default("encouraging")  // encouraging, direct, formal, casual, socratic, motivational
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@map("learner_profiles")
 }
