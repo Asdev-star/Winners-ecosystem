@@ -21,9 +21,6 @@ import "./services/appRegistry.js"; // Self-registers all platform modules at st
 // ── Core Infrastructure: Versioned API Gateway (Block 1 — Item 5) ─────────────
 import v1Router from "./routes/apiRouter.js";
 
-// ── Academy Routes (Phase 3 — Winners Academy) ───────────────────────────────
-import academyRoutes from "./routes/academyRoutes.js";
-
 // ── Chat Routes (Phase 5 — Winners Intelligence) ──────────────────────────────
 import chatRoutes from "./routes/chatRoutes.js";
 
@@ -142,8 +139,8 @@ app.use(globalRateLimiter);
 
 app.use("/api/v1", v1Router);
 
-// ── Direct Route Mounts — Academy + Chat + Messages + Live Spaces ────────────
-app.use("/api/v1/academy", academyRoutes);
+// ── Direct Route Mounts — Chat + Messages + Live Spaces ────────────
+// Note: Academy routes are mounted via apiRouter at /api/v1/academy
 app.use("/api/v1/chat", chatRoutes);
 app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/posts", postRoutes);
