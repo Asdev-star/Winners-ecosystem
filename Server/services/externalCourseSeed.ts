@@ -5,10 +5,17 @@ import db from "../db.js";
 
 export async function seedExternalCoursesIfNeeded(): Promise<void> {
   try {
-    // Check if platforms already exist
-    const existingPlatforms = await db.externalPlatform.findFirst();
-    if (existingPlatforms) {
-      console.log("✅ External platforms already seeded");
+    // Check if tables exist by trying to count records
+    try {
+      const existingPlatforms = await db.externalPlatform.findFirst();
+      if (existingPlatforms) {
+        console.log("✅ External platforms already seeded");
+        return;
+      }
+    } catch (tableError: any) {
+      // Table doesn't exist yet - this is expected on first run
+      // The table will be created by prisma db push during deployment
+      console.log("⏳ ExternalPlatform table not ready yet, skipping seed");
       return;
     }
 
