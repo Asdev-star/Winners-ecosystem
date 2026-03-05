@@ -2,6 +2,8 @@
 // Phase 3: Academy Layer — State management for instructor courses
 
 import { create } from "zustand";
+import { getAuthHeaders } from "../auth/authStore";
+import { API_BASE } from "../../lib/api";
 
 export interface Course {
   id: string;
@@ -65,8 +67,6 @@ interface AcademyState {
   createLesson: (moduleId: string, data: Partial<Lesson>) => Promise<Lesson>;
 }
 
-const API_BASE = "/api/v1";
-
 export const useAcademyStore = create<AcademyState>((set, get) => ({
   instructorCourses: [],
   loading: false,
@@ -76,6 +76,7 @@ export const useAcademyStore = create<AcademyState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const response = await fetch(`${API_BASE}/academy/instructor/courses`, {
+        headers: getAuthHeaders(),
         credentials: "include",
       });
       if (!response.ok) throw new Error("Failed to fetch courses");
@@ -89,7 +90,7 @@ export const useAcademyStore = create<AcademyState>((set, get) => ({
   createCourse: async (data: Partial<Course>) => {
     const response = await fetch(`${API_BASE}/academy/courses`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       credentials: "include",
       body: JSON.stringify(data),
     });
@@ -102,7 +103,7 @@ export const useAcademyStore = create<AcademyState>((set, get) => ({
   updateCourse: async (id: string, data: Partial<Course>) => {
     const response = await fetch(`${API_BASE}/academy/courses/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       credentials: "include",
       body: JSON.stringify(data),
     });
@@ -117,6 +118,7 @@ export const useAcademyStore = create<AcademyState>((set, get) => ({
   deleteCourse: async (id: string) => {
     const response = await fetch(`${API_BASE}/academy/courses/${id}`, {
       method: "DELETE",
+      headers: getAuthHeaders(),
       credentials: "include",
     });
     if (!response.ok) throw new Error("Failed to delete course");
@@ -128,7 +130,7 @@ export const useAcademyStore = create<AcademyState>((set, get) => ({
   createModule: async (courseId: string, title: string, order: number) => {
     const response = await fetch(`${API_BASE}/academy/courses/${courseId}/modules`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       credentials: "include",
       body: JSON.stringify({ title, order }),
     });
@@ -142,7 +144,7 @@ export const useAcademyStore = create<AcademyState>((set, get) => ({
   createLesson: async (moduleId: string, data: Partial<Lesson>) => {
     const response = await fetch(`${API_BASE}/academy/modules/${moduleId}/lessons`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       credentials: "include",
       body: JSON.stringify(data),
     });
