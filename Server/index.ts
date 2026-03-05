@@ -246,7 +246,12 @@ app.use(
 // SERVER STARTUP
 // ─────────────────────────────────────────────────────────────────────────────
 
-const server = app.listen(Number(PORT), "0.0.0.0", () => {
+// ─────────────────────────────────────────────────────────────────────────────
+// SEED EXTERNAL COURSES ON STARTUP (Academy Phase 3)
+// ─────────────────────────────────────────────────────────────────────────────
+import { seedExternalCoursesIfNeeded } from "./services/externalCourseSeed.js";
+
+const server = app.listen(Number(PORT), "0.0.0.0", async () => {
   console.log(`\n✅ Winners Ecosystem API — v1.1.0`);
   console.log(`   Port:        ${PORT}`);
   console.log(`   Environment: ${process.env.NODE_ENV ?? "development"}`);
@@ -255,6 +260,9 @@ const server = app.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`   Ready:       http://localhost:${PORT}/api/v1/health/ready\n`);
 
   if (isProd) startEmailScheduler();
+
+  // Initialize external course seed data on startup
+  await seedExternalCoursesIfNeeded();
 
   // Initialize WebSocket server for real-time features (Community presence & notifications)
   initWebSocketServer(server);
