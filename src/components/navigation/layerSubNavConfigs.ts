@@ -80,6 +80,9 @@ export const ACADEMY_SUBNAV: LayerSubNavConfig = {
   accent: "var(--gold)",
   items: [
     { id: "academy-browse", label: "Browse", to: "/academy" },
+    { id: "academy-paths", label: "Learning Paths", to: "/academy/paths" },
+    { id: "academy-explore", label: "Explore Global", to: "/academy/explore" },
+    { id: "academy-study-groups", label: "Study Groups", to: "/academy/study-groups", aliases: ["/academy/cohorts"] },
     { id: "academy-learning", label: "My Learning", to: "/academy/my-learning" },
     {
       id: "academy-instructor",
@@ -87,7 +90,7 @@ export const ACADEMY_SUBNAV: LayerSubNavConfig = {
       to: "/academy/instructor",
       children: [
         { id: "academy-instructor-home", label: "Dashboard", to: "/academy/instructor" },
-        { id: "academy-instructor-create", label: "Create", to: "/academy/instructor/create" },
+        { id: "academy-instructor-create", label: "Create Course", to: "/academy/instructor/create" },
       ],
     },
   ],
@@ -97,6 +100,14 @@ export const ACADEMY_SUBNAV: LayerSubNavConfig = {
         supervisor: "SAGE",
         title: "Outline your next lesson",
         hint: "Auto-generate module structure from your syllabus.",
+        intent: "open-command-palette",
+      };
+    }
+    if (pathname.startsWith("/academy/explore")) {
+      return {
+        supervisor: "SAGE",
+        title: "Find your next course",
+        hint: "Get personalized recommendations based on your goals.",
         intent: "open-command-palette",
       };
     }
