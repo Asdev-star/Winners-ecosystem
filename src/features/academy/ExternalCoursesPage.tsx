@@ -147,6 +147,27 @@ export default function ExternalCoursesPage() {
         }}>
           SAGE recommends the best courses from Coursera, FreeCodeCamp, Udemy, and more — tracked in your Winners Academy profile
         </p>
+        
+        {/* Seed Button - visible for admins */}
+        <button
+          onClick={handleSeed}
+          disabled={seeding}
+          style={{
+            marginTop: 12,
+            padding: "10px 20px",
+            background: "var(--gold)",
+            color: "var(--bg)",
+            border: "none",
+            borderRadius: 6,
+            fontFamily: "Syne, sans-serif",
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: seeding ? "not-allowed" : "pointer",
+            opacity: seeding ? 0.7 : 1
+          }}
+        >
+          {seeding ? "Seeding..." : "🌱 Seed Sample Courses"}
+        </button>
       </div>
 
       {/* SAGE Recommendations */}
