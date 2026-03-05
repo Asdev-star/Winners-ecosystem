@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
+import ContextBar from "../../components/ui/ContextBar";
 
 const API = API_BASE;
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -594,6 +595,9 @@ export default function GroupsPage() {
           + Create Group
         </button>
       </div>
+
+      {/* Ecosystem Context Bar */}
+      <ContextBar activeLayer="community" showLabels={true} />
 
       {/* Filters */}
       <div style={styles.filterRow}>

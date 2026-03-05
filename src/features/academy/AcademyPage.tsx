@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
 import EmptyState from "../../components/ui/EmptyState";
+import ContextBar from "../../components/ui/ContextBar";
 import { ACADEMY_SUBNAV } from "../../components/ui/subnav";
 
 interface Course {
@@ -58,15 +59,8 @@ export default function AcademyPage() {
   const categories = ["all", ...Array.from(new Set(courses.map(c => c.category)))];
 
   // Ecosystem context bar
-  const ctxBar = (
-    <div style={{ display:'flex', gap:8, marginBottom:22, flexWrap:'wrap' }}>
-      <span className="ctx-badge live">⬡ Core Engine</span>
-      <span className="ctx-sep">›</span>
-      <span className="ctx-badge live">🧑‍🤝‍🧑 Community</span>
-      <span className="ctx-sep">›</span>
-      <span className="ctx-badge active">🎓 Academy</span>
-    </div>
-  );
+  // Using ContextBar component for consistent ecosystem status display
+  const ctxBar = <ContextBar activeLayer="academy" showLabels={true} />;
 
   if (loading) {
     return (

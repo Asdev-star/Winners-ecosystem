@@ -8,6 +8,7 @@ import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
 import CommandPalette from "../../components/ui/CommandPalette";
+import ContextBar from "../../components/ui/ContextBar";
 
 const API = API_BASE;
 
@@ -1903,6 +1904,9 @@ export default function CommunityPage() {
               Live
             </div>
           </div>
+
+          {/* Ecosystem Context Bar */}
+          <ContextBar activeLayer="community" showLabels={true} />
 
           {/* NOVA Insight Banner */}
           {showNovaBanner && (

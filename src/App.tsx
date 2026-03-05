@@ -53,6 +53,9 @@ import AIPlatformPage from "./features/intelligence/ai-platform/AIPlatformPage";
 import OmegaDashboard from "./features/intelligence/OmegaDashboard";
 import InstructorDashboard from "./features/academy/InstructorDashboard";
 import CourseCreatePage from "./features/academy/CourseCreatePage";
+import LearningPathsPage from "./features/academy/LearningPathsPage";
+import StudyGroupPage from "./features/academy/StudyGroupPage";
+import QuizEngine from "./features/academy/QuizEngine";
 import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
 import MarketPage from "./features/market/MarketPage";
 import WinnersMarketExpanded from "./features/market/WinnersMarketExpanded";
@@ -130,6 +133,11 @@ function App() {
             <Route path="academy/instructor" element={<InstructorDashboard />} />
             <Route path="academy/instructor/create" element={<CourseCreatePage />} />
             <Route path="academy/instructor/edit/:id" element={<CourseCreatePage />} />
+            <Route path="academy/paths" element={<LearningPathsPage />} />
+            <Route path="academy/paths/:pathId" element={<LearningPathsPage />} />
+            <Route path="academy/study-groups" element={<StudyGroupPage />} />
+            <Route path="academy/study-groups/:groupId" element={<StudyGroupPage />} />
+            <Route path="academy/quiz/:quizId" element={<QuizEngine />} />
             <Route path="market" element={<WinnersMarketExpanded />} />
             <Route path="market/dropshipping" element={<WinnersDropshipping />} />
             <Route path="market/:vertical" element={<MarketPage />} />
