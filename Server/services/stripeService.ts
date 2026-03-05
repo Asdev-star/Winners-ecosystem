@@ -132,6 +132,52 @@ export async function createPortalSession(customerId: string, returnUrl: string)
   return stripe.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
 }
 
+// ─── Create course purchase checkout session ─────────────────────────────────
+
+export async function createCourseCheckoutSession(params: {
+  courseId: string;
+  courseTitle: string;
+  price: number;
+  currency?: string;
+  userId: string;
+  tenantId: string;
+  email: string;
+  successUrl: string;
+  cancelUrl: string;
+}) {
+  const stripe = getStripe();
+  const currency = params.currency || "usd";
+
+  // Create a price for this course dynamically
+  const price = await stripe.prices.create({
+    unit_amount: Math.round(params.price * 100), // Convert to cents
+    currency,
+    product_data: {
+      name: params.courseTitle,
+      metadata: {
+        courseId: params.courseId,
+      },
+    },
+  });
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    mode: "payment",
+    customer_email: params.email,
+    line_items: [{ price: price.id, quantity: 1 }],
+    metadata: {
+      courseId: params.courseId,
+      userId: params.userId,
+      tenantId: params.tenantId,
+      type: "course_purchase",
+    },
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+  });
+
+  return session;
+}
+
 // ─── Handle Stripe webhook events ─────────────────────────────────────────────
 
 export async function handleWebhookEvent(payload: Buffer, signature: string) {
@@ -197,6 +243,34 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
           source:     "Stripe",
           tenantName: tenant.name,
         }).catch(() => {});
+      }
+      break;
+    }
+
+    // Handle course purchases
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      
+      // Check if this is a course purchase
+      if (session.metadata?.type === "course_purchase") {
+        const courseId = session.metadata?.courseId;
+        const userId = session.metadata?.userId;
+        
+        if (courseId && userId) {
+          // Create enrollment for the user
+          const existingEnrollment = await db.enrollment.findUnique({
+            where: { courseId_userId: { courseId, userId } },
+          });
+
+          if (!existingEnrollment) {
+            await db.enrollment.create({
+              data: {
+                courseId,
+                userId,
+              },
+            });
+          }
+        }
       }
       break;
     }

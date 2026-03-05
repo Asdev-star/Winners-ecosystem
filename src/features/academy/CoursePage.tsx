@@ -119,8 +119,15 @@ export default function CoursePage() {
 
       if (!response.ok) throw new Error("Failed to enroll");
 
-      const newEnrollment = await response.json();
-      setEnrollment(newEnrollment);
+      const data = await response.json();
+
+      // If checkout URL is returned, redirect to Stripe
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      setEnrollment(data);
       await checkEnrollment(); // Refresh enrollment data
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to enroll");

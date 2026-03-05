@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
+import { createCourseCheckoutSession } from "../services/stripeService.js";
 
 const router = Router();
 
@@ -316,6 +317,35 @@ router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
     const courseId = String(req.params.courseId ?? "");
     const userId = req.user.userId;
 
+    // Get course to check if it's paid
+    const course = await db.course.findUnique({
+      where: { id: courseId },
+    });
+
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    // Check if course is paid - redirect to checkout
+    if (course.price > 0) {
+      const baseUrl = process.env.APP_URL || "https://winners-empire-eco.up.railway.app";
+      
+      const session = await createCourseCheckoutSession({
+        courseId: course.id,
+        courseTitle: course.title,
+        price: course.price,
+        currency: course.currency || "usd",
+        userId: req.user.userId,
+        tenantId: req.user.tenantId,
+        email: req.user.email || "",
+        successUrl: `${baseUrl}/academy/courses/${course.slug}?enrolled=true`,
+        cancelUrl: `${baseUrl}/academy/courses/${course.slug}?enrolled=false`,
+      });
+
+      return res.json({ checkoutUrl: session.url });
+    }
+
+    // Free course - enroll directly
     const existingEnrollment = await db.enrollment.findUnique({
       where: { courseId_userId: { courseId, userId } },
     });
