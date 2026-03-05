@@ -1182,6 +1182,112 @@ model Certificate {
   @@map("certificates")
 }
 
+// ─── External Course Integrations (Coursera, FreeCodeCamp, Udemy, etc.) ────────
+
+enum ExternalPlatform {
+  COURSERA
+  UNIATHENA
+  FREECODECAMP
+  UDEMY
+  EDX
+  KHAN_ACADEMY
+  PLURALSIGHT
+  LINKEDIN_LEARNING
+  GOOGLE_SKILLSHOP
+  HUBSPOT
+  ALISON
+  AWS_SKILLBUILDER
+  MICROSOFT_LEARN
+  ALX_AFRICA
+  ANDELA
+  OTHER
+}
+
+model ExternalCourse {
+  id           String         @id @default(cuid())
+  tenantId     String
+  platform     ExternalPlatform
+  externalId   String         // ID from external platform
+  title        String
+  description  String?
+  thumbnailUrl String?
+  courseUrl    String         // Link to external course
+  affiliateUrl String?        // Affiliate link for revenue tracking
+  instructor   String?
+  institution  String?        // University or organization
+  duration     Int?           // Duration in minutes
+  category     String?
+  subcategory  String?
+  difficulty   String?        // Beginner, Intermediate, Advanced
+  tags         String[]
+  price        Float          @default(0) // 0 = free
+  currency     String         @default("USD")
+  rating       Float?
+  reviewCount  Int            @default(0)
+  enrollmentCount Int         @default(0)
+  isVerified   Boolean        @default(false) // Verified by Winners team
+  isFeatured   Boolean        @default(false)
+  sageRecommended Boolean    @default(false)
+  africanRelevance Int       @default(5) // 1-10 SAGE-scored relevance for African market
+  workContractCount Int      @default(0) // CIRCUIT-populated: live job count for skills
+  hasCertificate Boolean     @default(true)
+  certificateType String?    // "Professional Certificate", "Specialization", etc.
+  lastSynced   DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  enrollments  ExternalCourseEnrollment[]
+  saves        ExternalCourseSave[]
+
+  @@unique([platform, externalId])
+  @@index([tenantId])
+  @@index([platform])
+  @@index([category])
+  @@index([isFeatured, sageRecommended])
+  @@map("external_courses")
+}
+
+model ExternalCourseEnrollment {
+  id              String    @id @default(cuid())
+  userId          String
+  externalCourseId String
+  enrolledAt      DateTime  @default(now())
+  completedAt     DateTime?
+  progress        Int       @default(0) // 0-100 percentage
+  certificateUrl  String?   // URL to external certificate
+  isSynced        Boolean   @default(false) // Synced with Winners certificate
+
+  externalCourse ExternalCourse @relation(fields: [externalCourseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, externalCourseId])
+  @@index([userId])
+  @@map("external_course_enrollments")
+}
+
+// FreeCodeCamp account sync model
+model FreeCodeCampSync {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  fccUsername     String
+  lastSynced      DateTime  @default(now())
+  certifications  Json      @default("[]") // [{name, completedDate, verificationUrl}]
+  createdAt       DateTime  @default(now())
+  @@map("freecodecamp_sync")
+}
+
+// User-saved external courses
+model ExternalCourseSave {
+  id         String         @id @default(cuid())
+  userId     String
+  courseId   String
+  course     ExternalCourse @relation(fields:[courseId], references:[id])
+  sageNote   String?        @db.Text // SAGE's note when it recommended this
+  savedAt    DateTime       @default(now())
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@map("external_course_saves")
+}
+
 model Review {
   id        String   @id @default(cuid())
   courseId  String

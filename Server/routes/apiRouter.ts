@@ -31,6 +31,7 @@ import aiPlatformRoutes from "./aiPlatformRoutes.js";
 import liveSpaceRoutes from "./liveSpaceRoutes.js";
 import opportunityRoutes from "./opportunityRoutes.js";
 import communityIntelligenceRoutes from "./communityIntelligenceRoutes.js";
+import externalCourseRoutes from "./externalCourseRoutes.js";
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = Router();
@@ -113,5 +114,6 @@ router.use("/ai-platform", aiPlatformRoutes);
 router.use("/spaces", liveSpaceRoutes);
 router.use("/opportunities", opportunityRoutes);
 router.use("/community", communityIntelligenceRoutes);
+router.use("/external-courses", externalCourseRoutes);
 
 export default router;

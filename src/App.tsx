@@ -44,6 +44,7 @@ import CreatorAnalyticsPage from "./features/community/CreatorAnalyticsPage";
 import CreatorEconomyPage from "./features/community/CreatorEconomyPage";
 import MessagesPage from "./features/community/MessagesPage";
 import AcademyPage from "./features/academy/AcademyPage";
+import ExternalCoursesPage from "./features/academy/ExternalCoursesPage";
 import CoursePage from "./features/academy/CoursePage";
 import StudentDashboardPage from "./features/academy/StudentDashboardPage";
 import CoreOpsPage from "./features/ops/CoreOpsPage";
@@ -124,6 +125,8 @@ function App() {
             <Route path="messages" element={<MessagesPage />} />
             <Route path="messages/:conversationId" element={<MessagesPage />} />
             <Route path="academy" element={<AcademyPage />} />
+            <Route path="academy/external" element={<ExternalCoursesPage />} />
+            <Route path="academy/explore" element={<ExternalCoursesPage />} />
             <Route path="academy/my-learning" element={<StudentDashboardPage />} />
             <Route path="academy/courses/:slug" element={<CoursePage />} />
             <Route path="intelligence" element={<WinnersIntelligencePage />} />
