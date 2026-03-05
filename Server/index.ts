@@ -39,6 +39,9 @@ import liveSpaceRoutes from "./routes/liveSpaceRoutes.js";
 // ── Community Intelligence Routes (Phase 2 V2.0 — NOVA AI Features) ──────────────
 import communityIntelligenceRoutes from "./routes/communityIntelligenceRoutes.js";
 
+// ── Community Extras Routes (Saved Posts, Feed Preferences, Conversations) ──────────
+import communityExtrasRoutes from "./routes/communityExtrasRoutes.js";
+
 // ── OMEGA Routes (Phase 5 — OMEGA Supervisor) ──────────────────────────────────────
 import omegaRoutes from "./routes/omegaRoutes.js";
 
@@ -148,6 +151,7 @@ app.use("/api/v1/groups", groupRoutes);
 app.use("/api/v1/spaces", liveSpaceRoutes);
 app.use("/api/v1/opportunities", opportunityRoutes);
 app.use("/api/v1/community-intelligence", communityIntelligenceRoutes);
+app.use("/api/v1/community", communityExtrasRoutes);
 app.use("/api/v1/omega", omegaRoutes);
 app.use("/api/v1/supervisors", supervisorRoutes);
 app.use("/api/v1/insights", autonomousRoutes);
