@@ -1813,3 +1813,124 @@ model LearnerNote {
   @@index([courseId])
   @@map("learner_notes")
 }
+
+// ─── SOCIAL MEDIA INTEGRATIONS ──────────────────────────────────────────────
+// NOVA-Powered Cross-Platform Intelligence for Community Layer
+
+model SocialAccount {
+  id           String   @id @default(cuid())
+  userId       String
+  tenantId     String?
+  platform     String   // facebook|instagram|whatsapp|telegram|twitter|messenger|linkedin|tiktok|youtube|threads|discord|pinterest|snapchat|substack|medium
+  platformId   String
+  username     String?
+  displayName  String?
+  profileImage String?
+  accessToken  String?  @db.Text  // encrypted
+  refreshToken String?  @db.Text  // encrypted
+  tokenExpiry  DateTime?
+  pageId       String?             // Facebook Page / Instagram Business account ID
+  pageName     String?
+  scopes       String[]  @default([])
+  active       Boolean  @default(true)
+  lastSynced   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user     User                   @relation(fields:[userId], references:[id], onDelete: Cascade)
+  posts    SocialCrossPost[]
+  metrics  SocialMetricSnapshot[]
+  skills   SocialSkillSignal[]
+  scheduled SocialScheduledPost[]
+
+  @@unique([userId, platform, platformId])
+  @@index([userId])
+  @@index([platform])
+  @@map("social_accounts")
+}
+
+model SocialCrossPost {
+  id              String        @id @default(cuid())
+  userId          String
+  communityPostId String?
+  socialAccountId String
+  socialAccount   SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+  platformPostId  String?
+  status          String        @default("pending")  // pending|published|failed|skipped
+  error           String?       @db.Text
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+
+  @@index([userId])
+  @@index([communityPostId])
+  @@index([socialAccountId, status])
+  @@map("social_cross_posts")
+}
+
+model SocialMetricSnapshot {
+  id              String        @id @default(cuid())
+  userId          String
+  socialAccountId String
+  socialAccount   SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+  platform        String
+  snapshotDate    DateTime      @default(now())
+  followers       Int           @default(0)
+  followersGrowth Int           @default(0)
+  reach           Int           @default(0)
+  impressions     Int           @default(0)
+  engagements     Int           @default(0)
+  engagementRate  Float         @default(0)
+  posts           Int           @default(0)
+  topPostId       String?
+  topPostReach    Int           @default(0)
+  platformData    Json?         @default("{}")
+  createdAt       DateTime      @default(now())
+
+  @@unique([socialAccountId, snapshotDate])
+  @@index([userId])
+  @@index([socialAccountId])
+  @@index([snapshotDate])
+  @@map("social_metric_snapshots")
+}
+
+model SocialSkillSignal {
+  id              String        @id @default(cuid())
+  userId          String
+  socialAccountId String?
+  socialAccount   SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+  platform        String
+  platformPostId  String?
+  content         String        @db.Text  // post content that was analysed
+  skill           String
+  confidence      Float         @default(0)  // 0-1
+  category        String?       // technical|creative|business|soft
+  isActioned      Boolean       @default(false)  // has NOVA acted on this?
+  loopFired       Boolean       @default(false)  // has this triggered Agentic Loop?
+  createdAt       DateTime      @default(now())
+
+  @@index([userId, skill])
+  @@index([platform])
+  @@index([isActioned])
+  @@map("social_skill_signals")
+}
+
+model SocialScheduledPost {
+  id              String        @id @default(cuid())
+  userId          String
+  socialAccountId String?
+  socialAccount   SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+  communityPostId String?
+  content         String        @db.Text
+  mediaUrls       String[]      @default([])
+  platform        String
+  adaptedContent  String?       @db.Text  // platform-specific adapted content
+  scheduledFor    DateTime
+  status          String        @default("scheduled")  // scheduled|published|failed|cancelled
+  novaOptimised   Boolean       @default(false)
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+
+  @@index([userId, scheduledFor])
+  @@index([status, scheduledFor])
+  @@map("social_scheduled_posts")
+}

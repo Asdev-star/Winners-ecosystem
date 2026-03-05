@@ -239,6 +239,8 @@ const PLATFORMS = [
       { path: "/community/opportunities", label: "Opportunities", icon: "🔗" },
       { path: "/community/analytics", label: "Analytics", icon: "📊" },
       { path: "/community/creator", label: "Creator", icon: "💎" },
+      { path: "/community/social-intelligence", label: "Social AI", icon: "🤖" },
+      { path: "/community/social-accounts", label: "Connect Apps", icon: "🔗" },
       { path: "/messages", label: "Messages" },
     ],
   },

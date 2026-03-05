@@ -43,6 +43,8 @@ import OpportunityBoardPage from "./features/community/OpportunityBoardPage";
 import CreatorAnalyticsPage from "./features/community/CreatorAnalyticsPage";
 import CreatorEconomyPage from "./features/community/CreatorEconomyPage";
 import MessagesPage from "./features/community/MessagesPage";
+import SocialAccountsPage from "./features/community/SocialAccountsPage";
+import SocialIntelligenceDashboard from "./features/community/SocialIntelligenceDashboard";
 import AcademyPage from "./features/academy/AcademyPage";
 import ExternalCoursesPage from "./features/academy/ExternalCoursesPage";
 import CoursePage from "./features/academy/CoursePage";
@@ -121,6 +123,8 @@ function App() {
             <Route path="community/opportunities" element={<OpportunityBoardPage />} />
             <Route path="community/analytics" element={<CreatorAnalyticsPage />} />
             <Route path="community/creator" element={<CreatorEconomyPage />} />
+            <Route path="community/social-accounts" element={<SocialAccountsPage />} />
+            <Route path="community/social-intelligence" element={<SocialIntelligenceDashboard />} />
             <Route path="community/profile/:id" element={<CreatorProfilePage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="messages/:conversationId" element={<MessagesPage />} />
