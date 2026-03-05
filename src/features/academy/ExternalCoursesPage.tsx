@@ -67,7 +67,10 @@ export default function ExternalCoursesPage() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const url = new URL(`${API_BASE}/external-courses`);
+      // Handle both relative and absolute API_BASE
+      const baseUrl = API_BASE.startsWith('http') ? API_BASE : window.location.origin;
+      const endpoint = `${baseUrl}/external-courses`;
+      const url = new URL(endpoint);
       if (platformFilter !== "all") {
         url.searchParams.set("platform", platformFilter);
       }
@@ -85,7 +88,8 @@ export default function ExternalCoursesPage() {
 
   const fetchRecommended = async () => {
     try {
-      const response = await fetch(`${API_BASE}/external-courses/recommended`);
+      const baseUrl = API_BASE.startsWith('http') ? API_BASE : window.location.origin;
+      const response = await fetch(`${baseUrl}/external-courses/recommended`);
       if (!response.ok) throw new Error("Failed to fetch recommended");
       const data = await response.json();
       setRecommendedCourses(data);
