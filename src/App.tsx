@@ -119,38 +119,88 @@ function App() {
             <Route path="community" element={<CommunityPage />} />
             <Route path="community/groups" element={<GroupsPage />} />
             <Route path="community/spaces" element={<LiveSpacesPage />} />
-            <Route path="community/directory" element={<DiasporaDirectoryPage />} />
-            <Route path="community/opportunities" element={<OpportunityBoardPage />} />
-            <Route path="community/analytics" element={<CreatorAnalyticsPage />} />
+            <Route
+              path="community/directory"
+              element={<DiasporaDirectoryPage />}
+            />
+            <Route
+              path="community/opportunities"
+              element={<OpportunityBoardPage />}
+            />
+            <Route
+              path="community/analytics"
+              element={<CreatorAnalyticsPage />}
+            />
             <Route path="community/creator" element={<CreatorEconomyPage />} />
-            <Route path="community/social-accounts" element={<SocialAccountsPage />} />
-            <Route path="community/social-intelligence" element={<SocialIntelligenceDashboard />} />
-            <Route path="community/profile/:id" element={<CreatorProfilePage />} />
+            <Route
+              path="community/social-accounts"
+              element={<SocialAccountsPage />}
+            />
+            <Route
+              path="community/social-intelligence"
+              element={<SocialIntelligenceDashboard />}
+            />
+            <Route
+              path="community/discover"
+              element={<SocialIntelligenceDashboard />}
+            />
+            <Route
+              path="community/saved"
+              element={<SocialIntelligenceDashboard />}
+            />
+            <Route
+              path="community/profile/:id"
+              element={<CreatorProfilePage />}
+            />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="messages/:conversationId" element={<MessagesPage />} />
             <Route path="academy" element={<AcademyPage />} />
             <Route path="academy/external" element={<ExternalCoursesPage />} />
             <Route path="academy/explore" element={<ExternalCoursesPage />} />
-            <Route path="academy/my-learning" element={<StudentDashboardPage />} />
+            <Route
+              path="academy/my-learning"
+              element={<StudentDashboardPage />}
+            />
             <Route path="academy/courses/:slug" element={<CoursePage />} />
             <Route path="intelligence" element={<WinnersIntelligencePage />} />
             <Route path="intelligence/aria" element={<WinnersChat />} />
             <Route path="intelligence/omega" element={<OmegaDashboard />} />
             <Route path="intelligence/platform" element={<AIPlatformPage />} />
-            <Route path="academy/instructor" element={<InstructorDashboard />} />
-            <Route path="academy/instructor/create" element={<CourseCreatePage />} />
-            <Route path="academy/instructor/edit/:id" element={<CourseCreatePage />} />
+            <Route
+              path="academy/instructor"
+              element={<InstructorDashboard />}
+            />
+            <Route
+              path="academy/instructor/create"
+              element={<CourseCreatePage />}
+            />
+            <Route
+              path="academy/instructor/edit/:id"
+              element={<CourseCreatePage />}
+            />
             <Route path="academy/paths" element={<LearningPathsPage />} />
-            <Route path="academy/paths/:pathId" element={<LearningPathsPage />} />
+            <Route
+              path="academy/paths/:pathId"
+              element={<LearningPathsPage />}
+            />
             <Route path="academy/study-groups" element={<StudyGroupPage />} />
-            <Route path="academy/study-groups/:groupId" element={<StudyGroupPage />} />
+            <Route
+              path="academy/study-groups/:groupId"
+              element={<StudyGroupPage />}
+            />
             <Route path="academy/quiz/:quizId" element={<QuizEngine />} />
             <Route path="market" element={<WinnersMarketExpanded />} />
-            <Route path="market/dropshipping" element={<WinnersDropshipping />} />
+            <Route
+              path="market/dropshipping"
+              element={<WinnersDropshipping />}
+            />
             <Route path="market/:vertical" element={<MarketPage />} />
           </Route>
 
-          <Route path="*" element={<Navigate to={user ? "/dashboard" : "/landing"} replace />} />
+          <Route
+            path="*"
+            element={<Navigate to={user ? "/dashboard" : "/landing"} replace />}
+          />
         </Routes>
       </div>
     </div>
