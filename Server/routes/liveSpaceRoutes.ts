@@ -8,8 +8,12 @@ const router = Router();
 // GET /spaces — List all live spaces
 router.get("/", authMiddleware, async (req, res) => {
   try {
+    const { status } = req.query;
+    const where: any = { tenantId: req.user!.tenantId };
+    if (status) where.status = status;
+    
     const spaces = await db.liveSpace.findMany({
-      where: { tenantId: req.user!.tenantId },
+      where,
       include: {
         host: { select: { id: true, name: true } },
         _count: { select: { participants: true } },

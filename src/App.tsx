@@ -46,6 +46,8 @@ import MessagesPage from "./features/community/MessagesPage";
 import SocialAccountsPage from "./features/community/SocialAccountsPage";
 import SocialIntelligenceDashboard from "./features/community/SocialIntelligenceDashboard";
 import StudioHomePage from "./features/community/StudioHomePage";
+import VideoRoomPage from "./features/community/VideoRoomPage";
+import BroadcastViewerPage from "./features/community/BroadcastViewerPage";
 import AcademyPage from "./features/academy/AcademyPage";
 import ExternalCoursesPage from "./features/academy/ExternalCoursesPage";
 import CoursePage from "./features/academy/CoursePage";
@@ -152,6 +154,14 @@ function App() {
             <Route
               path="community/studio"
               element={<StudioHomePage />}
+            />
+            <Route
+              path="community/studio/room/:roomId"
+              element={<VideoRoomPage />}
+            />
+            <Route
+              path="community/studio/stream/:streamId"
+              element={<BroadcastViewerPage />}
             />
             <Route
               path="community/profile/:id"

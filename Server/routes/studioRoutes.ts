@@ -4,9 +4,53 @@
 
 import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import crypto from "crypto";
 import db from "../db.js";
 
 const router = Router();
+
+// LiveKit configuration
+const LIVEKIT_URL = process.env.LIVEKIT_URL || "wss://winners1-9kbwfpev.livekit.cloud";
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || "APIQgzdRr93QMUa";
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || "HzMVERu37JVA2XG6WcdpX2smeUj2Re5MRHEVdwoQ35R";
+
+// Helper function to generate LiveKit token (JWT)
+function generateLiveKitToken(identity: string, roomName: string, isHost: boolean): string {
+  const header = {
+    alg: "HS256",
+    typ: "JWT",
+    kid: LIVEKIT_API_KEY,
+  };
+  
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    sub: identity,
+    name: identity,
+    iss: LIVEKIT_API_KEY,
+    aud: roomName,
+    exp: now + 3600, // 1 hour
+    nbf: now,
+    iat: now,
+    jti: crypto.randomUUID(),
+    video: {
+      room: roomName,
+      roomJoin: true,
+      canPublish: isHost,
+      canSubscribe: true,
+      canPublishData: true,
+    },
+  };
+  
+  const base64Header = Buffer.from(JSON.stringify(header)).toString("base64url");
+  const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  
+  const signature = crypto
+    .createHmac("sha256", LIVEKIT_API_SECRET)
+    .update(`${base64Header}.${base64Payload}`)
+    .digest("base64url");
+  
+  return `${base64Header}.${base64Payload}.${signature}`;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VIDEO ROOMS
@@ -202,10 +246,11 @@ router.post("/rooms/:id/join", authMiddleware, async (req, res) => {
       include: { user: { select: { id: true, name: true, trustScore: true } } },
     });
 
-    // Generate LiveKit token (placeholder - integrate with LiveKit server)
-    const livekitToken = `lk-token-placeholder-${Date.now()}`;
+    // Generate LiveKit token using helper function
+    const isHost = room.hostId === req.user!.userId;
+    const livekitToken = generateLiveKitToken(req.user!.userId, roomId, isHost);
     
-    res.json({ participant, livekitToken });
+    res.json({ participant, livekitToken, livekitUrl: LIVEKIT_URL });
   } catch (error) {
     console.error("Error joining video room:", error);
     res.status(500).json({ error: "Failed to join video room" });
@@ -403,7 +448,11 @@ router.put("/streams/:id/start", authMiddleware, async (req, res) => {
         muxPlaybackId: `playback-${Date.now()}`
       },
     });
-    res.json(updated);
+    
+    // Generate LiveKit token for broadcaster (can publish)
+    const livekitToken = generateLiveKitToken(req.user!.userId, `stream-${streamId}`, true);
+    
+    res.json({ stream: updated, livekitToken, livekitUrl: LIVEKIT_URL });
   } catch (error) {
     console.error("Error starting stream:", error);
     res.status(500).json({ error: "Failed to start stream" });
@@ -479,7 +528,10 @@ router.post("/streams/:id/view", authMiddleware, async (req, res) => {
       data: { peakViewers: { increment: 1 }, totalViewers: { increment: 1 } },
     });
 
-    res.json({ viewer, stream });
+    // Generate LiveKit token for broadcast viewer (can only subscribe)
+    const livekitToken = generateLiveKitToken(req.user!.userId, `stream-${streamId}`, false);
+    
+    res.json({ viewer, stream, livekitToken, livekitUrl: LIVEKIT_URL });
   } catch (error) {
     console.error("Error joining stream:", error);
     res.status(500).json({ error: "Failed to join stream" });

@@ -1,0 +1,48 @@
+# LiveKit Server Configuration
+# This file is used when self-hosting LiveKit on Railway or other platforms
+
+# Server Configuration
+port: 7880
+rtc:
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+  tcp_port: 7881
+  udp_port: 7882
+
+# API Keys - Replace with your credentials from LiveKit Cloud dashboard
+keys:
+  APIQgzdRr93QMUa: HzMVERu37JVA2XG6WcdpX2smeUj2Re5MRHEVdwoQ35R
+
+# Room Configuration
+room:
+  auto_create: true
+  empty_timeout: 300  # 5 minutes before room is deleted
+  max_participants: 50
+  max_publishers: 50
+
+# Network Configuration
+network:
+  # Enable TURN server for NAT traversal
+  use_external_ip: true
+
+# Logging
+logging:
+  level: info
+  pion_level: warn
+
+# Prometheus metrics (optional)
+# prometheus_port: 7889
+
+# Rate limiting
+rate_limit:
+  enabled: true
+  requests_per_second: 100
+
+# Recording (optional - requires cloud storage)
+# recording:
+#   s3:
+#     bucket: your-bucket
+#     region: us-east-1
+#     access_key: your-access-key
+#     secret_key: your-secret-key

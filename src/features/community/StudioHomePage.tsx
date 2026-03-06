@@ -73,61 +73,69 @@ export default function StudioHomePage() {
 
   const loadStudioData = async () => {
     try {
-      // Fetch live rooms from API
       const token = localStorage.getItem("token");
       const headers = { Authorization: `Bearer ${token}` };
       
-      // For now, use mock data - in production these would be API calls
-      setLiveRooms([
-        {
-          id: "1",
-          title: "African Tech Founders — Building in Public",
-          type: "space",
-          host: { id: "1", name: "@davidosei" },
-          participants: 312,
-          startedAt: new Date(Date.now() - 3600000).toISOString(),
-          status: "LIVE"
-        },
-        {
-          id: "2",
-          title: "React Workshop: Building REST APIs",
-          type: "video",
-          host: { id: "2", name: "@techwithnkem" },
-          participants: 23,
-          startedAt: new Date(Date.now() - 480000).toISOString(),
-          status: "LIVE"
-        },
-        {
-          id: "3",
-          title: "NOVA Intelligence: How It Works",
-          type: "broadcast",
-          host: { id: "3", name: "@winners_official" },
-          participants: 1240,
-          startedAt: new Date(Date.now() - 4400000).toISOString(),
-          status: "LIVE"
-        }
-      ]);
+      // Fetch live video rooms
+      const roomsRes = await fetch("/api/v1/studio/rooms/live", { headers });
+      const liveVideoRooms = roomsRes.ok ? await roomsRes.json() : [];
+      
+      // Fetch live spaces
+      const spacesRes = await fetch("/api/v1/spaces?status=LIVE", { headers });
+      const liveSpaces = spacesRes.ok ? await spacesRes.json() : [];
+      
+      // Fetch live broadcasts
+      const broadcastsRes = await fetch("/api/v1/studio/streams/live", { headers });
+      const liveBroadcasts = broadcastsRes.ok ? await broadcastsRes.json() : [];
+      
+      // Transform and combine all live sessions
+      const allLive: LiveRoom[] = [
+        ...liveVideoRooms.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          type: "video" as const,
+          host: r.host,
+          participants: r._count?.participants || 0,
+          startedAt: r.startedAt || new Date().toISOString(),
+          status: r.status
+        })),
+        ...liveSpaces.map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          type: "space" as const,
+          host: s.host,
+          participants: s._count?.participants || 0,
+          startedAt: s.startedAt || new Date().toISOString(),
+          status: s.status
+        })),
+        ...liveBroadcasts.map((b: any) => ({
+          id: b.id,
+          title: b.title,
+          type: "broadcast" as const,
+          host: b.host,
+          participants: b.peakViewers || 0,
+          startedAt: b.startedAt || new Date().toISOString(),
+          status: b.status
+        }))
+      ];
+      setLiveRooms(allLive);
 
-      setScheduledEvents([
-        {
-          id: "1",
-          title: "Freelancing for Beginners",
-          sessionType: "video",
-          scheduledAt: new Date(Date.now() + 1320000).toISOString(),
-          host: { id: "4", name: "@aminatafall" },
-          rsvpCount: 89
-        },
-        {
-          id: "2",
-          title: "Winners Ecosystem Product Update",
-          sessionType: "broadcast",
-          scheduledAt: new Date(Date.now() + 7200000).toISOString(),
-          host: { id: "3", name: "@winners_official" },
-          rsvpCount: 312
-        }
-      ]);
+      // Fetch scheduled events
+      const eventsRes = await fetch("/api/v1/studio/events/upcoming", { headers });
+      const events = eventsRes.ok ? await eventsRes.json() : [];
+      setScheduledEvents(events.map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        sessionType: e.sessionType,
+        scheduledAt: e.scheduledAt,
+        host: e.host,
+        rsvpCount: e.rsvpCount || 0
+      })));
     } catch (error) {
       console.error("Error loading studio data:", error);
+      // Fallback to empty state on error
+      setLiveRooms([]);
+      setScheduledEvents([]);
     } finally {
       setLoading(false);
     }
@@ -202,8 +210,8 @@ export default function StudioHomePage() {
         }
         
         .create-room-btn {
-          background: linear-gradient(135deg, var(--gold) 0%, #a8863d 100%);
-          color: #0D1520;
+          background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dim, #a8863d) 100%);
+          color: var(--bg);
           border: none;
           padding: 12px 24px;
           border-radius: 6px;
@@ -496,7 +504,7 @@ export default function StudioHomePage() {
           background: var(--gold);
           border: none;
           border-radius: 6px;
-          color: #0D1520;
+          color: var(--bg);
           font-weight: 600;
           cursor: pointer;
         }

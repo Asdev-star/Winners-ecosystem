@@ -12,6 +12,12 @@ healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
+# LiveKit Configuration
+# Replace these with your actual LiveKit credentials
+# LIVEKIT_URL=wss://winners1-9kbwfpev.livekit.cloud
+# LIVEKIT_API_KEY=APIQgzdRr93QMUa
+# LIVEKIT_API_SECRET=HzMVERu37JVA2XG6WcdpX2smeUj2Re5MRHEVdwoQ35R
+
 # Backup Configuration
 # Railway provides automatic daily backups for PostgreSQL
 # This config ensures backups are enabled via Railway dashboard settings
