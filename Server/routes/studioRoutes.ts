@@ -62,16 +62,15 @@ router.get("/rooms/:id", authMiddleware, async (req, res) => {
     const room = await db.videoRoom.findFirst({
       where: { id: roomId, tenantId: req.user!.tenantId },
       include: {
-        host: { select: { id: true, name: true, trustScore: true, avatar: true } },
+        host: { select: { id: true, name: true } },
         participants: {
-          include: { user: { select: { id: true, name: true, trustScore: true, avatar: true } } }
+          include: { user: { select: { id: true, name: true } } }
         },
         breakouts: true,
         qaQuestions: {
           orderBy: { upvotes: "desc" },
           take: 20
         },
-        transcript: true,
       },
     });
     if (!room) {
@@ -163,6 +162,7 @@ router.put("/rooms/:id/end", authMiddleware, async (req, res) => {
       data: {
         sessionType: "video_room",
         sessionId: roomId,
+        rawTranscript: "",
         durationSecs: room.startedAt ? Math.floor((Date.now() - room.startedAt.getTime()) / 1000) : 0,
       },
     });
@@ -266,7 +266,7 @@ router.put("/rooms/:id/questions/:qid/upvote", authMiddleware, async (req, res) 
   try {
     const { qid } = req.params;
     const question = await db.qAQuestion.update({
-      where: { id: qid },
+      where: { id: String(qid) },
       data: { upvotes: { increment: 1 } },
     });
     res.json(question);
@@ -330,14 +330,13 @@ router.get("/streams/:id", authMiddleware, async (req, res) => {
     const stream = await db.broadcastStream.findFirst({
       where: { id: streamId, tenantId: req.user!.tenantId },
       include: {
-        host: { select: { id: true, name: true, trustScore: true, avatar: true } },
+        host: { select: { id: true, name: true } },
         viewers: { take: 50 },
         superChats: { 
           where: { pinnedUntil: { gt: new Date() } },
           orderBy: { amount: "desc" },
           take: 10
         },
-        transcript: true,
       },
     });
     if (!stream) {
@@ -433,6 +432,7 @@ router.put("/streams/:id/end", authMiddleware, async (req, res) => {
       data: {
         sessionType: "broadcast",
         sessionId: streamId,
+        rawTranscript: "",
         durationSecs: stream.startedAt ? Math.floor((Date.now() - stream.startedAt.getTime()) / 1000) : 0,
       },
     });
@@ -591,7 +591,7 @@ router.get("/streams/:id/analytics", authMiddleware, async (req, res) => {
       totalRevenue: stream.totalRevenue,
       totalSuperChats: superChats._count,
       superChatRevenue: superChats._sum.amount || 0,
-      avgWatchTime: viewers.length ? Math.floor(viewers.reduce((a, b) => a + b.watchSecs, 0) / viewers.length) : 0,
+      avgWatchTime: viewers.length ? Math.floor(viewers.reduce((a: number, b: { watchSecs: number }) => a + b.watchSecs, 0) / viewers.length) : 0,
     });
   } catch (error) {
     console.error("Error fetching stream analytics:", error);
@@ -732,7 +732,7 @@ router.get("/events/:id", authMiddleware, async (req, res) => {
     const event = await db.studioEvent.findFirst({
       where: { id: eventId, tenantId: req.user!.tenantId },
       include: {
-        host: { select: { id: true, name: true, trustScore: true, avatar: true } },
+        host: { select: { id: true, name: true } },
         rsvps: {
           include: { user: { select: { id: true, name: true, trustScore: true } } },
           take: 50,
@@ -789,7 +789,7 @@ router.get("/nova/debrief/:sessionId", authMiddleware, async (req, res) => {
     const { sessionId } = req.params;
     
     const transcript = await db.sessionTranscript.findUnique({
-      where: { sessionId },
+      where: { sessionId: String(sessionId) },
     });
     
     if (!transcript) {
@@ -821,7 +821,7 @@ router.get("/transcripts/:sessionId", authMiddleware, async (req, res) => {
     const { sessionId } = req.params;
     
     const transcript = await db.sessionTranscript.findUnique({
-      where: { sessionId },
+      where: { sessionId: String(sessionId) },
     });
     
     if (!transcript) {
