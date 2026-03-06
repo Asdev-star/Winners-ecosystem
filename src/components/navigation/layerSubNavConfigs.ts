@@ -35,7 +35,19 @@ export const COMMUNITY_SUBNAV: LayerSubNavConfig = {
     { id: "community-feed", label: "Feed", to: "/community" },
     { id: "community-groups", label: "Groups", to: "/community/groups" },
     { id: "community-spaces", label: "Live Spaces", to: "/community/spaces", badge: "Live", badgeTone: "positive" },
-    { id: "community-studio", label: "🎙️ Studio", to: "/community/studio", badge: "NEW", badgeTone: "positive" },
+    { 
+      id: "community-studio", 
+      label: "🎙️ Studio", 
+      to: "/community/studio", 
+      badge: "NEW", 
+      badgeTone: "positive",
+      children: [
+        { id: "studio-home", label: "Home", to: "/community/studio" },
+        { id: "studio-rooms", label: "Video Rooms", to: "/community/studio?tab=rooms" },
+        { id: "studio-streams", label: "Broadcasts", to: "/community/studio?tab=streams" },
+        { id: "studio-events", label: "Events", to: "/community/studio?tab=events" },
+      ]
+    },
     { id: "community-directory", label: "Directory", to: "/community/directory" },
     { id: "community-opportunities", label: "Opportunities", to: "/community/opportunities", badge: "AI", badgeTone: "info" },
     { id: "community-social-ai", label: "Social AI 🤖", to: "/community/social-intelligence" },

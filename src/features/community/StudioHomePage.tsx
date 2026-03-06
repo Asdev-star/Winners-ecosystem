@@ -2,7 +2,7 @@
 // Phase 2 Extension — Live Spaces, Video Rooms, Broadcast Streams
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 
 // Types
@@ -27,7 +27,12 @@ interface ScheduledEvent {
 
 export default function StudioHomePage() {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<"live" | "scheduled" | "recordings" | "mystudio">("live");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") as "live" | "scheduled" | "recordings" | "mystudio" | null;
+  const [activeTab, setActiveTab] = useState<"live" | "scheduled" | "recordings" | "mystudio">(
+    initialTab === "rooms" || initialTab === "streams" || initialTab === "events" ? "live" : 
+    initialTab || "live"
+  );
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
   const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
   const [loading, setLoading] = useState(true);
