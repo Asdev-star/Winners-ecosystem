@@ -51,7 +51,7 @@ export default function StudioHomePage() {
     if (!newRoom.title) return;
     setCreating(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("we_token");
       const response = await fetch("/api/v1/studio/rooms", {
         method: "POST",
         headers: {
@@ -78,7 +78,12 @@ export default function StudioHomePage() {
 
   const loadStudioData = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("we_token"); // Winners Ecosystem token key
+      if (!token) {
+        console.warn("No auth token found");
+        setLoading(false);
+        return;
+      }
       const headers = { Authorization: `Bearer ${token}` };
       
       // Fetch live video rooms
