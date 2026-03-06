@@ -28,11 +28,14 @@ interface ScheduledEvent {
 export default function StudioHomePage() {
   const { user } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get("tab") as "live" | "scheduled" | "recordings" | "mystudio" | null;
-  const [activeTab, setActiveTab] = useState<"live" | "scheduled" | "recordings" | "mystudio">(
-    initialTab === "rooms" || initialTab === "streams" || initialTab === "events" ? "live" : 
-    initialTab || "live"
-  );
+  const urlTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"live" | "scheduled" | "recordings" | "mystudio">(() => {
+    if (urlTab === "rooms" || urlTab === "streams" || urlTab === "events") return "live";
+    if (urlTab === "scheduled") return "scheduled";
+    if (urlTab === "recordings") return "recordings";
+    if (urlTab === "mystudio") return "mystudio";
+    return "live";
+  });
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
   const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
   const [loading, setLoading] = useState(true);
