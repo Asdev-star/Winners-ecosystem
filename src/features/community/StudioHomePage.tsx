@@ -49,8 +49,14 @@ export default function StudioHomePage() {
     return "live";
   };
   
-  const [activeTab, setActiveTab] = useState<"live" | "scheduled" | "recordings" | "mystudio">(getInitialTab());
+  const [activeTab, setActiveTab] = useState<"live" | "scheduled" | "recordings" | "mystudio">("live");
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    const tab = getInitialTab();
+    setActiveTab(tab);
+  }, [urlTab]);
   const [creating, setCreating] = useState(false);
   const [newRoom, setNewRoom] = useState({
     title: "",
