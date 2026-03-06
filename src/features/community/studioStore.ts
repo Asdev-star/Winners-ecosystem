@@ -136,10 +136,20 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   },
 
   createRoom: async (roomParams: CreateRoomParams) => {
+    // First create the room
     const data = await authFetch("/api/v1/studio/rooms", {
       method: "POST",
       body: JSON.stringify(roomParams),
     });
+    
+    // Then start the session to make it LIVE
+    try {
+      await authFetch(`/api/v1/studio/rooms/${data.id}/start`, {
+        method: "PUT",
+      });
+    } catch (e) {
+      console.warn("Could not auto-start room:", e);
+    }
     
     const newRoom: LiveRoom = {
       id: data.id,

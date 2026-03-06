@@ -47,8 +47,8 @@ export default function VideoRoomPage({ mode: initialMode = "join" }: VideoRoomP
       }
 
       try {
-        // Fetch room details from API
-        const token = localStorage.getItem("token");
+        // Fetch room details from API - use auth store token
+        const token = useAuthStore.getState().token;
         const response = await fetch(`/api/v1/studio/rooms/${roomId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
