@@ -37,6 +37,8 @@ export const COMMUNITY_SUBNAV: LayerSubNavConfig = {
     { id: "community-spaces", label: "Live Spaces", to: "/community/spaces", badge: "Live", badgeTone: "positive" },
     { id: "community-directory", label: "Directory", to: "/community/directory" },
     { id: "community-opportunities", label: "Opportunities", to: "/community/opportunities", badge: "AI", badgeTone: "info" },
+    { id: "community-social-ai", label: "Social AI 🤖", to: "/community/social-intelligence" },
+    { id: "community-connect-apps", label: "Connect Apps 🔗", to: "/community/social-accounts" },
     {
       id: "community-creator",
       label: "Creator Hub",
