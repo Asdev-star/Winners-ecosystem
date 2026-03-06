@@ -45,6 +45,7 @@ import CreatorEconomyPage from "./features/community/CreatorEconomyPage";
 import MessagesPage from "./features/community/MessagesPage";
 import SocialAccountsPage from "./features/community/SocialAccountsPage";
 import SocialIntelligenceDashboard from "./features/community/SocialIntelligenceDashboard";
+import StudioHomePage from "./features/community/StudioHomePage";
 import AcademyPage from "./features/academy/AcademyPage";
 import ExternalCoursesPage from "./features/academy/ExternalCoursesPage";
 import CoursePage from "./features/academy/CoursePage";
@@ -147,6 +148,10 @@ function App() {
             <Route
               path="community/saved"
               element={<SocialIntelligenceDashboard />}
+            />
+            <Route
+              path="community/studio"
+              element={<StudioHomePage />}
             />
             <Route
               path="community/profile/:id"

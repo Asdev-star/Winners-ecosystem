@@ -1,0 +1,524 @@
+// src/features/community/StudioHomePage.tsx — Winners Community Studio Home
+// Phase 2 Extension — Live Spaces, Video Rooms, Broadcast Streams
+
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuthStore } from "../auth/authStore";
+
+// Types
+interface LiveRoom {
+  id: string;
+  title: string;
+  type: "space" | "video" | "broadcast";
+  host: { id: string; name: string };
+  participants: number;
+  startedAt: string;
+  status: string;
+}
+
+interface ScheduledEvent {
+  id: string;
+  title: string;
+  sessionType: string;
+  scheduledAt: string;
+  host: { id: string; name: string };
+  rsvpCount: number;
+}
+
+export default function StudioHomePage() {
+  const { user } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<"live" | "scheduled" | "recordings" | "mystudio">("live");
+  const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
+  const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadStudioData();
+  }, []);
+
+  const loadStudioData = async () => {
+    try {
+      // Fetch live rooms from API
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      // For now, use mock data - in production these would be API calls
+      setLiveRooms([
+        {
+          id: "1",
+          title: "African Tech Founders — Building in Public",
+          type: "space",
+          host: { id: "1", name: "@davidosei" },
+          participants: 312,
+          startedAt: new Date(Date.now() - 3600000).toISOString(),
+          status: "LIVE"
+        },
+        {
+          id: "2",
+          title: "React Workshop: Building REST APIs",
+          type: "video",
+          host: { id: "2", name: "@techwithnkem" },
+          participants: 23,
+          startedAt: new Date(Date.now() - 480000).toISOString(),
+          status: "LIVE"
+        },
+        {
+          id: "3",
+          title: "NOVA Intelligence: How It Works",
+          type: "broadcast",
+          host: { id: "3", name: "@winners_official" },
+          participants: 1240,
+          startedAt: new Date(Date.now() - 4400000).toISOString(),
+          status: "LIVE"
+        }
+      ]);
+
+      setScheduledEvents([
+        {
+          id: "1",
+          title: "Freelancing for Beginners",
+          sessionType: "video",
+          scheduledAt: new Date(Date.now() + 1320000).toISOString(),
+          host: { id: "4", name: "@aminatafall" },
+          rsvpCount: 89
+        },
+        {
+          id: "2",
+          title: "Winners Ecosystem Product Update",
+          sessionType: "broadcast",
+          scheduledAt: new Date(Date.now() + 7200000).toISOString(),
+          host: { id: "3", name: "@winners_official" },
+          rsvpCount: 312
+        }
+      ]);
+    } catch (error) {
+      console.error("Error loading studio data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  const formatScheduledTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 60) return `in ${diffMins} min`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `in ${diffHours}h`;
+    return date.toLocaleDateString();
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "space": return "🎙️";
+      case "video": return "🎥";
+      case "broadcast": return "📺";
+      default: return "🎙️";
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case "space": return "Audio Space";
+      case "video": return "Video Room";
+      case "broadcast": return "Broadcast";
+      default: return "Session";
+    }
+  };
+
+  return (
+    <div className="studio-home">
+      <style>{`
+        .studio-home {
+          padding: 24px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        
+        .studio-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        }
+        
+        .studio-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 28px;
+          font-weight: 700;
+          color: var(--text);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .create-room-btn {
+          background: linear-gradient(135deg, var(--gold) 0%, #a8863d 100%);
+          color: #0D1520;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 6px;
+          font-family: 'Syne', sans-serif;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        
+        .create-room-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(201, 168, 76, 0.3);
+        }
+        
+        .studio-tabs {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 24px;
+          border-bottom: 1px solid var(--border);
+          padding-bottom: 12px;
+        }
+        
+        .studio-tab {
+          background: transparent;
+          border: none;
+          color: var(--text-dim);
+          padding: 10px 16px;
+          font-family: 'Syne', sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .studio-tab.active {
+          background: var(--surface);
+          color: var(--gold);
+        }
+        
+        .studio-tab:hover:not(.active) {
+          color: var(--text);
+          background: var(--surface2);
+        }
+        
+        .live-indicator {
+          width: 8px;
+          height: 8px;
+          background: var(--red);
+          border-radius: 50%;
+          animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        
+        .section-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--text);
+          margin-bottom: 16px;
+          padding-top: 16px;
+        }
+        
+        .session-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          padding: 16px;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .session-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, var(--gold), transparent);
+        }
+        
+        .session-card:hover {
+          border-color: var(--gold);
+          transform: translateY(-2px);
+        }
+        
+        .session-type-icon {
+          font-size: 32px;
+          width: 48px;
+          text-align: center;
+        }
+        
+        .session-info {
+          flex: 1;
+        }
+        
+        .session-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text);
+          margin-bottom: 4px;
+        }
+        
+        .session-meta {
+          font-family: 'Space Mono', monospace;
+          font-size: 11px;
+          color: var(--text-dim);
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+        
+        .session-status {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        
+        .status-badge {
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        
+        .status-badge.live {
+          background: var(--red);
+          color: white;
+        }
+        
+        .status-badge.scheduled {
+          background: var(--blue);
+          color: white;
+        }
+        
+        .participant-count {
+          color: var(--ice);
+        }
+        
+        .host-info {
+          color: var(--text-dim);
+        }
+        
+        .empty-state {
+          text-align: center;
+          padding: 48px;
+          color: var(--text-dim);
+        }
+        
+        .empty-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+        }
+        
+        .nova-panel {
+          background: linear-gradient(135deg, rgba(155, 111, 255, 0.1) 0%, rgba(155, 111, 255, 0.05) 100%);
+          border: 1px solid rgba(155, 111, 255, 0.3);
+          border-radius: 6px;
+          padding: 16px;
+          margin-top: 24px;
+        }
+        
+        .nova-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        
+        .nova-badge {
+          background: var(--purple);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 600;
+        }
+        
+        .nova-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text);
+        }
+        
+        .nova-skills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        
+        .skill-tag {
+          background: var(--surface2);
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 11px;
+          color: var(--text-dim);
+        }
+        
+        .nova-insight {
+          font-size: 12px;
+          color: var(--text-dim);
+          line-height: 1.5;
+        }
+      `}</style>
+
+      {/* Context Bar */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
+        <span className="ctx-badge live">⬡ Core Engine</span>
+        <span className="ctx-sep">›</span>
+        <span className="ctx-badge active">🧑‍🤝‍🧑 Community</span>
+        <span className="ctx-sep">›</span>
+        <span className="ctx-badge">🎙️ Studio</span>
+      </div>
+
+      <div className="studio-header">
+        <h1 className="studio-title">
+          🎙️ WINNERS COMMUNITY STUDIO
+        </h1>
+        <button className="create-room-btn">
+          + Create Room
+        </button>
+      </div>
+
+      <div className="studio-tabs">
+        <button 
+          className={`studio-tab ${activeTab === 'live' ? 'active' : ''}`}
+          onClick={() => setActiveTab('live')}
+        >
+          <span className="live-indicator"></span>
+          🔴 LIVE NOW
+        </button>
+        <button 
+          className={`studio-tab ${activeTab === 'scheduled' ? 'active' : ''}`}
+          onClick={() => setActiveTab('scheduled')}
+        >
+          📅 SCHEDULED
+        </button>
+        <button 
+          className={`studio-tab ${activeTab === 'recordings' ? 'active' : ''}`}
+          onClick={() => setActiveTab('recordings')}
+        >
+          📼 RECORDINGS
+        </button>
+        <button 
+          className={`studio-tab ${activeTab === 'mystudio' ? 'active' : ''}`}
+          onClick={() => setActiveTab('mystudio')}
+        >
+          🎤 MY STUDIO
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="empty-state">Loading...</div>
+      ) : (
+        <>
+          {activeTab === 'live' && (
+            <>
+              <h2 className="section-title">🔴 LIVE NOW</h2>
+              {liveRooms.map(room => (
+                <div key={room.id} className="session-card">
+                  <div className="session-type-icon">{getTypeIcon(room.type)}</div>
+                  <div className="session-info">
+                    <div className="session-title">{room.title}</div>
+                    <div className="session-meta">
+                      <span className="session-status">
+                        <span className="status-badge live">🔴 LIVE</span>
+                        <span className="participant-count">{room.participants} {room.type === 'broadcast' ? 'viewers' : 'listeners'}</span>
+                      </span>
+                      <span className="host-info">Hosted by {room.host.name}</span>
+                      <span className="host-info">{getTypeLabel(room.type)} · Started {formatTime(room.startedAt)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* NOVA Live Intelligence Panel */}
+              <div className="nova-panel">
+                <div className="nova-header">
+                  <span className="nova-badge">NOVA</span>
+                  <span className="nova-title">Live Intelligence</span>
+                </div>
+                <div className="nova-skills">
+                  <span className="skill-tag">React.js (94%)</span>
+                  <span className="skill-tag">Product Strategy (87%)</span>
+                  <span className="skill-tag">Fundraising (81%)</span>
+                </div>
+                <p className="nova-insight">
+                  3 listeners have no Academy cert in React but high engagement. 
+                  SAGE is ready to recommend a course.
+                </p>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'scheduled' && (
+            <>
+              <h2 className="section-title">📅 STARTING SOON</h2>
+              {scheduledEvents.map(event => (
+                <div key={event.id} className="session-card">
+                  <div className="session-type-icon">{getTypeIcon(event.sessionType)}</div>
+                  <div className="session-info">
+                    <div className="session-title">{event.title}</div>
+                    <div className="session-meta">
+                      <span className="session-status">
+                        <span className="status-badge scheduled">{formatScheduledTime(event.scheduledAt)}</span>
+                        <span className="participant-count">{event.rsvpCount} RSVPs</span>
+                      </span>
+                      <span className="host-info">Hosted by {event.host.name}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {activeTab === 'recordings' && (
+            <div className="empty-state">
+              <div className="empty-icon">📼</div>
+              <p>No recordings yet. Past sessions will appear here.</p>
+            </div>
+          )}
+
+          {activeTab === 'mystudio' && (
+            <div className="empty-state">
+              <div className="empty-icon">🎤</div>
+              <p>Your hosted rooms and events will appear here.</p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

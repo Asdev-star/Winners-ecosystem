@@ -45,6 +45,9 @@ import communityExtrasRoutes from "./routes/communityExtrasRoutes.js";
 // ── OMEGA Routes (Phase 5 — OMEGA Supervisor) ──────────────────────────────────────
 import omegaRoutes from "./routes/omegaRoutes.js";
 
+// ── Studio Routes (Phase 2 — Winners Community Studio) ──────────────────────────────
+import studioRoutes from "./routes/studioRoutes.js";
+
 // ── Supervisor Routes (Phase 5 — All Supervisors) ─────────────────────────────────
 import supervisorRoutes from "./routes/supervisorRoutes.js";
 
@@ -154,6 +157,7 @@ app.use("/api/v1/community-intelligence", communityIntelligenceRoutes);
 app.use("/api/v1/community", communityExtrasRoutes);
 app.use("/api/v1/omega", omegaRoutes);
 app.use("/api/v1/supervisors", supervisorRoutes);
+app.use("/api/v1/studio", studioRoutes);
 app.use("/api/v1/insights", autonomousRoutes);
 // app.use("/creator", creatorRoutes);
 

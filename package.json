@@ -15,6 +15,9 @@
     "dev:server": "tsx watch Server/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\""
   },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.77.0",
     "@paralleldrive/cuid2": "^3.3.0",

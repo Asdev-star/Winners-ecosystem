@@ -38,7 +38,10 @@ model Tenant {
   courses                Course[]
   conversations          Conversation[]
   liveSpaces             LiveSpace[]
-  corporateAccount       CorporateAccount?
+  videoRooms            VideoRoom[]
+  broadcastStreams      BroadcastStream[]
+  studioEvents          StudioEvent[]
+  corporateAccount     CorporateAccount?
 
   @@map("tenants")
 }
@@ -109,6 +112,17 @@ model User {
   socialMetricSnapshots SocialMetricSnapshot[]
   socialSkillSignals    SocialSkillSignal[]
   socialScheduledPosts  SocialScheduledPost[]
+
+  // Community Studio - Video Rooms & Broadcasts
+  hostedVideoRooms     VideoRoom[]
+  videoRoomParticipations VideoRoomParticipant[]
+  hostedBroadcasts    BroadcastStream[]
+  streamViewers       StreamViewer[]
+  superChats          SuperChat[]
+  ppvPurchases       PPVAccess[]
+  studioEvents        StudioEvent[]
+  studioRsvps         StudioRsvp[]
+  qaQuestions        QAQuestion[]
 
   // SAGE Super-Intelligence V2 Relations
   flashcards         Flashcard[]
@@ -1944,4 +1958,255 @@ model SocialScheduledPost {
   @@index([userId, scheduledFor])
   @@index([status, scheduledFor])
   @@map("social_scheduled_posts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WINNERS COMMUNITY STUDIO — PHASE 2 EXTENSION
+// Video Rooms, Broadcast Streams, Session Transcripts, Events Calendar
+// ─────────────────────────────────────────────────────────────────────────────
+
+model VideoRoom {
+  id              String        @id @default(cuid())
+  tenantId        String
+  hostId          String
+  title           String
+  description     String?       @db.Text
+  roomType        VideoRoomType @default(WORKSHOP)
+  status          RoomStatus    @default(SCHEDULED)
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  maxParticipants Int           @default(50)
+  isPrivate       Boolean       @default(false)
+  password        String?
+  courseId        String?
+  livekitRoomId   String?
+  recordingUrl    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id])
+  host         User                     @relation(fields: [hostId], references: [id])
+  participants VideoRoomParticipant[]
+  breakouts    BreakoutRoom[]
+  qaQuestions  QAQuestion[]
+
+  @@index([tenantId])
+  @@index([hostId, status])
+  @@map("video_rooms")
+}
+
+model VideoRoomParticipant {
+  id       String    @id @default(cuid())
+  roomId   String
+  userId   String
+  role     String    @default("participant")
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+  cameraOn Boolean   @default(false)
+  micOn     Boolean   @default(false)
+
+  room VideoRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@map("video_room_participants")
+}
+
+model BreakoutRoom {
+  id           String    @id @default(cuid())
+  parentRoomId String
+  name         String
+  maxMembers   Int       @default(6)
+  createdAt    DateTime  @default(now())
+  endedAt      DateTime?
+
+  parentRoom VideoRoom @relation(fields: [parentRoomId], references: [id], onDelete: Cascade)
+
+  @@index([parentRoomId])
+  @@map("breakout_rooms")
+}
+
+enum VideoRoomType {
+  WORKSHOP
+  PANEL
+  STUDY_GROUP
+  MENTORSHIP
+  TOWN_HALL
+  REVENUE_ROOM
+  CHALLENGE
+}
+
+enum RoomStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+model BroadcastStream {
+  id               String       @id @default(cuid())
+  tenantId         String
+  hostId           String
+  title            String
+  description      String?      @db.Text
+  thumbnail        String?
+  category         String?
+  status           StreamStatus @default(SCHEDULED)
+  scheduledAt      DateTime?
+  startedAt        DateTime?
+  endedAt          DateTime?
+  muxStreamId      String?
+  muxPlaybackId    String?
+  rtmpKey          String       @unique @default(cuid())
+  isPPV            Boolean      @default(false)
+  ppvPrice         Float        @default(0)
+  superChatEnabled Boolean      @default(true)
+  peakViewers      Int          @default(0)
+  totalViewers     Int          @default(0)
+  totalRevenue     Float        @default(0)
+  recordingUrl     String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  host      User           @relation(fields: [hostId], references: [id])
+  viewers   StreamViewer[]
+  superChats SuperChat[]
+  ppvAccess PPVAccess[]
+
+  @@index([tenantId])
+  @@index([hostId, status])
+  @@map("broadcast_streams")
+}
+
+model StreamViewer {
+  id        String    @id @default(cuid())
+  streamId  String
+  userId    String
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+  watchSecs Int       @default(0)
+
+  stream BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([streamId, userId])
+  @@index([streamId])
+  @@map("stream_viewers")
+}
+
+model SuperChat {
+  id          String    @id @default(cuid())
+  streamId    String
+  userId      String
+  message     String    @db.Text
+  amount      Float
+  currency    String    @default("USD")
+  stripeId    String
+  pinnedUntil DateTime
+  createdAt   DateTime  @default(now())
+
+  stream BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([streamId])
+  @@map("super_chats")
+}
+
+model PPVAccess {
+  id       String   @id @default(cuid())
+  streamId String
+  userId   String
+  paidAt   DateTime @default(now())
+  amount   Float
+  stripeId String
+
+  stream BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([streamId, userId])
+  @@map("ppv_access")
+}
+
+enum StreamStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+model SessionTranscript {
+  id             String    @id @default(cuid())
+  sessionType    String
+  sessionId      String    @unique
+  rawTranscript  String    @db.Text
+  novaSummary    String?   @db.Text
+  novaHighlights Json?
+  novaSkills     Json?
+  qaLog          Json?
+  wordCount      Int       @default(0)
+  durationSecs   Int       @default(0)
+  language       String    @default("en")
+  createdAt      DateTime  @default(now())
+
+  @@map("session_transcripts")
+}
+
+model QAQuestion {
+  id          String   @id @default(cuid())
+  sessionId   String
+  sessionType String
+  userId      String
+  question    String   @db.Text
+  novaScore   Float    @default(0)
+  upvotes     Int      @default(0)
+  answered    Boolean  @default(false)
+  answeredAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoRoom  VideoRoom? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, novaScore])
+  @@map("qa_questions")
+}
+
+model StudioEvent {
+  id           String   @id @default(cuid())
+  tenantId     String
+  hostId       String
+  title        String
+  description  String?  @db.Text
+  sessionType  String
+  sessionId    String?
+  scheduledAt  DateTime
+  durationMins Int      @default(60)
+  rsvpCount    Int      @default(0)
+  isPublic     Boolean  @default(true)
+  thumbnail    String?
+  tags         String[]
+  createdAt    DateTime @default(now())
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id])
+  host   User         @relation(fields: [hostId], references: [id])
+  rsvps  StudioRsvp[]
+
+  @@index([tenantId, scheduledAt])
+  @@map("studio_events")
+}
+
+model StudioRsvp {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  event StudioEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@map("studio_rsvps")
 }
