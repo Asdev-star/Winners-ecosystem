@@ -31,6 +31,41 @@ export default function StudioHomePage() {
   const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
   const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newRoom, setNewRoom] = useState({
+    title: "",
+    description: "",
+    roomType: "WORKSHOP",
+    scheduledAt: "",
+    maxParticipants: 50,
+    isPrivate: false,
+  });
+
+  const createRoom = async () => {
+    if (!newRoom.title) return;
+    setCreating(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/v1/studio/rooms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newRoom),
+      });
+      if (response.ok) {
+        const room = await response.json();
+        setLiveRooms([...liveRooms, { ...room, type: "video", participants: 0, startedAt: new Date().toISOString(), status: "LIVE" }]);
+        setShowCreateModal(false);
+        setNewRoom({ title: "", description: "", roomType: "WORKSHOP", scheduledAt: "", maxParticipants: 50, isPrivate: false });
+      }
+    } catch (error) {
+      console.error("Error creating room:", error);
+    }
+    setCreating(false);
+  };
 
   useEffect(() => {
     loadStudioData();
@@ -392,6 +427,84 @@ export default function StudioHomePage() {
           color: var(--text-dim);
           line-height: 1.5;
         }
+        
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        
+        .modal-content {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 24px;
+          width: 90%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+        
+        .form-group {
+          margin-bottom: 16px;
+        }
+        
+        .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: 600;
+          color: var(--text);
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+          width: 100%;
+          padding: 10px;
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          border-radius: 4px;
+          color: var(--text);
+          font-family: 'Syne', sans-serif;
+        }
+        
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+          margin-top: 24px;
+        }
+        
+        .btn-cancel {
+          padding: 10px 20px;
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          color: var(--text);
+          cursor: pointer;
+        }
+        
+        .btn-create {
+          padding: 10px 20px;
+          background: var(--gold);
+          border: none;
+          border-radius: 6px;
+          color: #0D1520;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        
+        .btn-create:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
       `}</style>
 
       {/* Context Bar */}
@@ -407,7 +520,7 @@ export default function StudioHomePage() {
         <h1 className="studio-title">
           🎙️ WINNERS COMMUNITY STUDIO
         </h1>
-        <button className="create-room-btn">
+        <button className="create-room-btn" onClick={() => setShowCreateModal(true)}>
           + Create Room
         </button>
       </div>
@@ -518,6 +631,68 @@ export default function StudioHomePage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Create Room Modal */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>Create New Room</h2>
+            <div className="form-group">
+              <label>Room Title</label>
+              <input
+                type="text"
+                value={newRoom.title}
+                onChange={e => setNewRoom({...newRoom, title: e.target.value})}
+                placeholder="Enter room title"
+              />
+            </div>
+            <div className="form-group">
+              <label>Description</label>
+              <textarea
+                value={newRoom.description}
+                onChange={e => setNewRoom({...newRoom, description: e.target.value})}
+                placeholder="Enter room description"
+              />
+            </div>
+            <div className="form-group">
+              <label>Room Type</label>
+              <select
+                value={newRoom.roomType}
+                onChange={e => setNewRoom({...newRoom, roomType: e.target.value})}
+              >
+                <option value="WORKSHOP">Workshop</option>
+                <option value="WEBINAR">Webinar</option>
+                <option value="MEETUP">Meetup</option>
+                <option value="QNA">Q&A Session</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Schedule (optional)</label>
+              <input
+                type="datetime-local"
+                value={newRoom.scheduledAt}
+                onChange={e => setNewRoom({...newRoom, scheduledAt: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label>Max Participants</label>
+              <input
+                type="number"
+                value={newRoom.maxParticipants}
+                onChange={e => setNewRoom({...newRoom, maxParticipants: parseInt(e.target.value)})}
+                min={2}
+                max={100}
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setShowCreateModal(false)}>Cancel</button>
+              <button className="btn-create" onClick={createRoom} disabled={creating || !newRoom.title}>
+                {creating ? "Creating..." : "Create Room"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
