@@ -269,6 +269,8 @@ const PLATFORMS = [
     tag:    "v4.0",
     sub:    [
       { path: "/market", label: "Hub" },
+      { path: "/market/cart", label: "Cart", icon: "🛒" },
+      { path: "/market/orders", label: "Orders", icon: "📦" },
       { path: "/market/digital-marketing", label: "Digital Marketing" },
       { path: "/market/business-launcher", label: "Business Plans" },
       { path: "/market/cv-tools", label: "CV Builder" },
@@ -285,12 +287,17 @@ const PLATFORMS = [
     tag:    "v1.0",
   },
   {
-    path:   "/freelance",
+    path:   "/work",
     icon:   "💼",
-    name:   "Winners Services",
-    desc:   "Freelance Hub · Gigs · Booking",
-    status: "planned",
-    tag:    "v5.0",
+    name:   "Winners Work",
+    desc:   "Freelance Marketplace · Jobs",
+    status: "building",
+    tag:    "new",
+    sub:    [
+      { path: "/work", label: "Browse Jobs" },
+      { path: "/work/freelancers", label: "Find Talent" },
+      { path: "/work/contracts", label: "My Contracts" },
+    ],
   },
 ];
 

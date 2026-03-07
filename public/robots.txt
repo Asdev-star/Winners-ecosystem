@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://winners-empire-eco.up.railway.app/sitemap.xml

@@ -575,6 +575,81 @@ router.get("/certificates", authMiddleware, async (req, res) => {
   }
 });
 
+// Public certificate verification endpoint
+router.get("/certificates/verify/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    
+    const certificate = await db.certificate.findUnique({
+      where: { verifyToken: token },
+      include: {
+        user: {
+          select: { name: true, email: true }
+        },
+        course: {
+          select: { title: true, description: true }
+        }
+      }
+    });
+
+    if (!certificate) {
+      return res.status(404).json({ 
+        valid: false, 
+        message: "Certificate not found or invalid verification token" 
+      });
+    }
+
+    res.json({
+      valid: true,
+      certificate: {
+        id: certificate.id,
+        userName: certificate.user.name || certificate.user.email,
+        courseTitle: certificate.course.title,
+        courseDescription: certificate.course.description,
+        issuedAt: certificate.issuedAt,
+        verifyToken: certificate.verifyToken
+      }
+    });
+  } catch (error) {
+    console.error("Error verifying certificate:", error);
+    res.status(500).json({ error: "Failed to verify certificate" });
+  }
+});
+
+// Download certificate as PDF
+router.get("/certificates/:certificateId/pdf", authMiddleware, async (req, res) => {
+  try {
+    const certificateId = String(req.params.certificateId);
+    const userId = req.user!.userId;
+
+    const certificate = await db.certificate.findFirst({
+      where: { 
+        id: certificateId,
+        userId 
+      },
+      include: {
+        course: true,
+        user: true
+      }
+    });
+
+    if (!certificate) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+
+    // Generate PDF using certificate service
+    const { generateCertificatePDF } = await import("../services/certificateService.js");
+    const pdfBuffer = await generateCertificatePDF(certificateId);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="certificate-${certificateId}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error generating certificate PDF:", error);
+    res.status(500).json({ error: "Failed to generate certificate PDF" });
+  }
+});
+
 router.post("/courses/:courseId/reviews", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {

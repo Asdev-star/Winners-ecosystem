@@ -3,10 +3,9 @@
 // Processes NOVA skill signals and fires cross-layer OMEGA events
 // This service is the heartbeat of the Agentic Loop
 
-import { PrismaClient, NotificationType } from "@prisma/client";
+import db from "../db.js";
+import { NotificationType } from "@prisma/client";
 import { notifyUser } from "./wsService.js";
-
-const prisma = new PrismaClient();
 
 // Skill keywords for detection (expandable)
 const SKILL_KEYWORDS: Record<string, string[]> = {
@@ -36,7 +35,7 @@ interface SkillSignal {
 // Process a post and extract skill signals
 export async function processPostSignal(postId: string): Promise<SkillSignal | null> {
   try {
-    const post = await prisma.post.findUnique({
+    const post = await db.post.findUnique({
       where: { id: postId },
       include: { author: true }
     });
@@ -65,8 +64,8 @@ export async function processPostSignal(postId: string): Promise<SkillSignal | n
 
     // Get engagement metrics
     const [likeCount, commentCount] = await Promise.all([
-      prisma.like.count({ where: { postId } }),
-      prisma.comment.count({ where: { postId } })
+      db.like.count({ where: { postId } }),
+      db.comment.count({ where: { postId } })
     ]);
 
     const signal: SkillSignal = {
@@ -98,7 +97,7 @@ export async function processPostSignal(postId: string): Promise<SkillSignal | n
 async function storeSkillSignal(signal: SkillSignal): Promise<void> {
   try {
     // Store as activity event for analytics
-    await prisma.activityLog.create({
+    await db.activityLog.create({
       data: {
         tenantId: signal.tenantId,
         userId: signal.userId,
@@ -121,7 +120,7 @@ async function storeSkillSignal(signal: SkillSignal): Promise<void> {
 async function evaluateForRecommendations(signal: SkillSignal): Promise<void> {
   try {
     // Check user's Academy enrollment status
-    const enrollments = await prisma.enrollment.findMany({
+    const enrollments = await db.enrollment.findMany({
       where: { userId: signal.userId }
     });
 
@@ -130,7 +129,7 @@ async function evaluateForRecommendations(signal: SkillSignal): Promise<void> {
     // Check for skill gaps (skills detected but no related courses)
     for (const skill of signal.skills) {
       // Find courses in the same category
-      const relatedCourses = await prisma.course.findMany({
+      const relatedCourses = await db.course.findMany({
         where: {
           category: { contains: skill.category, mode: "insensitive" },
           published: true
@@ -163,7 +162,7 @@ async function createAcademyRecommendation(
   course: { id: string; title: string; slug: string }
 ): Promise<void> {
   try {
-    await prisma.notification.create({
+    await db.notification.create({
       data: {
         tenantId,
         userId,
@@ -189,7 +188,7 @@ async function createAcademyRecommendation(
 // Create Work matching recommendation
 async function createWorkRecommendation(signal: SkillSignal): Promise<void> {
   try {
-    await prisma.notification.create({
+    await db.notification.create({
       data: {
         tenantId: signal.tenantId,
         userId: signal.userId,
@@ -237,7 +236,7 @@ export async function getUserSkillHistory(userId: string): Promise<Array<{
   lastDetected: Date;
 }>> {
   try {
-    const logs = await prisma.activityLog.findMany({
+    const logs = await db.activityLog.findMany({
       where: {
         userId,
         action: "NOVA_SKILL_DETECTED"

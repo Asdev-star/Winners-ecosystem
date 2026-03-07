@@ -42,6 +42,11 @@ model Tenant {
   broadcastStreams      BroadcastStream[]
   studioEvents          StudioEvent[]
   corporateAccount     CorporateAccount?
+  // Market relations
+  vendors               Vendor[]
+  products              Product[]
+  carts                 Cart[]
+  orders                Order[]
 
   @@map("tenants")
 }
@@ -160,6 +165,13 @@ model User {
   opportunityBio      String? // Brief description of what user is open to
   studyMembers        StudyMember[]
   corporateEnrolls    CorporateEnroll[]
+
+  // Market relations
+  vendors             Vendor[]
+  carts              Cart[]
+  orders             Order[]
+  productReviews     ProductReview[]
+  vendorReviews      VendorReview[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -2209,4 +2221,483 @@ model StudioRsvp {
   @@unique([eventId, userId])
   @@index([eventId])
   @@map("studio_rsvps")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 4: WINNERS MARKET — Commerce Hub (4A) + 10 Verticals
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Vendor - sellers on the marketplace
+model Vendor {
+  id              String    @id @default(cuid())
+  tenantId        String
+  userId          String
+  storeName       String
+  storeSlug       String    @unique
+  description     String?   @db.Text
+  logo            String?
+  banner          String?
+  verified        Boolean   @default(false)
+  trustScore      Float     @default(0)
+  totalSales      Int       @default(0)
+  totalRevenue    Float     @default(0)
+  payoutBalance   Float     @default(0)
+  payoutMethod    String?
+  stripeAccountId String?
+  status          VendorStatus @default(PENDING)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  owner     User           @relation(fields: [userId], references: [id])
+  products  Product[]
+  orders    Order[]
+  reviews   VendorReview[]
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("vendors")
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+// Product - items for sale
+model Product {
+  id              String    @id @default(cuid())
+  tenantId        String
+  vendorId        String
+  name            String
+  slug            String
+  description     String?   @db.Text
+  price           Float
+  comparePrice    Float?
+  costPrice       Float?
+  sku             String?
+  barcode         String?
+  category        String
+  subcategory     String?
+  tags            String[]
+  brand           String?
+  weight          Float?
+  weightUnit      String?
+  isDigital       Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  isFeatured      Boolean   @default(false)
+  stockQuantity    Int       @default(0)
+  lowStockAlert   Int       @default(10)
+  allowBackorder  Boolean   @default(false)
+  shippingType    String?
+  freeShipping    Boolean   @default(false)
+  shippingPrice   Float?
+  taxRate         Float?
+  metaTitle       String?
+  metaDescription String?
+  viewCount       Int       @default(0)
+  soldCount       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
+  vendor     Vendor           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  variants   ProductVariant[]
+  images    ProductImage[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews   ProductReview[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([category])
+  @@map("products")
+}
+
+// Product variants (size, color, etc.)
+model ProductVariant {
+  id            String   @id @default(cuid())
+  productId     String
+  name          String
+  sku           String?
+  price         Float
+  comparePrice  Float?
+  stockQuantity Int      @default(0)
+  attributes    Json?
+  imageUrl      String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([productId, sku])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// Product images
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  alt       String?
+  position  Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// Shopping cart
+model Cart {
+  id        String     @id @default(cuid())
+  tenantId  String
+  userId    String?
+  sessionId String?
+  status    CartStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id])
+  user   User?      @relation(fields: [userId], references: [id])
+  items  CartItem[]
+
+  @@unique([tenantId, sessionId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([sessionId])
+  @@map("carts")
+}
+
+enum CartStatus {
+  ACTIVE
+  CONVERTED
+  ABANDONED
+}
+
+// Cart items
+model CartItem {
+  id          String   @id @default(cuid())
+  cartId      String
+  productId   String
+  variantId   String?
+  quantity    Int
+  price       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product        @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+// Order
+model Order {
+  id                  String       @id @default(cuid())
+  tenantId            String
+  userId              String
+  vendorId            String
+  orderNumber         String       @unique
+  status              OrderStatus  @default(PENDING)
+  subtotal            Float
+  shippingCost        Float        @default(0)
+  taxAmount           Float        @default(0)
+  discountAmount      Float        @default(0)
+  total               Float
+  currency            String       @default("USD")
+  shippingName        String?
+  shippingAddress     String?      @db.Text
+  shippingCity        String?
+  shippingState       String?
+  shippingZip         String?
+  shippingCountry     String?
+  shippingPhone       String?
+  billingName         String?
+  billingAddress      String?      @db.Text
+  billingCity         String?
+  billingState        String?
+  billingZip          String?
+  billingCountry      String?
+  paymentMethod       String?
+  paymentStatus       PaymentStatus @default(PENDING)
+  stripePaymentId     String?
+  stripeCustomerId   String?
+  notes               String?      @db.Text
+  metadata            Json?
+  shippedAt           DateTime?
+  deliveredAt         DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id])
+  user     User        @relation(fields: [userId], references: [id])
+  vendor   Vendor      @relation(fields: [vendorId], references: [id])
+  items    OrderItem[]
+  tracking OrderTracking?
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([vendorId])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+// Order items
+model OrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  productId       String
+  variantId       String?
+  name            String
+  sku             String?
+  quantity        Int
+  price           Float
+  total           Float
+  createdAt       DateTime @default(now())
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// Order tracking
+model OrderTracking {
+  id             String   @id @default(cuid())
+  orderId        String   @unique
+  carrier        String?
+  trackingNumber String?
+  trackingUrl    String?
+  status         String?
+  events         Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_tracking")
+}
+
+// Product reviews
+model ProductReview {
+  id          String   @id @default(cuid())
+  productId   String
+  userId      String
+  orderId     String?
+  rating      Int
+  title       String?
+  content     String?  @db.Text
+  images      String[]
+  isVerified  Boolean  @default(false)
+  isApproved  Boolean  @default(true)
+  helpfulCount Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id])
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@index([userId])
+  @@map("product_reviews")
+}
+
+// Vendor reviews
+model VendorReview {
+  id          String   @id @default(cuid())
+  vendorId    String
+  userId      String
+  orderId     String?
+  rating      Int
+  title       String?
+  content     String?  @db.Text
+  isVerified  Boolean  @default(false)
+  isApproved  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([vendorId, userId])
+  @@index([vendorId])
+  @@index([userId])
+  @@map("vendor_reviews")
+}
+
+// ─── AI PLATFORM MODELS ───────────────────────────────────────────────────────
+// AI Platform usage tracking
+model AIPlatformUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  action    String   // chat | image | speech | code
+  model     String   // ollama | claude | comfyui | whisper
+  tokens    Int      @default(0)
+  cost      Float    @default(0)
+  latencyMs Int
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("ai_platform_usage")
+}
+
+// AI Conversations (chat history)
+model AIConversation {
+  id        String      @id @default(cuid())
+  userId    String
+  tenantId  String
+  title     String      @default("New Conversation")
+  model     String      @default("llama3.1")
+  provider  String?    // ollama | claude | openai | gemini
+  messages  AIMessage[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([tenantId, updatedAt])
+  @@map("ai_conversations")
+}
+
+// AI Messages within conversations
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AIConversation @relation(fields:[conversationId], references:[id], onDelete: Cascade)
+  role           String         // user | assistant | system
+  content        String         @db.Text
+  provider       String?        // ollama | claude | openai | gemini
+  model          String?
+  tokensUsed     Int            @default(0)
+  filesMeta      Json?
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("ai_messages")
+}
+
+// Assistant Memory - persistent memory per user per assistant
+model AssistantMemory {
+  id         String   @id @default(cuid())
+  userId     String
+  tenantId   String
+  assistant  String   // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
+  memoryType String   // user_profile | preference | journey | milestone | flag | skill | goal
+  content    String   @db.Text
+  confidence Float    @default(1.0)
+  source     String?  // Which feature created this memory
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, assistant, memoryType])
+  @@index([userId, assistant])
+  @@index([tenantId, assistant])
+  @@map("assistant_memory")
+}
+
+// Assistant Actions - AI-initiated actions requiring approval or tracking
+model AssistantAction {
+  id           String    @id @default(cuid())
+  assistant    String    // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
+  actionType   String    // notify | escalate | recommend | trigger | generate | flag | onboard | match
+  targetUserId String?
+  targetLayer  String?   // community | academy | market | work | intelligence
+  targetId     String?
+  description  String    @db.Text
+  payload      Json?
+  status       String    @default("pending") // pending | approved | rejected | executed | failed
+  approved     Boolean   @default(false)
+  autoApproved Boolean   @default(false)
+  executedAt   DateTime?
+  result       String?   @db.Text
+  createdAt    DateTime  @default(now())
+
+  @@index([assistant, status])
+  @@index([targetUserId])
+  @@map("assistant_actions")
+}
+
+// Agentic Loop - tracks cross-layer automation flows
+model AgenticLoop {
+  id            String   @id @default(cuid())
+  userId        String
+  tenantId      String
+  loopType      String   // skill_detection | course_recommendation | work_match | vendor_onboarding
+  trigger       String   // What started this loop
+  currentStep   Int      @default(0)
+  steps         Json     // Array of step objects: { step, assistant, action, status }
+  outcome       String?  @db.Text
+  revenueImpact Float?
+  status        String   @default("active") // active | completed | failed | paused
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([tenantId, status])
+  @@map("agentic_loops")
+}
+
+// AI Interaction - detailed log of every AI request
+model AIInteraction {
+  id          String   @id @default(cuid())
+  userId      String
+  tenantId    String
+  layer       String   // community | academy | market | work | intelligence | core
+  agentType   String   // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
+  input       String   @db.Text
+  output      String?  @db.Text
+  model       String?
+  provider    String?
+  tokens      Int      @default(0)
+  latencyMs   Int
+  cost        Float    @default(0)
+  filesMeta   Json?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([agentType, createdAt])
+  @@map("ai_interactions")
 }

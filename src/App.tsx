@@ -64,8 +64,14 @@ import StudyGroupPage from "./features/academy/StudyGroupPage";
 import QuizEngine from "./features/academy/QuizEngine";
 import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
 import MarketPage from "./features/market/MarketPage";
+import ProductPage from "./features/market/ProductPage";
+import VendorDashboard from "./features/market/VendorDashboard";
 import WinnersMarketExpanded from "./features/market/WinnersMarketExpanded";
 import WinnersDropshipping from "./features/market/dropshipping/WinnersDropshipping";
+import CartPage from "./features/market/CartPage";
+import OrdersPage from "./features/market/OrdersPage";
+import CheckoutPage from "./features/market/CheckoutPage";
+import WorkPage from "./features/work/WorkPage";
 import CreatorProfilePage from "./features/community/CreatorProfilePage";
 
 function App() {
@@ -205,10 +211,15 @@ function App() {
             />
             <Route path="academy/quiz/:quizId" element={<QuizEngine />} />
             <Route path="market" element={<WinnersMarketExpanded />} />
-            <Route
-              path="market/dropshipping"
-              element={<WinnersDropshipping />}
-            />
+            <Route path="market/dropshipping" element={<WinnersDropshipping />} />
+            <Route path="market/product/:productId" element={<ProductPage />} />
+            <Route path="market/vendor" element={<VendorDashboard />} />
+            <Route path="market/cart" element={<CartPage />} />
+            <Route path="market/orders" element={<OrdersPage />} />
+            <Route path="market/checkout" element={<CheckoutPage />} />
+            <Route path="work" element={<WorkPage />} />
+            <Route path="work/freelancers" element={<WorkPage />} />
+            <Route path="work/contracts" element={<WorkPage />} />
             <Route path="market/:vertical" element={<MarketPage />} />
           </Route>
 

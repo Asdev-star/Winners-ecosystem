@@ -33,6 +33,10 @@ import opportunityRoutes from "./opportunityRoutes.js";
 import communityIntelligenceRoutes from "./communityIntelligenceRoutes.js";
 import externalCourseRoutes from "./externalCourseRoutes.js";
 import socialRoutes from "./socialRoutes.js";
+import vendorRoutes from "./vendorRoutes.js";
+import productRoutes from "./productRoutes.js";
+import cartRoutes from "./cartRoutes.js";
+import orderRoutes from "./orderRoutes.js";
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = Router();
@@ -68,6 +72,10 @@ const gatewayRoutes = [
   "/messages",
   "/ai-platform",
   "/community",
+  "/vendors",
+  "/products",
+  "/cart",
+  "/orders",
 ];
 
 router.get("/", (_req, res) => {
@@ -117,5 +125,9 @@ router.use("/opportunities", opportunityRoutes);
 router.use("/community", communityIntelligenceRoutes);
 router.use("/external-courses", externalCourseRoutes);
 router.use("/social", socialRoutes);
+router.use("/vendors", vendorRoutes);
+router.use("/products", productRoutes);
+router.use("/cart", cartRoutes);
+router.use("/orders", orderRoutes);
 
 export default router;

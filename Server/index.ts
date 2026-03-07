@@ -23,6 +23,7 @@ import v1Router from "./routes/apiRouter.js";
 
 // ── Chat Routes (Phase 5 — Winners Intelligence) ──────────────────────────────
 import chatRoutes from "./routes/chatRoutes.js";
+import quizRoutes from "./routes/quizRoutes.js";
 
 // ── Message Routes (Phase 2 — Winners Community DMs) ───────────────────────
 import messageRoutes from "./routes/messageRoutes.js";
@@ -158,6 +159,7 @@ app.use("/api/v1/community", communityExtrasRoutes);
 app.use("/api/v1/omega", omegaRoutes);
 app.use("/api/v1/supervisors", supervisorRoutes);
 app.use("/api/v1/studio", studioRoutes);
+app.use("/api/v1/quizzes", quizRoutes);
 app.use("/api/v1/insights", autonomousRoutes);
 // app.use("/creator", creatorRoutes);
 

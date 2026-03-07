@@ -2,10 +2,8 @@
 // Phase 3 V1.1 — Certificate Service
 // Handles certificate generation, verification, and PDF output
 
-import { PrismaClient } from "@prisma/client";
+import db from "../db.js";
 import PDFDocument from "pdfkit";
-
-const prisma = new PrismaClient();
 
 interface CertificateData {
   userName: string;
@@ -17,7 +15,7 @@ interface CertificateData {
 
 // Generate certificate PDF
 export async function generateCertificatePDF(certificateId: string): Promise<Buffer> {
-  const certificate = await prisma.certificate.findUnique({
+  const certificate = await db.certificate.findUnique({
     where: { id: certificateId },
     include: {
       user: true,
@@ -121,7 +119,7 @@ export async function verifyCertificate(token: string): Promise<{
   certificate?: CertificateData;
   message?: string;
 }> {
-  const certificate = await prisma.certificate.findUnique({
+  const certificate = await db.certificate.findUnique({
     where: { verifyToken: token },
     include: {
       user: {
@@ -160,7 +158,7 @@ export async function checkCertificateEligibility(enrollmentId: string): Promise
   totalLessons: number;
   missingLessons: string[];
 }> {
-  const enrollment = await prisma.enrollment.findUnique({
+  const enrollment = await db.enrollment.findUnique({
     where: { id: enrollmentId },
     include: {
       course: {
@@ -235,7 +233,7 @@ export async function generateCertificateReadinessReport(
   workOpportunitiesUnlocked: number;
   estimatedRateIncrease: number;
 }> {
-  const enrollment = await prisma.enrollment.findUnique({
+  const enrollment = await db.enrollment.findUnique({
     where: { id: enrollmentId },
     include: {
       course: {

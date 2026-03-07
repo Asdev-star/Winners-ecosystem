@@ -2,9 +2,8 @@
 // Phase 3 V1.1 — Quiz Service
 // Handles quiz creation, attempts, grading, and AI-powered generation
 
-import { PrismaClient, QuestionType } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import db from "../db.js";
+import { QuestionType } from "@prisma/client";
 
 interface QuizAnswer {
   questionId: string;
@@ -31,7 +30,7 @@ export async function createQuiz(data: {
   shuffleQuestions?: boolean;
   showResults?: boolean;
 }) {
-  return await prisma.quiz.create({
+  return await db.quiz.create({
     data: {
       courseId: data.courseId,
       moduleId: data.moduleId,
@@ -56,7 +55,7 @@ export async function addQuestion(data: {
   points?: number;
   order?: number;
 }) {
-  return await prisma.quizQuestion.create({
+  return await db.quizQuestion.create({
     data: {
       quizId: data.quizId,
       question: data.question,
@@ -73,7 +72,7 @@ export async function addQuestion(data: {
 // Start a quiz attempt
 export async function startQuizAttempt(quizId: string, userId: string) {
   // Check for existing attempt
-  const existing = await prisma.quizAttempt.findUnique({
+  const existing = await db.quizAttempt.findUnique({
     where: {
       quiz_user_attempt: { quizId, userId }
     }
@@ -89,7 +88,7 @@ export async function startQuizAttempt(quizId: string, userId: string) {
   }
 
   // Get quiz with questions
-  const quiz = await prisma.quiz.findUnique({
+  const quiz = await db.quiz.findUnique({
     where: { id: quizId },
     include: {
       questions: {
@@ -103,7 +102,7 @@ export async function startQuizAttempt(quizId: string, userId: string) {
   }
 
   // Create new attempt
-  const attempt = await prisma.quizAttempt.create({
+  const attempt = await db.quizAttempt.create({
     data: {
       quizId,
       userId,
@@ -157,7 +156,7 @@ export async function submitQuizAttempt(
   };
 }> {
   // Get attempt with quiz
-  const attempt = await prisma.quizAttempt.findUnique({
+  const attempt = await db.quizAttempt.findUnique({
     where: { id: attemptId },
     include: {
       quiz: {
@@ -217,7 +216,7 @@ export async function submitQuizAttempt(
   const passed = percentage >= attempt.quiz.passingScore;
 
   // Update attempt
-  const updatedAttempt = await prisma.quizAttempt.update({
+  const updatedAttempt = await db.quizAttempt.update({
     where: { id: attemptId },
     data: {
       score: totalScore,
@@ -242,7 +241,7 @@ export async function submitQuizAttempt(
 
 // Get quiz results (for viewing after completion)
 export async function getQuizResults(attemptId: string, userId: string) {
-  const attempt = await prisma.quizAttempt.findUnique({
+  const attempt = await db.quizAttempt.findUnique({
     where: { id: attemptId },
     include: {
       quiz: {
@@ -291,7 +290,7 @@ export async function getUserQuizAttempts(userId: string, courseId?: string) {
     where.quiz = { courseId };
   }
 
-  return await prisma.quizAttempt.findMany({
+  return await db.quizAttempt.findMany({
     where,
     include: {
       quiz: {
