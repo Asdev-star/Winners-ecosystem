@@ -175,8 +175,9 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     // Verify ownership
+    const productId = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0] || '';
     const product = await db.product.findFirst({
-      where: { id, vendorId: vendor.id }
+      where: { id: productId, vendorId: vendor.id }
     });
 
     if (!product) {
@@ -184,7 +185,7 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     const updated = await db.product.update({
-      where: { id },
+      where: { id: typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0] || '' },
       data: updateData
     });
 
@@ -200,7 +201,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const vendor = await db.vendor.findFirst({
       where: { userId, tenantId }
@@ -219,7 +220,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     await db.product.update({
-      where: { id },
+      where: { id: req.params.id as string },
       data: { isActive: false }
     });
 
@@ -235,8 +236,10 @@ router.post("/:id/images", authMiddleware, async (req: Request, res: Response) =
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
-    const { id } = req.params;
-    const { images } = req.body; // Array of { url, alt, position, isPrimary }
+    const id = getParam(req.params.id);
+    const images = req.body;
+
+    // Update product images // Array of { url, alt, position, isPrimary }
 
     const vendor = await db.vendor.findFirst({
       where: { userId, tenantId }
