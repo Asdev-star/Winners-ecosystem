@@ -47,6 +47,9 @@ model Tenant {
   products              Product[]
   carts                 Cart[]
   orders                Order[]
+  // Work relations
+  jobListings           JobListing[]
+  freelancerProfiles    FreelancerProfile[]
 
   @@map("tenants")
 }
@@ -165,6 +168,11 @@ model User {
   opportunityBio      String? // Brief description of what user is open to
   studyMembers        StudyMember[]
   corporateEnrolls    CorporateEnroll[]
+
+  // Work - Freelance Marketplace
+  postedJobs           JobListing[]
+  clientContracts     Contract[]                   @relation("ClientContracts")
+  freelancerProfile   FreelancerProfile?
 
   // Market relations
   vendors             Vendor[]
@@ -2244,6 +2252,9 @@ model Vendor {
   payoutBalance   Float     @default(0)
   payoutMethod    String?
   stripeAccountId String?
+  freeShipping    Boolean   @default(false)
+  shippingPrice   Float     @default(0)
+  taxRate         Float     @default(0)
   status          VendorStatus @default(PENDING)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -2700,4 +2711,273 @@ model AIInteraction {
   @@index([tenantId, createdAt])
   @@index([agentType, createdAt])
   @@map("ai_interactions")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PHASE 6: WINNERS WORK — Freelance Marketplace & Jobs
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Job Listing - posted by clients
+model JobListing {
+  id              String        @id @default(cuid())
+  tenantId        String
+  clientId        String
+  title           String
+  description     String        @db.Text
+  requirements    String?       @db.Text
+  category        String        // software_dev | digital_marketing | creative | writing | finance | business | music | other
+  skills          String[]
+  experienceLevel String        // entry | mid | senior | expert
+  jobType        String        // fixed | hourly
+  budgetMin      Float?
+  budgetMax      Float?
+  currency       String        @default("USD")
+  duration       String?       // weeks/months estimate
+  location       String?       // remote | specific country/city
+  deadline       DateTime?
+  status         JobStatus     @default(OPEN)
+  isFeatured     Boolean       @default(false)
+  isVerified     Boolean       @default(false)
+  viewCount      Int           @default(0)
+  applicationCount Int         @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  expiresAt       DateTime?
+
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  client      User              @relation(fields: [clientId], references: [id])
+  applications JobApplication[]
+  contracts   Contract[]
+
+  @@index([tenantId, status])
+  @@index([clientId])
+  @@index([category])
+  @@index([createdAt])
+  @@map("job_listings")
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  DRAFT
+}
+
+// Freelancer Profile - talent's public profile
+model FreelancerProfile {
+  id              String           @id @default(cuid())
+  userId          String           @unique
+  tenantId        String
+  title           String?          // e.g. "Senior React Developer"
+  bio             String?          @db.Text
+  hourlyRate      Float?
+  availability    Availability    @default(AVAILABLE)
+  yearsExperience Int?
+  languages       String[]         @default(["English"])
+  skills          String[]
+  portfolioUrl    String?
+  linkedInUrl     String?
+  githubUrl       String?
+  timezone        String?
+  country         String?
+  isVerified      Boolean          @default(false)
+  trustScore      Float            @default(0)
+  totalEarnings   Float            @default(0)
+  totalJobs       Int              @default(0)
+  successRate     Float            @default(0)
+  responseTime    Int              @default(24) // hours
+  badges          String[]         @default([])
+  certificates    String[]         @default([]) // Academy certificate IDs
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user           User              @relation(fields: [userId], references: [id])
+  tenant         Tenant            @relation(fields: [tenantId], references: [id])
+  applications   JobApplication[]
+  contracts      Contract[]
+  portfolioItems PortfolioItem[]
+
+  @@index([tenantId])
+  @@index([skills])
+  @@index([availability])
+  @@map("freelancer_profiles")
+}
+
+enum Availability {
+  AVAILABLE
+  UNAVAILABLE
+  BUSY
+}
+
+// Portfolio Items - freelancer's work samples
+model PortfolioItem {
+  id             String   @id @default(cuid())
+  freelancerId   String
+  title          String
+  description    String?  @db.Text
+  category       String?
+  url            String?
+  imageUrl       String?
+  toolsUsed      String[]
+  createdAt      DateTime @default(now())
+
+  freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@index([freelancerId])
+  @@map("portfolio_items")
+}
+
+// Job Application - freelancer applying to a job
+model JobApplication {
+  id            String             @id @default(cuid())
+  jobId         String
+  freelancerId  String
+  coverLetter   String?            @db.Text
+  proposedRate  Float?
+  estimatedDays Int?
+  status        ApplicationStatus @default(PENDING)
+  cvUrl         String?
+  portfolioUrls String[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  job        JobListing         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, freelancerId])
+  @@index([jobId])
+  @@index([freelancerId])
+  @@index([status])
+  @@map("job_applications")
+}
+
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  INTERVIEWING
+  OFFERED
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+// Contract - hired relationship
+model Contract {
+  id              String          @id @default(cuid())
+  jobId           String?
+  clientId        String
+  freelancerId    String
+  title           String
+  description     String?         @db.Text
+  status          ContractStatus  @default(ACTIVE)
+  startDate       DateTime
+  endDate         DateTime?
+  paymentType     String          // fixed | hourly
+  amount          Float           // total for fixed, hourly rate for hourly
+  currency        String          @default("USD")
+  hoursLogged     Float           @default(0)
+  hoursApproved   Float           @default(0)
+  platformFee     Float           @default(0)
+  clientRating    Float?
+  freelancerRating Float?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  completedAt     DateTime?
+
+  job        JobListing?        @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  client     User               @relation("ClientContracts", fields: [clientId], references: [id])
+  freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id])
+  milestones ContractMilestone[]
+  escrow     EscrowPayment?
+  reviews    WorkReview[]
+
+  @@index([clientId])
+  @@index([freelancerId])
+  @@index([status])
+  @@map("contracts")
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+// Contract Milestone - for fixed-price contracts
+model ContractMilestone {
+  id          String           @id @default(cuid())
+  contractId  String
+  title      String
+  description String?          @db.Text
+  amount      Float
+  dueDate     DateTime?
+  status      MilestoneStatus  @default(PENDING)
+  completedAt DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime         @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("contract_milestones")
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  PAID
+  DISPUTED
+}
+
+// Escrow Payment - secure payment handling
+model EscrowPayment {
+  id              String         @id @default(cuid())
+  contractId      String         @unique
+  amount          Float
+  currency        String         @default("USD")
+  status          EscrowStatus   @default(HELD)
+  clientId        String
+  freelancerId    String
+  stripePaymentId String?
+  releasedAt      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([freelancerId])
+  @@map("escrow_payments")
+}
+
+enum EscrowStatus {
+  HELD
+  RELEASED
+  REFUNDED
+  DISPUTED
+}
+
+// Work Review - client/freelancer reviews
+model WorkReview {
+  id           String   @id @default(cuid())
+  contractId   String
+  reviewerId   String   // client or freelancer
+  revieweeId   String   // freelancer or client
+  rating       Float    // 1-5
+  comment      String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  contract    Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([reviewerId])
+  @@index([revieweeId])
+  @@map("work_reviews")
 }

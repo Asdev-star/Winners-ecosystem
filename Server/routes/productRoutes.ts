@@ -7,6 +7,10 @@ import db from "../db.js";
 
 const router = Router();
 
+// Helper to extract string param
+const getParam = (p: string | string[] | undefined): string => 
+  Array.isArray(p) ? p[0] : (p || "");
+
 // GET /products - List products (public)
 router.get("/", async (req: Request, res: Response) => {
   try {
@@ -60,7 +64,7 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /products/:id - Get single product
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = getParam(req.params.id);
 
     const product = await db.product.findUnique({
       where: { id },

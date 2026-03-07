@@ -124,7 +124,8 @@ router.put("/me", authMiddleware, async (req: Request, res: Response) => {
 // GET /vendors/:id - Get vendor by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const idParam = req.params.id;
+    const id = Array.isArray(idParam) ? idParam[0] : (idParam || "");
 
     const vendor = await db.vendor.findUnique({
       where: { id },

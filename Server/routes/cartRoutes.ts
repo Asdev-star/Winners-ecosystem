@@ -153,6 +153,7 @@ router.put("/items/:id", async (req: Request, res: Response) => {
     const userId = req.headers["x-user-id"] as string;
     const sessionId = req.headers["x-session-id"] as string;
     const { id } = req.params;
+    const itemId = Array.isArray(id) ? id[0] : id;
     const { quantity } = req.body;
     
     if (!tenantId) {
@@ -161,11 +162,11 @@ router.put("/items/:id", async (req: Request, res: Response) => {
 
     if (quantity <= 0) {
       // Remove item
-      await db.cartItem.delete({ where: { id } }).catch(() => {});
+      await db.cartItem.delete({ where: { id: itemId } }).catch(() => {});
     } else {
       // Update quantity
       await db.cartItem.update({
-        where: { id },
+        where: { id: itemId },
         data: { quantity }
       });
     }
@@ -185,12 +186,13 @@ router.delete("/items/:id", async (req: Request, res: Response) => {
     const userId = req.headers["x-user-id"] as string;
     const sessionId = req.headers["x-session-id"] as string;
     const { id } = req.params;
+    const itemId = Array.isArray(id) ? id[0] : id;
     
     if (!tenantId) {
       return res.status(400).json({ error: "Tenant ID required" });
     }
 
-    await db.cartItem.delete({ where: { id } }).catch(() => {});
+    await db.cartItem.delete({ where: { id: itemId } }).catch(() => {});
 
     const cart = await getCart(tenantId, userId, sessionId);
     res.json(cart);

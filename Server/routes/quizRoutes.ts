@@ -189,8 +189,9 @@ router.post("/quizzes/:quizId/attempts", authMiddleware, async (req, res) => {
 // Get user's attempts for a quiz
 router.get("/quizzes/:quizId/attempts", authMiddleware, async (req, res) => {
   try {
-    const { quizId } = req.params;
-    const userId = req.user.userId;
+    const quizIdParam = req.params.quizId;
+    const quizId = Array.isArray(quizIdParam) ? quizIdParam[0] : (quizIdParam || "");
+    const userId = req.user!.userId;
     
     const attempts = await db.quizAttempt.findMany({
       where: {
@@ -210,8 +211,9 @@ router.get("/quizzes/:quizId/attempts", authMiddleware, async (req, res) => {
 // Get best score for a quiz
 router.get("/quizzes/:quizId/best-score", authMiddleware, async (req, res) => {
   try {
-    const { quizId } = req.params;
-    const userId = req.user.userId;
+    const quizIdParam = req.params.quizId;
+    const quizId = Array.isArray(quizIdParam) ? quizIdParam[0] : (quizIdParam || "");
+    const userId = req.user!.userId;
     
     const bestAttempt = await db.quizAttempt.findFirst({
       where: {

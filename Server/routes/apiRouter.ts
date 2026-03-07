@@ -37,6 +37,7 @@ import vendorRoutes from "./vendorRoutes.js";
 import productRoutes from "./productRoutes.js";
 import cartRoutes from "./cartRoutes.js";
 import orderRoutes from "./orderRoutes.js";
+
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
 const router = Router();
@@ -76,6 +77,7 @@ const gatewayRoutes = [
   "/products",
   "/cart",
   "/orders",
+  "/work",
 ];
 
 router.get("/", (_req, res) => {

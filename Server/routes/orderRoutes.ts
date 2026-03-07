@@ -7,6 +7,10 @@ import db from "../db.js";
 
 const router = Router();
 
+// Helper to extract string from params/query
+const getParam = (p: string | string[] | undefined): string => 
+  Array.isArray(p) ? p[0] : (p || "");
+
 // Helper to generate order number
 function generateOrderNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -19,12 +23,16 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
-    const { status, page = "1", limit = "20" } = req.query;
+    const status = getParam(req.query.status as string | string[] | undefined);
+    const pageStr = getParam(req.query.page as string | string[] | undefined);
+    const limitStr = getParam(req.query.limit as string | string[] | undefined);
+    const page = parseInt(pageStr) || 1;
+    const limit = parseInt(limitStr) || 20;
 
     const where: any = { userId, tenantId };
-    if (status) where.status = String(status);
+    if (status) where.status = status;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
 
     const [orders, total] = await Promise.all([
       db.order.findMany({
@@ -39,7 +47,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
         },
         orderBy: { createdAt: "desc" },
         skip,
-        take: Number(limit)
+        take: limit
       }),
       db.order.count({ where })
     ]);
@@ -47,10 +55,10 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
     res.json({
       orders,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page,
+        limit,
         total,
-        pages: Math.ceil(total / Number(limit))
+        pages: Math.ceil(total / limit)
       }
     });
   } catch (error) {
@@ -63,7 +71,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
 router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { id } = req.params;
+    const id = getParam(req.params.id as string | string[] | undefined);
 
     const order = await db.order.findFirst({
       where: { id, userId },
@@ -155,8 +163,9 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
-    const shippingCost = vendor.freeShipping ? 0 : (vendor.shippingPrice || 0);
-    const taxRate = vendor.taxRate || 0;
+    const vendorAny = vendor as any;
+    const shippingCost = vendorAny.freeShipping ? 0 : (vendorAny.shippingPrice || 0);
+    const taxRate = vendorAny.taxRate || 0;
     const taxAmount = subtotal * (taxRate / 100);
     const total = subtotal + shippingCost + taxAmount;
 
@@ -217,7 +226,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
 router.put("/:id/cancel", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { id } = req.params;
+    const id = getParam(req.params.id as string | string[] | undefined);
 
     const order = await db.order.findFirst({
       where: { id, userId, status: { in: ["PENDING", "CONFIRMED"] } }
@@ -258,7 +267,11 @@ router.get("/vendor/all", authMiddleware, async (req: Request, res: Response) =>
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
-    const { status, page = "1", limit = "20" } = req.query;
+    const status = getParam(req.query.status as string | string[] | undefined);
+    const pageStr = getParam(req.query.page as string | string[] | undefined);
+    const limitStr = getParam(req.query.limit as string | string[] | undefined);
+    const page = parseInt(pageStr) || 1;
+    const limit = parseInt(limitStr) || 20;
 
     const vendor = await db.vendor.findFirst({
       where: { userId, tenantId }
@@ -269,9 +282,9 @@ router.get("/vendor/all", authMiddleware, async (req: Request, res: Response) =>
     }
 
     const where: any = { vendorId: vendor.id };
-    if (status) where.status = String(status);
+    if (status) where.status = status;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
 
     const [orders, total] = await Promise.all([
       db.order.findMany({
@@ -282,7 +295,7 @@ router.get("/vendor/all", authMiddleware, async (req: Request, res: Response) =>
         },
         orderBy: { createdAt: "desc" },
         skip,
-        take: Number(limit)
+        take: limit
       }),
       db.order.count({ where })
     ]);
@@ -290,10 +303,10 @@ router.get("/vendor/all", authMiddleware, async (req: Request, res: Response) =>
     res.json({
       orders,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page,
+        limit,
         total,
-        pages: Math.ceil(total / Number(limit))
+        pages: Math.ceil(total / limit)
       }
     });
   } catch (error) {
@@ -307,7 +320,7 @@ router.put("/:id/status", authMiddleware, async (req: Request, res: Response) =>
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
-    const { id } = req.params;
+    const id = getParam(req.params.id as string | string[] | undefined);
     const { status, trackingNumber, carrier } = req.body;
 
     const vendor = await db.vendor.findFirst({
