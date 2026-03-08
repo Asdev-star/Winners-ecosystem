@@ -3,6 +3,7 @@
 // Implements: NOVA → SAGE, NOVA → CIRCUIT, NOVA → ATLAS handoff moments
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface HandoffCardProps {
   type: 'academy' | 'work' | 'market';
@@ -262,6 +263,36 @@ const css = `
 export function HandoffCard({ 
   type, title, subtitle, details, actionLabel, loopStage = 2, onAction, onDismiss 
 }: HandoffCardProps) {
+  const navigate = useNavigate();
+  const [dismissed, setDismissed] = useState(false);
+
+  const dismiss = () => {
+    if (onDismiss) {
+      onDismiss();
+      return;
+    }
+    setDismissed(true);
+  };
+
+  const handleAction = () => {
+    if (onAction) {
+      onAction();
+      if (!onDismiss) setDismissed(true);
+      return;
+    }
+
+    const fallbackRouteByType: Record<HandoffCardProps["type"], string> = {
+      academy: "/academy",
+      work: "/work",
+      market: "/market",
+    };
+
+    navigate(fallbackRouteByType[type]);
+    setDismissed(true);
+  };
+
+  if (dismissed) return null;
+
   const getIcon = () => {
     switch (type) {
       case 'academy': return '🎓';
@@ -289,7 +320,7 @@ export function HandoffCard({
   return (
     <>
       <style>{css}</style>
-      <div className="handoff-overlay" onClick={onDismiss}>
+      <div className="handoff-overlay" onClick={dismiss}>
         <div className={`handoff-card ${type}`} onClick={e => e.stopPropagation()}>
           {/* Header */}
           <div className="handoff-header">
@@ -298,7 +329,7 @@ export function HandoffCard({
               <div className="handoff-assistant">{getAssistant()}</div>
               <div className="handoff-type">{getTypeLabel()}</div>
             </div>
-            <button className="handoff-close" onClick={onDismiss}>×</button>
+            <button className="handoff-close" onClick={dismiss}>×</button>
           </div>
 
           {/* Body */}
@@ -335,10 +366,10 @@ export function HandoffCard({
 
           {/* Actions */}
           <div className="handoff-actions">
-            <button className="handoff-btn secondary" onClick={onDismiss}>
+            <button className="handoff-btn secondary" onClick={dismiss}>
               Maybe Later
             </button>
-            <button className="handoff-btn primary" onClick={onAction}>
+            <button className="handoff-btn primary" onClick={handleAction}>
               {actionLabel}
             </button>
           </div>
