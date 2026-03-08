@@ -7,7 +7,6 @@ import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./app/ProtectedRoute";
 import LayerThemeBridge from "./app/LayerThemeBridge";
 import AIBackdrop from "./components/ui/AIBackdrop";
-import AIPageAssistant from "./components/ui/AIPageAssistant";
 
 import LoginPage from "./features/auth/LoginPage";
 import LandingPage from "./features/landing/LandingPage";
@@ -86,7 +85,6 @@ function App() {
     <div className="app-shell">
       <LayerThemeBridge />
       <AIBackdrop />
-      <AIPageAssistant />
       <div className="app-route-layer">
         <Routes>
           <Route path="/" element={<LandingPage />} />
