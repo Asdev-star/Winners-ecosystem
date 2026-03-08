@@ -18,7 +18,7 @@ export default function StreamingText({
   isStreaming = false,
   className = "",
   speed = 20,
-  onComplete
+  onComplete,
 }: StreamingTextProps) {
   const [displayedContent, setDisplayedContent] = useState("");
   const [cursorVisible, setCursorVisible] = useState(true);
@@ -29,7 +29,7 @@ export default function StreamingText({
   // Cursor blink effect
   useEffect(() => {
     cursorIntervalRef.current = setInterval(() => {
-      setCursorVisible(v => !v);
+      setCursorVisible((v) => !v);
     }, 530);
 
     return () => {
@@ -42,9 +42,9 @@ export default function StreamingText({
   // Handle content updates
   useEffect(() => {
     if (content === lastContentRef.current) return;
-    
+
     lastContentRef.current = content;
-    
+
     if (!isStreaming) {
       // Not streaming, display all content
       setDisplayedContent(content);
@@ -54,7 +54,7 @@ export default function StreamingText({
     // Streaming mode - reveal character by character
     const currentLength = displayedContent.length;
     const targetLength = content.length;
-    
+
     if (targetLength <= currentLength) {
       setDisplayedContent(content);
       return;
@@ -62,7 +62,7 @@ export default function StreamingText({
 
     // Add characters gradually
     const addChars = () => {
-      setDisplayedContent(prev => {
+      setDisplayedContent((prev) => {
         const next = content.slice(0, prev.length + 1);
         if (next.length >= content.length && onComplete) {
           onComplete();
@@ -91,9 +91,9 @@ export default function StreamingText({
         fontFamily: "var(--font-body, 'Syne', sans-serif)",
         fontSize: "15px",
         lineHeight: "1.7",
-        color: "var(--text, #E8EEF5)",
+        color: "var(--text)",
         wordBreak: "break-word",
-        whiteSpace: "pre-wrap"
+        whiteSpace: "pre-wrap",
       }}
     >
       {displayedContent}
@@ -103,10 +103,10 @@ export default function StreamingText({
             display: "inline-block",
             width: "2px",
             height: "1.2em",
-            backgroundColor: cursorVisible ? "var(--gold, #C9A84C)" : "transparent",
+            backgroundColor: cursorVisible ? "var(--gold)" : "transparent",
             marginLeft: "1px",
             verticalAlign: "text-bottom",
-            transition: "background-color 0.1s ease"
+            transition: "background-color 0.1s ease",
           }}
         />
       )}

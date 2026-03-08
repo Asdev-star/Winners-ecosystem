@@ -2,8 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "../auth/authStore";
-
 import { API_BASE } from "../../lib/api";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import ProgressRing from "../../components/ui/ProgressRing";
+import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import { useAssistant } from "../../hooks/useAssistant";
 
 const API = API_BASE;
 const css = `
@@ -212,6 +216,12 @@ export default function ActivityPage() {
   const [loading, setLoading]   = useState(true);
   const [clearing, setClearing] = useState(false);
 
+  // Level 4 AI Assistant hook
+  const { sendMessage, messages, isLoading: aiLoading } = useAssistant({
+    supervisor: "ARIA",
+    autoGreeting: true,
+  });
+
   // Per-category counts derived from logs for stat cards
   const catCounts = logs.reduce<Record<string, number>>((acc, l) => {
     acc[l.category] = (acc[l.category] ?? 0) + 1;
@@ -268,6 +278,18 @@ export default function ActivityPage() {
             <div className="ac-eco-chip">🛒 Market · Soon</div>
           </div>
         </div>
+
+        {/* AI Components */}
+        <AIInsightBanner page="dashboard" assistant="aria" />
+        <AssistantPanel page="activity" assistant="aria" />
+        <CrossLayerHandoff
+          type="market"
+          title="Explore the Market"
+          subtitle="Discover products and services"
+          details={<p>Browse the Winners Market to find tools, courses, and services to grow your business.</p>}
+          actionLabel="Visit Market"
+          loopStage={6}
+        />
 
         {/* Stats */}
         <div className="ac-stats">

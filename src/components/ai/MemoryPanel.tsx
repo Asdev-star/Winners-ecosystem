@@ -115,8 +115,8 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
         className="memory-panel"
         onClick={e => e.stopPropagation()}
         style={{
-          backgroundColor: "var(--surface, #111D2E)",
-          border: "1px solid var(--border, #1E3248)",
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
           borderRadius: "6px",
           width: "100%",
           maxWidth: "600px",
@@ -130,7 +130,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
         <div
           style={{
             padding: "16px 20px",
-            borderBottom: "1px solid var(--border, #1E3248)",
+            borderBottom: "1px solid var(--border)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center"
@@ -142,7 +142,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
                 fontFamily: "var(--font-display, 'Cormorant Garamond', serif)",
                 fontSize: "20px",
                 fontWeight: 600,
-                color: "var(--gold, #C9A84C)",
+                color: "var(--gold)",
                 margin: 0
               }}
             >
@@ -152,7 +152,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
               style={{
                 fontFamily: "var(--font-mono, 'Space Mono', monospace)",
                 fontSize: "11px",
-                color: "var(--text-dim, #5A7A96)",
+                color: "var(--text-dim)",
                 margin: "4px 0 0 0"
               }}
             >
@@ -165,7 +165,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
             style={{
               background: "none",
               border: "none",
-              color: "var(--text-dim, #5A7A96)",
+              color: "var(--text-dim)",
               fontSize: "24px",
               cursor: "pointer",
               padding: "4px 8px"
@@ -179,7 +179,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
         <div
           style={{
             padding: "12px 20px",
-            borderBottom: "1px solid var(--border, #1E3248)",
+            borderBottom: "1px solid var(--border)",
             display: "flex",
             gap: "8px",
             overflowX: "auto"
@@ -197,9 +197,9 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
                 padding: "6px 12px",
                 borderRadius: "4px",
                 border: "1px solid",
-                borderColor: filter === sup ? "var(--gold, #C9A84C)" : "var(--border, #1E3248)",
-                backgroundColor: filter === sup ? "var(--gold, #C9A84C)" : "transparent",
-                color: filter === sup ? "var(--bg, #0D1520)" : "var(--text-dim, #5A7A96)",
+                borderColor: filter === sup ? "var(--gold)" : "var(--border)",
+                backgroundColor: filter === sup ? "var(--gold)" : "transparent",
+                color: filter === sup ? "var(--bg)" : "var(--text-dim)",
                 cursor: "pointer",
                 whiteSpace: "nowrap"
               }}
@@ -231,8 +231,8 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
                 <div
                   key={item.id}
                   style={{
-                    backgroundColor: "var(--surface2, #172335)",
-                    border: "1px solid var(--border, #1E3248)",
+                    backgroundColor: "var(--surface2)",
+                    border: "1px solid var(--border)",
                     borderRadius: "4px",
                     padding: "12px"
                   }}
@@ -251,7 +251,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
                           fontFamily: "var(--font-mono, 'Space Mono', monospace)",
                           fontSize: "10px",
                           textTransform: "uppercase",
-                          color: "var(--gold, #C9A84C)",
+                          color: "var(--gold)",
                           border: "1px solid var(--gold)",
                           borderRadius: "2px",
                           padding: "2px 6px"
@@ -277,7 +277,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
                         style={{
                           background: "none",
                           border: "none",
-                          color: "var(--ice, #89C4E1)",
+                          color: "var(--ice)",
                           fontSize: "12px",
                           cursor: "pointer",
                           padding: "2px 6px"
@@ -290,7 +290,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
                         style={{
                           background: "none",
                           border: "none",
-                          color: "var(--red, #E05A4E)",
+                          color: "var(--red)",
                           fontSize: "12px",
                           cursor: "pointer",
                           padding: "2px 6px"
@@ -309,7 +309,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
                         style={{
                           width: "100%",
                           minHeight: "60px",
-                          backgroundColor: "var(--bg, #0D1520)",
+                          backgroundColor: "var(--bg)",
                           border: "1px solid var(--border)",
                           borderRadius: "4px",
                           color: "var(--text)",
@@ -323,7 +323,7 @@ export default function MemoryPanel({ userId, isOpen, onClose }: MemoryPanelProp
                         <button
                           onClick={() => handleSave(item.id)}
                           style={{
-                            backgroundColor: "var(--green, #2DD4A0)",
+                            backgroundColor: "var(--green)",
                             color: "var(--bg)",
                             border: "none",
                             borderRadius: "4px",

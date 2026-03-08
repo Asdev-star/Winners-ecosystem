@@ -4,6 +4,8 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ContextBar from "../../components/ui/ContextBar";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
 
 const ASSISTANTS = [
   {
@@ -470,6 +472,9 @@ export default function WinnersIntelligencePage() {
           <h1>Winners Intelligence</h1>
           <p>9 AI assistants. One ecosystem. Unlimited possibilities.</p>
         </div>
+        
+        {/* AI Insight Banner - FORGE oversees the AI platform */}
+        <AIInsightBanner page="intelligence" assistant="forge" />
 
         {/* Stats Row */}
         <div className="stats-row">

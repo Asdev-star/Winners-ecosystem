@@ -14,11 +14,11 @@ interface ProgressRingProps {
 }
 
 const COLOR_MAP = {
-  gold: { stroke: "var(--gold, #C9A84C)", gradient: ["var(--gold, #C9A84C)", "var(--gold, #E8C97A)"] },
-  green: { stroke: "var(--green, #2DD4A0)", gradient: ["var(--green, #2DD4A0)", "#10B981"] },
-  ice: { stroke: "var(--ice, #89C4E1)", gradient: ["var(--ice, #89C4E1)", "#60A5C8"] },
-  purple: { stroke: "var(--purple, #9B6FFF)", gradient: ["var(--purple, #9B6FFF)", "#7C3AED"] },
-  blue: { stroke: "var(--blue, #2B5F8E)", gradient: ["var(--blue, #2B5F8E)", "#1E40AF"] },
+  gold: { stroke: "var(--gold)", gradient: ["var(--gold)", "var(--gold)"] },
+  green: { stroke: "var(--green)", gradient: ["var(--green)", "var(--green)"] },
+  ice: { stroke: "var(--ice)", gradient: ["var(--ice)", "var(--ice)"] },
+  purple: { stroke: "var(--purple)", gradient: ["var(--purple)", "var(--purple)"] },
+  blue: { stroke: "var(--blue)", gradient: ["var(--blue)", "var(--blue)"] },
 };
 
 export default function ProgressRing({
@@ -58,7 +58,7 @@ export default function ProgressRing({
           cy={center}
           r={radius}
           fill="none"
-          stroke="var(--border, #1E3248)"
+          stroke="var(--border)"
           strokeWidth={strokeWidth}
         />
         
@@ -109,7 +109,7 @@ export default function ProgressRing({
               style={{
                 fontFamily: "'Syne', sans-serif",
                 fontSize: "7px",
-                color: "var(--text-dim, #5A7A96)",
+                color: "var(--text-dim)",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 marginTop: 2,

@@ -4,6 +4,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+
 // ─── Design Tokens ─────────────────────────────────────────────────────────
 // Using CSS variables from global design system - with fallbacks for development
 const T = {
@@ -364,6 +367,7 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
 
   return (
     <>
+      <AIInsightBanner page="market" assistant="atlas" />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -696,6 +700,7 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
           </div>
         </div>
       </div>
+      <AssistantPanel assistant="atlas" layer="market" />
     </>
   );
 }

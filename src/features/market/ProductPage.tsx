@@ -2,12 +2,14 @@
 // Product Detail Page - Individual product with reviews
 // Commerce Hub (4A) - Core marketplace functionality
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../auth/authStore';
+import AIInsightBanner from '../../components/ui/AIInsightBanner';
+import ContextBar from '../../components/ui/ContextBar';
 
 // CSS Variables from design system
-const styles = {
+const styles: Record<string, CSSProperties> = {
   container: {
     maxWidth: '1280px',
     margin: '0 auto',
@@ -517,16 +519,8 @@ export default function ProductPage() {
 
   return (
     <div style={styles.container}>
-      {/* Context Bar */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' as const }}>
-        <span className="ctx-badge live">⬡ Core Engine</span>
-        <span className="ctx-sep">›</span>
-        <span className="ctx-badge">🧑‍🤝‍🧑 Community</span>
-        <span className="ctx-sep">›</span>
-        <span className="ctx-badge">🎓 Academy</span>
-        <span className="ctx-sep">›</span>
-        <span className="ctx-badge active">🛒 Market</span>
-      </div>
+      <ContextBar activeLayer="market" statusOverrides={{ market: "active" }} />
+      <AIInsightBanner page="market" assistant="atlas" />
 
       {/* Breadcrumb */}
       <div style={styles.breadcrumb}>

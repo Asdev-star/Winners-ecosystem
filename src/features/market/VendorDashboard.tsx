@@ -51,11 +51,11 @@ const styles = {
     borderRadius: '6px',
     border: '1px solid var(--border)',
     padding: '20px',
-    position: 'relative',
+    position: 'relative' as const,
     overflow: 'hidden',
   },
   statCardTopBorder: {
-    position: 'absolute',
+    position: 'absolute' as const,
     top: 0,
     left: 0,
     right: 0,
@@ -165,8 +165,8 @@ const styles = {
     color: 'var(--green)',
   },
   lowStock: {
-    backgroundColor: 'rgba(249, 115, 22, 0.15)',
-    color: '#f97316',
+    backgroundColor: 'var(--gold-glow-sm)',
+    color: 'var(--gold)',
   },
   outOfStock: {
     backgroundColor: 'rgba(224, 90, 78, 0.15)',

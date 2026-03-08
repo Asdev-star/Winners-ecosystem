@@ -1,346 +1,362 @@
-// Level I - Design System Enforcement
-// Component: SkeletonLoader
-// Animated shimmer - zero spinners anywhere - WCAG AA compliant
-
-type SkeletonVariant = "card" | "row" | "avatar" | "chart" | "text" | "title" | "button" | "badge" | "table" | "list";
+// Level I - Foundation Intelligence
+// Skeleton Loader - Animated shimmer to replace all spinners
+// Uses --surface2 color (#172335) for shimmer as per design system
 
 interface SkeletonLoaderProps {
-  variant?: SkeletonVariant;
+  variant?: 'card' | 'row' | 'avatar' | 'chart' | 'text' | 'title';
   count?: number;
-  width?: string | number;
-  height?: string | number;
-  animated?: boolean;
+  width?: string;
+  height?: string;
 }
 
-const VARIANT_STYLES: Record<SkeletonVariant, { container: React.CSSProperties; children?: React.CSSProperties }> = {
-  card: {
-    container: {
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: "6px",
-      padding: "20px 24px",
-    },
-  },
-  row: {
-    container: {
-      height: "12px",
-      borderRadius: "6px",
-      width: "100%",
-    },
-  },
-  avatar: {
-    container: {
-      width: "40px",
-      height: "40px",
-      borderRadius: "50%",
-    },
-  },
-  chart: {
-    container: {
-      width: "100%",
-      height: "200px",
-      borderRadius: "6px",
-    },
-  },
-  text: {
-    container: {
-      height: "12px",
-      borderRadius: "4px",
-      width: "100%",
-    },
-  },
-  title: {
-    container: {
-      height: "24px",
-      borderRadius: "4px",
-      width: "60%",
-    },
-  },
-  button: {
-    container: {
-      height: "36px",
-      borderRadius: "6px",
-      width: "100px",
-    },
-  },
-  badge: {
-    container: {
-      height: "20px",
-      borderRadius: "10px",
-      width: "60px",
-    },
-  },
-  table: {
-    container: {
-      width: "100%",
-      borderCollapse: "collapse",
-    },
-  },
-  list: {
-    container: {
-      width: "100%",
-    },
-  },
-};
-
-const shimmerKeyframes = `
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-`;
-
-function SkeletonLine({ width = "100%", height = "12px" }: { width?: string | number; height?: string | number }) {
-  return (
-    <div
-      style={{
-        height: typeof height === "number" ? `${height}px` : height,
-        width: typeof width === "number" ? `${width}px` : width,
-        borderRadius: "4px",
-        background: `linear-gradient(90deg, 
-          rgba(30, 50, 72, 0.8) 0%, 
-          rgba(45, 70, 100, 0.4) 50%, 
-          rgba(30, 50, 72, 0.8) 100%
-        )`,
-        backgroundSize: "200% 100%",
-        animation: "shimmer 1.6s infinite",
-        marginBottom: "8px",
-      }}
-    />
-  );
-}
-
-export default function SkeletonLoader({
-  variant = "text",
+export default function SkeletonLoader({ 
+  variant = 'card',
   count = 1,
   width,
-  height,
-  animated = true,
+  height 
 }: SkeletonLoaderProps) {
-  const variantStyle = VARIANT_STYLES[variant];
-
-  const renderContent = () => {
+  const getVariantStyles = () => {
     switch (variant) {
-      case "card":
-        return (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-              <SkeletonLine width={40} height={40} />
-              <div style={{ flex: 1 }}>
-                <SkeletonLine width="40%" height={16} />
-                <SkeletonLine width="25%" height={12} />
-              </div>
-            </div>
-            <SkeletonLine />
-            <SkeletonLine width="80%" />
-            <SkeletonLine width="60%" />
-          </div>
-        );
-
-      case "row":
-        return (
-          <>
-            {Array.from({ length: count }).map((_, i) => (
-              <SkeletonLine key={i} width="100%" height={12} />
-            ))}
-          </>
-        );
-
-      case "avatar":
-        return (
-          <div
-            style={{
-              width: typeof width === "number" ? `${width}px` : width ?? "40px",
-              height: typeof height === "number" ? `${height}px` : height ?? "40px",
-              borderRadius: "50%",
-              background: `linear-gradient(90deg, 
-                rgba(30, 50, 72, 0.8) 0%, 
-                rgba(45, 70, 100, 0.4) 50%, 
-                rgba(30, 50, 72, 0.8) 100%
-              )`,
-              backgroundSize: "200% 100%",
-              animation: animated ? "shimmer 1.6s infinite" : "none",
-            }}
-          />
-        );
-
-      case "chart":
-        return (
-          <div
-            style={{
-              width: "100%",
-              height: "200px",
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-around",
-              padding: "20px",
-              background: `linear-gradient(90deg, 
-                rgba(30, 50, 72, 0.8) 0%, 
-                rgba(45, 70, 100, 0.4) 50%, 
-                rgba(30, 50, 72, 0.8) 100%
-              )`,
-              backgroundSize: "200% 100%",
-              animation: animated ? "shimmer 1.6s infinite" : "none",
-              borderRadius: "6px",
-            }}
-          >
-            {[40, 65, 45, 80, 55, 70, 45].map((h, i) => (
-              <div
-                key={i}
-                style={{
-                  width: "8%",
-                  height: `${h}%`,
-                  background: "var(--border)",
-                  borderRadius: "2px 2px 0 0",
-                }}
-              />
-            ))}
-          </div>
-        );
-
-      case "text":
-        return (
-          <>
-            {Array.from({ length: count }).map((_, i) => (
-              <SkeletonLine
-                key={i}
-                width={i === count - 1 && count > 1 ? "70%" : "100%"}
-                height={typeof height === "number" ? height : 12}
-              />
-            ))}
-          </>
-        );
-
-      case "title":
-        return (
-          <SkeletonLine
-            width={typeof width === "number" ? `${width}px` : width ?? "60%"}
-            height={typeof height === "number" ? height : 24}
-          />
-        );
-
-      case "button":
-        return (
-          <div
-            style={{
-              height: typeof height === "number" ? `${height}px` : height ?? "36px",
-              width: typeof width === "number" ? `${width}px` : width ?? "100px",
-              borderRadius: "6px",
-              background: `linear-gradient(90deg, 
-                rgba(30, 50, 72, 0.8) 0%, 
-                rgba(45, 70, 100, 0.4) 50%, 
-                rgba(30, 50, 72, 0.8) 100%
-              )`,
-              backgroundSize: "200% 100%",
-              animation: animated ? "shimmer 1.6s infinite" : "none",
-            }}
-          />
-        );
-
-      case "badge":
-        return (
-          <div
-            style={{
-              height: typeof height === "number" ? `${height}px` : height ?? "20px",
-              width: typeof width === "number" ? `${width}px` : width ?? "60px",
-              borderRadius: "10px",
-              background: `linear-gradient(90deg, 
-                rgba(30, 50, 72, 0.8) 0%, 
-                rgba(45, 70, 100, 0.4) 50%, 
-                rgba(30, 50, 72, 0.8) 100%
-              )`,
-              backgroundSize: "200% 100%",
-              animation: animated ? "shimmer 1.6s infinite" : "none",
-            }}
-          />
-        );
-
-      case "table":
-        return (
-          <div style={{ width: "100%", overflow: "hidden" }}>
-            {/* Header row */}
-            <div style={{ display: "flex", gap: "16px", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
-              {[25, 20, 15, 20, 20].map((w, i) => (
-                <SkeletonLine key={`h-${i}`} width={`${w}%`} height={12} />
-              ))}
-            </div>
-            {/* Data rows */}
-            {Array.from({ length: count ?? 5 }).map((_, rowIdx) => (
-              <div key={rowIdx} style={{ display: "flex", gap: "16px", padding: "16px 0", borderBottom: "1px solid var(--border)" }}>
-                {[25, 20, 15, 20, 20].map((w, colIdx) => (
-                  <SkeletonLine key={`${rowIdx}-${colIdx}`} width={`${w}%`} height={12} />
-                ))}
-              </div>
-            ))}
-          </div>
-        );
-
-      case "list":
-        return (
-          <div style={{ width: "100%" }}>
-            {Array.from({ length: count ?? 4 }).map((_, i) => (
-              <div key={i} style={{ display: "flex", gap: "12px", padding: "12px 0", alignItems: "center" }}>
-                <SkeletonLine width={32} height={32} />
-                <div style={{ flex: 1 }}>
-                  <SkeletonLine width="40%" height={14} />
-                  <SkeletonLine width="25%" height={10} />
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-
+      case 'card':
+        return { width: '100%', height: '120px' };
+      case 'row':
+        return { width: '100%', height: '48px' };
+      case 'avatar':
+        return { width: '40px', height: '40px', borderRadius: '50%' };
+      case 'chart':
+        return { width: '100%', height: '200px' };
+      case 'text':
+        return { width: '80%', height: '16px' };
+      case 'title':
+        return { width: '60%', height: '24px' };
       default:
-        return (
-          <>
-            {Array.from({ length: count }).map((_, i) => (
-              <SkeletonLine key={i} width="100%" height={12} />
-            ))}
-          </>
-        );
+        return {};
     }
   };
 
+  const baseStyles = {
+    ...getVariantStyles(),
+    ...(width ? { width } : {}),
+    ...(height ? { height } : {}),
+  };
+
   return (
-    <>
-      <style>{shimmerKeyframes}</style>
-      <div
-        style={{
-          ...variantStyle.container,
-          width: width ?? variantStyle.container.width,
-          height: height ?? variantStyle.container.height,
-          overflow: "hidden",
-        }}
-      >
-        {renderContent()}
-      </div>
-    </>
+    <div className="skeleton-loader">
+      <style>{`
+        .skeleton-loader {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .skeleton-loader__item {
+          background: linear-gradient(
+            90deg,
+            var(--surface2) 25%,
+            var(--surface3) 50%,
+            var(--surface2) 75%
+          );
+          background-size: 200% 100%;
+          animation: skeleton-shimmer 1.5s ease-in-out infinite;
+          border-radius: 4px;
+        }
+        
+        @keyframes skeleton-shimmer {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
+        }
+        
+        .skeleton-loader__item--card {
+          border-radius: 6px;
+          border: 1px solid var(--border);
+        }
+        
+        .skeleton-loader__item--avatar {
+          border-radius: 50%;
+        }
+        
+        .skeleton-loader__item--text {
+          border-radius: 2px;
+        }
+        
+        .skeleton-loader__item--title {
+          border-radius: 4px;
+        }
+      `}</style>
+      
+      {Array.from({ length: count }).map((_, index) => (
+        <div
+          key={index}
+          className={`skeleton-loader__item skeleton-loader__item--${variant}`}
+          style={baseStyles}
+        />
+      ))}
+    </div>
   );
 }
 
-// Convenience component for common loading states
+// Specialized skeleton components for common use cases
+
 export function CardSkeleton() {
-  return <SkeletonLoader variant="card" />;
+  return (
+    <div className="card-skeleton">
+      <style>{`
+        .card-skeleton {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          padding: 20px;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .card-skeleton::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, var(--gold), transparent);
+        }
+        
+        .card-skeleton__header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        
+        .card-skeleton__avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+          background-size: 200% 100%;
+          animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        }
+        
+        .card-skeleton__title {
+          flex: 1;
+        }
+        
+        .card-skeleton__line {
+          height: 12px;
+          border-radius: 2px;
+          background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+          background-size: 200% 100%;
+          animation: skeleton-shimmer 1.5s ease-in-out infinite;
+          margin-bottom: 8px;
+        }
+        
+        .card-skeleton__line:last-child {
+          margin-bottom: 0;
+        }
+        
+        .card-skeleton__line--title {
+          width: 60%;
+          height: 16px;
+        }
+        
+        .card-skeleton__line--text {
+          width: 90%;
+        }
+        
+        .card-skeleton__line--text-short {
+          width: 70%;
+        }
+        
+        @keyframes skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+      
+      <div className="card-skeleton__header">
+        <div className="card-skeleton__avatar" />
+        <div className="card-skeleton__title">
+          <div className="card-skeleton__line card-skeleton__line--title" />
+        </div>
+      </div>
+      <div className="card-skeleton__line card-skeleton__line--text" />
+      <div className="card-skeleton__line card-skeleton__line--text" />
+      <div className="card-skeleton__line card-skeleton__line--text-short" />
+    </div>
+  );
 }
 
-export function TableSkeleton({ rows = 5 }: { rows?: number }) {
-  return <SkeletonLoader variant="table" count={rows} />;
-}
-
-export function ListSkeleton({ items = 4 }: { items?: number }) {
-  return <SkeletonLoader variant="list" count={items} />;
+export function TableRowSkeleton() {
+  return (
+    <div className="table-row-skeleton">
+      <style>{`
+        .table-row-skeleton {
+          display: flex;
+          align-items: center;
+          padding: 16px;
+          border-bottom: 1px solid var(--border);
+          gap: 16px;
+        }
+        
+        .table-row-skeleton__cell {
+          height: 16px;
+          border-radius: 2px;
+          background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+          background-size: 200% 100%;
+          animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        }
+        
+        .table-row-skeleton__cell--checkbox {
+          width: 18px;
+          height: 18px;
+          border-radius: 3px;
+        }
+        
+        .table-row-skeleton__cell--avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+        }
+        
+        .table-row-skeleton__cell--name {
+          flex: 1;
+          min-width: 120px;
+        }
+        
+        .table-row-skeleton__cell--email {
+          flex: 1;
+          min-width: 150px;
+        }
+        
+        .table-row-skeleton__cell--status {
+          width: 80px;
+        }
+        
+        .table-row-skeleton__cell--action {
+          width: 60px;
+        }
+        
+        @keyframes skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+      
+      <div className="table-row-skeleton__cell table-row-skeleton__cell--checkbox" />
+      <div className="table-row-skeleton__cell table-row-skeleton__cell--avatar" />
+      <div className="table-row-skeleton__cell table-row-skeleton__cell--name" />
+      <div className="table-row-skeleton__cell table-row-skeleton__cell--email" />
+      <div className="table-row-skeleton__cell table-row-skeleton__cell--status" />
+      <div className="table-row-skeleton__cell table-row-skeleton__cell--action" />
+    </div>
+  );
 }
 
 export function ChartSkeleton() {
-  return <SkeletonLoader variant="chart" />;
-}
-
-export function FeedSkeleton({ posts = 3 }: { posts?: number }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      {Array.from({ length: posts }).map((_, i) => (
-        <SkeletonLoader key={i} variant="card" />
-      ))}
+    <div className="chart-skeleton">
+      <style>{`
+        .chart-skeleton {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          padding: 24px;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .chart-skeleton::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, var(--gold), transparent);
+        }
+        
+        .chart-skeleton__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        }
+        
+        .chart-skeleton__title {
+          width: 120px;
+          height: 20px;
+          border-radius: 4px;
+          background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+          background-size: 200% 100%;
+          animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        }
+        
+        .chart-skeleton__legend {
+          display: flex;
+          gap: 16px;
+        }
+        
+        .chart-skeleton__legend-item {
+          width: 60px;
+          height: 12px;
+          border-radius: 2px;
+          background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+          background-size: 200% 100%;
+          animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        }
+        
+        .chart-skeleton__body {
+          display: flex;
+          align-items: flex-end;
+          gap: 8px;
+          height: 160px;
+        }
+        
+        .chart-skeleton__bar {
+          flex: 1;
+          border-radius: 4px 4px 0 0;
+          background: linear-gradient(180deg, var(--surface3) 0%, var(--surface2) 100%);
+          animation: chart-pulse 1.5s ease-in-out infinite;
+        }
+        
+        .chart-skeleton__bar:nth-child(1) { height: 40%; animation-delay: 0s; }
+        .chart-skeleton__bar:nth-child(2) { height: 60%; animation-delay: 0.1s; }
+        .chart-skeleton__bar:nth-child(3) { height: 35%; animation-delay: 0.2s; }
+        .chart-skeleton__bar:nth-child(4) { height: 75%; animation-delay: 0.3s; }
+        .chart-skeleton__bar:nth-child(5) { height: 50%; animation-delay: 0.4s; }
+        .chart-skeleton__bar:nth-child(6) { height: 85%; animation-delay: 0.5s; }
+        .chart-skeleton__bar:nth-child(7) { height: 45%; animation-delay: 0.6s; }
+        
+        @keyframes skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        
+        @keyframes chart-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+      `}</style>
+      
+      <div className="chart-skeleton__header">
+        <div className="chart-skeleton__title" />
+        <div className="chart-skeleton__legend">
+          <div className="chart-skeleton__legend-item" />
+          <div className="chart-skeleton__legend-item" />
+        </div>
+      </div>
+      <div className="chart-skeleton__body">
+        <div className="chart-skeleton__bar" />
+        <div className="chart-skeleton__bar" />
+        <div className="chart-skeleton__bar" />
+        <div className="chart-skeleton__bar" />
+        <div className="chart-skeleton__bar" />
+        <div className="chart-skeleton__bar" />
+        <div className="chart-skeleton__bar" />
+      </div>
     </div>
   );
 }

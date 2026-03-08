@@ -235,18 +235,6 @@ Make it professional, engaging, and tailored to stand out to recruiters.`;
     <div className="market-page">
       <style>{`
         .market-page {
-          --gold: #C9A84C;
-          --blue: #2B5F8E;
-          --ice: #89C4E1;
-          --green: #2DD4A0;
-          --purple: #9B6FFF;
-          --red: #E05A4E;
-          --bg: #0D1520;
-          --surface: #111D2E;
-          --surface2: #172335;
-          --border: #1E3248;
-          --text: #E8EEF5;
-          --text-dim: #5A7A96;
           
           min-height: 100vh;
           background: var(--bg);
@@ -495,7 +483,7 @@ Make it professional, engaging, and tailored to stand out to recruiters.`;
         }
 
         .generate-btn:hover {
-          background: #a980ff;
+          background: var(--purple);
         }
 
         .generate-btn:disabled {

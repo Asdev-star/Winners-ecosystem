@@ -20,8 +20,8 @@ const css = `
 
   /* ── Card ── */
   .as-card {
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
     padding: 22px 24px;
     position: relative;
@@ -43,8 +43,8 @@ const css = `
   }
   .as-card--gold::before  { background: linear-gradient(90deg, transparent, var(--gold), transparent); }
   .as-card--ice::before   { background: linear-gradient(90deg, transparent, var(--ice), transparent); }
-  .as-card--green::before { background: linear-gradient(90deg, transparent, var(--green, #2DD4A0), transparent); }
-  .as-card--blue::before  { background: linear-gradient(90deg, transparent, var(--blue, #2B5F8E), transparent); }
+  .as-card--green::before { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+  .as-card--blue::before  { background: linear-gradient(90deg, transparent, var(--blue), transparent); }
 
   /* Glow radial behind value */
   .as-card::after {
@@ -55,8 +55,8 @@ const css = `
   }
   .as-card--gold::after  { background: var(--gold); }
   .as-card--ice::after   { background: var(--ice); }
-  .as-card--green::after { background: var(--green, #2DD4A0); }
-  .as-card--blue::after  { background: var(--blue, #2B5F8E); }
+  .as-card--green::after { background: var(--green); }
+  .as-card--blue::after  { background: var(--blue); }
 
   /* ── Header row ── */
   .as-card-header {
@@ -76,7 +76,7 @@ const css = `
   .as-card-icon--gold  { background: var(--gold-glow-sm);  color: var(--gold); }
   .as-card-icon--ice   { background: var(--blue-glow-sm); color: var(--ice); }
   .as-card-icon--green { background: rgba(45,212,160,0.1);  color: var(--green, #2DD4A0); }
-  .as-card-icon--blue  { background: rgba(43,95,142,0.15);  color: var(--ice, #89C4E1); }
+  .as-card-icon--blue  { background: rgba(43,95,142,0.15);  color: var(--ice); }
 
   /* ── Value ── */
   .as-card-value {
@@ -88,7 +88,7 @@ const css = `
   .as-card--gold  .as-card-value { color: var(--gold); }
   .as-card--ice   .as-card-value { color: var(--ice); }
   .as-card--green .as-card-value { color: var(--green, #2DD4A0); }
-  .as-card--blue  .as-card-value { color: var(--text, #E8EEF5); }
+  .as-card--blue  .as-card-value { color: var(--text); }
 
   /* ── Growth pill ── */
   .as-growth {
@@ -126,14 +126,14 @@ const css = `
 
   /* ── Skeleton loader ── */
   .as-skeleton {
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 6px; padding: 22px 24px;
     animation: as-shimmer 1.5s ease-in-out infinite;
   }
   .as-skel-line {
     border-radius: 4px;
-    background: var(--surface2, #172335);
+    background: var(--surface2);
     margin-bottom: 10px;
   }
 
@@ -150,16 +150,16 @@ const css = `
     font-family: 'Space Mono', monospace; font-size: 10px;
     letter-spacing: 0.15em; text-transform: uppercase;
     color: var(--text-dim, #5A7A96);
-    border: 1px solid var(--border, #1E3248);
-    border-radius: 6px; background: var(--surface, #111D2E);
+    border: 1px solid var(--border);
+    border-radius: 6px; background: var(--surface);
   }
   .as-loading-dot {
     width: 5px; height: 5px; border-radius: 50%;
     background: var(--gold);
     animation: as-pulse 1.2s ease-in-out infinite;
   }
-  .as-loading-dot:nth-child(2) { animation-delay: 0.2s; background: var(--ice, #89C4E1); }
-  .as-loading-dot:nth-child(3) { animation-delay: 0.4s; background: var(--green, #2DD4A0); }
+  .as-loading-dot:nth-child(2) { animation-delay: 0.2s; background: var(--ice); }
+  .as-loading-dot:nth-child(3) { animation-delay: 0.4s; background: var(--green); }
 
   @keyframes as-pulse {
     0%, 100% { opacity: 0.3; transform: scale(0.8); }

@@ -10,85 +10,85 @@ const css = `
 
   .nb-btn {
     width: 34px; height: 34px; border-radius: 4px;
-    background: transparent; border: 1px solid var(--border, #1E2A38);
+    background: transparent; border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.15s; position: relative;
     font-size: 16px;
   }
-  .nb-btn:hover { border-color: var(--gold, #F5C842); background: rgba(245,200,66,0.06); }
+  .nb-btn:hover { border-color: var(--gold); background: rgba(245,200,66,0.06); }
   .nb-btn.has-unread { border-color: rgba(245,200,66,0.3); }
 
   .nb-badge {
     position: absolute; top: -5px; right: -5px;
     width: 17px; height: 17px; border-radius: 50%;
-    background: #FF5975; color: white;
+    background: var(--red); color: white;
     font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
-    border: 2px solid var(--surface, #0D1117);
+    border: 2px solid var(--surface);
     animation: nb-pop 0.2s ease;
   }
 
   .nb-dropdown {
     position: absolute; top: calc(100% + 8px); right: 0;
-    width: 340px; background: var(--surface, #0D1117);
-    border: 1px solid var(--border, #1E2A38); border-radius: 6px;
+    width: 340px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 6px;
     overflow: hidden; z-index: 200;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     animation: nb-drop 0.15s ease;
   }
 
   .nb-header {
-    padding: 12px 16px; border-bottom: 1px solid var(--border, #1E2A38);
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
   }
   .nb-header-title { font-size: 13px; font-weight: 700; }
   .nb-header-actions { display: flex; gap: 8px; }
   .nb-header-btn {
     font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.5px;
-    color: var(--text-dim, #5A6878); background: none; border: none;
+    color: var(--text-dim); background: none; border: none;
     cursor: pointer; transition: color 0.15s; padding: 2px 6px;
     border-radius: 2px;
   }
-  .nb-header-btn:hover { color: var(--gold, #F5C842); }
+  .nb-header-btn:hover { color: var(--gold); }
 
   .nb-list { max-height: 360px; overflow-y: auto; }
 
   .nb-item {
     display: flex; gap: 10px; padding: 12px 16px;
-    border-bottom: 1px solid var(--border, #1E2A38);
+    border-bottom: 1px solid var(--border);
     cursor: pointer; transition: background 0.12s; position: relative;
   }
   .nb-item:last-child { border-bottom: none; }
   .nb-item:hover { background: rgba(245,200,66,0.04); }
   .nb-item.unread { background: rgba(245,200,66,0.03); }
-  .nb-item.unread::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--gold, #F5C842); }
+  .nb-item.unread::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--gold); }
 
   .nb-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 
   .nb-content { flex: 1; min-width: 0; }
   .nb-title { font-size: 12px; font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .nb-body  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, #5A6878); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .nb-time  { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim, #5A6878); margin-top: 4px; }
+  .nb-body  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .nb-time  { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); margin-top: 4px; }
 
   .nb-delete {
-    background: none; border: none; cursor: pointer; color: var(--text-dim, #5A6878);
+    background: none; border: none; cursor: pointer; color: var(--text-dim);
     font-size: 14px; padding: 2px; border-radius: 2px; opacity: 0; transition: all 0.15s;
     flex-shrink: 0; align-self: flex-start;
   }
   .nb-item:hover .nb-delete { opacity: 1; }
-  .nb-delete:hover { color: #FF5975; }
+  .nb-delete:hover { color: var(--red); }
 
   .nb-empty {
     padding: 28px 16px; text-align: center;
-    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim, #5A6878);
+    font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim);
   }
   .nb-empty-icon { font-size: 28px; margin-bottom: 8px; }
 
   .nb-footer {
-    padding: 10px 16px; border-top: 1px solid var(--border, #1E2A38); text-align: center;
+    padding: 10px 16px; border-top: 1px solid var(--border); text-align: center;
   }
   .nb-footer-btn {
-    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--gold, #F5C842);
+    font-family: 'Space Mono', monospace; font-size: 10px; color: var(--gold);
     background: none; border: none; cursor: pointer; letter-spacing: 0.5px;
   }
   .nb-footer-btn:hover { text-decoration: underline; }

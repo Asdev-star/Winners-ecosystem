@@ -11,24 +11,24 @@ const css = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --gold:    var(--gold, #F0B429);
-    --gold2:   var(--gold-bright, #F5C842);
-    --gold3:   var(--gold-dim, #B8841A);
-    --gold-dim: rgba(240,180,76,0.08);
-    --blue:    var(--blue, #4A9EFF);
-    --blue2:   var(--blue-bright, #6BB3FF);
-    --ice:     var(--ice, #89C4E1);
-    --green:   var(--green, #2DD4A0);
-    --purple:  var(--purple, #9B6FFF);
-    --red:     var(--red, #E05A4E);
-    --bg:      var(--bg, #080E1A);
-    --surface: var(--surface, #0D1826);
-    --surface2:var(--surface2, #121F30);
-    --border:  var(--border, #1A2E45);
+    --gold:    var(--gold);
+    --gold2:   var(--gold);
+    --gold3:   var(--gold);
+    --gold-dim: rgba(201,168,76,0.08);
+    --blue:    var(--blue);
+    --blue2:   var(--blue);
+    --ice:     var(--ice);
+    --green:   var(--green);
+    --purple:  var(--purple);
+    --red:     var(--red);
+    --bg:      var(--bg);
+    --surface: var(--surface);
+    --surface2:var(--surface2);
+    --border:  var(--border);
     --border2: rgba(30,50,72,0.6);
-    --text:    var(--text, #E8EEF5);
-    --text-dim:var(--text-dim, #5A7A96);
-    --text-faint: #2A4560;
+    --text:    var(--text);
+    --text-dim:var(--text-dim);
+    --text-faint: var(--border);
   }
 
   html { scroll-behavior: smooth; }
@@ -168,7 +168,7 @@ const css = `
   }
   .lp-hero-logo-fallback {
     width: 96px; height: 96px; border-radius: 20px;
-    background: linear-gradient(135deg, #1a2a3a 0%, #0d1520 100%);
+    background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%);
     border: 2.5px solid rgba(201,168,76,0.5);
     box-shadow: 0 0 48px rgba(201,168,76,0.2);
     display: flex; align-items: center; justify-content: center;

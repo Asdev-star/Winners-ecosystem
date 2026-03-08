@@ -7,6 +7,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import ContextBar from "../../components/ui/ContextBar";
+import { useAssistant } from "../../hooks/useAssistant";
 
 type PlanId = "free" | "pro" | "enterprise";
 
@@ -87,6 +92,21 @@ export default function BillingPage() {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
+
+  // AI Assistant hook - ARIA is the Core Engine supervisor
+  const { isLoading: aiLoading, isStreaming: aiStreaming, sendMessage: sendToAria } = useAssistant({
+    supervisor: "ARIA",
+    context: {
+      page: "billing",
+      subscription: subscription?.planId ?? "free",
+      usage: usage ? {
+        seats: usage.seats.used,
+        exports: usage.exports.used,
+        storage: usage.storage.used
+      } : null,
+      userId: user?.id
+    }
+  });
 
   const fetchBilling = useCallback(async () => {
     if (!token) return; // wait for auth
@@ -174,12 +194,13 @@ export default function BillingPage() {
             <p className="bp-subtitle">Manage your subscription, usage and payment details</p>
           </div>
 
-          {/* Context bar */}
-          <div className="bp-ctx-bar">
-            <span className="bp-ctx-badge live">⬡ Core Engine</span>
-            <span className="bp-ctx-sep">›</span>
-            <span className="bp-ctx-badge active">💳 Billing</span>
-          </div>
+          <ContextBar activeLayer="core" statusOverrides={{ core: "live" }} />
+          {/* AI Insight Banner - ARIA provides billing intelligence */}
+          <AIInsightBanner
+            page="dashboard"
+            assistant="aria"
+            userId={user?.id}
+          />
 
           {showSuccess && (
             <div className="bp-success-banner">✓ Plan upgraded successfully! Welcome to {currentPlan.name}.</div>
@@ -311,6 +332,32 @@ export default function BillingPage() {
             {toast.type === "success" ? "✓" : "✗"} {toast.msg}
           </div>
         )}
+
+        {/* AI Assistant Panel - ARIA for billing insights */}
+        <AssistantPanel
+          assistant="aria"
+          page="billing"
+          userId={user?.id}
+          context={{
+            subscription: currentPlanId,
+            usage: usage ? {
+              seats: usage.seats.used,
+              exports: usage.exports.used,
+              storage: usage.storage.used
+            } : null
+          }}
+        />
+
+        {/* Cross-Layer Handoff - connect to Academy or Market */}
+        {isPaid && (
+          <CrossLayerHandoff
+            type="academy"
+            title="Ready to level up your skills?"
+            subtitle="Your billing shows you're on a paid plan - maximize your investment with Academy courses"
+            details={<div>Complete courses to unlock Work opportunities and increase your earning potential.</div>}
+            actionLabel="Explore Academy"
+          />
+        )}
       </div>
     </>
   );
@@ -326,12 +373,6 @@ const CSS = `
   .bp-title    { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); margin: 0 0 4px; }
   .bp-title span { color: var(--gold); }
   .bp-subtitle { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
-
-  .bp-ctx-bar   { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
-  .bp-ctx-badge { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; }
-  .bp-ctx-badge.live   { background: rgba(74,222,128,0.08);  color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
-  .bp-ctx-badge.active { background: rgba(201,168,76,0.08);  color: var(--gold); border: 1px solid rgba(201,168,76,0.2); }
-  .bp-ctx-sep  { color: var(--border); font-size: 14px; }
 
   .bp-success-banner { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--green); }
 
@@ -410,14 +451,14 @@ const CSS = `
   .bp-btn.dim.outline:hover { border-color: var(--red); color: var(--red); }
   .bp-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
-  .bp-manage-row  { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 18px 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .bp-manage-row  { background: linear-gradient(135deg, var(--surface2), var(--bg)); border: 1px solid rgba(137,196,225,0.1); border-radius: 16px; padding: 18px 24px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .bp-manage-title{ font-size: 13px; font-weight: 700; margin-bottom: 3px; }
   .bp-manage-desc { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
   .bp-manage-btn  { background: transparent; border: 1px solid rgba(137,196,225,0.2); color: var(--ice); border-radius: 8px; padding: 10px 20px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
   .bp-manage-btn:hover:not(:disabled) { border-color: var(--ice); background: rgba(137,196,225,0.06); }
   .bp-manage-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .bp-danger       { background: linear-gradient(135deg, #0f1923, #0D1520); border: 1px solid rgba(248,113,113,0.15); border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .bp-danger       { background: linear-gradient(135deg, var(--surface2), var(--bg)); border: 1px solid rgba(248,113,113,0.15); border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
   .bp-danger-title { font-size: 13px; font-weight: 700; color: var(--red); margin-bottom: 4px; }
   .bp-danger-desc  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
   .bp-danger-btn   { background: transparent; border: 1px solid rgba(248,113,113,0.25); color: var(--red); border-radius: 8px; padding: 8px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
@@ -441,3 +482,4 @@ const CSS = `
     .bp-plan-amount { font-size: 26px; }
   }
 `;
+

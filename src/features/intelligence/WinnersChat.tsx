@@ -42,7 +42,7 @@ const css = `
 
   .aria-message.user {
     align-self: flex-end;
-    background: linear-gradient(135deg, var(--blue), #1E3D52);
+    background: linear-gradient(135deg, var(--blue), var(--blue));
     border-bottom-right-radius: 4px;
   }
 

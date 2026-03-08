@@ -5,6 +5,11 @@
 import { useState, useEffect } from "react";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import ProgressRing from "../../components/ui/ProgressRing";
+import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import { useAssistant } from "../../hooks/useAssistant";
 
 const API = API_BASE;
 function authHeaders() {
@@ -68,6 +73,12 @@ export default function TeamPage() {
   const [inviteMsg, setInviteMsg]     = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [search, setSearch]           = useState("");
   useEffect(() => { loadMembers(); }, []);
+
+  // Level 4 AI Assistant hook
+  const { sendMessage, messages, isLoading } = useAssistant({
+    supervisor: "ARIA",
+    autoGreeting: true,
+  });
 
   const loadMembers = async () => {
     setLoading(true);
@@ -164,6 +175,21 @@ export default function TeamPage() {
           <span style={{ ...s.countNum, color: "var(--gold)" }}>{members.length}</span>
           <span style={s.countLabel}>Members</span>
         </div>
+      </div>
+
+      {/* AI Insight Banner */}
+      <AIInsightBanner page="dashboard" assistant="aria" />
+      <AssistantPanel page="team" assistant="aria" />
+      <CrossLayerHandoff
+        type="work"
+        title="Growing your team?"
+        subtitle="Find talented freelancers"
+        details={<p>Post a job and get matched with verified professionals from the Winners ecosystem.</p>}
+        actionLabel="Post a Job"
+        loopStage={4}
+      />
+      <div style={{ marginTop: 16 }}>
+        <ProgressRing progress={members.length > 0 ? 100 : 0} size={48} label="Team" />
       </div>
 
       {/* Invite card */}

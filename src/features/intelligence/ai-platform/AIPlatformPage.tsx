@@ -4,12 +4,14 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import ContextBar from "../../../components/ui/ContextBar";
+import AIInsightBanner from "../../../components/ui/AIInsightBanner";
 
 const PROVIDERS = [
-  { id: "claude", name: "Claude 3.5 Sonnet", icon: "🧠", bestFor: "Reasoning, PDFs, Images", color: "#D97706" },
-  { id: "gpt4o", name: "GPT-4o", icon: "🔮", bestFor: "Vision, Audio, Code", color: "#10B981" },
-  { id: "gemini", name: "Gemini 1.5 Pro", icon: "🌟", bestFor: "Video, Long context", color: "#8B5CF6" },
-  { id: "ollama", name: "Ollama (Local)", icon: "💻", bestFor: "Offline, Free, Privacy", color: "#06B6D4" },
+  { id: "claude", name: "Claude 3.5 Sonnet", icon: "🧠", bestFor: "Reasoning, PDFs, Images", color: "var(--gold)" },
+  { id: "gpt4o", name: "GPT-4o", icon: "🔮", bestFor: "Vision, Audio, Code", color: "var(--green)" },
+  { id: "gemini", name: "Gemini 1.5 Pro", icon: "🌟", bestFor: "Video, Long context", color: "var(--purple)" },
+  { id: "ollama", name: "Ollama (Local)", icon: "💻", bestFor: "Offline, Free, Privacy", color: "var(--ice)" },
 ];
 
 const FILE_TYPES = [
@@ -162,7 +164,7 @@ const css = `
 
   .chat-message.user {
     align-self: flex-end;
-    background: linear-gradient(135deg, var(--blue), #1E3D52);
+    background: linear-gradient(135deg, var(--blue), var(--blue));
     border-bottom-right-radius: 4px;
   }
 
@@ -271,7 +273,7 @@ const css = `
   }
 
   .chat-send {
-    background: linear-gradient(135deg, var(--purple), #7C3AED);
+    background: linear-gradient(135deg, var(--purple), var(--purple));
     border: none;
     border-radius: 8px;
     padding: 12px 20px;
@@ -522,6 +524,9 @@ export default function AIPlatformPage() {
           <h1>AI Platform</h1>
           <p>Multimodal AI — Send images, PDFs, audio, or video to any assistant.</p>
         </div>
+        
+        {/* AI Insight Banner - FORGE oversees the AI platform */}
+        <AIInsightBanner page="intelligence" assistant="forge" />
 
         <div className="platform-layout">
           {/* Main Chat Area */}

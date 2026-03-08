@@ -1,186 +1,157 @@
-// Level I - Design System Enforcement
-// Component: ContextBar
-// Required on every authenticated page - shows live ecosystem status
+import { Fragment } from "react";
+import { Link } from "react-router-dom";
 
-interface LayerStatus {
-  key: string;
+type LayerStatus = "live" | "active" | "building" | "planned";
+type LayerKey = "core" | "community" | "academy" | "market" | "intelligence" | "work";
+
+interface LayerConfig {
+  key: LayerKey;
   label: string;
-  emoji: string;
-  status: "live" | "active" | "building" | "planned";
-  href?: string;
+  shortLabel: string;
+  href: string;
+  status: LayerStatus;
 }
 
 interface ContextBarProps {
-  activeLayer?: string;
+  activeLayer?: LayerKey;
+  statusOverrides?: Partial<Record<LayerKey, LayerStatus>>;
+  compact?: boolean;
   showLabels?: boolean;
 }
 
-const LAYERS: LayerStatus[] = [
-  { key: "core", label: "Core Engine", emoji: "⬡", status: "live", href: "/dashboard" },
-  { key: "community", label: "Community", emoji: "👥", status: "active", href: "/community" },
-  { key: "academy", label: "Academy", emoji: "🎓", status: "active", href: "/academy" },
-  { key: "market", label: "Market", emoji: "🛒", status: "planned", href: "/market" },
-  { key: "intelligence", label: "Intelligence", emoji: "🤖", status: "active", href: "/intelligence" },
-  { key: "work", label: "Work", emoji: "💼", status: "planned", href: "/work" },
+const LAYERS: LayerConfig[] = [
+  { key: "core", label: "Core Engine", shortLabel: "CORE", href: "/dashboard", status: "live" },
+  { key: "community", label: "Community", shortLabel: "COMM", href: "/community", status: "active" },
+  { key: "academy", label: "Academy", shortLabel: "ACAD", href: "/academy", status: "active" },
+  { key: "market", label: "Market", shortLabel: "MKT", href: "/market", status: "planned" },
+  { key: "intelligence", label: "Intelligence", shortLabel: "INTEL", href: "/intelligence", status: "active" },
+  { key: "work", label: "Work", shortLabel: "WORK", href: "/work", status: "planned" },
 ];
 
-export default function ContextBar({ activeLayer, showLabels = true }: ContextBarProps) {
+export default function ContextBar({
+  activeLayer,
+  statusOverrides,
+  compact = false,
+  showLabels = true,
+}: ContextBarProps) {
+  const resolved = LAYERS.map((layer) => ({
+    ...layer,
+    status: statusOverrides?.[layer.key] ?? layer.status,
+  }));
+
   return (
-    <div className="eco-bar" role="navigation" aria-label="Ecosystem platforms">
-      {LAYERS.map((layer, _index) => (
-        <a
-          key={layer.key}
-          href={layer.href}
-          className={`eco-bar-item ${layer.status} ${activeLayer === layer.key ? "current" : ""}`}
-          aria-current={activeLayer === layer.key ? "page" : undefined}
-        >
-          <span className="dot" />
-          {showLabels && (
-            <>
-              <span className="layer-emoji">{layer.emoji}</span>
-              <span className="layer-label">{layer.label}</span>
-            </>
-          )}
-        </a>
-      ))}
-      
+    <div className="ctx-wrap" aria-label="Ecosystem context">
       <style>{`
-        .eco-bar {
+        .ctx-wrap {
           display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
           align-items: center;
-          gap: 0;
-          background: var(--surface);
+          margin-bottom: 20px;
+        }
+
+        .ctx-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 10px;
           border: 1px solid var(--border);
           border-radius: 6px;
-          padding: 0;
-          overflow: hidden;
-          font-family: 'Space Mono', monospace;
+          font-family: "Space Mono", monospace;
           font-size: 9px;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
-          margin-bottom: 28px;
-        }
-
-        .eco-bar-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 10px 14px;
-          border-right: 1px solid var(--border);
-          color: var(--text-dim);
-          white-space: nowrap;
-          transition: all 0.15s ease;
-          flex: 1;
-          justify-content: center;
           text-decoration: none;
-          position: relative;
+          color: var(--text-dim);
+          transition: all 200ms ease;
+          background: var(--surface);
+          min-height: 24px;
         }
 
-        .eco-bar-item:last-child {
-          border-right: none;
-        }
-
-        .eco-bar-item:hover {
+        .ctx-badge:hover {
           background: var(--surface2);
           color: var(--text);
         }
 
-        .eco-bar-item.current {
-          background: rgba(155, 111, 255, 0.08);
+        .ctx-badge.current {
+          border-color: color-mix(in srgb, var(--gold) 35%, var(--border));
+          color: var(--text);
         }
 
-        .eco-bar-item .dot {
-          width: 5px;
-          height: 5px;
+        .ctx-dot {
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
-          background: var(--text-faint);
-          flex-shrink: 0;
-          transition: all 0.2s ease;
+          display: inline-block;
+          background: var(--text-dim);
         }
 
-        .eco-bar-item.live .dot {
+        .ctx-badge.live .ctx-dot {
           background: var(--green);
-          box-shadow: 0 0 6px rgba(45, 212, 160, 0.6);
-          animation: pulse-dot 2s ease-in-out infinite;
+          box-shadow: 0 0 8px color-mix(in srgb, var(--green) 50%, transparent);
+          animation: ctx-pulse 1600ms ease infinite;
         }
 
-        .eco-bar-item.active .dot {
+        .ctx-badge.active .ctx-dot {
           background: var(--gold);
-          box-shadow: 0 0 6px rgba(240, 180, 41, 0.6);
-          animation: pulse-dot 2s ease-in-out infinite;
         }
 
-        .eco-bar-item.building .dot {
+        .ctx-badge.building .ctx-dot {
           background: var(--ice);
-          box-shadow: 0 0 6px rgba(137, 196, 225, 0.6);
-          animation: pulse-dot 2s 0.5s ease-in-out infinite;
         }
 
-        .eco-bar-item.planned .dot {
-          background: var(--text-faint);
+        .ctx-badge.planned .ctx-dot {
+          background: var(--text-dim);
         }
 
-        .eco-bar-item.live {
-          color: var(--green);
+        .ctx-sep {
+          color: var(--text-dim);
+          font-family: "Space Mono", monospace;
+          font-size: 11px;
+          user-select: none;
         }
 
-        .eco-bar-item.active {
-          color: var(--gold);
-        }
+        .ctx-label-mobile { display: none; }
 
-        .eco-bar-item.building {
-          color: var(--ice);
-        }
-
-        .layer-emoji {
-          font-size: 12px;
-          line-height: 1;
-        }
-
-        .layer-label {
-          font-size: 9px;
-        }
-
-        @keyframes pulse-dot {
+        @keyframes ctx-pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.6; transform: scale(1.3); }
+          50% { opacity: 0.65; transform: scale(1.2); }
         }
 
-        @media (max-width: 768px) {
-          .eco-bar {
-            flex-wrap: wrap;
-            gap: 1px;
+        @media (max-width: 680px) {
+          .ctx-label-desktop { display: none; }
+          .ctx-label-mobile { display: inline; }
+          .ctx-badge {
+            padding: 4px 8px;
+            font-size: 8px;
+            letter-spacing: 0.11em;
           }
-
-          .eco-bar-item {
-            flex: 1 1 calc(33.333% - 1px);
-            min-width: 80px;
-            padding: 8px 6px;
+          .ctx-wrap {
+            gap: 4px;
           }
-
-          .eco-bar-item:nth-child(3n) {
-            border-right: none;
-          }
-
-          .layer-label {
-            display: none;
-          }
-
-          .layer-emoji {
-            font-size: 16px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .eco-bar-item {
-            flex: 1 1 50%;
-          }
-
-          .eco-bar-item:nth-child(2n) {
-            border-right: none;
+          .ctx-sep {
+            font-size: 9px;
           }
         }
       `}</style>
+
+      {resolved.map((layer, index) => (
+        <Fragment key={layer.key}>
+          <Link
+            to={layer.href}
+            className={`ctx-badge ${layer.status} ${activeLayer === layer.key ? "current" : ""}`}
+            aria-current={activeLayer === layer.key ? "page" : undefined}
+            title={layer.label}
+          >
+            <span className="ctx-dot" aria-hidden="true" />
+            <span className="ctx-label-desktop">
+              {showLabels ? layer.label : layer.shortLabel}
+            </span>
+            <span className="ctx-label-mobile">{compact || !showLabels ? layer.shortLabel : layer.label}</span>
+          </Link>
+          {index < resolved.length - 1 && <span className="ctx-sep" aria-hidden="true">&gt;</span>}
+        </Fragment>
+      ))}
     </div>
   );
 }

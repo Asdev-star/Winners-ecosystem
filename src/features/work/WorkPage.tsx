@@ -5,6 +5,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import ContextBar from "../../components/ui/ContextBar";
+import { useAssistant } from "../../hooks/useAssistant";
 import "./WorkPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
@@ -85,6 +89,16 @@ export default function WorkPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [jobType, setJobType] = useState<string | null>(null);
 
+  // AI Assistant hook - CIRCUIT for work/freelancer intelligence
+  const { isLoading: aiLoading } = useAssistant({
+    supervisor: "CIRCUIT",
+    context: {
+      page: "work",
+      userId: user?.id,
+      jobCount: jobs.length
+    }
+  });
+
   useEffect(() => {
     // In production, fetch from API
     // fetchJobs();
@@ -118,12 +132,17 @@ export default function WorkPage() {
   return (
     <div className="work-page">
       <div className="work-container">
-        {/* Context Bar */}
-        <div className="ctx-bar">
-          <span className="ctx-badge live">⬡ Core Engine</span>
-          <span className="ctx-sep">›</span>
-          <span className="ctx-badge active">💼 Winners Work</span>
-        </div>
+        <ContextBar
+          activeLayer="work"
+          statusOverrides={{ work: "active", market: "building" }}
+        />
+
+        {/* AI Insight Banner - CIRCUIT provides job matching intelligence */}
+        <AIInsightBanner
+          page="work"
+          assistant="circuit"
+          userId={user?.id}
+        />
 
         {/* Hero Section */}
         <div className="work-hero">
@@ -296,3 +315,4 @@ export default function WorkPage() {
     </div>
   );
 }
+

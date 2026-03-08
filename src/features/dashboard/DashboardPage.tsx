@@ -7,6 +7,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import TrustScoreBadge from "../../components/ui/TrustScoreBadge";
+import AgenticLoopWidget from "../../components/ui/AgenticLoopWidget";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import ProgressRing from "../../components/ui/ProgressRing";
+import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import { useAssistant } from "../../hooks/useAssistant";
 
 // AI Components - Level II & III imports
 // (Available for future use: AIInsightBanner, AssistantPanel, AgenticLoopWidget, TrustScoreBadge)
@@ -115,6 +122,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
+
+  // Level 4 AI Assistant hook
+  const { sendMessage, messages, isLoading } = useAssistant({
+    supervisor: "ARIA",
+    autoGreeting: true,
+  });
 
   // Greeting
   const greeting = () => {
@@ -385,6 +398,19 @@ export default function DashboardPage() {
             <h1 className="db-title">
               {greeting()}, <em>{firstName}</em>
             </h1>
+            <AIInsightBanner page="dashboard" assistant="aria" />
+            <TrustScoreBadge score={75} />
+            <ProgressRing progress={75} size={64} label="Trust Score" />
+            <AgenticLoopWidget currentStage={1} />
+            <AssistantPanel page="dashboard" assistant="aria" />
+            <CrossLayerHandoff
+              type="academy"
+              title="Ready to learn?"
+              subtitle="NOVA detected your interest in skills"
+              details={<p>Explore courses that match your profile and earn certificates to boost your trust score.</p>}
+              actionLabel="Browse Academy"
+              loopStage={2}
+            />
             <div className="db-date">
               Winners Ecosystem · Control Center ·{" "}
               {now.toLocaleDateString("en-US", {

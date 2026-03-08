@@ -186,19 +186,19 @@ const css = `
   background: var(--green); color: var(--bg);
 }
 .handoff-card.academy .handoff-btn.primary:hover {
-  background: #25b386; transform: translateY(-1px);
+  background: var(--green); transform: translateY(-1px);
 }
 .handoff-card.work .handoff-btn.primary {
   background: var(--blue); color: white;
 }
 .handoff-card.work .handoff-btn.primary:hover {
-  background: #234d70; transform: translateY(-1px);
+  background: var(--blue); transform: translateY(-1px);
 }
 .handoff-card.market .handoff-btn.primary {
   background: var(--gold); color: var(--bg);
 }
 .handoff-card.market .handoff-btn.primary:hover {
-  background: #b8963f; transform: translateY(-1px);
+  background: var(--gold); transform: translateY(-1px);
 }
 
 .handoff-btn.secondary {

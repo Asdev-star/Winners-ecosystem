@@ -55,23 +55,23 @@ export default function TrustScoreBadge({
         <defs>
           <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--green)" />
-            <stop offset="100%" stopColor="#10B981" />
+            <stop offset="100%" stopColor="var(--green)" style={{ opacity: 0.6 }} />
           </linearGradient>
           <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--gold)" />
-            <stop offset="100%" stopColor="var(--gold-dim)" />
+            <stop offset="100%" stopColor="var(--gold)" style={{ opacity: 0.6 }} />
           </linearGradient>
           <linearGradient id="iceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--ice)" />
-            <stop offset="100%" stopColor="#60A5C8" />
+            <stop offset="100%" stopColor="var(--ice)" style={{ opacity: 0.6 }} />
           </linearGradient>
           <linearGradient id="dimGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--text-dim)" />
-            <stop offset="100%" stopColor="#4A6A86" />
+            <stop offset="100%" stopColor="var(--text-dim)" style={{ opacity: 0.6 }} />
           </linearGradient>
           <linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="var(--red)" />
-            <stop offset="100%" stopColor="#DC2626" />
+            <stop offset="100%" stopColor="var(--red)" style={{ opacity: 0.6 }} />
           </linearGradient>
         </defs>
         

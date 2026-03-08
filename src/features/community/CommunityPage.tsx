@@ -9,6 +9,7 @@ import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
 import CommandPalette from "../../components/ui/CommandPalette";
 import ContextBar from "../../components/ui/ContextBar";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
 
 const API = API_BASE;
 
@@ -1899,6 +1900,7 @@ export default function CommunityPage() {
             <h1 className="cm-page-title">
               Winners <em>Community</em>
             </h1>
+            <AIInsightBanner page="community" assistant="nova" />
             <div className="cm-page-live">
               <div className="cm-live-dot" />
               Live

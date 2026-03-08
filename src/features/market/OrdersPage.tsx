@@ -5,6 +5,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
+import EmptyState from "../../components/ui/EmptyState";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import ContextBar from "../../components/ui/ContextBar";
+import SkeletonLoader from "../../components/ui/SkeletonLoader";
 import "./OrdersPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
@@ -30,11 +34,11 @@ interface Order {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING: { label: "Pending", color: "var(--gold)", bg: "rgba(201, 168, 76, 0.1)" },
-  PROCESSING: { label: "Processing", color: "var(--ice)", bg: "rgba(137, 196, 225, 0.1)" },
-  SHIPPED: { label: "Shipped", color: "var(--purple)", bg: "rgba(155, 111, 255, 0.1)" },
-  DELIVERED: { label: "Delivered", color: "var(--green)", bg: "rgba(45, 212, 160, 0.1)" },
-  CANCELLED: { label: "Cancelled", color: "var(--red)", bg: "rgba(224, 90, 78, 0.1)" },
+  PENDING: { label: "Pending", color: "var(--gold)", bg: "color-mix(in srgb, var(--gold) 12%, transparent)" },
+  PROCESSING: { label: "Processing", color: "var(--ice)", bg: "color-mix(in srgb, var(--ice) 12%, transparent)" },
+  SHIPPED: { label: "Shipped", color: "var(--purple)", bg: "color-mix(in srgb, var(--purple) 12%, transparent)" },
+  DELIVERED: { label: "Delivered", color: "var(--green)", bg: "color-mix(in srgb, var(--green) 12%, transparent)" },
+  CANCELLED: { label: "Cancelled", color: "var(--red)", bg: "color-mix(in srgb, var(--red) 12%, transparent)" },
 };
 
 export default function OrdersPage() {
@@ -97,13 +101,7 @@ export default function OrdersPage() {
     return (
       <div className="orders-page">
         <div className="orders-container">
-          <div className="ctx-bar">
-            <span className="ctx-badge live">⬡ Core Engine</span>
-            <span className="ctx-sep">›</span>
-            <span className="ctx-badge live">🛒 Winners Market</span>
-            <span className="ctx-sep">›</span>
-            <span className="ctx-badge active">📦 Orders</span>
-          </div>
+          <ContextBar activeLayer="market" statusOverrides={{ market: "active", work: "building" }} />
           <div className="orders-login-prompt">
             <div className="prompt-icon">🔐</div>
             <h2>Sign in to view your orders</h2>
@@ -121,16 +119,10 @@ export default function OrdersPage() {
     <div className="orders-page">
       <div className="orders-container">
         {/* Context Bar */}
-        <div className="ctx-bar">
-          <span className="ctx-badge live">⬡ Core Engine</span>
-          <span className="ctx-sep">›</span>
-          <span className="ctx-badge live">🛒 Winners Market</span>
-          <span className="ctx-sep">›</span>
-          <span className="ctx-badge active">📦 Orders</span>
-        </div>
-
+        <ContextBar activeLayer="market" statusOverrides={{ market: "active", work: "building" }} />
         <div className="orders-header">
           <h1>Your Orders</h1>
+          <AIInsightBanner page="market" assistant="atlas" />
           <Link to="/market" className="orders-back-btn">
             Continue Shopping
           </Link>
@@ -145,18 +137,18 @@ export default function OrdersPage() {
 
         {loading ? (
           <div className="orders-loading">
-            <div className="orders-spinner" />
+            <SkeletonLoader variant="card" count={3} height="120px" />
             <p>Loading your orders...</p>
           </div>
         ) : orders.length === 0 ? (
-          <div className="orders-empty">
-            <div className="orders-empty-icon">📦</div>
-            <h2>No orders yet</h2>
-            <p>When you make a purchase, your orders will appear here</p>
-            <Link to="/market" className="orders-browse-btn">
-              Browse Marketplace
-            </Link>
-          </div>
+          <EmptyState
+            title="No orders yet"
+            message="When you make a purchase, your orders will appear here"
+            assistant="atlas"
+            ctaPath="/market"
+            ctaLabel="Browse Marketplace"
+            illustration="market"
+          />
         ) : (
           <div className="orders-list">
             {orders.map((order) => {

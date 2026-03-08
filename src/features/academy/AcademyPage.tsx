@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
 import EmptyState from "../../components/ui/EmptyState";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import ContextBar from "../../components/ui/ContextBar";
 import { ACADEMY_SUBNAV } from "../../components/ui/subnav";
 
@@ -115,6 +116,7 @@ export default function AcademyPage() {
           }}>
             Winners Academy
           </h1>
+          <AIInsightBanner page="academy" assistant="sage" />
           <button
             onClick={() => navigate("/academy/my-learning")}
             style={{
@@ -185,7 +187,7 @@ export default function AcademyPage() {
       {filteredCourses.length === 0 ? (
         <EmptyState
           assistant="sage"
-          illustration="courses"
+          illustration="academy"
           ctaLabel="Browse All Courses"
           ctaPath="/academy"
         />

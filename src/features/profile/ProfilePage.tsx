@@ -6,6 +6,13 @@
 import { useState, useEffect } from "react";
 import { getAuthHeaders } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
+import TrustScoreBadge from "../../components/ui/TrustScoreBadge";
+import ReputationPassport from "../../components/ui/ReputationPassport";
+import ProgressRing from "../../components/ui/ProgressRing";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import { useAssistant } from "../../hooks/useAssistant";
 
 const API = API_BASE;
 function authHeaders() {
@@ -54,6 +61,12 @@ export default function ProfilePage() {
   const [form, setForm]           = useState<Partial<UserProfile>>({});
   const [skillInput, setSkillInput] = useState("");
   const [tab, setTab]             = useState<"profile" | "ecosystem" | "referral">("profile");
+
+  // Level 4 AI Assistant hook
+  const { sendMessage, messages, isLoading } = useAssistant({
+    supervisor: "ARIA",
+    autoGreeting: true,
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -161,6 +174,25 @@ export default function ProfilePage() {
           </div>
         ))}
       </div>
+
+      {/* Trust & Reputation */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+        <TrustScoreBadge score={75} />
+        <ReputationPassport />
+        <ProgressRing progress={60} size={60} />
+      </div>
+
+      {/* AI Components - Level 3-5 */}
+      <AIInsightBanner page="dashboard" assistant="aria" />
+      <AssistantPanel page="profile" assistant="aria" />
+      <CrossLayerHandoff
+        type="academy"
+        title="Boost your profile"
+        subtitle="Get certified to increase trust score"
+        details={<p>Earn certificates from Winners Academy to enhance your reputation and unlock more opportunities.</p>}
+        actionLabel="View Courses"
+        loopStage={2}
+      />
 
       {/* Profile hero card */}
       <div style={s.heroCard}>

@@ -25,6 +25,11 @@ import {
   detectAnomalies,
 } from "../../lib/analyticsEngine";
 import type { Period, ForecastPoint } from "../../lib/analyticsEngine";
+import { useAuthStore } from "../auth/authStore";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import ContextBar from "../../components/ui/ContextBar";
+import { useAssistant } from "../../hooks/useAssistant";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -83,10 +88,10 @@ const css = `
   }
   .an-kpi:hover { border-color: rgba(201,168,76,0.2); }
   .an-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-  .an-kpi.gold::before   { background: linear-gradient(90deg, var(--gold), var(--gold2)); }
-  .an-kpi.green::before  { background: linear-gradient(90deg, var(--green), #6EE7C7); }
+  .an-kpi.gold::before   { background: linear-gradient(90deg, var(--gold), var(--gold)); }
+  .an-kpi.green::before  { background: linear-gradient(90deg, var(--green), var(--green)); }
   .an-kpi.blue::before   { background: linear-gradient(90deg, var(--blue), var(--ice)); }
-  .an-kpi.purple::before { background: linear-gradient(90deg, var(--purple), #C4A8FF); }
+  .an-kpi.purple::before { background: linear-gradient(90deg, var(--purple), var(--purple)); }
   .an-kpi-label { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
   .an-kpi-value { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
   .an-kpi.gold .an-kpi-value   { color: var(--gold); }
@@ -273,6 +278,17 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>("30d");
   const [showForecast, setForecast] = useState(false);
   const [showComparison, setComp] = useState(false);
+  const user = useAuthStore((s) => s.user);
+
+  // AI Assistant hook - ARIA for analytics intelligence
+  const { isLoading: aiLoading } = useAssistant({
+    supervisor: "ARIA",
+    context: {
+      page: "analytics",
+      period,
+      userId: user?.id
+    }
+  });
 
   useState(() => {
     const id = "an-styles";
@@ -355,19 +371,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
-
-        {/* Ecosystem context bar */}
-        <div className="an-eco-bar">
-          <div className="an-eco-label">Ecosystem Layers</div>
-          <div className="an-eco-chips">
-            <div className="an-eco-chip active">⬡ Core · Live</div>
-            <div className="an-eco-chip active">🧑‍🤝‍🧑 Community · Live</div>
-            <div className="an-eco-chip soon">🎓 Academy · Soon</div>
-            <div className="an-eco-chip soon">🛒 Market · Soon</div>
-            <div className="an-eco-chip">🤖 AI · Planned</div>
-            <div className="an-eco-chip">💼 Work · Planned</div>
-          </div>
-        </div>
+        <ContextBar activeLayer="core" statusOverrides={{ core: "live", market: "building", work: "building" }} />
 
         {/* KPIs */}
         <div className="an-kpis">

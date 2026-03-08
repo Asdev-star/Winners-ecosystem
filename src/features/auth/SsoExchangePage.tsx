@@ -13,8 +13,8 @@ const USER_KEY = "we_user";
 const css = `
   .sso-wrap {
     min-height: 100vh;
-    background: var(--bg, #0D1520);
-    color: var(--text, #E8EEF5);
+    background: var(--bg);
+    color: var(--text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -24,8 +24,8 @@ const css = `
   .sso-card {
     width: 100%;
     max-width: 460px;
-    background: var(--surface, #111D2E);
-    border: 1px solid var(--border, #1E3248);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 6px;
     position: relative;
     overflow: hidden;
@@ -38,14 +38,14 @@ const css = `
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--gold, #C9A84C), var(--ice, #89C4E1), transparent);
+    background: linear-gradient(90deg, var(--gold), var(--ice), transparent);
   }
   .sso-label {
     font-family: 'Space Mono', monospace;
     font-size: 9px;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--gold, #C9A84C);
+    color: var(--gold);
     margin-bottom: 8px;
   }
   .sso-title {
@@ -56,24 +56,24 @@ const css = `
   }
   .sso-text {
     margin-top: 8px;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim);
     font-size: 13px;
     line-height: 1.5;
   }
   .sso-status {
     margin-top: 16px;
-    border: 1px solid var(--border, #1E3248);
+    border: 1px solid var(--border);
     border-radius: 6px;
-    background: var(--surface2, #172335);
+    background: var(--surface2);
     padding: 10px 12px;
     font-family: 'Space Mono', monospace;
     font-size: 10px;
-    color: var(--ice, #89C4E1);
+    color: var(--ice);
   }
   .sso-status.error {
     border-color: rgba(224, 90, 78, 0.35);
     background: rgba(224, 90, 78, 0.12);
-    color: var(--red, #E05A4E);
+    color: var(--red);
   }
 `;
 
@@ -113,9 +113,13 @@ export default function SsoExchangePage() {
           }),
         });
 
-        const body = (await response.json()) as Partial<ExchangeResponse> & { message?: string };
+        const body = (await response.json()) as Partial<ExchangeResponse> & {
+          message?: string;
+        };
         if (!response.ok || !body.token || !body.user) {
-          throw new Error(body.message ?? `SSO exchange failed (${response.status})`);
+          throw new Error(
+            body.message ?? `SSO exchange failed (${response.status})`,
+          );
         }
 
         localStorage.setItem(TOKEN_KEY, body.token);
@@ -143,7 +147,9 @@ export default function SsoExchangePage() {
       <style>{css}</style>
       <div className="sso-card">
         <div className="sso-label">Core Engine SSO</div>
-        <h1 className="sso-title">{error ? "Sign-in Failed" : "Completing Sign-in"}</h1>
+        <h1 className="sso-title">
+          {error ? "Sign-in Failed" : "Completing Sign-in"}
+        </h1>
         <div className="sso-text">
           {error
             ? "We could not complete the cross-app handoff. Please retry from the source app."
@@ -156,4 +162,3 @@ export default function SsoExchangePage() {
     </div>
   );
 }
-

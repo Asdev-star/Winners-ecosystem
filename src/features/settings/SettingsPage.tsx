@@ -6,6 +6,10 @@ import { useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { useInviteStore } from "../team/inviteStore";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import { useAssistant } from "../../hooks/useAssistant";
 
 import { API_BASE } from "../../lib/api";
 
@@ -166,6 +170,12 @@ export default function SettingsPage() {
   const [saving,   setSaving]   = useState(false);
   const [saveMsg,  setSaveMsg]  = useState("");
 
+  // Level 4 AI Assistant hook
+  const { sendMessage, messages, isLoading } = useAssistant({
+    supervisor: "ARIA",
+    autoGreeting: true,
+  });
+
   useEffect(() => {
     const id = "st-styles";
     if (!document.getElementById(id)) {
@@ -231,6 +241,8 @@ export default function SettingsPage() {
       <div className="st-header">
         <div className="st-eyebrow">Workspace</div>
         <h1 className="st-title">Workspace <em>Settings</em></h1>
+        <AIInsightBanner page="dashboard" assistant="aria" />
+        <AssistantPanel page="settings" assistant="aria" />
         <div className="st-subtitle">Configure your workspace, preferences, and integrations</div>
       </div>
 

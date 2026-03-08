@@ -5,6 +5,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
+import EmptyState from "../../components/ui/EmptyState";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import "./CartPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
@@ -178,6 +180,7 @@ export default function CartPage() {
 
         <div className="cart-header">
           <h1>Shopping Cart</h1>
+          <AIInsightBanner page="market" assistant="atlas" />
           {cart?.items.length ? (
             <button className="cart-clear-btn" onClick={clearCart}>
               Clear Cart
@@ -193,14 +196,14 @@ export default function CartPage() {
         )}
 
         {!cart?.items.length ? (
-          <div className="cart-empty">
-            <div className="cart-empty-icon">🛒</div>
-            <h2>Your cart is empty</h2>
-            <p>Discover amazing products from African creators and businesses</p>
-            <Link to="/market" className="cart-browse-btn">
-              Browse Marketplace
-            </Link>
-          </div>
+          <EmptyState
+            title="Your cart is empty"
+            message="Discover amazing products from African creators and businesses"
+            assistant="atlas"
+            ctaPath="/market"
+            ctaLabel="Browse Marketplace"
+            illustration="market"
+          />
         ) : (
           <div className="cart-content">
             <div className="cart-items">

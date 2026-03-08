@@ -15,7 +15,7 @@ interface FollowUpChipsProps {
 export default function FollowUpChips({
   chips,
   onChipClick,
-  accentColor = "var(--gold, #C9A84C)",
+  accentColor = "var(--gold)",
   disabled = false
 }: FollowUpChipsProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -39,14 +39,14 @@ export default function FollowUpChips({
         gap: "8px",
         marginTop: "16px",
         paddingTop: "12px",
-        borderTop: "1px solid var(--border, #1E3248)"
+        borderTop: "1px solid var(--border)"
       }}
     >
       <span
         style={{
           fontFamily: "var(--font-mono, 'Space Mono', monospace)",
           fontSize: "10px",
-          color: "var(--text-dim, #5A7A96)",
+          color: "var(--text-dim)",
           textTransform: "uppercase",
           letterSpacing: "0.1em",
           marginRight: "4px",
@@ -66,7 +66,7 @@ export default function FollowUpChips({
           style={{
             fontFamily: "var(--font-mono, 'Space Mono', monospace)",
             fontSize: "12px",
-            color: hoveredIndex === index ? "var(--bg, #0D1520)" : accentColor,
+            color: hoveredIndex === index ? "var(--bg)" : accentColor,
             backgroundColor: hoveredIndex === index ? accentColor : "transparent",
             border: `1px solid ${accentColor}`,
             borderRadius: "16px",
