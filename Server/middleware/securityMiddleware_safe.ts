@@ -27,7 +27,7 @@ export const helmetMiddleware = helmet({
       styleSrc:       ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc:        ["'self'", "https://fonts.gstatic.com"],
       imgSrc:         ["'self'", "data:", "https:"],
-      connectSrc:     ["'self'", "https://api.stripe.com"],
+      connectSrc:     ["'self'", "https://api.stripe.com", "https://fonts.googleapis.com"],
       frameSrc:       ["https://js.stripe.com", "https://hooks.stripe.com"],
       objectSrc:      ["'none'"],
       upgradeInsecureRequests: [],
