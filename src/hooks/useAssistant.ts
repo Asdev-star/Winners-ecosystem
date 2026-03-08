@@ -4,7 +4,7 @@
 // Unified hook for all 9 supervisors with context injection, streaming, and follow-up chips
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useAuthStore } from "../features/auth/authStore";
+import { getAuthHeaders, useAuthStore } from "../features/auth/authStore";
 import { useAgenticLoopStore } from "../stores/agenticLoopStore";
 import {
   generateSystemPrompt,
@@ -76,13 +76,19 @@ async function callChatAPI(
   messages: AssistantMessage[],
   context?: Record<string, unknown>
 ): Promise<{ content: string; tokens?: number; provider?: string }> {
+  const authHeaders = getAuthHeaders();
+  if (!authHeaders.Authorization) {
+    throw new Error("Authentication required");
+  }
+
   const userContext = getUserContext();
   const systemPrompt = generateSystemPrompt(supervisor, userContext, context as Record<string, string> | undefined);
   
   const response = await fetch("/api/v1/chat/message", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...authHeaders,
     },
     body: JSON.stringify({
       supervisor,
@@ -113,13 +119,19 @@ async function* streamChatAPI(
   messages: AssistantMessage[],
   context?: Record<string, unknown>
 ): AsyncGenerator<string> {
+  const authHeaders = getAuthHeaders();
+  if (!authHeaders.Authorization) {
+    throw new Error("Authentication required");
+  }
+
   const userContext = getUserContext();
   const systemPrompt = generateSystemPrompt(supervisor, userContext, context as Record<string, string> | undefined);
   
   const response = await fetch("/api/v1/chat/message", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...authHeaders,
     },
     body: JSON.stringify({
       supervisor,
@@ -178,12 +190,16 @@ async function* streamChatAPI(
 
 // API call for follow-up chips
 async function generateFollowUpChips(userQuery: string, assistantResponse: string): Promise<string[]> {
+  const authHeaders = getAuthHeaders();
+  if (!authHeaders.Authorization) return [];
+
   const prompt = generateFollowUpChipsPrompt(userQuery, assistantResponse);
   
   const response = await fetch("/api/v1/ai/generate", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...authHeaders,
     },
     body: JSON.stringify({
       prompt,
@@ -219,13 +235,20 @@ async function generateFollowUpChips(userQuery: string, assistantResponse: strin
 
 // API call for greeting generation
 async function generateGreeting(supervisor: SupervisorName): Promise<string> {
+  const authHeaders = getAuthHeaders();
+  if (!authHeaders.Authorization) {
+    const config = SUPERVISOR_PROMPTS[supervisor];
+    return `Hello! I'm ${config.name}. How can I help you today?`;
+  }
+
   const userContext = getUserContext();
   const prompt = generateGreetingPrompt(supervisor, userContext);
   
   const response = await fetch("/api/v1/ai/generate", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...authHeaders,
     },
     body: JSON.stringify({
       prompt,

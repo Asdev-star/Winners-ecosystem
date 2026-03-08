@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuthStore } from "../../features/auth/authStore";
 
 interface AIInsightBannerProps {
   page: "dashboard" | "community" | "academy" | "market" | "work" | "intelligence";
@@ -24,6 +25,8 @@ export default function AIInsightBanner({
   assistant = "aria",
   userId,
 }: AIInsightBannerProps) {
+  const token = useAuthStore((state) => state.token);
+  const isRestoring = useAuthStore((state) => state.isRestoring);
   const [insight, setInsight] = useState("");
   const [loading, setLoading] = useState(true);
   const [hiddenForSlowResponse, setHiddenForSlowResponse] = useState(false);
@@ -44,6 +47,13 @@ export default function AIInsightBanner({
   }, [dismissKey]);
 
   useEffect(() => {
+    if (isRestoring) return;
+
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     if (dismissed || hiddenForSlowResponse) {
       setLoading(false);
       return;
@@ -80,6 +90,7 @@ export default function AIInsightBanner({
         headers: {
           "Content-Type": "application/json",
           Accept: "text/event-stream, application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ page, assistant, userId }),
         signal: abortController.signal,
@@ -156,7 +167,7 @@ export default function AIInsightBanner({
       clearTimeout(slowTimer);
       abortController.abort();
     };
-  }, [assistant, cacheKey, dismissed, hiddenForSlowResponse, page, userId]);
+  }, [assistant, cacheKey, dismissed, hiddenForSlowResponse, isRestoring, page, token, userId]);
 
   if (dismissed || hiddenForSlowResponse || (!loading && !insight)) return null;
 

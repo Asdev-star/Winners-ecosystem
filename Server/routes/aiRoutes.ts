@@ -218,7 +218,49 @@ router.get("/insights/stream", async (req: Request, res: Response) => {
   }
 });
 
-export default router;
+// ─── POST /ai/generate ───────────────────────────────────────────────────
+// Lightweight text generation endpoint used by assistant greetings/chips.
+
+router.post("/generate", async (req: Request, res: Response) => {
+  const {
+    prompt,
+    systemPrompt,
+    maxTokens = 300,
+    temperature = 0.7,
+  } = req.body ?? {};
+
+  if (typeof prompt !== "string" || prompt.trim().length === 0) {
+    return res.status(400).json({ error: "Prompt is required" });
+  }
+
+  const maxTokensSafe = Math.min(Math.max(Number(maxTokens) || 300, 1), 1500);
+  const temperatureSafe =
+    typeof temperature === "number"
+      ? Math.min(Math.max(temperature, 0), 1)
+      : 0.7;
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: maxTokensSafe,
+      temperature: temperatureSafe,
+      system: typeof systemPrompt === "string" ? systemPrompt : undefined,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content =
+      message.content[0]?.type === "text" ? message.content[0].text : "";
+
+    return res.json({
+      content,
+      provider: "anthropic",
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("AI generate error:", err);
+    return res.status(500).json({ error: "Failed to generate response" });
+  }
+});
 
 // ─── POST /ai/page-insight ─────────────────────────────────────────────────
 // Level II: AI-Present on Every Page - generates per-page insights
@@ -310,3 +352,5 @@ Return JSON: { "insight": "your insight here" }`;
     });
   }
 });
+
+export default router;
