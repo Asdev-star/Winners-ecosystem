@@ -238,6 +238,31 @@ router.post("/generate", async (req: Request, res: Response) => {
     typeof temperature === "number"
       ? Math.min(Math.max(temperature, 0), 1)
       : 0.7;
+  const promptLower = prompt.toLowerCase();
+
+  const fallbackContent = (() => {
+    if (
+      promptLower.includes("json array") ||
+      promptLower.includes("follow-up") ||
+      promptLower.includes("follow up") ||
+      promptLower.includes("chips")
+    ) {
+      return "[]";
+    }
+    if (promptLower.includes("greeting") || promptLower.includes("welcome")) {
+      return "Hello! I'm your Winners assistant. How can I help you today?";
+    }
+    return "AI generation is temporarily unavailable. Please try again shortly.";
+  })();
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.json({
+      content: fallbackContent,
+      provider: "fallback",
+      degraded: true,
+      generatedAt: new Date().toISOString(),
+    });
+  }
 
   try {
     const message = await anthropic.messages.create({
@@ -258,7 +283,12 @@ router.post("/generate", async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error("AI generate error:", err);
-    return res.status(500).json({ error: "Failed to generate response" });
+    return res.json({
+      content: fallbackContent,
+      provider: "fallback",
+      degraded: true,
+      generatedAt: new Date().toISOString(),
+    });
   }
 });
 
