@@ -58,8 +58,6 @@ import autonomousRoutes from "./routes/autonomousRoutes.js";
 // ── Opportunity Routes (Phase 2 — Winners Community Opportunity Board) ──────────
 import opportunityRoutes from "./routes/opportunityRoutes.js";
 
-// ── Creator Routes (Phase 2 — Winners Community Creator Economy) ─────────────────
-import creatorRoutes from "./routes/creatorRoutes.js";
 
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 import { startEmailScheduler } from "./services/emailScheduler.js";
@@ -160,7 +158,6 @@ app.use("/api/v1/supervisors", supervisorRoutes);
 app.use("/api/v1/studio", studioRoutes);
 app.use("/api/v1/quizzes", quizRoutes);
 app.use("/api/v1/insights", autonomousRoutes);
-app.use("/creator", creatorRoutes);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LEGACY ROUTE COMPATIBILITY — Redirect old unversioned routes to v1
