@@ -186,6 +186,7 @@ export default function TeamPage() {
         subtitle="Find talented freelancers"
         details={<p>Post a job and get matched with verified professionals from the Winners ecosystem.</p>}
         actionLabel="Post a Job"
+        actionHref="/work/freelancers"
         loopStage={4}
       />
       <div style={{ marginTop: 16 }}>

@@ -288,6 +288,7 @@ export default function ActivityPage() {
           subtitle="Discover products and services"
           details={<p>Browse the Winners Market to find tools, courses, and services to grow your business.</p>}
           actionLabel="Visit Market"
+          actionHref="/market/dropshipping"
           loopStage={6}
         />
 

@@ -356,6 +356,7 @@ export default function BillingPage() {
             subtitle="Your billing shows you're on a paid plan - maximize your investment with Academy courses"
             details={<div>Complete courses to unlock Work opportunities and increase your earning potential.</div>}
             actionLabel="Explore Academy"
+            actionHref="/academy/explore"
           />
         )}
       </div>

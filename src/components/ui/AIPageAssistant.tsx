@@ -206,7 +206,7 @@ export default function AIPageAssistant() {
   if (!target) return null;
 
   return (
-    <aside className={`ai-assistant${open ? " open" : ""}`} aria-live="polite">
+    <aside className="ai-assistant open" aria-live="polite">
       <button className="ai-assistant-toggle" onClick={() => setOpen((v) => !v)}>
         {open ? "AI -" : "AI +"}
       </button>
@@ -237,4 +237,3 @@ export default function AIPageAssistant() {
     </aside>
   );
 }
-

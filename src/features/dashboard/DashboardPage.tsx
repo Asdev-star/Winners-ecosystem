@@ -409,6 +409,7 @@ export default function DashboardPage() {
               subtitle="NOVA detected your interest in skills"
               details={<p>Explore courses that match your profile and earn certificates to boost your trust score.</p>}
               actionLabel="Browse Academy"
+              actionHref="/academy/explore"
               loopStage={2}
             />
             <div className="db-date">

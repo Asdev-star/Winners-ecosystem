@@ -11,6 +11,7 @@ interface HandoffCardProps {
   subtitle: string;
   details: React.ReactNode;
   actionLabel: string;
+  actionHref?: string;
   loopStage?: number;
   onAction?: () => void;
   onDismiss?: () => void;
@@ -261,7 +262,7 @@ const css = `
 `;
 
 export function HandoffCard({ 
-  type, title, subtitle, details, actionLabel, loopStage = 2, onAction, onDismiss 
+  type, title, subtitle, details, actionLabel, actionHref, loopStage = 2, onAction, onDismiss 
 }: HandoffCardProps) {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(false);
@@ -281,8 +282,14 @@ export function HandoffCard({
       return;
     }
 
+    if (actionHref) {
+      navigate(actionHref);
+      setDismissed(true);
+      return;
+    }
+
     const fallbackRouteByType: Record<HandoffCardProps["type"], string> = {
-      academy: "/academy",
+      academy: "/academy/explore",
       work: "/work",
       market: "/market",
     };
@@ -329,7 +336,7 @@ export function HandoffCard({
               <div className="handoff-assistant">{getAssistant()}</div>
               <div className="handoff-type">{getTypeLabel()}</div>
             </div>
-            <button className="handoff-close" onClick={dismiss}>×</button>
+            <button className="handoff-close" onClick={dismiss}>x</button>
           </div>
 
           {/* Body */}

@@ -191,6 +191,7 @@ export default function ProfilePage() {
         subtitle="Get certified to increase trust score"
         details={<p>Earn certificates from Winners Academy to enhance your reputation and unlock more opportunities.</p>}
         actionLabel="View Courses"
+        actionHref="/academy/explore"
         loopStage={2}
       />
 
