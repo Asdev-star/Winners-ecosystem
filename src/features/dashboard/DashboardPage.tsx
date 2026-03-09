@@ -49,54 +49,54 @@ const PLATFORMS = [
   {
     icon: "⬡",
     name: "Core Engine",
-    desc: "Auth · Billing · Analytics",
+    desc: "Auth · Billing · Analytics · RBAC",
     status: "live",
     path: "/dashboard",
   },
   {
     icon: "🧑‍🤝‍🧑",
     name: "Winners Community",
-    desc: "Feed · Posts · Groups",
+    desc: "Feed · Groups · DMs · NOVA AI",
     status: "live",
     path: "/community",
   },
   {
     icon: "🎓",
     name: "Winners Academy",
-    desc: "Courses · Certificates · AI",
+    desc: "Courses · Certs · SAGE AI Tutor",
     status: "live",
     path: "/academy",
   },
   {
     icon: "🛒",
     name: "Winners Market",
-    desc: "Products · Vendors",
+    desc: "10 Verticals · Vendors · Cart",
     status: "soon",
-    path: null,
+    path: "/market",
   },
   {
     icon: "🤖",
     name: "Winners Intelligence",
-    desc: "AI Agents · ARIA · Multimodal",
+    desc: "9 Supervisors · OMEGA · Streaming",
     status: "live",
     path: "/intelligence",
   },
   {
     icon: "💼",
     name: "Winners Work",
-    desc: "Freelance · Jobs · Escrow",
-    status: "planned",
-    path: null,
+    desc: "Jobs · Freelancers · CIRCUIT AI",
+    status: "soon",
+    path: "/work",
   },
 ];
 
 const PHASES = [
   { n: 1, label: "Core", state: "done" },
   { n: 2, label: "Community", state: "done" },
-  { n: 3, label: "Academy", state: "active" },
-  { n: 4, label: "Market", state: "pending" },
-  { n: 5, label: "AI", state: "active" },
-  { n: 6, label: "Work", state: "pending" },
+  { n: 3, label: "Academy", state: "done" },
+  { n: 4, label: "Market", state: "active" },
+  { n: 5, label: "AI", state: "done" },
+  { n: 6, label: "Work", state: "active" },
   { n: 7, label: "Mobile", state: "pending" },
   { n: 8, label: "Cloud", state: "pending" },
 ];
@@ -437,16 +437,16 @@ export default function DashboardPage() {
         <div className="db-ai">
           <span className="db-ai-icon">🤖</span>
           <div className="db-ai-body">
-            <div className="db-ai-lbl">Winners Intelligence · Ecosystem AI</div>
+            <div className="db-ai-lbl">OMEGA · Master Orchestrator · 9 Supervisors Live</div>
             <div className="db-ai-txt">
-              <strong>Phase 3 active.</strong>{" "}
+              <strong>Phases 4 &amp; 6 active.</strong>{" "}
               {stats?.topInsight ||
-                "Academy is live. Start building courses and earning certificates. AI Intelligence available at /intelligence"}
+                "Market and Work are building. Community, Academy, and Intelligence are live. The Agentic Loop is running — post in Community to start your journey."}
             </div>
           </div>
           <div className="db-ai-acts">
-            <button className="db-ai-btn" onClick={() => navigate("/academy")}>
-              Academy →
+            <button className="db-ai-btn" onClick={() => navigate("/work")}>
+              Work →
             </button>
             <button
               className="db-ai-btn"
@@ -456,9 +456,9 @@ export default function DashboardPage() {
             </button>
             <button
               className="db-ai-btn p"
-              onClick={() => navigate("/analytics")}
+              onClick={() => navigate("/community")}
             >
-              Analytics →
+              Community →
             </button>
           </div>
         </div>
@@ -588,7 +588,7 @@ export default function DashboardPage() {
         {/* ── Roadmap Progress ── */}
         <div className="db-road">
           <div className="db-road-ttl">
-            Ecosystem Build Progress · Phase 3 of 8 Active
+            Ecosystem Build Progress · Phases 4 &amp; 6 Active — Market + Work Building
           </div>
           <div className="db-phases">
             {PHASES.map((ph) => (
@@ -649,20 +649,20 @@ export default function DashboardPage() {
               <div className="db-journey-dot done">✓</div>
               <div className="db-journey-lbl">Community</div>
             </div>
-            <div className="db-journey-step active">
-              <div className="db-journey-dot active">🎓</div>
+            <div className="db-journey-step done">
+              <div className="db-journey-dot done">✓</div>
               <div className="db-journey-lbl">Academy</div>
             </div>
-            <div className="db-journey-step pending">
-              <div className="db-journey-dot pending">🛒</div>
+            <div className="db-journey-step active">
+              <div className="db-journey-dot active">🛒</div>
               <div className="db-journey-lbl">Market</div>
             </div>
-            <div className="db-journey-step pending">
-              <div className="db-journey-dot pending">🤖</div>
+            <div className="db-journey-step done">
+              <div className="db-journey-dot done">✓</div>
               <div className="db-journey-lbl">Intelligence</div>
             </div>
-            <div className="db-journey-step pending">
-              <div className="db-journey-dot pending">💼</div>
+            <div className="db-journey-step active">
+              <div className="db-journey-dot active">💼</div>
               <div className="db-journey-lbl">Work</div>
             </div>
           </div>

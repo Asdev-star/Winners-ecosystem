@@ -114,9 +114,10 @@ const css = `
   .ml-platform-name { font-size: 12px; font-weight: 700; }
   .ml-platform-desc { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--text-dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ml-platform-status { font-family: 'Space Mono', monospace; font-size: 7px; padding: 1px 5px; border-radius: 2px; flex-shrink: 0; }
-  .ml-platform-status.live    { background: rgba(45,212,160,0.12); color: var(--green); }
-  .ml-platform-status.soon    { background: rgba(137,196,225,0.1); color: var(--ice); }
-  .ml-platform-status.planned { background: rgba(155,111,255,0.1); color: var(--purple); }
+  .ml-platform-status.live     { background: rgba(45,212,160,0.12);  color: var(--green);  }
+  .ml-platform-status.building { background: rgba(201,168,76,0.10);  color: var(--gold);   }
+  .ml-platform-status.soon     { background: rgba(137,196,225,0.1);  color: var(--ice);    }
+  .ml-platform-status.planned  { background: rgba(155,111,255,0.1);  color: var(--purple); }
 
   /* Divider */
   .ml-divider { height: 1px; background: var(--border); margin: 6px 8px; }
@@ -269,35 +270,44 @@ const PLATFORMS = [
     status: "building",
     tag:    "v4.0",
     sub:    [
-      { path: "/market", label: "Hub" },
-      { path: "/market/cart", label: "Cart", icon: "🛒" },
-      { path: "/market/orders", label: "Orders", icon: "📦" },
-      { path: "/market/digital-marketing", label: "Digital Marketing" },
-      { path: "/market/business-launcher", label: "Business Plans" },
-      { path: "/market/cv-tools", label: "CV Builder" },
-      { path: "/market/stream", label: "Streaming" },
-      { path: "/market/trading", label: "Trading" },
+      { path: "/market",                     label: "Market Hub",         icon: "🛒" },
+      { path: "/market/dropshipping",        label: "Dropshipping",       icon: "📦" },
+      { path: "/market/vendor",              label: "My Store",           icon: "🏪" },
+      { path: "/market/cart",                label: "Cart",               icon: "🛍️" },
+      { path: "/market/orders",              label: "Orders",             icon: "📋" },
+      { path: "/market/digital-marketing",   label: "Digital Marketing",  icon: "📣" },
+      { path: "/market/business-launcher",   label: "Business Launcher",  icon: "🚀" },
+      { path: "/market/cv-tools",            label: "CV Builder",         icon: "📄" },
+      { path: "/market/stream",              label: "Streaming",          icon: "📺" },
+      { path: "/market/trading",             label: "Trading",            icon: "📈" },
     ],
   },
   {
     path:   "/intelligence",
     icon:   "🤖",
-    name:   "Winners AI",
-    desc:   "Agentic AI · Smart Automation",
+    name:   "Winners Intelligence",
+    desc:   "9 AI Supervisors · OMEGA · Streaming",
     status: "live",
     tag:    "v1.0",
+    sub:    [
+      { path: "/intelligence",         label: "AI Hub",           icon: "🤖" },
+      { path: "/intelligence/aria",    label: "ARIA — Chat",      icon: "⬡"  },
+      { path: "/intelligence/omega",   label: "OMEGA — Orchestrator", icon: "🧠" },
+      { path: "/intelligence/platform", label: "AI Platform",    icon: "🧬" },
+    ],
   },
   {
     path:   "/work",
     icon:   "💼",
     name:   "Winners Work",
-    desc:   "Freelance Marketplace · Jobs",
+    desc:   "Jobs · Freelancers · CIRCUIT AI",
     status: "building",
     tag:    "new",
     sub:    [
-      { path: "/work", label: "Browse Jobs" },
-      { path: "/work/freelancers", label: "Find Talent" },
-      { path: "/work/contracts", label: "My Contracts" },
+      { path: "/work",             label: "Browse Jobs",   icon: "🔍" },
+      { path: "/work/freelancers", label: "Find Talent",   icon: "👤" },
+      { path: "/work/contracts",   label: "My Contracts",  icon: "📄" },
+      { path: "/work/profile",     label: "My Profile",    icon: "⚙️" },
     ],
   },
 ];
@@ -325,12 +335,12 @@ const WORKSPACE_NAV = [
 
 // Mobile bottom — most used
 const BOTTOM_NAV = [
-  { path: "/dashboard",  icon: "⬡",  label: "Home",      notif: false },
-  { path: "/community",  icon: "🧑‍🤝‍🧑", label: "Community", notif: false },
-  { path: "/academy",    icon: "🎓",  label: "Learn",     notif: false },
-  { path: "/intelligence",  icon: "🤖", label: "AI", notif: false },
-  { path: "/analytics",  icon: "📊", label: "Analytics", notif: false },
-  { path: "/notifications", icon: "🔔", label: "Alerts", notif: true  },
+  { path: "/dashboard",    icon: "⬡",   label: "Home",      notif: false },
+  { path: "/community",    icon: "🧑‍🤝‍🧑",  label: "Community", notif: false },
+  { path: "/academy",      icon: "🎓",  label: "Learn",     notif: false },
+  { path: "/work",         icon: "💼",  label: "Work",      notif: false },
+  { path: "/intelligence", icon: "🤖",  label: "AI",        notif: false },
+  { path: "/notifications",icon: "🔔",  label: "Alerts",    notif: true  },
 ];
 
 const ALL_NAV = [...CORE_NAV, ...TOOLS_NAV, ...WORKSPACE_NAV,
@@ -406,7 +416,7 @@ export default function MainLayout() {
         {/* AI Status */}
         <div className="ml-ai-bar">
           <div className="ml-ai-dot" />
-          <div className="ml-ai-text">AI Core · Online · Monitoring</div>
+          <div className="ml-ai-text">OMEGA · 9 Supervisors · Online</div>
         </div>
 
         {/* Tenant switcher */}
@@ -431,26 +441,29 @@ export default function MainLayout() {
             <div className="ml-nav-section-header">
               <span className="ml-nav-section-label">Ecosystem Platforms</span>
             </div>
-            {PLATFORMS.map((p) => (
-              <NavLink
-                key={p.path}
-                to={p.status === "live" ? p.path : "#"}
-                className={({ isActive }) =>
-                  `ml-platform-card${isActive && p.status === "live" ? " active" : ""}${p.status !== "live" ? " disabled" : ""}`
-                }
-                onClick={p.status === "live" ? closeSidebar : (e) => e.preventDefault()}
-                style={{ pointerEvents: p.status !== "live" ? "none" : "auto", opacity: p.status !== "live" ? 0.55 : 1 }}
-              >
-                <span className="ml-platform-icon">{p.icon}</span>
-                <div className="ml-platform-info">
-                  <div className="ml-platform-name">{p.name}</div>
-                  <div className="ml-platform-desc">{p.desc}</div>
-                </div>
-                <span className={`ml-platform-status ${p.status}`}>
-                  {p.status === "live" ? "● Live" : p.status === "soon" ? "Soon" : "Planned"}
-                </span>
-              </NavLink>
-            ))}
+            {PLATFORMS.map((p) => {
+              const navigable = p.status !== "planned";
+              return (
+                <NavLink
+                  key={p.path}
+                  to={navigable ? p.path : "#"}
+                  className={({ isActive }) =>
+                    `ml-platform-card${isActive && navigable ? " active" : ""}${!navigable ? " disabled" : ""}`
+                  }
+                  onClick={navigable ? closeSidebar : (e) => e.preventDefault()}
+                  style={{ pointerEvents: !navigable ? "none" : "auto", opacity: !navigable ? 0.4 : 1 }}
+                >
+                  <span className="ml-platform-icon">{p.icon}</span>
+                  <div className="ml-platform-info">
+                    <div className="ml-platform-name">{p.name}</div>
+                    <div className="ml-platform-desc">{p.desc}</div>
+                  </div>
+                  <span className={`ml-platform-status ${p.status}`}>
+                    {p.status === "live" ? "● Live" : p.status === "building" ? "● Build" : "Planned"}
+                  </span>
+                </NavLink>
+              );
+            })}
           </div>
 
           <div className="ml-divider" />

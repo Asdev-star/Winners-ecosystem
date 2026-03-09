@@ -5,6 +5,10 @@ import { Router, type Request, type Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
+import {
+  callAnthropicAndGetText,
+  callAnthropicAndParseJson,
+} from "../services/aiService.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -293,29 +297,13 @@ router.get("/insights", async (req: Request, res: Response) => {
     const context = await buildContext(tenantId, days);
     const prompt = buildPrompt(context);
 
-    const message = await anthropic.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 1500,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const text = extractTextContent(message.content);
-    let parsed: Omit<InsightsResponse, "generatedAt"> = {
-      summary: "Unable to parse AI response.",
-      recommendations: [],
-    };
-
-    try {
-      const candidate = JSON.parse(stripCodeFences(text)) as Partial<InsightsResponse>;
-      parsed = {
-        summary: typeof candidate.summary === "string" ? candidate.summary : parsed.summary,
-        recommendations: Array.isArray(candidate.recommendations)
-          ? (candidate.recommendations as InsightRecommendation[])
-          : parsed.recommendations,
-      };
-    } catch {
-      parsed = { summary: "Unable to parse AI response.", recommendations: [] };
-    }
+    const parsed = await callAnthropicAndParseJson<
+      Omit<InsightsResponse, "generatedAt">
+    >(
+      prompt,
+      { model: "claude-opus-4-6", max_tokens: 1500 },
+      { summary: "Unable to parse AI response.", recommendations: [] },
+    );
 
     return res.json({ ...parsed, generatedAt: new Date().toISOString() });
   } catch (error) {
@@ -440,15 +428,16 @@ router.post("/generate", async (req: Request, res: Response) => {
   }
 
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: maxTokensSafe,
-      temperature: temperatureSafe,
-      system: systemPrompt,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const content = extractTextContent(message.content);
+    const content = await callAnthropicAndGetText(
+      prompt,
+      systemPrompt,
+      {
+        model: "claude-sonnet-4-20250514",
+        max_tokens: maxTokensSafe,
+        temperature: temperatureSafe,
+      },
+      fallbackContent,
+    );
     return res.json({
       content,
       provider: "anthropic",
@@ -525,27 +514,18 @@ ${contextText}
 Generate a single concise insight for this user (1-2 sentences, maximum 100 characters).
 Return valid JSON only: { "insight": "your insight here" }`;
 
+  const fallbackInsight =
+    "AI insight is currently being generated. Please check back shortly.";
+
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 200,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const text = extractTextContent(message.content);
-    let insight = text.trim();
-
-    try {
-      const parsed = JSON.parse(stripCodeFences(text)) as { insight?: unknown };
-      if (typeof parsed.insight === "string" && parsed.insight.trim().length > 0) {
-        insight = parsed.insight.trim();
-      }
-    } catch {
-      // Keep raw text fallback.
-    }
+    const parsed = await callAnthropicAndParseJson<{ insight?: string }>(
+      prompt,
+      { model: "claude-sonnet-4-20250514", max_tokens: 200 },
+      { insight: fallbackInsight },
+    );
 
     return res.json({
-      insight,
+      insight: parsed.insight || fallbackInsight,
       assistant,
       page,
       timestamp: new Date().toISOString(),

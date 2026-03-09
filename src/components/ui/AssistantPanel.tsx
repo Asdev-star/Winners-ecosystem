@@ -3,6 +3,7 @@
 // THE core component - embeds any assistant in any page with one line of JSX
 
 import { useState, useRef, useEffect, type FormEvent } from "react";
+import { useAuthStore } from "../../features/auth/authStore";
 import FollowUpChips from "../ai/FollowUpChips";
 import StreamingText from "../ai/StreamingText";
 
@@ -105,6 +106,7 @@ export default function AssistantPanel({
   userId,
   initialMessage,
 }: AssistantPanelProps) {
+  const { token } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -207,16 +209,29 @@ export default function AssistantPanel({
     setInput("");
     setIsStreaming(true);
 
+    const assistantId = (Date.now() + 1).toString();
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantId, role: "assistant", content: "", timestamp: new Date(), isStreaming: true },
+    ]);
+
     try {
+      const history = messages
+        .filter((m) => m.content.trim())
+        .slice(-10)
+        .map((m) => ({ role: m.role, content: m.content }));
+
       const response = await fetch("/api/v1/chat/message", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(userId ? { "X-User-ID": userId } : {}),
         },
         body: JSON.stringify({
           assistant,
           message: userMessage.content,
+          history,
           context: { ...context, page },
         }),
       });
@@ -224,56 +239,49 @@ export default function AssistantPanel({
       if (response.ok && response.body) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let assistantMessage = "";
-        const assistantId = (Date.now() + 1).toString();
-
-        // Add empty assistant message for streaming
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: assistantId,
-            role: "assistant",
-            content: "",
-            timestamp: new Date(),
-            isStreaming: true,
-          },
-        ]);
+        let assistantContent = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          assistantMessage += decoder.decode(value, { stream: true });
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId ? { ...m, content: assistantMessage } : m
-            )
-          );
+          const chunk = decoder.decode(value, { stream: true });
+          for (const line of chunk.split("\n")) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === "text") {
+                  assistantContent += data.text;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId ? { ...m, content: assistantContent } : m
+                    )
+                  );
+                }
+              } catch { /* ignore malformed lines */ }
+            }
+          }
         }
 
-        // Mark streaming complete
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId ? { ...m, isStreaming: false } : m
-          )
+          prev.map((m) => m.id === assistantId ? { ...m, isStreaming: false } : m)
         );
       } else {
-        // Fallback response
-        const fallbackMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: getFallbackResponse(assistant, userMessage.content),
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, fallbackMessage]);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? { ...m, content: getFallbackResponse(assistant, userMessage.content), isStreaming: false }
+              : m
+          )
+        );
       }
     } catch {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "I encountered an error. Please try again.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, content: "I encountered an error. Please try again.", isStreaming: false }
+            : m
+        )
+      );
     } finally {
       setIsStreaming(false);
     }

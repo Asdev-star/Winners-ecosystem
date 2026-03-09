@@ -2,6 +2,7 @@
 // Phase 4: Winners Market - Product CRUD operations
 
 import { Router, Request, Response } from "express";
+import { callAnthropicAndParseJson } from "../services/aiService.js";
 import type { Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
@@ -287,6 +288,48 @@ router.post("/:id/images", authMiddleware, async (req: Request, res: Response) =
   } catch (error) {
     console.error("[productRoutes] Error adding images:", error);
     res.status(500).json({ error: "Failed to add images" });
+  }
+});
+
+// POST /products/generate-description - AI-powered product description generator (ATLAS)
+router.post("/generate-description", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { name, category, keywords } = req.body;
+
+    if (!name || !keywords) {
+      return res.status(400).json({ error: "Product name and keywords are required" });
+    }
+
+    const prompt = `You are ATLAS, the Market Analyst for Winners Ecosystem. Your task is to generate a compelling product description for an e-commerce marketplace.
+
+The target audience is ambitious professionals, entrepreneurs, and creators in African and diaspora markets. The tone should be aspirational, clear, and benefit-oriented.
+
+PRODUCT DETAILS:
+- Name: ${name}
+- Category: ${category || 'General'}
+- Keywords/Features: ${Array.isArray(keywords) ? keywords.join(', ') : keywords}
+
+Generate a JSON response with the following structure. Do not include any preamble or markdown fences.
+{
+  "description": "A full, engaging product description (2-3 paragraphs). Use markdown for formatting (bolding, bullet points).",
+  "metaTitle": "A concise, SEO-friendly title for the product page (50-60 characters).",
+  "metaDescription": "A compelling summary for search engine results (150-160 characters)."
+}`;
+
+    const result = await callAnthropicAndParseJson(
+      prompt,
+      { model: "claude-sonnet-4-6", max_tokens: 1024 },
+      {
+        description: `## ${name}\n\nExplore the features of ${name}. A great choice for those interested in ${category}.`,
+        metaTitle: name,
+        metaDescription: `Discover ${name}, a top product in the ${category} category.`,
+      }
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error("[productRoutes] Error generating description:", error);
+    res.status(500).json({ error: "Failed to generate product description" });
   }
 });
 

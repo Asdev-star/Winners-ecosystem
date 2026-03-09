@@ -812,34 +812,34 @@ const css = `
 
 const PLATFORMS = [
   {
-    icon: "⬡", name: "Core Engine", phase: "Phase 1", status: "live", pct: 95,
-    desc: "The control tower. Multi-tenant auth, billing, analytics, RBAC, and the API gateway that powers every platform layer.",
+    icon: "⬡", name: "Core Engine", phase: "Phase 1", status: "live", pct: 90,
+    desc: "The control tower. Multi-tenant auth, billing, analytics, RBAC, and the API gateway powering every platform layer.",
     tags: ["Auth & 2FA", "Billing", "Analytics", "API Gateway"],
   },
   {
-    icon: "🧑‍🤝‍🧑", name: "Winners Community", phase: "Phase 2", status: "live", pct: 55,
-    desc: "A full social platform. Posts, likes, comments, follow system, groups, DMs, and creator monetization tools.",
-    tags: ["Social Feed", "Groups", "Messaging", "Creators"],
+    icon: "🧑‍🤝‍🧑", name: "Winners Community", phase: "Phase 2", status: "live", pct: 65,
+    desc: "A full social platform. Posts, groups, DMs, live spaces, creator economy, and NOVA AI skill detection powering the Agentic Loop.",
+    tags: ["Social Feed", "Live Spaces", "Creator Economy", "NOVA AI"],
   },
   {
-    icon: "🎓", name: "Winners Academy", phase: "Phase 3", status: "live", pct: 30,
-    desc: "Complete learning platform. Courses, modules, video lessons, AI tutors, certificates, and skill-based hiring.",
-    tags: ["Courses", "Certificates", "AI Tutor", "Progress"],
+    icon: "🎓", name: "Winners Academy", phase: "Phase 3", status: "live", pct: 45,
+    desc: "Complete learning platform. Courses, learning paths, study groups, certificates, and SAGE AI tutor with PDF analysis.",
+    tags: ["Courses", "Certificates", "SAGE AI Tutor", "Paths"],
   },
   {
-    icon: "🛒", name: "Winners Market", phase: "Phase 4", status: "soon", pct: 0,
-    desc: "Commerce engine. Digital products, dropshipping, vendor dashboards, storefronts, and AI-powered recommendations.",
-    tags: ["Products", "Vendors", "Dropship", "Commerce"],
+    icon: "🛒", name: "Winners Market", phase: "Phase 4", status: "soon", pct: 20,
+    desc: "10-vertical commerce engine. Dropshipping, digital marketing, streaming, trading, events, property, health, and finance.",
+    tags: ["10 Verticals", "Dropshipping", "Vendor Stores", "ATLAS AI"],
   },
   {
-    icon: "🤖", name: "Winners Intelligence", phase: "Phase 5", status: "live", pct: 15,
-    desc: "The agentic AI core. Personal AI agents, cross-platform smart recommendations, voice search, and full automation.",
-    tags: ["AI Agents", "Smart Search", "Automation", "Predictions"],
+    icon: "🤖", name: "Winners Intelligence", phase: "Phase 5", status: "live", pct: 35,
+    desc: "9 AI supervisors. OMEGA orchestrates the Agentic Loop. ARIA, NOVA, SAGE, ATLAS, FORGE, CIRCUIT, NEXUS, HERALD — all live.",
+    tags: ["9 Supervisors", "OMEGA", "Streaming AI", "Agentic Loop"],
   },
   {
-    icon: "💼", name: "Winners Work", phase: "Phase 6", status: "planned", pct: 0,
-    desc: "Freelance hub meets work network. Job board, AI skill matching, contracts, escrow payments, and portfolios.",
-    tags: ["Jobs", "Freelance", "Escrow", "AI Matching"],
+    icon: "💼", name: "Winners Work", phase: "Phase 6", status: "soon", pct: 35,
+    desc: "Freelance marketplace. Job board, freelancer profiles, AI-powered CIRCUIT matching, contracts, and milestone escrow.",
+    tags: ["Job Board", "Freelancers", "CIRCUIT AI", "Escrow"],
   },
 ];
 
@@ -916,7 +916,7 @@ const FAQS = [
   },
   {
     q: "What is live right now?",
-    a: "The Core Engine (auth, billing, analytics, multi-tenant architecture) is live at 90% and running in production on Railway. Winners Community V1 is live with social feed, posts, likes, and comments. Winners Academy is actively building — courses, modules, enrollment, and certificates are in development."
+    a: "Core Engine (90%) — auth, billing, analytics, 2FA, RBAC live in production. Community (65%) — social feed, groups, DMs, live spaces, creator economy, and NOVA AI skill detection live. Academy (45%) — courses, certificates, learning paths, study groups, and SAGE AI tutor live. Intelligence (35%) — all 9 AI supervisors (OMEGA, ARIA, NOVA, SAGE, ATLAS, FORGE, CIRCUIT, NEXUS, HERALD) live with streaming. Work (35%) — job board, freelancer profiles, applications, and contracts live. Market (20%) — vendor stores, cart, and orders built."
   },
   {
     q: "Can I use just one platform layer?",
@@ -1026,7 +1026,7 @@ export default function LandingPage() {
           <div className="lp-hero-glow2" />
 
           <div className="lp-hero-eyebrow">
-            Digital Sovereign Infrastructure · Phase 2 of 8 Active
+            Digital Sovereign Infrastructure · 6 Layers Active · 9 AI Supervisors Live
           </div>
 
           {!logoError ? (
@@ -1040,7 +1040,7 @@ export default function LandingPage() {
           <h1 className="lp-hero-title">
             One <em>Ecosystem</em>
           </h1>
-          <div className="lp-hero-sub">Six Platforms. One Intelligence.</div>
+          <div className="lp-hero-sub">Nine Platforms. Nine Supervisors. One Intelligence.</div>
 
           <p className="lp-hero-desc">
             A Central Digital Operating System that owns, hosts, governs, and intelligently
@@ -1059,20 +1059,20 @@ export default function LandingPage() {
 
           <div className="lp-hero-metrics">
             <div className="lp-metric">
-              <div className="lp-metric-value">6</div>
+              <div className="lp-metric-value">9</div>
               <div className="lp-metric-label">Platform Layers</div>
             </div>
             <div className="lp-metric">
-              <div className="lp-metric-value">1</div>
-              <div className="lp-metric-label">Unified Identity</div>
+              <div className="lp-metric-value">9</div>
+              <div className="lp-metric-label">AI Supervisors</div>
             </div>
             <div className="lp-metric">
-              <div className="lp-metric-value">8</div>
-              <div className="lp-metric-label">Build Phases</div>
+              <div className="lp-metric-value">48</div>
+              <div className="lp-metric-label">API Routes</div>
             </div>
             <div className="lp-metric">
-              <div className="lp-metric-value">AI</div>
-              <div className="lp-metric-label">Orchestrated</div>
+              <div className="lp-metric-value">150+</div>
+              <div className="lp-metric-label">DB Models</div>
             </div>
           </div>
 

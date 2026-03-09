@@ -140,9 +140,14 @@ export const MARKET_SUBNAV_BUYER: LayerSubNavConfig = {
   layer: "market",
   accent: "var(--purple)",
   items: [
-    { id: "market-browse", label: "Browse", to: "/market", disabled: true, badge: "Soon", badgeTone: "neutral" },
-    { id: "market-cart", label: "Cart", to: "/market/cart", disabled: true },
-    { id: "market-orders", label: "Orders", to: "/market/orders", disabled: true },
+    { id: "market-hub",          label: "Market Hub",        to: "/market",                      badge: "Building", badgeTone: "attention" },
+    { id: "market-dropshipping", label: "Dropshipping",      to: "/market/dropshipping" },
+    { id: "market-cart",         label: "Cart",              to: "/market/cart" },
+    { id: "market-orders",       label: "Orders",            to: "/market/orders" },
+    { id: "market-digital",      label: "Digital Marketing", to: "/market/digital-marketing" },
+    { id: "market-business",     label: "Business Launcher", to: "/market/business-launcher" },
+    { id: "market-stream",       label: "Streaming",         to: "/market/stream" },
+    { id: "market-trading",      label: "Trading",           to: "/market/trading" },
   ],
   smartAction: () => ({
     supervisor: "ATLAS",
@@ -157,9 +162,10 @@ export const MARKET_SUBNAV_SELLER: LayerSubNavConfig = {
   layer: "market",
   accent: "var(--purple)",
   items: [
-    { id: "market-seller-listings", label: "Listings", to: "/market/seller/listings", disabled: true, badge: "Soon", badgeTone: "neutral" },
-    { id: "market-seller-orders", label: "Orders", to: "/market/seller/orders", disabled: true },
-    { id: "market-seller-analytics", label: "Analytics", to: "/market/seller/analytics", disabled: true },
+    { id: "market-hub",          label: "Market Hub",  to: "/market",        badge: "Building", badgeTone: "attention" },
+    { id: "market-vendor",       label: "My Store",    to: "/market/vendor" },
+    { id: "market-dropshipping", label: "Dropshipping",to: "/market/dropshipping" },
+    { id: "market-orders",       label: "Orders",      to: "/market/orders" },
   ],
   smartAction: () => ({
     supervisor: "ATLAS",
@@ -174,9 +180,10 @@ export const WORK_SUBNAV_FREELANCER: LayerSubNavConfig = {
   layer: "work",
   accent: "var(--blue)",
   items: [
-    { id: "work-jobs", label: "Jobs", to: "/work/jobs", disabled: true, badge: "Planned", badgeTone: "neutral" },
-    { id: "work-proposals", label: "Proposals", to: "/work/proposals", disabled: true },
-    { id: "work-contracts", label: "Contracts", to: "/work/contracts", disabled: true },
+    { id: "work-jobs",        label: "Browse Jobs",   to: "/work",             badge: "Live", badgeTone: "positive" },
+    { id: "work-freelancers", label: "Find Talent",   to: "/work/freelancers" },
+    { id: "work-contracts",   label: "My Contracts",  to: "/work/contracts" },
+    { id: "work-profile",     label: "My Profile",    to: "/work/profile" },
   ],
   smartAction: () => ({
     supervisor: "CIRCUIT",
@@ -191,9 +198,10 @@ export const WORK_SUBNAV_EMPLOYER: LayerSubNavConfig = {
   layer: "work",
   accent: "var(--blue)",
   items: [
-    { id: "work-hire", label: "Hire", to: "/work/employer", disabled: true, badge: "Planned", badgeTone: "neutral" },
-    { id: "work-employer-contracts", label: "Contracts", to: "/work/employer/contracts", disabled: true },
-    { id: "work-employer-review", label: "Reviews", to: "/work/employer/reviews", disabled: true },
+    { id: "work-jobs",        label: "Job Board",     to: "/work",             badge: "Live", badgeTone: "positive" },
+    { id: "work-freelancers", label: "Find Talent",   to: "/work/freelancers" },
+    { id: "work-contracts",   label: "Contracts",     to: "/work/contracts" },
+    { id: "work-profile",     label: "My Profile",    to: "/work/profile" },
   ],
   smartAction: () => ({
     supervisor: "CIRCUIT",
@@ -208,10 +216,11 @@ export const INTELLIGENCE_SUBNAV: LayerSubNavConfig = {
   layer: "intelligence",
   accent: "var(--purple)",
   items: [
-    { id: "intel-overview", label: "Overview", to: "/intelligence" },
-    { id: "intel-chat", label: "Assistant", to: "/intelligence/aria" },
-    { id: "intel-platform", label: "AI Platform", to: "/intelligence/platform" },
-    { id: "intel-search", label: "Command", to: "/search", badge: "K", badgeTone: "info" },
+    { id: "intel-overview",  label: "AI Hub",              to: "/intelligence",          badge: "Live", badgeTone: "positive" },
+    { id: "intel-aria",      label: "ARIA — Chat",         to: "/intelligence/aria" },
+    { id: "intel-omega",     label: "OMEGA — Orchestrator",to: "/intelligence/omega",    badge: "New",  badgeTone: "attention" },
+    { id: "intel-platform",  label: "AI Platform",         to: "/intelligence/platform" },
+    { id: "intel-search",    label: "⌘K Command",          to: "/search",                badge: "K",    badgeTone: "info" },
   ],
   smartAction: (pathname) => {
     if (pathname.startsWith("/intelligence/platform")) {

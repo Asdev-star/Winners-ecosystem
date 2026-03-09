@@ -2,21 +2,11 @@
 // Phase 2 V2.0: Community Intelligence Upgrade
 // NOVA AI-powered skill detection, insights, and cross-layer handoffs
 
-import { Router, Request, Response } from "express";
-import Anthropic from "@anthropic-ai/sdk";
+import { Request, Response, Router } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
-
-// Claude API client for NOVA intelligence
-let anthropic: Anthropic | null = null;
-try {
-  anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-} catch (e) {
-  console.warn("[NOVA] Anthropic SDK not available - using fallback detection");
-}
+import { callAnthropicAndParseJson } from "../services/aiService.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -28,29 +18,21 @@ router.use(enforceTenant);
 
 async function detectSkillsWithNOVA(
   content: string,
-  userId: string
+  userId: string,
 ): Promise<Array<{ skill: string; confidence: number; category: string }>> {
-  // If Claude API is available, use it for intelligent detection
-  if (anthropic) {
-    try {
-      // Get user's existing skills for context
-      const existingSkills = await db.novaSkillDetection.findMany({
-        where: { userId },
-        select: { skill: true },
-        distinct: ["skill"],
-        orderBy: { confidence: "desc" },
-        take: 10,
-      });
+  try {
+    // Get user's existing skills for context
+    const existingSkills = await db.novaSkillDetection.findMany({
+      where: { userId },
+      select: { skill: true },
+      distinct: ["skill"],
+      orderBy: { confidence: "desc" },
+      take: 10,
+    });
 
-      const existingSkillNames = existingSkills.map((s) => s.skill).join(", ");
+    const existingSkillNames = existingSkills.map((s) => s.skill).join(", ");
 
-      const message = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 500,
-        messages: [
-          {
-            role: "user",
-            content: `You are NOVA, the Winners Ecosystem Community Intelligence Supervisor.
+    const prompt = `You are NOVA, the Winners Ecosystem Community Intelligence Supervisor.
 
 Analyse this post and identify professional skills demonstrated or discussed.
 Return ONLY valid JSON — no preamble, no markdown, just the JSON object.
@@ -69,70 +51,142 @@ Rules:
 - Do not hallucinate skills not evidenced in the text
 - Existing skills for context: ${existingSkillNames || "none yet"}
 
-Post content: "${content.substring(0, 2000)}"`,
-          },
-        ],
-      });
+Post content: "${content.substring(0, 2000)}"`;
 
-      const raw =
-        message.content[0].type === "text" ? message.content[0].text : "{}";
-      let parsed: { skills?: unknown; summary?: string };
-      try {
-        parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-      } catch {
-        parsed = { skills: [], summary: "" };
-      }
+    const parsed = await callAnthropicAndParseJson<{
+      skills?: unknown;
+      summary?: string;
+    }>(
+      prompt,
+      { model: "claude-sonnet-4-20250514", max_tokens: 500 },
+      { skills: [], summary: "" },
+    );
 
-      const parsedSkills = Array.isArray(parsed.skills) ? parsed.skills : [];
-      if (parsedSkills.length > 0) {
-        return parsedSkills
-          .filter(
-            (
-              skill
-            ): skill is { name: string; confidence: number; category?: string } =>
-              typeof skill === "object" &&
-              skill !== null &&
-              typeof (skill as { name?: unknown }).name === "string" &&
-              typeof (skill as { confidence?: unknown }).confidence === "number" &&
-              (skill as { confidence: number }).confidence >= 0.65
-          )
-          .slice(0, 5)
-          .map((s) => ({
-            skill: s.name,
-            confidence: Math.round(s.confidence * 100),
-            category: s.category || "technical",
-          }));
-      }
-    } catch (error) {
-      console.error("[NOVA] Claude API error, falling back to pattern matching:", error);
+    const parsedSkills = Array.isArray(parsed.skills) ? parsed.skills : [];
+    if (parsedSkills.length > 0) {
+      return parsedSkills
+        .filter(
+          (
+            skill,
+          ): skill is { name: string; confidence: number; category?: string } =>
+            typeof skill === "object" &&
+            skill !== null &&
+            typeof (skill as { name?: unknown }).name === "string" &&
+            typeof (skill as { confidence?: unknown }).confidence ===
+              "number" &&
+            (skill as { confidence: number }).confidence >= 0.65,
+        )
+        .slice(0, 5)
+        .map((s) => ({
+          skill: s.name,
+          confidence: Math.round(s.confidence * 100),
+          category: s.category || "technical",
+        }));
     }
+  } catch (error) {
+    console.error(
+      "[NOVA] AI skill detection error, falling back to pattern matching:",
+      error,
+    );
   }
 
-  // Fallback: pattern-based detection
-  const skills: Array<{ skill: string; confidence: number; category: string }> = [];
-
+  // Fallback to pattern-based detection if AI fails or returns no skills
+  const skills: Array<{ skill: string; confidence: number; category: string }> =
+    [];
   const skillPatterns = [
-    { pattern: /react|reactjs|react\.js/gi, skill: "React.js", category: "technical" },
-    { pattern: /typescript|ts\b/gi, skill: "TypeScript", category: "technical" },
+    {
+      pattern: /react|reactjs|react\.js/gi,
+      skill: "React.js",
+      category: "technical",
+    },
+    {
+      pattern: /typescript|ts\b/gi,
+      skill: "TypeScript",
+      category: "technical",
+    },
     { pattern: /node\.?js|express/gi, skill: "Node.js", category: "technical" },
     { pattern: /python/gi, skill: "Python", category: "technical" },
     { pattern: /next\.?js/gi, skill: "Next.js", category: "technical" },
-    { pattern: /figma|ui\s*design/gi, skill: "UI/UX Design", category: "creative" },
-    { pattern: /docker|kubernetes|k8s/gi, skill: "DevOps", category: "technical" },
-    { pattern: /aws|azure|gcp/gi, skill: "Cloud Computing", category: "technical" },
-    { pattern: /python|ml|machine\s*learning|ai|artificial\s*intelligence/gi, skill: "AI/ML", category: "technical" },
-    { pattern: /javascript|js\b/gi, skill: "JavaScript", category: "technical" },
-    { pattern: /postgresql|mongodb|mysql|sql/gi, skill: "Databases", category: "technical" },
-    { pattern: /git|github|version\s*control/gi, skill: "Version Control", category: "technical" },
-    { pattern: /api|rest|graphql/gi, skill: "API Development", category: "technical" },
-    { pattern: /marketing|seo|advertising/gi, skill: "Digital Marketing", category: "business" },
-    { pattern: /copywriting|content\s*writing|blogging/gi, skill: "Content Writing", category: "creative" },
-    { pattern: /video\s*editing|animation|motion\s*graphics/gi, skill: "Video Editing", category: "creative" },
-    { pattern: /photography|photo\s*editing/gi, skill: "Photography", category: "creative" },
-    { pattern: /business\s*plan|startup|entrepreneurship/gi, skill: "Entrepreneurship", category: "business" },
-    { pattern: /accounting|bookkeeping|finance/gi, skill: "Finance", category: "business" },
-    { pattern: /public\s*speaking|presentation/gi, skill: "Public Speaking", category: "soft" },
-    { pattern: /leadership|team\s*management/gi, skill: "Leadership", category: "soft" },
+    {
+      pattern: /figma|ui\s*design/gi,
+      skill: "UI/UX Design",
+      category: "creative",
+    },
+    {
+      pattern: /docker|kubernetes|k8s/gi,
+      skill: "DevOps",
+      category: "technical",
+    },
+    {
+      pattern: /aws|azure|gcp/gi,
+      skill: "Cloud Computing",
+      category: "technical",
+    },
+    {
+      pattern: /python|ml|machine\s*learning|ai|artificial\s*intelligence/gi,
+      skill: "AI/ML",
+      category: "technical",
+    },
+    {
+      pattern: /javascript|js\b/gi,
+      skill: "JavaScript",
+      category: "technical",
+    },
+    {
+      pattern: /postgresql|mongodb|mysql|sql/gi,
+      skill: "Databases",
+      category: "technical",
+    },
+    {
+      pattern: /git|github|version\s*control/gi,
+      skill: "Version Control",
+      category: "technical",
+    },
+    {
+      pattern: /api|rest|graphql/gi,
+      skill: "API Development",
+      category: "technical",
+    },
+    {
+      pattern: /marketing|seo|advertising/gi,
+      skill: "Digital Marketing",
+      category: "business",
+    },
+    {
+      pattern: /copywriting|content\s*writing|blogging/gi,
+      skill: "Content Writing",
+      category: "creative",
+    },
+    {
+      pattern: /video\s*editing|animation|motion\s*graphics/gi,
+      skill: "Video Editing",
+      category: "creative",
+    },
+    {
+      pattern: /photography|photo\s*editing/gi,
+      skill: "Photography",
+      category: "creative",
+    },
+    {
+      pattern: /business\s*plan|startup|entrepreneurship/gi,
+      skill: "Entrepreneurship",
+      category: "business",
+    },
+    {
+      pattern: /accounting|bookkeeping|finance/gi,
+      skill: "Finance",
+      category: "business",
+    },
+    {
+      pattern: /public\s*speaking|presentation/gi,
+      skill: "Public Speaking",
+      category: "soft",
+    },
+    {
+      pattern: /leadership|team\s*management/gi,
+      skill: "Leadership",
+      category: "soft",
+    },
   ];
 
   for (const { pattern, skill, category } of skillPatterns) {
@@ -163,13 +217,14 @@ function normalizeRecommendationTokens(value: string) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, " ")
         .split(/\s+/)
-        .filter((token) => token.length >= 3)
-    )
+        .filter((token) => token.length >= 3),
+    ),
   );
 }
 
 function scoreCourseForSkills(course: RecommendedCourse, skillNames: string[]) {
-  const searchText = `${course.title} ${course.description} ${course.category}`.toLowerCase();
+  const searchText =
+    `${course.title} ${course.description} ${course.category}`.toLowerCase();
   const courseTokens = new Set(normalizeRecommendationTokens(searchText));
   const matchedSkills = skillNames.filter((skill) => {
     const normalizedSkill = skill.toLowerCase();
@@ -178,21 +233,15 @@ function scoreCourseForSkills(course: RecommendedCourse, skillNames: string[]) {
     }
 
     return normalizeRecommendationTokens(normalizedSkill).some((token) =>
-      courseTokens.has(token)
+      courseTokens.has(token),
     );
   });
 
   const uniqueMatchedSkills = Array.from(new Set(matchedSkills));
   const levelScore =
-    course.level === "BEGINNER"
-      ? 12
-      : course.level === "INTERMEDIATE"
-        ? 8
-        : 4;
+    course.level === "BEGINNER" ? 12 : course.level === "INTERMEDIATE" ? 8 : 4;
   const score =
-    uniqueMatchedSkills.length * 100 +
-    (course.featured ? 20 : 0) +
-    levelScore;
+    uniqueMatchedSkills.length * 100 + (course.featured ? 20 : 0) + levelScore;
 
   return {
     score,
@@ -200,7 +249,10 @@ function scoreCourseForSkills(course: RecommendedCourse, skillNames: string[]) {
   };
 }
 
-function buildRecommendationReason(matchedSkills: string[], fallbackSkill?: string) {
+function buildRecommendationReason(
+  matchedSkills: string[],
+  fallbackSkill?: string,
+) {
   if (matchedSkills.length >= 2) {
     return `Matches the skills NOVA detected in ${matchedSkills.slice(0, 2).join(" and ")}.`;
   }
@@ -265,8 +317,8 @@ router.post("/skills/detect", async (req: Request, res: Response) => {
               confidence: skill.confidence,
               category: skill.category.toLowerCase(),
             },
-          })
-        )
+          }),
+        ),
       );
 
       // Emit WebSocket event for real-time handoff card
@@ -342,7 +394,7 @@ router.get("/skills/detected", async (req: Request, res: Response) => {
         allSkills[detection.skill].count += 1;
         allSkills[detection.skill].confidence = Math.max(
           allSkills[detection.skill].confidence,
-          normalizedConfidence
+          normalizedConfidence,
         );
       }
     });
@@ -428,17 +480,28 @@ router.get("/insights/weekly", async (req: Request, res: Response) => {
       await Promise.all([
         db.post.findMany({
           where: { authorId: userId, createdAt: { gte: weekAgo } },
-          select: { id: true, _count: { select: { likes: true, comments: true } } },
+          select: {
+            id: true,
+            _count: { select: { likes: true, comments: true } },
+          },
         }),
-        db.like.count({ where: { post: { authorId: userId }, createdAt: { gte: weekAgo } } }),
-        db.comment.count({ where: { post: { authorId: userId }, createdAt: { gte: weekAgo } } }),
-        db.follow.count({ where: { followingId: userId, createdAt: { gte: weekAgo } } }),
-        db.novaSkillDetection.count({ where: { userId, createdAt: { gte: weekAgo } } }),
+        db.like.count({
+          where: { post: { authorId: userId }, createdAt: { gte: weekAgo } },
+        }),
+        db.comment.count({
+          where: { post: { authorId: userId }, createdAt: { gte: weekAgo } },
+        }),
+        db.follow.count({
+          where: { followingId: userId, createdAt: { gte: weekAgo } },
+        }),
+        db.novaSkillDetection.count({
+          where: { userId, createdAt: { gte: weekAgo } },
+        }),
         db.agenticLoopProgress.findUnique({ where: { userId } }),
       ]);
 
     const totalEngagement = likes + comments;
-    
+
     // Find best post by engagement
     let bestPostEngagement = 0;
     for (const p of posts) {
@@ -461,7 +524,10 @@ router.get("/insights/weekly", async (req: Request, res: Response) => {
     } else if (totalEngagement < 5) {
       recommendation =
         "Your content is great but needs more visibility. Try adding more specific skill tags.";
-    } else if (skillsCount > 0 && !loopProgress?.currentStage?.includes("academy")) {
+    } else if (
+      skillsCount > 0 &&
+      !loopProgress?.currentStage?.includes("academy")
+    ) {
       recommendation =
         "NOVA detected skills in your posts. Consider taking a related course to certify them.";
     } else {
@@ -525,14 +591,11 @@ router.get("/insights/banner", async (req: Request, res: Response) => {
         }),
       ]);
 
-    const topPostLikes = Math.max(
-      ...recentPosts.map((p) => p._count.likes),
-      0
-    );
+    const topPostLikes = Math.max(...recentPosts.map((p) => p._count.likes), 0);
     const daysSinceLastPost = recentPosts[0]
       ? Math.floor(
           (Date.now() - new Date(recentPosts[0].createdAt).getTime()) /
-            86400000
+            86400000,
         )
       : 99;
 
@@ -545,7 +608,10 @@ router.get("/insights/banner", async (req: Request, res: Response) => {
       }! Share what you're working on and NOVA will help connect your skills to opportunities.`;
     } else if (daysSinceLastPost > 7) {
       insight = `You haven't posted in ${daysSinceLastPost} days. Your audience is waiting!`;
-    } else if (topSkills.length > 0 && !loopProgress?.currentStage?.includes("academy")) {
+    } else if (
+      topSkills.length > 0 &&
+      !loopProgress?.currentStage?.includes("academy")
+    ) {
       insight = `NOVA detected ${topSkills[0].skill} in your posts. Certify it with a SAGE course to unlock Work opportunities.`;
     } else if (recentFollowers > 5) {
       insight = `${recentFollowers} new followers this week! Your ${topSkills[0]?.skill || "content"} is resonating.`;
@@ -629,10 +695,10 @@ router.get("/opportunities", async (req: Request, res: Response) => {
             opp.title.toLowerCase().includes(normalizedSkill) ||
             opp.description.toLowerCase().includes(normalizedSkill) ||
             opp.skills.some((oppSkill) =>
-              oppSkill.toLowerCase().includes(normalizedSkill)
+              oppSkill.toLowerCase().includes(normalizedSkill),
             )
           );
-        })
+        }),
       )
       .slice(0, 3);
 
@@ -648,21 +714,25 @@ router.get("/opportunities", async (req: Request, res: Response) => {
     const fallbackCourses =
       rankedCourses.length > 0
         ? []
-        : publishedCourses.slice(0, Math.min(3, publishedCourses.length)).map((course) => ({
-            course,
-            matchedSkills: [] as string[],
-          }));
+        : publishedCourses
+            .slice(0, Math.min(3, publishedCourses.length))
+            .map((course) => ({
+              course,
+              matchedSkills: [] as string[],
+            }));
 
-    const academyItems = [...rankedCourses, ...fallbackCourses].slice(0, 3).map(({ course, matchedSkills }) => ({
-      id: course.id,
-      title: course.title,
-      slug: course.slug,
-      category: course.category,
-      level: course.level,
-      reason: buildRecommendationReason(matchedSkills, skillNames[0]),
-      matchedSkills,
-      href: `/academy/courses/${course.slug}`,
-    }));
+    const academyItems = [...rankedCourses, ...fallbackCourses]
+      .slice(0, 3)
+      .map(({ course, matchedSkills }) => ({
+        id: course.id,
+        title: course.title,
+        slug: course.slug,
+        category: course.category,
+        level: course.level,
+        reason: buildRecommendationReason(matchedSkills, skillNames[0]),
+        matchedSkills,
+        href: `/academy/courses/${course.slug}`,
+      }));
 
     const opportunities = {
       skillMatch: {
@@ -826,9 +896,12 @@ router.get("/loop-status", async (req: Request, res: Response) => {
       },
       skills,
       certificates: certificatesWithTitle,
-      nextAction: loop?.currentStage === "academy" ? "Take a course" : 
-                   loop?.currentStage === "work" ? "Apply to jobs" :
-                   "Post more to trigger skill detection",
+      nextAction:
+        loop?.currentStage === "academy"
+          ? "Take a course"
+          : loop?.currentStage === "work"
+            ? "Apply to jobs"
+            : "Post more to trigger skill detection",
     });
   } catch (err: unknown) {
     console.error("Get loop status error:", err);

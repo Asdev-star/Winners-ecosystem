@@ -163,49 +163,51 @@ const PLATFORMS = [
   {
     icon: "🧑‍🤝‍🧑",
     name: "Winners Community",
-    desc: "Social feed · Chat · Groups · Creators",
+    desc: "Feed · Groups · DMs · NOVA AI",
     status: "live",
     active: true,
   },
   {
     icon: "🎓",
     name: "Winners Academy",
-    desc: "Courses · Certificates · AI Tutor",
-    status: "soon",
-    active: false,
-  },
-  {
-    icon: "🛒",
-    name: "Winners Market",
-    desc: "Products · Vendors · Dropshipping",
-    status: "soon",
-    active: false,
+    desc: "Courses · Certificates · SAGE AI Tutor",
+    status: "live",
+    active: true,
   },
   {
     icon: "🤖",
     name: "Winners Intelligence",
-    desc: "Agentic AI · Smart Automation · Search",
-    status: "planned",
+    desc: "9 Supervisors · OMEGA · Streaming AI",
+    status: "live",
+    active: true,
+  },
+  {
+    icon: "🛒",
+    name: "Winners Market",
+    desc: "10 Verticals · Vendors · Dropshipping",
+    status: "soon",
     active: false,
   },
   {
     icon: "💼",
     name: "Winners Work",
-    desc: "Freelance · Jobs · Escrow · Matching",
-    status: "planned",
+    desc: "Job Board · Freelancers · CIRCUIT AI",
+    status: "soon",
     active: false,
   },
 ];
 
 const TICKER = [
-  { label: "Community", val: "● Live", cls: "up" },
-  { label: "AI Core", val: "Online", cls: "up" },
-  { label: "Phase 2", val: "Building", cls: "up" },
+  { label: "Core Engine", val: "● Live 90%", cls: "up" },
+  { label: "Community", val: "● Live 65%", cls: "up" },
+  { label: "Academy", val: "● Live 45%", cls: "up" },
+  { label: "Intelligence", val: "● 9 Supervisors", cls: "up" },
+  { label: "Work", val: "● Building 35%", cls: "up" },
+  { label: "Market", val: "Building 20%", cls: "up" },
   { label: "Stripe", val: "Synced", cls: "up" },
   { label: "2FA", val: "Active", cls: "up" },
-  { label: "Academy", val: "Q2 2026", cls: "dn" },
-  { label: "Market", val: "Q3 2026", cls: "dn" },
-  { label: "AI Agents", val: "Phase 5", cls: "dn" },
+  { label: "Cloud", val: "Phase 8", cls: "dn" },
+  { label: "Mobile", val: "Phase 7", cls: "dn" },
 ];
 
 function getErrorMessage(err: unknown, fallback: string) {
@@ -655,24 +657,24 @@ export default function LoginPage() {
           </p>
           <div className="lp-stats">
             <div className="lp-stat">
-              <div className="lp-stat-value">6</div>
+              <div className="lp-stat-value">9</div>
               <div className="lp-stat-label">Platforms</div>
             </div>
             <div className="lp-stat">
-              <div className="lp-stat-value">1</div>
-              <div className="lp-stat-label">Identity</div>
+              <div className="lp-stat-value">9</div>
+              <div className="lp-stat-label">Supervisors</div>
             </div>
             <div className="lp-stat">
-              <div className="lp-stat-value">AI</div>
-              <div className="lp-stat-label">Powered</div>
+              <div className="lp-stat-value">4</div>
+              <div className="lp-stat-label">Live Layers</div>
             </div>
           </div>
           <div className="lp-ai-status">
             <div className="lp-ai-dot" />
             <div className="lp-ai-text">
-              <strong>Winners AI Core · Online</strong>
+              <strong>OMEGA · Master Orchestrator · Online</strong>
               <br />
-              Phase 2 active — Community Layer live. Academy & Market building.
+              Core · Community · Academy · Intelligence live. Market & Work building.
             </div>
           </div>
           <div className="lp-platforms">
