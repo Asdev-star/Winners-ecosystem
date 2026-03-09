@@ -145,6 +145,77 @@ Post content: "${content.substring(0, 2000)}"`,
   return skills;
 }
 
+interface RecommendedCourse {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  description: string;
+  featured: boolean;
+  createdAt: Date;
+}
+
+function normalizeRecommendationTokens(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .split(/\s+/)
+        .filter((token) => token.length >= 3)
+    )
+  );
+}
+
+function scoreCourseForSkills(course: RecommendedCourse, skillNames: string[]) {
+  const searchText = `${course.title} ${course.description} ${course.category}`.toLowerCase();
+  const courseTokens = new Set(normalizeRecommendationTokens(searchText));
+  const matchedSkills = skillNames.filter((skill) => {
+    const normalizedSkill = skill.toLowerCase();
+    if (searchText.includes(normalizedSkill)) {
+      return true;
+    }
+
+    return normalizeRecommendationTokens(normalizedSkill).some((token) =>
+      courseTokens.has(token)
+    );
+  });
+
+  const uniqueMatchedSkills = Array.from(new Set(matchedSkills));
+  const levelScore =
+    course.level === "BEGINNER"
+      ? 12
+      : course.level === "INTERMEDIATE"
+        ? 8
+        : 4;
+  const score =
+    uniqueMatchedSkills.length * 100 +
+    (course.featured ? 20 : 0) +
+    levelScore;
+
+  return {
+    score,
+    matchedSkills: uniqueMatchedSkills,
+  };
+}
+
+function buildRecommendationReason(matchedSkills: string[], fallbackSkill?: string) {
+  if (matchedSkills.length >= 2) {
+    return `Matches the skills NOVA detected in ${matchedSkills.slice(0, 2).join(" and ")}.`;
+  }
+
+  if (matchedSkills.length === 1) {
+    return `Recommended to help you certify ${matchedSkills[0]}.`;
+  }
+
+  if (fallbackSkill) {
+    return `Recommended next certification step after NOVA detected ${fallbackSkill}.`;
+  }
+
+  return "Recommended next certification step from the Academy catalog.";
+}
+
 // POST /community-intelligence/skills/detect
 router.post("/skills/detect", async (req: Request, res: Response) => {
   try {
@@ -508,34 +579,90 @@ router.get("/insights/banner", async (req: Request, res: Response) => {
 router.get("/opportunities", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
 
-    // Get user's detected skills
     const userSkills = await db.novaSkillDetection.findMany({
       where: { userId, confidence: { gte: 75 } },
       select: { skill: true },
       distinct: ["skill"],
+      orderBy: { confidence: "desc" },
+      take: 8,
     });
     const skillNames = userSkills.map((s) => s.skill);
 
-    // Get active opportunities from Work layer
-    const workOpportunities = await db.opportunity.findMany({
-      where: {
-        status: "ACTIVE",
-        expiresAt: { gte: new Date() },
-      },
-      take: 5,
-      orderBy: { createdAt: "desc" },
-    });
+    const [workOpportunities, publishedCourses] = await Promise.all([
+      db.opportunity.findMany({
+        where: {
+          tenantId,
+          status: "ACTIVE",
+          expiresAt: { gte: new Date() },
+        },
+        take: 5,
+        orderBy: { createdAt: "desc" },
+      }),
+      db.course.findMany({
+        where: {
+          tenantId,
+          published: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          category: true,
+          level: true,
+          description: true,
+          featured: true,
+          createdAt: true,
+        },
+        orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+        take: 24,
+      }),
+    ]);
 
-    // Match opportunities to user skills
     const matchedOpportunities = workOpportunities
       .filter((opp) =>
-        skillNames.some((skill) =>
-          opp.title?.toLowerCase().includes(skill.toLowerCase()) ||
-          opp.description?.toLowerCase().includes(skill.toLowerCase())
-        )
+        skillNames.some((skill) => {
+          const normalizedSkill = skill.toLowerCase();
+          return (
+            opp.title.toLowerCase().includes(normalizedSkill) ||
+            opp.description.toLowerCase().includes(normalizedSkill) ||
+            opp.skills.some((oppSkill) =>
+              oppSkill.toLowerCase().includes(normalizedSkill)
+            )
+          );
+        })
       )
       .slice(0, 3);
+
+    const rankedCourses = publishedCourses
+      .map((course) => ({
+        course,
+        ...scoreCourseForSkills(course, skillNames),
+      }))
+      .filter(({ score }) => score > 0)
+      .sort((left, right) => right.score - left.score)
+      .slice(0, 3);
+
+    const fallbackCourses =
+      rankedCourses.length > 0
+        ? []
+        : publishedCourses.slice(0, Math.min(3, publishedCourses.length)).map((course) => ({
+            course,
+            matchedSkills: [] as string[],
+          }));
+
+    const academyItems = [...rankedCourses, ...fallbackCourses].slice(0, 3).map(({ course, matchedSkills }) => ({
+      id: course.id,
+      title: course.title,
+      slug: course.slug,
+      category: course.category,
+      level: course.level,
+      reason: buildRecommendationReason(matchedSkills, skillNames[0]),
+      matchedSkills,
+      href: `/academy/courses/${course.slug}`,
+    }));
 
     const opportunities = {
       skillMatch: {
@@ -559,10 +686,17 @@ router.get("/opportunities", async (req: Request, res: Response) => {
         type: "ACADEMY",
         label: "LEARNING GAP",
         supervisor: "SAGE",
-        title: "Courses matching your detected skills",
-        description: `${skillNames.length} skills ready to certify`,
+        title:
+          academyItems.length > 0
+            ? "Courses matching your detected skills"
+            : "Academy pathways ready for your next step",
+        description:
+          academyItems.length > 0
+            ? `${academyItems.length} course recommendations for ${skillNames.length} detected skills`
+            : `${skillNames.length} skills ready to certify`,
         ctaLabel: "See Courses →",
         ctaHref: `/academy?skills=${skillNames.join(",")}`,
+        items: academyItems,
       },
       marketOpening: {
         type: "MARKET",

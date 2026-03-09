@@ -1,6 +1,6 @@
 // src/components/layout/MainLayout.tsx
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation, NavLink } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import TenantSwitcher from "../ui/TenantSwitcher";
@@ -10,6 +10,7 @@ import ThemeToggle from "../../features/theme/ThemeToggle";
 import GlobalSearch from "../../features/search/GlobalSearch";
 import LayerSubNav from "../navigation/LayerSubNav";
 import { getLayerSubNavForPath } from "../navigation/layerSubNavConfigs";
+import CommandPalette from "../ui/CommandPalette";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -350,6 +351,7 @@ export default function MainLayout() {
   const location    = useLocation();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   const initialsSource = `${user?.name ?? user?.email ?? ""}`.trim();
   const initials = initialsSource
@@ -358,6 +360,18 @@ export default function MainLayout() {
   const pageName = ALL_NAV.find((n) => location.pathname.startsWith(n.path))?.label ?? "Dashboard";
   const layerSubNav = getLayerSubNavForPath(location.pathname);
   const closeSidebar = () => setSidebarOpen(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const NavItem = ({ item }: { item: NavEntry }) => (
     <NavLink
@@ -525,6 +539,11 @@ export default function MainLayout() {
           ))}
         </div>
       </nav>
+
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </div>
   );
 }

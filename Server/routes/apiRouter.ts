@@ -37,6 +37,7 @@ import vendorRoutes from "./vendorRoutes.js";
 import productRoutes from "./productRoutes.js";
 import cartRoutes from "./cartRoutes.js";
 import orderRoutes from "./orderRoutes.js";
+import workRoutes from "./workRoutes.js";
 
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
@@ -131,5 +132,6 @@ router.use("/vendors", vendorRoutes);
 router.use("/products", productRoutes);
 router.use("/cart", cartRoutes);
 router.use("/orders", orderRoutes);
+router.use("/work", workRoutes);
 
 export default router;

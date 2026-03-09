@@ -3,6 +3,8 @@
 // THE core component - embeds any assistant in any page with one line of JSX
 
 import { useState, useRef, useEffect, type FormEvent } from "react";
+import FollowUpChips from "../ai/FollowUpChips";
+import StreamingText from "../ai/StreamingText";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
@@ -386,8 +388,11 @@ export default function AssistantPanel({
                 className={`message ${message.role}`}
               >
                 <div className="message-bubble">
-                  {message.content}
-                  {message.isStreaming && <span className="streaming-cursor">▋</span>}
+                  {message.role === "assistant" ? (
+                    <StreamingText content={message.content} isStreaming={Boolean(message.isStreaming)} />
+                  ) : (
+                    message.content
+                  )}
                 </div>
               </div>
             ))}
@@ -396,16 +401,13 @@ export default function AssistantPanel({
 
           {/* Follow-up chips */}
           {messages.length > 0 && !isStreaming && (
-            <div className="follow-up-chips">
-              {getFollowUpChips(assistant).map((chip, i) => (
-                <button
-                  key={i}
-                  className="follow-chip"
-                  onClick={() => setInput(chip)}
-                >
-                  {chip}
-                </button>
-              ))}
+            <div style={{ padding: "0 16px 12px" }}>
+              <FollowUpChips
+                chips={getFollowUpChips(assistant)}
+                onChipClick={(chip) => setInput(chip)}
+                accentColor={config.color}
+                disabled={isStreaming}
+              />
             </div>
           )}
 
@@ -624,40 +626,6 @@ export default function AssistantPanel({
               background: linear-gradient(135deg, var(--gold), var(--gold-dim));
               color: var(--bg);
               border-radius: 12px 12px 4px 12px;
-            }
-
-            .streaming-cursor {
-              color: var(--gold);
-              animation: cursor-blink 0.75s infinite;
-            }
-
-            @keyframes cursor-blink {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0; }
-            }
-
-            .follow-up-chips {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 8px;
-              padding: 0 16px 12px;
-            }
-
-            .follow-chip {
-              background: rgba(155, 111, 255, 0.1);
-              border: 1px solid rgba(155, 111, 255, 0.2);
-              border-radius: 16px;
-              padding: 6px 12px;
-              font-family: 'Syne', sans-serif;
-              font-size: 11px;
-              color: var(--purple);
-              cursor: pointer;
-              transition: all 0.2s;
-            }
-
-            .follow-chip:hover {
-              background: rgba(155, 111, 255, 0.2);
-              border-color: var(--purple);
             }
 
             .assistant-input {

@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
 import { API_BASE } from "../../lib/api";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
 
 interface Course {
   id: string;
@@ -169,6 +171,7 @@ export default function CoursePage() {
     return (
       <div style={{ padding: 20 }}>
         {ctxBar}
+        <AIInsightBanner page="academy" assistant="sage" />
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>Loading course...</div>
         </div>
@@ -180,6 +183,7 @@ export default function CoursePage() {
     return (
       <div style={{ padding: 20 }}>
         {ctxBar}
+        <AIInsightBanner page="academy" assistant="sage" />
         <div style={{ padding:16, borderRadius:6, border:'1px solid var(--red)',
           background:'rgba(224,90,78,0.08)', color:'var(--red)',
           fontFamily:'Space Mono', fontSize:12 }}>
@@ -196,6 +200,7 @@ export default function CoursePage() {
   return (
     <div style={{ padding: 20 }}>
       {ctxBar}
+      <AIInsightBanner page="academy" assistant="sage" />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32 }}>
         {/* Main Content */}
@@ -518,6 +523,18 @@ export default function CoursePage() {
           </div>
         </div>
       </div>
+
+      <AssistantPanel
+        assistant="sage"
+        page="academy"
+        userId={user?.id}
+        context={{
+          courseId: course.id,
+          completedLessons,
+          totalLessons,
+          progressPercentage,
+        }}
+      />
     </div>
   );
 }

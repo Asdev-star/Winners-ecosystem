@@ -7,9 +7,9 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
-import CommandPalette from "../../components/ui/CommandPalette";
 import ContextBar from "../../components/ui/ContextBar";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
 
 const API = API_BASE;
 
@@ -1281,6 +1281,48 @@ interface Opportunity {
   supervisor: string;
 }
 
+interface RecommendationItem {
+  id?: string;
+  title: string;
+  slug?: string;
+  category?: string;
+  level?: string;
+  reason?: string;
+  href?: string;
+  budget?: number | string | null;
+  link?: string;
+  matchedSkills?: string[];
+}
+
+interface OpportunityBucket {
+  label: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  ctaHref: string;
+  supervisor: string;
+  items?: RecommendationItem[];
+}
+
+interface CommunityOpportunitiesResponse {
+  opportunities?: {
+    skillMatch?: OpportunityBucket;
+    learningGap?: OpportunityBucket;
+    marketOpening?: OpportunityBucket;
+  };
+  lastUpdated?: string;
+}
+
+interface CommunityLoopStatusResponse {
+  loop?: {
+    stage?: number;
+    stageName?: string;
+    currentStage?: string;
+  };
+  skills?: Array<{ skill: string; confidence: number; category?: string }>;
+  nextAction?: string;
+}
+
 interface HandoffCard {
   id: string;
   variant: "nova-sage" | "nova-circuit" | "nova-atlas";
@@ -1325,6 +1367,68 @@ function mapDetectedSkills(skills: Array<{ skill: string; confidence: number; ca
     confidence: normalizeConfidence(skill.confidence),
     category: skill.category ?? "technical",
   }));
+}
+
+function mapLoopStageIndex(stage?: string): number {
+  if (!stage) return 0;
+  const normalizedStage = stage.toLowerCase();
+  const index = LOOP_STAGES.findIndex((value) => value === normalizedStage);
+  return index >= 0 ? index : 0;
+}
+
+function createHandoffCards(recommendations: RecommendationItem[]): HandoffCard[] {
+  return recommendations.slice(0, 2).map((item, index) => ({
+    id: item.id ?? `${item.title}-${index}`,
+    variant: "nova-sage",
+    fromSupervisor: "NOVA",
+    toSupervisor: "SAGE",
+    title: `${item.title} is ready for certification`,
+    description: item.reason ?? "SAGE found a course to deepen your detected skill.",
+    ctaLabel: "Continue Your Loop →",
+    ctaHref: item.href ?? "/academy",
+  }));
+}
+
+function mapOpportunityBoard(opportunities?: CommunityOpportunitiesResponse["opportunities"]): Opportunity[] {
+  const skillMatch = opportunities?.skillMatch;
+  const learningGap = opportunities?.learningGap;
+  const marketOpening = opportunities?.marketOpening;
+
+  const skillItem = skillMatch?.items?.[0];
+  const courseItem = learningGap?.items?.[0];
+
+  return [
+    {
+      type: "skill",
+      label: skillMatch?.label ?? "SKILL MATCH",
+      supervisor: skillMatch?.supervisor ?? "CIRCUIT",
+      title: skillItem?.title ?? skillMatch?.title ?? DEMO_OPPORTUNITIES[0].title,
+      description:
+        typeof skillItem?.budget !== "undefined" && skillItem?.budget !== null
+          ? `${skillMatch?.description ?? "CIRCUIT matched this to your detected skills"} · Budget ${String(skillItem.budget)}`
+          : skillMatch?.description ?? DEMO_OPPORTUNITIES[0].description,
+      ctaLabel: skillMatch?.ctaLabel ?? DEMO_OPPORTUNITIES[0].ctaLabel,
+      ctaHref: skillItem?.link ?? skillMatch?.ctaHref ?? DEMO_OPPORTUNITIES[0].ctaHref,
+    },
+    {
+      type: "course",
+      label: learningGap?.label ?? "LEARNING GAP",
+      supervisor: learningGap?.supervisor ?? "SAGE",
+      title: courseItem?.title ?? learningGap?.title ?? DEMO_OPPORTUNITIES[1].title,
+      description: courseItem?.reason ?? learningGap?.description ?? DEMO_OPPORTUNITIES[1].description,
+      ctaLabel: learningGap?.ctaLabel ?? DEMO_OPPORTUNITIES[1].ctaLabel,
+      ctaHref: courseItem?.href ?? learningGap?.ctaHref ?? DEMO_OPPORTUNITIES[1].ctaHref,
+    },
+    {
+      type: "market",
+      label: marketOpening?.label ?? "MARKET OPENING",
+      supervisor: marketOpening?.supervisor ?? "ATLAS",
+      title: marketOpening?.title ?? DEMO_OPPORTUNITIES[2].title,
+      description: marketOpening?.description ?? DEMO_OPPORTUNITIES[2].description,
+      ctaLabel: marketOpening?.ctaLabel ?? DEMO_OPPORTUNITIES[2].ctaLabel,
+      ctaHref: marketOpening?.ctaHref ?? DEMO_OPPORTUNITIES[2].ctaHref,
+    },
+  ];
 }
 
 function normalizeTags(tags: unknown): { tag: { name: string } }[] {
@@ -1489,11 +1593,11 @@ export default function CommunityPage() {
   const [novaStreaming, setNovaStreaming] = useState(true);
   const [showNovaBanner, setShowNovaBanner] = useState(true);
   const [handoffCards, setHandoffCards]   = useState<HandoffCard[]>([]);
+  const [detectedSkills, setDetectedSkills] = useState<SkillDetection[]>([]);
+  const [opportunityBoard, setOpportunityBoard] = useState<Opportunity[]>(DEMO_OPPORTUNITIES);
+  const [opportunityUpdatedAt, setOpportunityUpdatedAt] = useState<string | null>(null);
+  const [nextLoopAction, setNextLoopAction] = useState("Post more to trigger skill detection");
 
-  // Command Palette state
-  const [cmdOpen, setCmdOpen] = useState(false);
-
-  // Sidebar
   const [onlineCount, setOnlineCount]   = useState(43);
   const [totalPosts, setTotalPosts]     = useState(127);
   const [totalLikes, setTotalLikes]     = useState(891);
@@ -1504,6 +1608,34 @@ export default function CommunityPage() {
     () => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }),
     [token],
   );
+
+  const refreshCommunityIntelligence = useCallback(async () => {
+    try {
+      const [opportunitiesRes, loopStatusRes] = await Promise.all([
+        fetch(`${API}/community/opportunities`, { headers }),
+        fetch(`${API}/community/loop-status`, { headers }),
+      ]);
+
+      if (opportunitiesRes.ok) {
+        const opportunitiesData = await opportunitiesRes.json() as CommunityOpportunitiesResponse;
+        const courseRecommendations = opportunitiesData.opportunities?.learningGap?.items ?? [];
+        setOpportunityBoard(mapOpportunityBoard(opportunitiesData.opportunities));
+        setHandoffCards(createHandoffCards(courseRecommendations));
+        setOpportunityUpdatedAt(opportunitiesData.lastUpdated ?? new Date().toISOString());
+      }
+
+      if (loopStatusRes.ok) {
+        const loopStatusData = await loopStatusRes.json() as CommunityLoopStatusResponse;
+        const mappedSkills = Array.isArray(loopStatusData.skills)
+          ? mapDetectedSkills(loopStatusData.skills)
+          : [];
+        setDetectedSkills(mappedSkills);
+        setLoopStage(mapLoopStageIndex(loopStatusData.loop?.currentStage));
+        setNextLoopAction(loopStatusData.nextAction ?? "Post more to trigger skill detection");
+      }
+    } catch {
+    }
+  }, [headers]);
 
   // ── Fetch posts ──────────────────────────────────────────────────────────────
   const fetchPosts = useCallback(async (p = 1, append = false) => {
@@ -1536,19 +1668,11 @@ export default function CommunityPage() {
     }
   }, [feedTab, headers, user?.id]);
 
-  // Command Palette keyboard shortcut
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setCmdOpen(true);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   useEffect(() => { fetchPosts(1); }, [fetchPosts]);
+
+  useEffect(() => {
+    refreshCommunityIntelligence();
+  }, [refreshCommunityIntelligence]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1677,24 +1801,11 @@ export default function CommunityPage() {
         setQuickContent("");
         setTotalPosts((n) => n + 1);
 
-        if (skillDetections.length > 0 || c.length > 60) {
-          setTimeout(() => {
-            const skill = skillDetections[0]?.skillName || tagArr[0] || "Full-Stack Development";
-            setHandoffCards((prev) => [
-              {
-                id: Date.now().toString(),
-                variant: "nova-sage" as const,
-                fromSupervisor: "NOVA",
-                toSupervisor: "SAGE",
-                title: `${skill} detected in your post`,
-                description: `SAGE has 3 courses to deepen this skill. Certifying it increases your Work match rate by 40%.`,
-                ctaLabel: "Continue Your Loop →",
-                ctaHref: "/academy",
-              },
-              ...prev,
-            ].slice(0, 2));
-          }, 1800);
+        if (skillDetections.length > 0) {
+          setDetectedSkills(skillDetections);
         }
+
+        await refreshCommunityIntelligence();
       }
     } finally {
       setPosting(false);
@@ -2023,7 +2134,29 @@ export default function CommunityPage() {
             </div>
           </div>
 
-          {/* Handoff Cards (NOVA cross-layer) */}
+          {detectedSkills.length > 0 && (
+            <div className="cm-handoff nova-sage">
+              <div className="cm-handoff-header">
+                <span className="cm-handoff-from">NOVA</span>
+                <span className="cm-handoff-arrow">→</span>
+                <span className="cm-handoff-to">OMEGA</span>
+              </div>
+              <div className="cm-handoff-title">Skills detected from your recent Community activity</div>
+              <div className="cm-handoff-desc">{nextLoopAction}</div>
+              <div className="cm-skill-badges" style={{ marginTop: 12 }}>
+                {detectedSkills.slice(0, 4).map((skill) => (
+                  <div key={skill.skillName} className="cm-skill-badge" title={`NOVA detected ${skill.skillName} with ${Math.round(skill.confidence * 100)}% confidence`}>
+                    <span className="cm-skill-badge-nova">NOVA</span>
+                    <div className="cm-skill-confidence">
+                      <div className="cm-skill-confidence-fill" style={{ width: `${skill.confidence * 100}%` }} />
+                    </div>
+                    {skill.skillName}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {handoffCards.map((card) => (
             <div key={card.id} className={`cm-handoff ${card.variant}`}>
               <div className="cm-handoff-header">
@@ -2266,10 +2399,9 @@ export default function CommunityPage() {
             </div>
           </div>
 
-          {/* NOVA Opportunity Board */}
           <div className="cm-sidebar-card">
             <div className="cm-sidebar-title">NOVA · Opportunities</div>
-            {DEMO_OPPORTUNITIES.map((opp, i) => (
+            {opportunityBoard.map((opp, i) => (
               <div key={i} className="cm-opp-item">
                 <div className={`cm-opp-label ${opp.type}`}>
                   {opp.label} · {opp.supervisor}
@@ -2280,7 +2412,7 @@ export default function CommunityPage() {
               </div>
             ))}
             <div className="cm-opp-footer">
-              Powered by OMEGA · Updated {Math.floor(Math.random() * 15) + 1} min ago
+              Powered by OMEGA · Updated {opportunityUpdatedAt ? timeAgo(opportunityUpdatedAt) : "just now"}
             </div>
           </div>
 
@@ -2336,8 +2468,12 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      {/* Command Palette (⌘K) */}
-      <CommandPalette isOpen={cmdOpen} onClose={() => setCmdOpen(false)} />
+      <AssistantPanel
+        assistant="nova"
+        page="community"
+        userId={user?.id}
+        context={{ totalPosts, totalLikes, onlineCount }}
+      />
     </>
   );
 }

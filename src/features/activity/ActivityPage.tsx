@@ -7,6 +7,7 @@ import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 import ProgressRing from "../../components/ui/ProgressRing";
 import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import ContextBar from "../../components/ui/ContextBar";
 import { useAssistant } from "../../hooks/useAssistant";
 
 const API = API_BASE;
@@ -200,7 +201,7 @@ interface Log {
   userName?: string;
   userEmail?: string;
   ip?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -268,16 +269,11 @@ export default function ActivityPage() {
           <p className="ac-subtitle">Winners Ecosystem · Core Engine · Complete audit trail of workspace actions</p>
         </div>
 
-        {/* Ecosystem context bar */}
-        <div className="ac-eco-bar">
-          <div className="ac-eco-label">Tracking Layer</div>
-          <div className="ac-eco-chips">
-            <div className="ac-eco-chip active">⬡ Core · Live</div>
-            <div className="ac-eco-chip active">🧑‍🤝‍🧑 Community · Live</div>
-            <div className="ac-eco-chip">🎓 Academy · Soon</div>
-            <div className="ac-eco-chip">🛒 Market · Soon</div>
-          </div>
-        </div>
+        <ContextBar
+          activeLayer="core"
+          statusOverrides={{ core: "live", community: "live", academy: "active", market: "building", intelligence: "active", work: "planned" }}
+          showLabels={true}
+        />
 
         {/* AI Components */}
         <AIInsightBanner page="dashboard" assistant="aria" />
@@ -386,3 +382,5 @@ export default function ActivityPage() {
     </>
   );
 }
+
+

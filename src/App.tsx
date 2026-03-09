@@ -71,6 +71,7 @@ import CartPage from "./features/market/CartPage";
 import OrdersPage from "./features/market/OrdersPage";
 import CheckoutPage from "./features/market/CheckoutPage";
 import WorkPage from "./features/work/WorkPage";
+import FreelancerProfilePage from "./features/work/FreelancerProfilePage";
 import CreatorProfilePage from "./features/community/CreatorProfilePage";
 
 function App() {
@@ -218,6 +219,7 @@ function App() {
             <Route path="work" element={<WorkPage />} />
             <Route path="work/freelancers" element={<WorkPage />} />
             <Route path="work/contracts" element={<WorkPage />} />
+            <Route path="work/profile" element={<FreelancerProfilePage />} />
             <Route path="market/:vertical" element={<MarketPage />} />
           </Route>
 

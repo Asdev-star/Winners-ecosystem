@@ -13,6 +13,7 @@ import AgenticLoopWidget from "../../components/ui/AgenticLoopWidget";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 import ProgressRing from "../../components/ui/ProgressRing";
 import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import ContextBar from "../../components/ui/ContextBar";
 import { useAssistant } from "../../hooks/useAssistant";
 
 // AI Components - Level II & III imports
@@ -182,8 +183,9 @@ export default function DashboardPage() {
         topInsight,
         trend,
       });
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load dashboard");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to load dashboard";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -380,17 +382,11 @@ export default function DashboardPage() {
 
       <div className="db">
         {/* ── Context Bar ── */}
-        <div className="db-ctx-bar">
-          <span className="db-ctx live">⬡ Core Engine</span>
-          <span className="db-ctx-sep">›</span>
-          <span className="db-ctx live">🧑‍🤝‍🧑 Community</span>
-          <span className="db-ctx-sep">›</span>
-          <span className="db-ctx active">🎓 Academy</span>
-          <span className="db-ctx-sep">›</span>
-          <span className="db-ctx planned">🛒 Market</span>
-          <span className="db-ctx-sep">›</span>
-          <span className="db-ctx active">🤖 Intelligence</span>
-        </div>
+        <ContextBar
+          activeLayer="core"
+          statusOverrides={{ core: "live", community: "live", academy: "active", intelligence: "active" }}
+          showLabels={true}
+        />
 
         {/* ── Header ── */}
         <div className="db-hdr">
@@ -895,4 +891,6 @@ export default function DashboardPage() {
     </>
   );
 }
+
+
 

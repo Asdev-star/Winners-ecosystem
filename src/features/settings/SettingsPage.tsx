@@ -9,6 +9,7 @@ import { useInviteStore } from "../team/inviteStore";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import ContextBar from "../../components/ui/ContextBar";
 import { useAssistant } from "../../hooks/useAssistant";
 
 import { API_BASE } from "../../lib/api";
@@ -228,14 +229,7 @@ export default function SettingsPage() {
 
   return (
     <div className="st-root">
-      {/* Context Bar */}
-      <div className="st-context-bar">
-        <span className="st-context-item live">⬡ Core Engine</span>
-        <span className="st-context-sep">›</span>
-        <span className="st-context-item live">Settings</span>
-        <span className="st-context-sep">›</span>
-        <span className="st-context-item planned">Phase 1</span>
-      </div>
+      <ContextBar activeLayer="core" statusOverrides={{ core: "live", community: "live", academy: "active", intelligence: "active" }} showLabels={true} />
 
       {/* Header */}
       <div className="st-header">
@@ -360,3 +354,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+

@@ -9,6 +9,7 @@ import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 import ProgressRing from "../../components/ui/ProgressRing";
 import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import ContextBar from "../../components/ui/ContextBar";
 import { useAssistant } from "../../hooks/useAssistant";
 
 const API = API_BASE;
@@ -154,15 +155,7 @@ export default function TeamPage() {
 
   return (
     <div style={s.page}>
-      {/* Context bar */}
-      <div style={s.contextBar}>
-        {platformLayers.map((p) => (
-          <div key={p.name} style={s.contextItem}>
-            <div style={{ ...s.contextDot, background: p.status === "live" ? "var(--green)" : p.status === "soon" ? "var(--gold)" : "var(--border)" }} />
-            <span style={{ color: p.name === "Core" ? "var(--gold)" : "var(--text-dim)" }}>{p.name}</span>
-          </div>
-        ))}
-      </div>
+      <ContextBar activeLayer="core" statusOverrides={{ core: "live", community: "live", academy: "active", market: "building", intelligence: "active", work: "planned" }} showLabels={true} />
 
       {/* Header */}
       <div style={s.header}>
@@ -386,3 +379,5 @@ const s: Record<string, React.CSSProperties> = {
   spinner: { width: "28px", height: "28px", border: "2px solid var(--border)", borderTop: "2px solid var(--gold)", borderRadius: "50%", animation: "spin 0.8s linear infinite" },
   emptyState: { textAlign: "center", padding: "40px", color: "var(--text-dim)" },
 };
+
+

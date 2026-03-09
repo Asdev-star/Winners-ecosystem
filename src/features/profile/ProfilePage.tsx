@@ -12,6 +12,7 @@ import ProgressRing from "../../components/ui/ProgressRing";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
+import ContextBar from "../../components/ui/ContextBar";
 import { useAssistant } from "../../hooks/useAssistant";
 
 const API = API_BASE;
@@ -165,15 +166,7 @@ export default function ProfilePage() {
 
   return (
     <div style={s.page}>
-      {/* Context bar */}
-      <div style={s.contextBar}>
-        {platformLayers.map((p) => (
-          <div key={p.name} style={s.contextItem}>
-            <div style={{ ...s.contextDot, background: p.status === "live" ? "var(--green)" : p.status === "soon" ? "var(--gold)" : "var(--border)" }} />
-            <span style={{ color: p.name === "Core" ? "var(--gold)" : "var(--text-dim)" }}>{p.name}</span>
-          </div>
-        ))}
-      </div>
+      <ContextBar activeLayer="core" statusOverrides={{ core: "live", community: "live", academy: "active", market: "building", intelligence: "active", work: "planned" }} showLabels={true} />
 
       {/* Trust & Reputation */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -491,3 +484,5 @@ const s: Record<string, React.CSSProperties> = {
   copyBtn: { padding: "7px 16px", background: "var(--gold)", border: "none", borderRadius: "5px", color: "var(--bg)", fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "12px", cursor: "pointer" },
   referralStat: { background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "14px", textAlign: "center" },
 };
+
+
