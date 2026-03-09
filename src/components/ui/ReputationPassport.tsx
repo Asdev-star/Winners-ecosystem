@@ -57,10 +57,10 @@ export default function ReputationPassport({
 
   const levelColor = useMemo(() => {
     const colors: Record<string, string> = {
-      bronze: "#B8733B",
-      silver: "#A8A8A8",
+      bronze: "var(--orange)",
+      silver: "var(--text-dim)",
       gold: "var(--gold)",
-      platinum: "#D4D4D4"
+      platinum: "var(--ice)"
     };
     return colors[data.level] || colors.gold;
   }, [data.level]);
@@ -819,7 +819,7 @@ const css = `
   }
 
   .rp-modal-copy:hover {
-    background: #d4b85e;
+    background: var(--gold);
   }
 
   .rp-modal-social {

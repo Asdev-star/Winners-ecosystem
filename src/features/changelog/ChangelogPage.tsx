@@ -59,14 +59,14 @@ const css = `
     outline: none; transition: border-color 0.15s; cursor: pointer;
   }
   .cl-select:focus { border-color: rgba(201,168,76,0.5); }
-  option { background: #111D2E; }
+  option { background: var(--surface); }
 
   .cl-submit-btn {
     background: var(--gold); color: var(--bg); border: none; border-radius: 8px;
     padding: 10px 22px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
     cursor: pointer; transition: all 0.15s;
   }
-  .cl-submit-btn:hover:not(:disabled) { background: #E8C97A; transform: translateY(-1px); }
+  .cl-submit-btn:hover:not(:disabled) { background: var(--gold); transform: translateY(-1px); }
   .cl-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
   .cl-cancel-btn {
@@ -85,13 +85,13 @@ const css = `
   .cl-success {
     background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2);
     border-radius: 8px; padding: 10px 14px; font-family: 'Space Mono', monospace;
-    font-size: 11px; color: #4ade80; margin-bottom: 14px;
+    font-size: 11px; color: var(--green); margin-bottom: 14px;
   }
 
   /* ── Filter tabs ── */
   .cl-filters { display: flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; }
   .cl-filter {
-    background: #111D2E; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
     padding: 7px 14px; font-family: 'Space Mono', monospace; font-size: 10px;
     color: var(--text-dim); cursor: pointer; transition: all 0.15s;
   }

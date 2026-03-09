@@ -3,14 +3,14 @@
 // NOVA AI-powered skill detection, insights, and cross-layer handoffs
 
 import { Router, Request, Response } from "express";
+import Anthropic from "@anthropic-ai/sdk";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
 
 // Claude API client for NOVA intelligence
-let anthropic: any = null;
+let anthropic: Anthropic | null = null;
 try {
-  const Anthropic = require("@anthropic-ai/sdk");
   anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
@@ -76,18 +76,28 @@ Post content: "${content.substring(0, 2000)}"`,
 
       const raw =
         message.content[0].type === "text" ? message.content[0].text : "{}";
-      let parsed;
+      let parsed: { skills?: unknown; summary?: string };
       try {
         parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
       } catch {
         parsed = { skills: [], summary: "" };
       }
 
-      if (parsed.skills && parsed.skills.length > 0) {
-        return parsed.skills
-          .filter((s: any) => s.confidence >= 0.65)
+      const parsedSkills = Array.isArray(parsed.skills) ? parsed.skills : [];
+      if (parsedSkills.length > 0) {
+        return parsedSkills
+          .filter(
+            (
+              skill
+            ): skill is { name: string; confidence: number; category?: string } =>
+              typeof skill === "object" &&
+              skill !== null &&
+              typeof (skill as { name?: unknown }).name === "string" &&
+              typeof (skill as { confidence?: unknown }).confidence === "number" &&
+              (skill as { confidence: number }).confidence >= 0.65
+          )
           .slice(0, 5)
-          .map((s: any) => ({
+          .map((s) => ({
             skill: s.name,
             confidence: Math.round(s.confidence * 100),
             category: s.category || "technical",

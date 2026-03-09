@@ -5,6 +5,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "../auth/authStore";
 import { useNavigate } from "react-router-dom";
+import ContextBar from "../../components/ui/ContextBar";
+import AIInsightBanner from "../../components/ui/AIInsightBanner";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -21,9 +23,9 @@ const css = `
   }
   .aria-avatar {
     width: 40px; height: 40px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--gold), #8B6914);
+    background: linear-gradient(135deg, var(--gold), var(--gold));
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; font-weight: 700; color: #0D1520;
+    font-size: 18px; font-weight: 700; color: var(--bg);
   }
   .aria-title h2 { margin: 0; font-size: 16px; font-weight: 700; }
   .aria-title span { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--green); }
@@ -88,9 +90,9 @@ const css = `
   .aria-input::placeholder { color: var(--text-dim); }
 
   .aria-send {
-    background: linear-gradient(135deg, var(--gold), #8B6914);
+    background: linear-gradient(135deg, var(--gold), var(--gold));
     border: none; border-radius: 8px; padding: 12px 20px;
-    color: #0D1520; font-weight: 700; font-size: 14px; cursor: pointer;
+    color: var(--bg); font-weight: 700; font-size: 14px; cursor: pointer;
     transition: all 0.2s;
   }
   .aria-send:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
@@ -224,6 +226,10 @@ export default function WinnersChat() {
   return (
     <div className="aria-container">
       <style>{css}</style>
+      <div style={{ padding: "16px 20px 0" }}>
+        <ContextBar activeLayer="intelligence" showLabels={true} />
+        <AIInsightBanner page="intelligence" assistant="aria" />
+      </div>
 
       <header className="aria-header">
         <div className="aria-avatar">A</div>

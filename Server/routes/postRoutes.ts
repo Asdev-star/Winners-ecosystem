@@ -4,6 +4,7 @@
 // Phase 2 V1.1: Added real-time presence API + Voice Posts
 
 import { Router, Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
@@ -13,8 +14,13 @@ const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
 
-function isMissingTableError(err: any) {
-  return err?.code === "P2021" || String(err?.message ?? "").toLowerCase().includes("does not exist");
+function isMissingTableError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { code?: unknown; message?: unknown };
+  return (
+    candidate.code === "P2021" ||
+    String(candidate.message ?? "").toLowerCase().includes("does not exist")
+  );
 }
 
 // ─── GET /posts/online — get online users ───────────────────────────────────────
@@ -40,7 +46,7 @@ router.get("/", async (req: Request, res: Response) => {
   const tag      = String(req.query.tag ?? "").trim();
 
   try {
-    const where: any = { tenantId, deletedAt: null };
+    const where: Prisma.PostWhereInput = { tenantId, deletedAt: null };
     if (tag) where.tags = { some: { tag: { name: tag } } };
 
     const [posts, total, pinned] = await Promise.all([
@@ -89,9 +95,9 @@ router.get("/", async (req: Request, res: Response) => {
       pages: Math.ceil(total / limit),
       hasMore: page * limit < total,
     });
-  } catch (err: any) {
-    console.error("Get posts error:", err);
-    if (isMissingTableError(err)) {
+  } catch (error) {
+    console.error("Get posts error:", error);
+    if (isMissingTableError(error)) {
       return res.json({
         posts: [],
         pinned: [],
@@ -162,8 +168,8 @@ router.post("/", async (req: Request, res: Response) => {
       liked:        false,
       tags:         post.tags.map((t) => t.tag.name),
     });
-  } catch (err: any) {
-    console.error("Create post error:", err);
+  } catch (error) {
+    console.error("Create post error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -215,8 +221,8 @@ router.post("/voice", async (req: Request, res: Response) => {
       liked:        false,
       tags:         post.tags.map((t) => t.tag.name),
     });
-  } catch (err: any) {
-    console.error("Create voice post error:", err);
+  } catch (error) {
+    console.error("Create voice post error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -266,8 +272,8 @@ router.get("/:id", async (req: Request, res: Response) => {
       liked:        post.likes.length > 0,
       tags:         post.tags.map((t) => t.tag.name),
     });
-  } catch (err: any) {
-    console.error("Get post error:", err);
+  } catch (error) {
+    console.error("Get post error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -306,8 +312,8 @@ router.patch("/:id", async (req: Request, res: Response) => {
       commentCount: updated._count.comments,
       tags:         updated.tags.map((t) => t.tag.name),
     });
-  } catch (err: any) {
-    console.error("Edit post error:", err);
+  } catch (error) {
+    console.error("Edit post error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -336,8 +342,8 @@ router.delete("/:id", async (req: Request, res: Response) => {
     });
 
     return res.json({ message: "Post deleted" });
-  } catch (err: any) {
-    console.error("Delete post error:", err);
+  } catch (error) {
+    console.error("Delete post error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -368,8 +374,8 @@ router.post("/:id/like", async (req: Request, res: Response) => {
       const count = await db.like.count({ where: { postId } });
       return res.json({ liked: true, likeCount: count });
     }
-  } catch (err: any) {
-    console.error("Like post error:", err);
+  } catch (error) {
+    console.error("Like post error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -426,8 +432,8 @@ router.post("/:id/react", async (req: Request, res: Response) => {
     const userReaction = reactions.find((r) => r.userId === userId)?.reaction || null;
 
     return res.json({ reactions, userReaction });
-  } catch (err: any) {
-    console.error("Reaction error:", err);
+  } catch (error) {
+    console.error("Reaction error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -477,8 +483,8 @@ router.get("/:id/comments", async (req: Request, res: Response) => {
         })),
       }))
     );
-  } catch (err: any) {
-    console.error("Get comments error:", err);
+  } catch (error) {
+    console.error("Get comments error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -518,8 +524,8 @@ router.post("/:id/comments", async (req: Request, res: Response) => {
       replyCount: comment._count.replies,
       liked:      false,
     });
-  } catch (err: any) {
-    console.error("Add comment error:", err);
+  } catch (error) {
+    console.error("Add comment error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -553,8 +559,8 @@ router.delete("/:id/comments/:commentId", async (req: Request, res: Response) =>
     });
 
     return res.json({ message: "Comment deleted" });
-  } catch (err: any) {
-    console.error("Delete comment error:", err);
+  } catch (error) {
+    console.error("Delete comment error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -579,10 +585,11 @@ router.post("/:id/comments/:commentId/like", async (req: Request, res: Response)
       const count = await db.like.count({ where: { commentId } });
       return res.json({ liked: true, likeCount: count });
     }
-  } catch (err: any) {
-    console.error("Like comment error:", err);
+  } catch (error) {
+    console.error("Like comment error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
 
 export default router;
+

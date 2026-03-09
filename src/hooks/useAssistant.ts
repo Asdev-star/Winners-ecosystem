@@ -52,7 +52,11 @@ function getUserContext() {
   const authUser = useAuthStore.getState().user;
   const loopState = useAgenticLoopStore.getState();
   
-  const trustScore = (authUser as any)?.trustScore ?? 0;
+  const trustScoreRaw =
+    authUser && typeof authUser === "object" && "trustScore" in authUser
+      ? (authUser as { trustScore?: unknown }).trustScore
+      : undefined;
+  const trustScore = typeof trustScoreRaw === "number" ? trustScoreRaw : 0;
   let trustTier = "Bronze";
   if (trustScore >= 85) trustTier = "Platinum";
   else if (trustScore >= 65) trustTier = "Gold";

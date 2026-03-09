@@ -28,7 +28,7 @@ const css = `
 
   .sl-desc { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); margin-bottom: 14px; line-height: 1.5; }
 
-  .sl-btn { background: var(--gold); color: #080B10; border: none; border-radius: 3px; padding: 9px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+  .sl-btn { background: var(--gold); color: var(--bg); border: none; border-radius: 3px; padding: 9px 18px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
   .sl-btn:hover { opacity: 0.88; }
   .sl-btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
   .sl-btn.ghost:hover { border-color: var(--gold); color: var(--gold); }

@@ -66,7 +66,7 @@ const css = `
   .as-card-label {
     font-family: 'Space Mono', monospace;
     font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim);
   }
   .as-card-icon {
     width: 32px; height: 32px; border-radius: 6px;
@@ -75,7 +75,7 @@ const css = `
   }
   .as-card-icon--gold  { background: var(--gold-glow-sm);  color: var(--gold); }
   .as-card-icon--ice   { background: var(--blue-glow-sm); color: var(--ice); }
-  .as-card-icon--green { background: rgba(45,212,160,0.1);  color: var(--green, #2DD4A0); }
+  .as-card-icon--green { background: rgba(45,212,160,0.1);  color: var(--green); }
   .as-card-icon--blue  { background: rgba(43,95,142,0.15);  color: var(--ice); }
 
   /* ── Value ── */
@@ -87,7 +87,7 @@ const css = `
   }
   .as-card--gold  .as-card-value { color: var(--gold); }
   .as-card--ice   .as-card-value { color: var(--ice); }
-  .as-card--green .as-card-value { color: var(--green, #2DD4A0); }
+  .as-card--green .as-card-value { color: var(--green); }
   .as-card--blue  .as-card-value { color: var(--text); }
 
   /* ── Growth pill ── */
@@ -99,17 +99,17 @@ const css = `
   }
   .as-growth--up {
     background: rgba(45,212,160,0.1);
-    color: var(--green, #2DD4A0);
+    color: var(--green);
     border: 1px solid rgba(45,212,160,0.2);
   }
   .as-growth--down {
     background: rgba(224,90,78,0.1);
-    color: var(--red, #E05A4E);
+    color: var(--red);
     border: 1px solid rgba(224,90,78,0.2);
   }
   .as-growth--flat {
     background: rgba(90,122,150,0.1);
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim);
     border: 1px solid rgba(90,122,150,0.2);
   }
 
@@ -149,7 +149,7 @@ const css = `
     padding: 32px;
     font-family: 'Space Mono', monospace; font-size: 10px;
     letter-spacing: 0.15em; text-transform: uppercase;
-    color: var(--text-dim, #5A7A96);
+    color: var(--text-dim);
     border: 1px solid var(--border);
     border-radius: 6px; background: var(--surface);
   }

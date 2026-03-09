@@ -38,7 +38,7 @@ const css = `
   .sd-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--gold, var(--gold)); }
   .sd-kpi:nth-child(2)::before { background: var(--green); }
   .sd-kpi:nth-child(3)::before { background: var(--blue); }
-  .sd-kpi:nth-child(4)::before { background: #9B6FFF; }
+  .sd-kpi:nth-child(4)::before { background: var(--purple); }
   .sd-kpi-label { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim, var(--text-dim)); margin-bottom: 8px; }
   .sd-kpi-val { font-size: 26px; font-weight: 800; letter-spacing: -1px; }
   .sd-kpi-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim, var(--text-dim)); margin-top: 4px; }

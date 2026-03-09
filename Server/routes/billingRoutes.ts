@@ -1,6 +1,7 @@
 // server/routes/billingRoutes.ts
 
 import { Router, Request, Response } from "express";
+import { Plan } from "@prisma/client";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requirePermission, enforceTenant } from "../middleware/rbacMiddleware.js";
@@ -215,11 +216,14 @@ router.post("/webhook", async (req: Request, res: Response) => {
       case "subscription_created":
       case "subscription_updated": {
         const variantId = req.body?.data?.attributes?.variant_id?.toString();
-        const plan =
-          variantId === process.env.LS_ENTERPRISE_VARIANT_ID ? "ENTERPRISE" :
-          variantId === process.env.LS_PRO_VARIANT_ID        ? "PRO"        : "FREE";
+        const plan: Plan =
+          variantId === process.env.LS_ENTERPRISE_VARIANT_ID
+            ? Plan.ENTERPRISE
+            : variantId === process.env.LS_PRO_VARIANT_ID
+              ? Plan.PRO
+              : Plan.FREE;
 
-        await db.tenant.update({ where: { id: tenantId }, data: { plan: plan as any } });
+        await db.tenant.update({ where: { id: tenantId }, data: { plan } });
         console.log(`✅ [Webhook] tenant ${tenantId} → ${plan}`);
         break;
       }

@@ -43,8 +43,8 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
     req.user = decoded;
     next();
-  } catch (err: any) {
-    if (err.name === "TokenExpiredError") {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "TokenExpiredError") {
       return res.status(401).json({ message: "Token expired" });
     }
     return res.status(401).json({ message: "Invalid token" });

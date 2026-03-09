@@ -2,6 +2,7 @@
 // Phase 2 Extension — Video Rooms, Broadcast Streams, Events Calendar
 // NOVA Intelligence integration for live transcription and skill detection
 
+import { RoomStatus, StreamStatus, VideoRoomType, type Prisma } from "@prisma/client";
 import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import crypto from "crypto";
@@ -13,6 +14,27 @@ const router = Router();
 const LIVEKIT_URL = process.env.LIVEKIT_URL || "wss://winners1-9kbwfpev.livekit.cloud";
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || "APIQgzdRr93QMUa";
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || "HzMVERu37JVA2XG6WcdpX2smeUj2Re5MRHEVdwoQ35R";
+
+function parseRoomStatus(value: string): RoomStatus | null {
+  const candidate = value.trim().toUpperCase();
+  return (Object.values(RoomStatus) as string[]).includes(candidate)
+    ? (candidate as RoomStatus)
+    : null;
+}
+
+function parseStreamStatus(value: string): StreamStatus | null {
+  const candidate = value.trim().toUpperCase();
+  return (Object.values(StreamStatus) as string[]).includes(candidate)
+    ? (candidate as StreamStatus)
+    : null;
+}
+
+function parseVideoRoomType(value: string): VideoRoomType | null {
+  const candidate = value.trim().toUpperCase();
+  return (Object.values(VideoRoomType) as string[]).includes(candidate)
+    ? (candidate as VideoRoomType)
+    : null;
+}
 
 // Helper function to generate LiveKit token (JWT)
 function generateLiveKitToken(identity: string, roomName: string, isHost: boolean): string {
@@ -60,9 +82,17 @@ function generateLiveKitToken(identity: string, roomName: string, isHost: boolea
 router.get("/rooms", authMiddleware, async (req, res) => {
   try {
     const { status, type } = req.query;
-    const where: any = { tenantId: req.user!.tenantId };
-    if (status) where.status = status;
-    if (type) where.roomType = type;
+    const where: Prisma.VideoRoomWhereInput = { tenantId: req.user!.tenantId };
+    if (typeof status === "string" && status.length > 0) {
+      const parsedStatus = parseRoomStatus(status);
+      if (!parsedStatus) return res.status(400).json({ error: "Invalid room status" });
+      where.status = parsedStatus;
+    }
+    if (typeof type === "string" && type.length > 0) {
+      const parsedType = parseVideoRoomType(type);
+      if (!parsedType) return res.status(400).json({ error: "Invalid room type" });
+      where.roomType = parsedType;
+    }
 
     const rooms = await db.videoRoom.findMany({
       where,
@@ -329,9 +359,13 @@ router.put("/rooms/:id/questions/:qid/upvote", authMiddleware, async (req, res) 
 router.get("/streams", authMiddleware, async (req, res) => {
   try {
     const { status, category } = req.query;
-    const where: any = { tenantId: req.user!.tenantId };
-    if (status) where.status = status;
-    if (category) where.category = category;
+    const where: Prisma.BroadcastStreamWhereInput = { tenantId: req.user!.tenantId };
+    if (typeof status === "string" && status.length > 0) {
+      const parsedStatus = parseStreamStatus(status);
+      if (!parsedStatus) return res.status(400).json({ error: "Invalid stream status" });
+      where.status = parsedStatus;
+    }
+    if (typeof category === "string" && category.length > 0) where.category = category;
 
     const streams = await db.broadcastStream.findMany({
       where,
@@ -659,7 +693,7 @@ router.get("/streams/:id/analytics", authMiddleware, async (req, res) => {
 router.get("/events", authMiddleware, async (req, res) => {
   try {
     const { month, year } = req.query;
-    const where: any = { tenantId: req.user!.tenantId };
+    const where: Prisma.StudioEventWhereInput = { tenantId: req.user!.tenantId };
     
     if (month && year) {
       const startDate = new Date(Number(year), Number(month) - 1, 1);

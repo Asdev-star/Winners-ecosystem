@@ -1,10 +1,10 @@
 // Server/services/wsService.ts
-// Phase 2 — Community Layer V1.1
+// Phase 2 - Community Layer V1.1
 // Real-time WebSocket service: notifications + online presence
 
-import { WebSocketServer, WebSocket } from "ws";
-import { IncomingMessage } from "http";
-import jwt from "jsonwebtoken";
+import type { IncomingMessage, Server as HttpServer } from "http";
+import jwt, { type JwtPayload } from "jsonwebtoken";
+import { WebSocket, WebSocketServer } from "ws";
 
 interface Client {
   userId: string;
@@ -14,58 +14,87 @@ interface Client {
   joinedAt: number;
 }
 
-// clientId → Client
+interface WsTokenPayload {
+  userId: string;
+  tenantId: string;
+  name?: string;
+  email?: string;
+}
+
 const clients: Map<string, Client> = new Map();
 
 export const WS_EVENTS = {
-  NEW_LIKE:          "NEW_LIKE",
-  NEW_COMMENT:       "NEW_COMMENT",
-  NEW_FOLLOW:        "NEW_FOLLOW",
-  NEW_POST:          "NEW_POST",
-  PRESENCE_UPDATE:   "PRESENCE_UPDATE",
-  SYSTEM:            "SYSTEM",
-  CONNECTED:         "CONNECTED",
+  NEW_LIKE: "NEW_LIKE",
+  NEW_COMMENT: "NEW_COMMENT",
+  NEW_FOLLOW: "NEW_FOLLOW",
+  NEW_POST: "NEW_POST",
+  PRESENCE_UPDATE: "PRESENCE_UPDATE",
+  SYSTEM: "SYSTEM",
+  CONNECTED: "CONNECTED",
 } as const;
 
-export function initWebSocketServer(server: any) {
+function parseTokenPayload(decoded: string | JwtPayload): WsTokenPayload | null {
+  if (!decoded || typeof decoded === "string") return null;
+
+  const userId = typeof decoded.userId === "string" ? decoded.userId : "";
+  const tenantId = typeof decoded.tenantId === "string" ? decoded.tenantId : "";
+  if (!userId || !tenantId) return null;
+
+  return {
+    userId,
+    tenantId,
+    name: typeof decoded.name === "string" ? decoded.name : undefined,
+    email: typeof decoded.email === "string" ? decoded.email : undefined,
+  };
+}
+
+export function initWebSocketServer(server: HttpServer) {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
   wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
-    const url   = new URL(req.url ?? "", `http://localhost`);
+    const url = new URL(req.url ?? "", "http://localhost");
     const token = url.searchParams.get("token");
 
-    if (!token) { ws.close(1008, "No token"); return; }
+    if (!token) {
+      ws.close(1008, "No token");
+      return;
+    }
 
-    let payload: any;
+    let payload: WsTokenPayload | null = null;
     try {
-      payload = jwt.verify(token, process.env.JWT_SECRET ?? "secret");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET ?? "secret");
+      payload = parseTokenPayload(decoded);
     } catch {
-      ws.close(1008, "Invalid token"); return;
+      payload = null;
+    }
+
+    if (!payload) {
+      ws.close(1008, "Invalid token");
+      return;
     }
 
     const clientId = `${payload.userId}-${Date.now()}`;
     const client: Client = {
-      userId:    payload.userId,
-      tenantId:  payload.tenantId,
-      userName:  payload.name ?? payload.email ?? "User",
+      userId: payload.userId,
+      tenantId: payload.tenantId,
+      userName: payload.name ?? payload.email ?? "User",
       ws,
-      joinedAt:  Date.now(),
+      joinedAt: Date.now(),
     };
     clients.set(clientId, client);
 
-    // Confirm connection
     safeSend(ws, { type: WS_EVENTS.CONNECTED, message: "Real-time connected" });
-
-    // Broadcast updated presence list to entire tenant
     broadcastPresence(payload.tenantId);
 
-    // Heartbeat keep-alive
     const ping = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) ws.ping();
-      else { clearInterval(ping); clients.delete(clientId); }
+      else {
+        clearInterval(ping);
+        clients.delete(clientId);
+      }
     }, 25000);
 
-    ws.on("pong", () => {}); // keep-alive acknowledged
+    ws.on("pong", () => {});
 
     ws.on("close", () => {
       clearInterval(ping);
@@ -79,18 +108,18 @@ export function initWebSocketServer(server: any) {
     });
   });
 
-  console.log("✅ WebSocket server initialized at /ws");
+  console.log("WebSocket server initialized at /ws");
   return wss;
 }
 
-// ─── Presence ────────────────────────────────────────────────────────────────
-
-export function getOnlineUsers(tenantId: string): Array<{ userId: string; userName: string; joinedAt: number }> {
+export function getOnlineUsers(
+  tenantId: string
+): Array<{ userId: string; userName: string; joinedAt: number }> {
   const seen = new Map<string, { userId: string; userName: string; joinedAt: number }>();
   for (const client of clients.values()) {
     if (client.tenantId === tenantId && !seen.has(client.userId)) {
       seen.set(client.userId, {
-        userId:   client.userId,
+        userId: client.userId,
         userName: client.userName,
         joinedAt: client.joinedAt,
       });
@@ -108,11 +137,12 @@ function broadcastPresence(tenantId: string) {
   });
 }
 
-// ─── Messaging helpers ────────────────────────────────────────────────────────
-
 function safeSend(ws: WebSocket, payload: object) {
-  if (ws.readyState === WebSocket.OPEN) {
-    try { ws.send(JSON.stringify(payload)); } catch {}
+  if (ws.readyState !== WebSocket.OPEN) return;
+  try {
+    ws.send(JSON.stringify(payload));
+  } catch {
+    // Ignore socket serialization/send errors.
   }
 }
 

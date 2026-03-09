@@ -1,11 +1,11 @@
-// @ts-nocheck
 // Server/routes/externalCourseRoutes.ts
 // Phase 3 — Academy Layer: External Course Integrations (Coursera, FreeCodeCamp, etc.)
 
 import { Router } from "express";
+import type { Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
-import { Anthropic } from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.post("/certificates/import", authMiddleware, async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { platform, certificateData, manualData } = req.body;
+    const { certificateData, manualData } = req.body;
     const userId = req.user.userId;
 
     // If PDF base64 was provided, extract with Claude
@@ -119,22 +119,26 @@ Return ONLY valid JSON. No preamble.`;
 router.get("/", async (req, res) => {
   try {
     const { platform, category, search, featured } = req.query;
+    const platformFilter = typeof platform === "string" ? platform : undefined;
+    const categoryFilter = typeof category === "string" ? category : undefined;
+    const searchFilter = typeof search === "string" ? search : undefined;
+    const featuredFilter = typeof featured === "string" ? featured : undefined;
     
-    const where: any = {};
+    const where: Prisma.ExternalCourseWhereInput = {};
     
-    if (platform) {
-      where.platform = platform;
+    if (platformFilter) {
+      where.platform = platformFilter;
     }
-    if (category) {
-      where.category = category;
+    if (categoryFilter) {
+      where.category = categoryFilter;
     }
-    if (featured === "true") {
+    if (featuredFilter === "true") {
       where.isFeatured = true;
     }
-    if (search) {
+    if (searchFilter) {
       where.OR = [
-        { title: { contains: String(search), mode: "insensitive" } },
-        { description: { contains: String(search), mode: "insensitive" } },
+        { title: { contains: searchFilter, mode: "insensitive" } },
+        { description: { contains: searchFilter, mode: "insensitive" } },
       ];
     }
 
@@ -403,7 +407,7 @@ router.get("/meta/platforms", (req, res) => {
 // Save external course for later
 router.post("/:id/save", authMiddleware, async (req, res) => {
   try {
-    const { id: courseId } = req.params;
+    const courseId = String(req.params.id);
     const { userId } = req.user;
     const { sageNote } = req.body;
 
@@ -437,7 +441,7 @@ router.post("/:id/save", authMiddleware, async (req, res) => {
 // Remove saved external course
 router.delete("/:id/save", authMiddleware, async (req, res) => {
   try {
-    const { id: courseId } = req.params;
+    const courseId = String(req.params.id);
     const { userId } = req.user;
 
     await db.externalCourseSave.delete({

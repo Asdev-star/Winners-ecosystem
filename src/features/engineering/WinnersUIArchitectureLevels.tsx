@@ -828,7 +828,7 @@ const LEVELS: LevelData[] = [
       violations: [
         { type: "check", text: "Card: 6px radius + 2px gold gradient top border" },
         { type: "check", text: "Ecosystem context bar — all 8 layer status dots" },
-        { type: "check", text: "Skeleton shimmer (#172335) — zero spinners anywhere" },
+        { type: "check", text: "Skeleton shimmer (--surface2) — zero spinners anywhere" },
         { type: "check", text: "Empty states: illustration + AI assistant CTA" },
         { type: "check", text: "Transitions: 200ms ease — no abrupt state changes" },
         { type: "check", text: "Phase + Layer comment at top of every file" },
@@ -1272,3 +1272,4 @@ export default function WinnersUIArchitectureLevels() {
     </>
   );
 }
+

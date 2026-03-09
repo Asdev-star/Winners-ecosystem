@@ -50,6 +50,39 @@
   --text-dim: #5A7A96;   /* Muted text */
   --text-faint: #2A4560; /* Very dim */
 
+  /* Theme switch palettes consumed by themeStore.ts */
+  --theme-light-bg: #EEF2F7;
+  --theme-light-surface: #FFFFFF;
+  --theme-light-surface2: #E4EBF4;
+  --theme-light-border: #C2D0E0;
+  --theme-light-text: #1A2B3C;
+  --theme-light-text-dim: #5A7A96;
+  --theme-light-gold: #B8912A;
+  --theme-light-gold-dim: rgba(184,145,42,0.12);
+  --theme-light-gold-glow: rgba(184,145,42,0.25);
+  --theme-light-blue: #2B5F8E;
+  --theme-light-blue-dim: rgba(43,95,142,0.12);
+  --theme-light-ice: #89C4E1;
+  --theme-light-red: #C0392B;
+  --theme-light-green: #1A7A5E;
+  --theme-light-purple: #6B4FA0;
+
+  --theme-dark-bg: #0D1520;
+  --theme-dark-surface: #111D2E;
+  --theme-dark-surface2: #172335;
+  --theme-dark-border: #1E3248;
+  --theme-dark-text: #E8EEF5;
+  --theme-dark-text-dim: #5A7A96;
+  --theme-dark-gold: #C9A84C;
+  --theme-dark-gold-dim: rgba(201,168,76,0.12);
+  --theme-dark-gold-glow: rgba(201,168,76,0.25);
+  --theme-dark-blue: #2B5F8E;
+  --theme-dark-blue-dim: rgba(43,95,142,0.15);
+  --theme-dark-ice: #89C4E1;
+  --theme-dark-red: #E05A4E;
+  --theme-dark-green: #2DD4A0;
+  --theme-dark-purple: #9B6FFF;
+
   /* ── Gold gradient (metallic shimmer) ── */
   --grad-gold: linear-gradient(135deg,
     #B8841A 0%,

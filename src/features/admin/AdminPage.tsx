@@ -152,7 +152,7 @@ function fmt(n: number) {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  FREE: "#5A7A96", PRO: "var(--gold)", ENTERPRISE: "var(--purple)",
+  FREE: "var(--text-dim)", PRO: "var(--gold)", ENTERPRISE: "var(--purple)",
 };
 
 export default function AdminPage() {
@@ -310,7 +310,7 @@ export default function AdminPage() {
                     <span>{p.count} workspace{p.count !== 1 ? "s" : ""} ({Math.round((p.count / totalPlanCount) * 100)}%)</span>
                   </div>
                   <div className="adm-plan-bar-track">
-                    <div className="adm-plan-bar-fill" style={{ width: `${(p.count / totalPlanCount) * 100}%`, background: PLAN_COLORS[p.plan] ?? "#5A7A96" }} />
+                    <div className="adm-plan-bar-fill" style={{ width: `${(p.count / totalPlanCount) * 100}%`, background: PLAN_COLORS[p.plan] ?? "var(--text-dim)" }} />
                   </div>
                 </div>
               ))}

@@ -1,8 +1,7 @@
-// @ts-nocheck
 // server/routes/aiRoutes.ts
 
-import { Router, Request, Response } from "express";
 import Anthropic from "@anthropic-ai/sdk";
+import { Router, type Request, type Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
@@ -13,78 +12,174 @@ router.use(enforceTenant);
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? "" });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+type RecommendationType =
+  | "revenue_trend"
+  | "anomaly"
+  | "growth_opportunity"
+  | "team_performance"
+  | "churn_risk"
+  | "action_item";
 
-function dateFrom(days: number) {
+type RecommendationPriority = "high" | "medium" | "low";
+
+interface InsightRecommendation {
+  id: string;
+  type: RecommendationType;
+  title: string;
+  body: string;
+  priority: RecommendationPriority;
+  metric?: string;
+  delta?: string;
+}
+
+interface InsightsResponse {
+  summary: string;
+  recommendations: InsightRecommendation[];
+  generatedAt: string;
+}
+
+interface BuildContextResult {
+  workspace: string;
+  plan: string;
+  period: string;
+  revenue: {
+    total: number;
+    growth: number;
+    weekTrend: number;
+    avgDaily: number;
+    peak: number;
+    anomalyCount: number;
+    anomalyDates: string[];
+  };
+  activity: {
+    total: number;
+    growth: number;
+    avgDaily: number;
+  };
+  team: {
+    total: number;
+    owners: number;
+    admins: number;
+    members: number;
+    viewers: number;
+    recentJoins: number;
+  };
+}
+
+function dateFrom(days: number): Date {
   const d = new Date();
   d.setDate(d.getDate() - days);
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
-function calcGrowth(cur: number, prev: number) {
-  if (prev === 0) return 0;
-  return parseFloat((((cur - prev) / prev) * 100).toFixed(1));
+function calcGrowth(current: number, previous: number): number {
+  if (previous === 0) return 0;
+  return Number.parseFloat((((current - previous) / previous) * 100).toFixed(1));
 }
 
-async function buildContext(tenantId: string, days: number) {
+function parsePeriod(raw: unknown): number {
+  const period = typeof raw === "string" ? raw : "30d";
+  if (period === "7d") return 7;
+  if (period === "90d") return 90;
+  return 30;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
+function stripCodeFences(text: string): string {
+  return text.replace(/```json|```/gi, "").trim();
+}
+
+function extractTextContent(content: Anthropic.Messages.Message["content"]): string {
+  const firstText = content.find((block) => block.type === "text");
+  return firstText?.type === "text" ? firstText.text : "";
+}
+
+async function buildContext(tenantId: string, days: number): Promise<BuildContextResult> {
   const [tenant, currentRevenue, previousRevenue, currentActivity, previousActivity, team] = await Promise.all([
-    db.tenant.findFirst({ where: { id: tenantId }, include: { _count: { select: { users: true } } } }),
-    db.revenueRecord.findMany({ where: { tenantId, date: { gte: dateFrom(days) } }, orderBy: { date: "asc" } }),
-    db.revenueRecord.findMany({ where: { tenantId, date: { gte: dateFrom(days * 2), lt: dateFrom(days) } } }),
-    db.analyticsEvent.findMany({ where: { tenantId, date: { gte: dateFrom(days) } }, orderBy: { date: "asc" } }),
-    db.analyticsEvent.findMany({ where: { tenantId, date: { gte: dateFrom(days * 2), lt: dateFrom(days) } } }),
-    db.user.findMany({ where: { tenantId, deletedAt: null }, select: { role: true, createdAt: true } }),
+    db.tenant.findFirst({
+      where: { id: tenantId },
+      include: { _count: { select: { users: true } } },
+    }),
+    db.revenueRecord.findMany({
+      where: { tenantId, recordedAt: { gte: dateFrom(days) } },
+      orderBy: { recordedAt: "asc" },
+    }),
+    db.revenueRecord.findMany({
+      where: { tenantId, recordedAt: { gte: dateFrom(days * 2), lt: dateFrom(days) } },
+      orderBy: { recordedAt: "asc" },
+    }),
+    db.analyticsEvent.findMany({
+      where: { tenantId, createdAt: { gte: dateFrom(days) } },
+      orderBy: { createdAt: "asc" },
+    }),
+    db.analyticsEvent.findMany({
+      where: { tenantId, createdAt: { gte: dateFrom(days * 2), lt: dateFrom(days) } },
+      orderBy: { createdAt: "asc" },
+    }),
+    db.user.findMany({
+      where: { tenantId, deletedAt: null },
+      select: { role: true, createdAt: true },
+    }),
   ]);
 
-  const curRevTotal  = currentRevenue.reduce((s, r) => s + r.amount, 0);
-  const prevRevTotal = previousRevenue.reduce((s, r) => s + r.amount, 0);
-  const curActTotal  = currentActivity.reduce((s, a) => s + a.count, 0);
-  const prevActTotal = previousActivity.reduce((s, a) => s + a.count, 0);
-  const revenueGrowth = calcGrowth(curRevTotal, prevRevTotal);
-  const activityGrowth = calcGrowth(curActTotal, prevActTotal);
+  const currentRevenueTotal = currentRevenue.reduce((sum, row) => sum + row.amount, 0);
+  const previousRevenueTotal = previousRevenue.reduce((sum, row) => sum + row.amount, 0);
+  const currentActivityTotal = currentActivity.length;
+  const previousActivityTotal = previousActivity.length;
 
-  // Detect anomalies (Z-score on revenue)
-  const revAmounts = currentRevenue.map((r) => r.amount);
-  const mean = revAmounts.reduce((a, b) => a + b, 0) / (revAmounts.length || 1);
-  const std  = Math.sqrt(revAmounts.map((v) => Math.pow(v - mean, 2)).reduce((a, b) => a + b, 0) / (revAmounts.length || 1));
-  const anomalies = currentRevenue.filter((r) => std > 0 && Math.abs(r.amount - mean) / std > 1.8);
+  const revenueGrowth = calcGrowth(currentRevenueTotal, previousRevenueTotal);
+  const activityGrowth = calcGrowth(currentActivityTotal, previousActivityTotal);
 
-  // Revenue trend (last 7 days vs prior 7)
-  const last7     = currentRevenue.slice(-7).reduce((s, r) => s + r.amount, 0);
-  const prior7    = currentRevenue.slice(-14, -7).reduce((s, r) => s + r.amount, 0);
+  const revenueAmounts = currentRevenue.map((row) => row.amount);
+  const mean =
+    revenueAmounts.reduce((sum, amount) => sum + amount, 0) / (revenueAmounts.length || 1);
+  const stdDev = Math.sqrt(
+    revenueAmounts
+      .map((amount) => Math.pow(amount - mean, 2))
+      .reduce((sum, amount) => sum + amount, 0) / (revenueAmounts.length || 1)
+  );
+  const anomalies = currentRevenue.filter(
+    (row) => stdDev > 0 && Math.abs(row.amount - mean) / stdDev > 1.8
+  );
+
+  const last7 = currentRevenue.slice(-7).reduce((sum, row) => sum + row.amount, 0);
+  const prior7 = currentRevenue.slice(-14, -7).reduce((sum, row) => sum + row.amount, 0);
   const weekTrend = calcGrowth(last7, prior7);
 
   return {
-    workspace:      tenant?.name ?? "Unknown",
-    plan:           tenant?.plan ?? "FREE",
-    period:         `${days} days`,
+    workspace: tenant?.name ?? "Unknown",
+    plan: tenant?.plan ?? "FREE",
+    period: `${days} days`,
     revenue: {
-      total:          curRevTotal,
-      growth:         revenueGrowth,
+      total: currentRevenueTotal,
+      growth: revenueGrowth,
       weekTrend,
-      avgDaily:       Math.round(curRevTotal / days),
-      peak:           Math.max(...revAmounts, 0),
-      anomalyCount:   anomalies.length,
-      anomalyDates:   anomalies.slice(0, 3).map((a) => a.date.toISOString().split("T")[0]),
+      avgDaily: Math.round(currentRevenueTotal / days),
+      peak: Math.max(...revenueAmounts, 0),
+      anomalyCount: anomalies.length,
+      anomalyDates: anomalies.slice(0, 3).map((row) => row.recordedAt.toISOString().split("T")[0]),
     },
     activity: {
-      total:   curActTotal,
-      growth:  activityGrowth,
-      avgDaily: Math.round(curActTotal / days),
+      total: currentActivityTotal,
+      growth: activityGrowth,
+      avgDaily: Math.round(currentActivityTotal / days),
     },
     team: {
-      total:   team.length,
-      owners:  team.filter((u) => u.role === "OWNER").length,
-      admins:  team.filter((u) => u.role === "ADMIN").length,
-      members: team.filter((u) => u.role === "MEMBER").length,
-      viewers: team.filter((u) => u.role === "VIEWER").length,
-      recentJoins: team.filter((u) => u.createdAt > dateFrom(30)).length,
+      total: team.length,
+      owners: team.filter((user) => user.role === "OWNER").length,
+      admins: team.filter((user) => user.role === "ADMIN").length,
+      members: team.filter((user) => user.role === "MEMBER").length,
+      viewers: team.filter((user) => user.role === "VIEWER").length,
+      recentJoins: team.filter((user) => user.createdAt > dateFrom(30)).length,
     },
   };
 }
 
-function buildPrompt(context: Awaited<ReturnType<typeof buildContext>>) {
+function buildPrompt(context: BuildContextResult): string {
   return `You are an AI analytics advisor for ${context.workspace}, a ${context.plan} plan workspace on the Winners Ecosystem platform.
 
 Here is their performance data for the last ${context.period}:
@@ -118,7 +213,7 @@ Based on this data, provide a JSON response with exactly this structure:
       "body": "2-3 sentence actionable recommendation with specific numbers",
       "priority": "high|medium|low",
       "metric": "optional key metric e.g. +12.4%",
-      "delta": "optional change indicator e.g. ↑ $4,200"
+      "delta": "optional change indicator e.g. up $4,200"
     }
   ]
 }
@@ -126,72 +221,127 @@ Based on this data, provide a JSON response with exactly this structure:
 Generate 5-6 recommendations covering: revenue trends, any anomalies, growth opportunities, team insights, and specific next steps. Be data-specific, actionable, and concise. Return ONLY valid JSON, no markdown.`;
 }
 
-// ─── GET /ai/insights ─────────────────────────────────────────────────────────
+function fallbackInsightsResponse(): InsightsResponse {
+  return {
+    summary:
+      "Revenue is trending positively with consistent activity growth. Your team is well-structured and engagement metrics are strong.",
+    generatedAt: new Date().toISOString(),
+    recommendations: [
+      {
+        id: "rec_1",
+        type: "revenue_trend",
+        priority: "high",
+        title: "Revenue momentum is accelerating",
+        metric: "+18.4%",
+        delta: "up $12,400",
+        body: "Revenue grew 18.4% compared to the previous period. The last 7 days are stronger than the prior week. Double down on the campaign or channel driving this spike.",
+      },
+      {
+        id: "rec_2",
+        type: "growth_opportunity",
+        priority: "high",
+        title: "Conversion gap is widening",
+        metric: "2.4x",
+        delta: "up activity",
+        body: "Activity is growing faster than revenue, which usually indicates conversion leakage. Review your funnel and tighten high-dropoff steps to convert existing traffic better.",
+      },
+      {
+        id: "rec_3",
+        type: "anomaly",
+        priority: "medium",
+        title: "Revenue spikes need review",
+        metric: "3 spikes",
+        delta: "up 45%",
+        body: "Three anomalous revenue days were detected. Verify what changed in campaigns, promotions, or launches and document repeatable tactics for the next cycle.",
+      },
+      {
+        id: "rec_4",
+        type: "team_performance",
+        priority: "medium",
+        title: "Team capacity underused",
+        metric: "4 seats",
+        delta: "60% utilized",
+        body: "Current team capacity appears underused. Assign owners to growth experiments and invite collaborators where role coverage is thin.",
+      },
+      {
+        id: "rec_5",
+        type: "action_item",
+        priority: "high",
+        title: "Enable automated alerts",
+        metric: "0 alerts",
+        delta: "set up now",
+        body: "No revenue alert thresholds are configured. Add anomaly and floor alerts so issues are detected in real time instead of weekly review windows.",
+      },
+      {
+        id: "rec_6",
+        type: "churn_risk",
+        priority: "low",
+        title: "Midweek dip is recurring",
+        metric: "-8% Wed",
+        delta: "down midweek",
+        body: "Activity dips midweek consistently. If this tracks revenue softness, queue campaigns or outreach on Tuesdays to smooth weekly performance.",
+      },
+    ],
+  };
+}
 
 router.get("/insights", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
-  const days     = (req.query.period as string) === "7d" ? 7 : (req.query.period as string) === "90d" ? 90 : 30;
+  const days = parsePeriod(req.query.period);
 
   try {
     const context = await buildContext(tenantId, days);
-    const prompt  = buildPrompt(context);
+    const prompt = buildPrompt(context);
 
     const message = await anthropic.messages.create({
-      model:      "claude-opus-4-6",
+      model: "claude-opus-4-6",
       max_tokens: 1500,
-      messages:   [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "{}";
+    const text = extractTextContent(message.content);
+    let parsed: Omit<InsightsResponse, "generatedAt"> = {
+      summary: "Unable to parse AI response.",
+      recommendations: [],
+    };
 
-    let parsed;
     try {
-      parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      const candidate = JSON.parse(stripCodeFences(text)) as Partial<InsightsResponse>;
+      parsed = {
+        summary: typeof candidate.summary === "string" ? candidate.summary : parsed.summary,
+        recommendations: Array.isArray(candidate.recommendations)
+          ? (candidate.recommendations as InsightRecommendation[])
+          : parsed.recommendations,
+      };
     } catch {
       parsed = { summary: "Unable to parse AI response.", recommendations: [] };
     }
 
     return res.json({ ...parsed, generatedAt: new Date().toISOString() });
-  } catch (err: any) {
-    console.error("AI insights error:", err);
-
-    // Fallback mock response when API key not set
-    return res.json({
-      summary: "Revenue is trending positively with consistent activity growth. Your team is well-structured and engagement metrics are strong.",
-      generatedAt: new Date().toISOString(),
-      recommendations: [
-        { id: "rec_1", type: "revenue_trend",      priority: "high",   title: "Revenue momentum is accelerating",         metric: "+18.4%", delta: "↑ $12,400", body: "Your revenue has grown 18.4% compared to the previous period. The last 7 days show particularly strong performance. Consider doubling down on whatever drove this spike." },
-        { id: "rec_2", type: "growth_opportunity",  priority: "high",   title: "Activity-to-revenue gap is widening",      metric: "2.4x",   delta: "↑ activity", body: "Activity is growing faster than revenue, suggesting untapped conversion potential. Review your conversion funnel to capture more value from existing traffic." },
-        { id: "rec_3", type: "anomaly",             priority: "medium", title: "Revenue spikes detected — investigate now", metric: "3 spikes", delta: "↑ 45%",   body: "3 anomalous revenue days were detected in this period. These could indicate successful campaigns or one-off events. Identify the cause to replicate the success." },
-        { id: "rec_4", type: "team_performance",    priority: "medium", title: "Team capacity is underutilized",           metric: "4 seats",  delta: "60% util", body: "You have 4 active members but only 60% of your seat capacity is used. Consider inviting more collaborators to accelerate growth initiatives." },
-        { id: "rec_5", type: "action_item",         priority: "high",   title: "Set up automated revenue alerts",          metric: "0 alerts", delta: "→ set up", body: "You have no automated alerts configured. Set revenue threshold alerts to catch anomalies in real-time rather than discovering them in weekly reviews." },
-        { id: "rec_6", type: "churn_risk",          priority: "low",    title: "Activity dip midweek — monitor closely",   metric: "-8% Wed",  delta: "↓ midweek", body: "Activity consistently dips midweek. If this correlates with revenue drops, consider scheduling campaigns or outreach on Tuesdays to sustain momentum." },
-      ],
-    });
+  } catch (error) {
+    console.error("AI insights error:", errorMessage(error));
+    return res.json(fallbackInsightsResponse());
   }
 });
 
-// ─── GET /ai/insights/stream ──────────────────────────────────────────────────
-
 router.get("/insights/stream", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
-  const days     = (req.query.period as string) === "7d" ? 7 : (req.query.period as string) === "90d" ? 90 : 30;
+  const days = parsePeriod(req.query.period);
 
-  res.setHeader("Content-Type",  "text/event-stream");
+  res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection",    "keep-alive");
+  res.setHeader("Connection", "keep-alive");
 
   try {
     const context = await buildContext(tenantId, days);
-    const prompt  = buildPrompt(context);
-
+    const prompt = buildPrompt(context);
     let fullText = "";
 
     const stream = await anthropic.messages.create({
-      model:      "claude-opus-4-6",
+      model: "claude-opus-4-6",
       max_tokens: 1500,
-      stream:     true,
-      messages:   [{ role: "user", content: prompt }],
+      stream: true,
+      messages: [{ role: "user", content: prompt }],
     });
 
     for await (const event of stream) {
@@ -201,43 +351,68 @@ router.get("/insights/stream", async (req: Request, res: Response) => {
       }
     }
 
-    // Parse and send final structured insight
     try {
-      const parsed = JSON.parse(fullText.replace(/```json|```/g, "").trim());
-      res.write(`data: ${JSON.stringify({ type: "done", insight: { ...parsed, generatedAt: new Date().toISOString() } })}\n\n`);
+      const parsed = JSON.parse(stripCodeFences(fullText)) as Partial<InsightsResponse>;
+      res.write(
+        `data: ${JSON.stringify({
+          type: "done",
+          insight: {
+            summary:
+              typeof parsed.summary === "string" ? parsed.summary : "Unable to parse AI response.",
+            recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+            generatedAt: new Date().toISOString(),
+          },
+        })}\n\n`
+      );
     } catch {
-      res.write(`data: ${JSON.stringify({ type: "done", insight: { summary: fullText, recommendations: [], generatedAt: new Date().toISOString() } })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({
+          type: "done",
+          insight: {
+            summary: fullText,
+            recommendations: [],
+            generatedAt: new Date().toISOString(),
+          },
+        })}\n\n`
+      );
     }
 
     res.write("data: [DONE]\n\n");
     res.end();
-  } catch (err) {
-    console.error("AI stream error:", err);
+  } catch (error) {
+    console.error("AI stream error:", errorMessage(error));
     res.write(`data: ${JSON.stringify({ type: "error", message: "AI unavailable" })}\n\n`);
     res.end();
   }
 });
 
-// ─── POST /ai/generate ───────────────────────────────────────────────────
-// Lightweight text generation endpoint used by assistant greetings/chips.
-
 router.post("/generate", async (req: Request, res: Response) => {
-  const {
-    prompt,
-    systemPrompt,
-    maxTokens = 300,
-    temperature = 0.7,
-  } = req.body ?? {};
+  const body: {
+    prompt?: unknown;
+    systemPrompt?: unknown;
+    maxTokens?: unknown;
+    temperature?: unknown;
+  } =
+    req.body && typeof req.body === "object"
+      ? (req.body as {
+          prompt?: unknown;
+          systemPrompt?: unknown;
+          maxTokens?: unknown;
+          temperature?: unknown;
+        })
+      : {};
 
-  if (typeof prompt !== "string" || prompt.trim().length === 0) {
+  const prompt = typeof body.prompt === "string" ? body.prompt : "";
+  const systemPrompt = typeof body.systemPrompt === "string" ? body.systemPrompt : undefined;
+  const maxTokens = typeof body.maxTokens === "number" ? body.maxTokens : 300;
+  const temperature = typeof body.temperature === "number" ? body.temperature : 0.7;
+
+  if (prompt.trim().length === 0) {
     return res.status(400).json({ error: "Prompt is required" });
   }
 
   const maxTokensSafe = Math.min(Math.max(Number(maxTokens) || 300, 1), 1500);
-  const temperatureSafe =
-    typeof temperature === "number"
-      ? Math.min(Math.max(temperature, 0), 1)
-      : 0.7;
+  const temperatureSafe = Math.min(Math.max(temperature, 0), 1);
   const promptLower = prompt.toLowerCase();
 
   const fallbackContent = (() => {
@@ -269,20 +444,18 @@ router.post("/generate", async (req: Request, res: Response) => {
       model: "claude-sonnet-4-20250514",
       max_tokens: maxTokensSafe,
       temperature: temperatureSafe,
-      system: typeof systemPrompt === "string" ? systemPrompt : undefined,
+      system: systemPrompt,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const content =
-      message.content[0]?.type === "text" ? message.content[0].text : "";
-
+    const content = extractTextContent(message.content);
     return res.json({
       content,
       provider: "anthropic",
       generatedAt: new Date().toISOString(),
     });
-  } catch (err) {
-    console.error("AI generate error:", err);
+  } catch (error) {
+    console.error("AI generate error:", errorMessage(error));
     return res.json({
       content: fallbackContent,
       provider: "fallback",
@@ -292,79 +465,94 @@ router.post("/generate", async (req: Request, res: Response) => {
   }
 });
 
-// ─── POST /ai/page-insight ─────────────────────────────────────────────────
-// Level II: AI-Present on Every Page - generates per-page insights
-
 router.post("/page-insight", async (req: Request, res: Response) => {
-  const { assistant, page, context } = req.body;
-  const tenantId = req.user!.tenantId;
-  
+  const body: { assistant?: unknown; page?: unknown; context?: unknown } =
+    req.body && typeof req.body === "object"
+      ? (req.body as { assistant?: unknown; page?: unknown; context?: unknown })
+      : {};
+
+  const assistant =
+    typeof body.assistant === "string" && body.assistant.length > 0 ? body.assistant : "aria";
+  const page = typeof body.page === "string" && body.page.length > 0 ? body.page : "dashboard";
+  const context = body.context;
+
   const assistantPrompts: Record<string, { system: string; topic: string }> = {
     aria: {
-      system: "You are ARIA, the Core Engine Supervisor for Winners Ecosystem. You provide concise, data-driven insights about workspace performance.",
+      system:
+        "You are ARIA, the Core Engine Supervisor for Winners Ecosystem. You provide concise, data-driven insights about workspace performance.",
       topic: "workspace dashboard",
     },
     nova: {
-      system: "You are NOVA, the Community Intelligence Supervisor for Winners Ecosystem. You help users grow their presence and detect trending topics.",
+      system:
+        "You are NOVA, the Community Intelligence Supervisor for Winners Ecosystem. You help users grow their presence and detect trending topics.",
       topic: "community engagement",
     },
     sage: {
-      system: "You are SAGE, the Academy Tutor for Winners Ecosystem. You help users progress in their learning journey and complete courses.",
+      system:
+        "You are SAGE, the Academy Tutor for Winners Ecosystem. You help users progress in their learning journey and complete courses.",
       topic: "learning progress",
     },
     atlas: {
-      system: "You are ATLAS, the Market Analyst for Winners Ecosystem. You help vendors find winning products and optimize their sales.",
+      system:
+        "You are ATLAS, the Market Analyst for Winners Ecosystem. You help vendors find winning products and optimize their sales.",
       topic: "marketplace performance",
     },
     circuit: {
-      system: "You are CIRCUIT, the Work Matchmaker for Winners Ecosystem. You help freelancers find jobs and optimize their proposals.",
+      system:
+        "You are CIRCUIT, the Work Matchmaker for Winners Ecosystem. You help freelancers find jobs and optimize their proposals.",
       topic: "work opportunities",
     },
     forge: {
-      system: "You are FORGE, the Intelligence Optimizer for Winners Ecosystem. You help users get the most out of their AI experience.",
+      system:
+        "You are FORGE, the Intelligence Optimizer for Winners Ecosystem. You help users get the most out of their AI experience.",
       topic: "AI assistant usage",
     },
     omega: {
-      system: "You are OMEGA, the Master Orchestrator for Winners Ecosystem. You see across all layers and provide strategic cross-platform insights.",
+      system:
+        "You are OMEGA, the Master Orchestrator for Winners Ecosystem. You see across all layers and provide strategic cross-platform insights.",
       topic: "ecosystem overview",
     },
   };
 
-  const config = assistantPrompts[assistant] || assistantPrompts.aria;
-  
+  const config = assistantPrompts[assistant] ?? assistantPrompts.aria;
+  const contextText = context === undefined ? "" : `Context: ${JSON.stringify(context)}`;
+  const prompt = `${config.system}
+
+The user is on the ${page} page of Winners Ecosystem.
+Focus area: ${config.topic}.
+${contextText}
+
+Generate a single concise insight for this user (1-2 sentences, maximum 100 characters).
+Return valid JSON only: { "insight": "your insight here" }`;
+
   try {
-    const prompt = `${config.system}
-
-The user is on the ${page} page of the Winners Ecosystem. ${context ? `Context: ${JSON.stringify(context)}` : ""}
-
-Generate a single, concise insight (1-2 sentences, max 100 characters) that would be helpful for this user. This will be displayed as an AI insight banner at the top of the page.
-
-Return JSON: { "insight": "your insight here" }`;
-
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 200,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "{}";
-    let parsed;
+    const text = extractTextContent(message.content);
+    let insight = text.trim();
+
     try {
-      parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      const parsed = JSON.parse(stripCodeFences(text)) as { insight?: unknown };
+      if (typeof parsed.insight === "string" && parsed.insight.trim().length > 0) {
+        insight = parsed.insight.trim();
+      }
     } catch {
-      parsed = { insight: text };
+      // Keep raw text fallback.
     }
 
     return res.json({
-      ...parsed,
+      insight,
       assistant,
       page,
       timestamp: new Date().toISOString(),
     });
-  } catch (err) {
-    console.error("AI page insight error:", err);
-    
-    // Fallback insights based on page
+  } catch (error) {
+    console.error("AI page insight error:", errorMessage(error));
+
     const fallbackInsights: Record<string, string> = {
       dashboard: "ARIA is analyzing your workspace. Check back for personalized insights.",
       community: "NOVA is learning your interests. Post to unlock recommendations.",
@@ -373,9 +561,9 @@ Return JSON: { "insight": "your insight here" }`;
       work: "CIRCUIT is scanning for opportunities. Complete your profile to start.",
       intelligence: "FORGE is optimizing your AI. Send a message to get started.",
     };
-    
+
     return res.json({
-      insight: fallbackInsights[page] || "AI insight loading...",
+      insight: fallbackInsights[page] ?? "AI insight loading...",
       assistant,
       page,
       timestamp: new Date().toISOString(),

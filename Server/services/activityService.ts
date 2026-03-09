@@ -1,6 +1,7 @@
 // Server/services/activityService.ts
 
 import { randomUUID } from "crypto";
+import type { Prisma } from "@prisma/client";
 import db from "../db.js";
 
 export type ActivityCategory =
@@ -18,13 +19,13 @@ export interface LogActivityParams {
   userName?: string;
   action:    string;
   category:  ActivityCategory;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   ip?:       string;
 }
 
 export async function logActivity(params: LogActivityParams): Promise<void> {
   try {
-    await (db as any).activityLog.create({
+    await db.activityLog.create({
       data: {
         id:        randomUUID(),
         tenantId:  params.tenantId,
@@ -33,7 +34,7 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
         userName:  params.userName ?? null,
         action:    params.action,
         category:  params.category,
-        metadata:  params.metadata ?? null,
+        metadata:  (params.metadata ?? null) as Prisma.InputJsonValue | null,
         ip:        params.ip ?? null,
       },
     });

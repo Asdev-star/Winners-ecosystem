@@ -26,6 +26,11 @@ interface HealthReport {
   uptime:     number;
   services:   Record<string, ServiceCheck>;
   system:     Record<string, unknown>;
+  totalLatency?: number;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
 }
 
 // ─── GET /health — Liveness Probe ─────────────────────────────────────────────
@@ -59,17 +64,17 @@ router.get("/ready", async (_req: Request, res: Response) => {
   // ── Check: PostgreSQL via Prisma ─────────────────────────────────────────
   const dbStart = Date.now();
   try {
-    await (db as any).$queryRaw`SELECT 1`;
+    await db.$queryRaw`SELECT 1`;
     report.services.database = {
       status:  "ok",
       latency: Date.now() - dbStart,
       message: "PostgreSQL connected",
     };
-  } catch (err: any) {
+  } catch (error) {
     report.services.database = {
       status:  "down",
       latency: Date.now() - dbStart,
-      message: err.message,
+      message: errorMessage(error),
     };
     report.status = "down";
   }
@@ -123,7 +128,7 @@ router.get("/ready", async (_req: Request, res: Response) => {
   };
 
   // ── Final Latency ─────────────────────────────────────────────────────────
-  (report as any).totalLatency = Date.now() - start;
+  report.totalLatency = Date.now() - start;
 
   const httpStatus = report.status === "ok" ? 200 : report.status === "degraded" ? 207 : 503;
   res.status(httpStatus).json(report);
@@ -134,7 +139,7 @@ router.get("/ready", async (_req: Request, res: Response) => {
 router.get("/db", async (_req: Request, res: Response) => {
   const start = Date.now();
   try {
-    await (db as any).$queryRaw`SELECT 1`;
+    await db.$queryRaw`SELECT 1`;
 
     // Count key tables for sanity
     const [tenants, users, posts] = await Promise.all([
@@ -149,12 +154,12 @@ router.get("/db", async (_req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
       stats:     { tenants, users, posts },
     });
-  } catch (err: any) {
+  } catch (error) {
     res.status(503).json({
       status:    "down",
       latency:   Date.now() - start,
       timestamp: new Date().toISOString(),
-      error:     err.message,
+      error:     errorMessage(error),
     });
   }
 });

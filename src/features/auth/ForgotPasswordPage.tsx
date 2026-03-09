@@ -95,7 +95,7 @@ const css = `
     font-weight: 800;
     letter-spacing: -0.5px;
     margin-bottom: 8px;
-    color: #f0f4f8;
+    color: var(--text);
   }
 
   .fp-title span { color: var(--gold); }
@@ -219,7 +219,7 @@ const css = `
     text-align: center;
     font-size: 16px;
     font-weight: 700;
-    color: #f0f4f8;
+    color: var(--text);
     margin-bottom: 8px;
   }
 

@@ -120,7 +120,7 @@ const css = `
     font-size: 42px;
     font-weight: 300;
     margin: 0 0 8px;
-    background: linear-gradient(135deg, var(--gold), #E8D5A3);
+    background: linear-gradient(135deg, var(--gold), var(--gold));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

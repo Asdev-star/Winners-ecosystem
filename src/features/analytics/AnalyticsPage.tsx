@@ -210,13 +210,25 @@ const css = `
   }
 `;
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface AnalyticsTooltipRow {
+  dataKey: string;
+  name: string;
+  value: number;
+}
+
+interface AnalyticsTooltipProps {
+  active?: boolean;
+  payload?: AnalyticsTooltipRow[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: AnalyticsTooltipProps) => {
   if (!active || !payload?.length) return null;
-  const rows = payload.filter((p: any) => p.value != null && p.value !== 0);
+  const rows = payload.filter((p) => p.value != null && p.value !== 0);
   return (
     <div className="an-tooltip">
       <div className="an-tooltip-label">{label}</div>
-      {rows.map((p: any) => (
+      {rows.map((p) => (
         <div className="an-tooltip-row" key={p.dataKey}>
           <span>{p.name}</span>
           <span className="an-tooltip-val">

@@ -1,16 +1,28 @@
 // Server/routes/liveSpaceRoutes.ts — Winners Community Live Spaces API
-import { Router } from "express";
+import { LiveSpaceStatus, type Prisma } from "@prisma/client";
+import { Router, type Request, type Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 
 const router = Router();
 
+function parseLiveSpaceStatus(value: string): LiveSpaceStatus | null {
+  const candidate = value.trim().toUpperCase();
+  return (Object.values(LiveSpaceStatus) as string[]).includes(candidate)
+    ? (candidate as LiveSpaceStatus)
+    : null;
+}
+
 // GET /spaces — List all live spaces
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { status } = req.query;
-    const where: any = { tenantId: req.user!.tenantId };
-    if (status) where.status = status;
+    const where: Prisma.LiveSpaceWhereInput = { tenantId: req.user!.tenantId };
+    if (typeof status === "string" && status.length > 0) {
+      const parsedStatus = parseLiveSpaceStatus(status);
+      if (!parsedStatus) return res.status(400).json({ error: "Invalid status" });
+      where.status = parsedStatus;
+    }
     
     const spaces = await db.liveSpace.findMany({
       where,
@@ -28,7 +40,7 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 // GET /spaces/:id — Get single live space
-router.get("/:id", authMiddleware, async (req, res) => {
+router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const spaceId = String(req.params.id);
     const space = await db.liveSpace.findFirst({
@@ -51,7 +63,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 });
 
 // POST /spaces — Create a new live space
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { title, description, scheduledAt, maxSpeakers, maxListeners, isRecorded } = req.body;
     const space = await db.liveSpace.create({
@@ -75,7 +87,7 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 // PATCH /spaces/:id — Update live space
-router.patch("/:id", authMiddleware, async (req, res) => {
+router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const spaceId = String(req.params.id);
     const { title, description, status, scheduledAt } = req.body;
@@ -95,7 +107,7 @@ router.patch("/:id", authMiddleware, async (req, res) => {
 });
 
 // DELETE /spaces/:id — Delete live space
-router.delete("/:id", authMiddleware, async (req, res) => {
+router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const spaceId = String(req.params.id);
     await db.liveSpace.deleteMany({
@@ -109,7 +121,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 });
 
 // POST /spaces/:id/join — Join a live space
-router.post("/:id/join", authMiddleware, async (req, res) => {
+router.post("/:id/join", authMiddleware, async (req: Request, res: Response) => {
   try {
     const spaceId = String(req.params.id);
     await db.liveSpaceParticipant.create({
@@ -127,7 +139,7 @@ router.post("/:id/join", authMiddleware, async (req, res) => {
 });
 
 // POST /spaces/:id/leave — Leave a live space
-router.post("/:id/leave", authMiddleware, async (req, res) => {
+router.post("/:id/leave", authMiddleware, async (req: Request, res: Response) => {
   try {
     const spaceId = String(req.params.id);
     await db.liveSpaceParticipant.deleteMany({

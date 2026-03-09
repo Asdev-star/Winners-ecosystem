@@ -20,7 +20,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   OMEGA: {
     name: "OMEGA",
     emoji: "🧠",
-    color: "#C9A84C",
+    color: "var(--gold)",
     description: "Master Orchestrator — Cross-layer intelligence",
     layer: "Orchestrator",
     personality: "Strategic, visionary, sees all patterns"
@@ -28,7 +28,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   ARIA: {
     name: "ARIA",
     emoji: "⬡",
-    color: "#2B5F8E",
+    color: "var(--blue)",
     description: "Core Engine — Dashboard insights & billing",
     layer: "Core Engine",
     personality: "Calm, precise, organised"
@@ -36,7 +36,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   NOVA: {
     name: "NOVA",
     emoji: "👥",
-    color: "#89C4E1",
+    color: "var(--ice)",
     description: "Community — Content & creator intelligence",
     layer: "Community",
     personality: "Warm, trend-aware, creative"
@@ -44,7 +44,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   SAGE: {
     name: "SAGE",
     emoji: "🎓",
-    color: "#2DD4A0",
+    color: "var(--green)",
     description: "Academy — Course tutoring & skill guidance",
     layer: "Academy",
     personality: "Patient, knowledgeable, encouraging"
@@ -52,7 +52,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   ATLAS: {
     name: "ATLAS",
     emoji: "🛒",
-    color: "#E05A4E",
+    color: "var(--red)",
     description: "Market — Product research & vendor intelligence",
     layer: "Market",
     personality: "Analytical, commercial, data-driven"
@@ -60,7 +60,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   FORGE: {
     name: "FORGE",
     emoji: "🤖",
-    color: "#9B6FFF",
+    color: "var(--purple)",
     description: "Intelligence — Model routing & AI orchestration",
     layer: "Intelligence",
     personality: "Technical, precise, performance-focused"
@@ -68,7 +68,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   CIRCUIT: {
     name: "CIRCUIT",
     emoji: "💼",
-    color: "#C9A84C",
+    color: "var(--gold)",
     description: "Work — Job matching & proposal assistance",
     layer: "Work",
     personality: "Professional, tactical, results-oriented"
@@ -76,7 +76,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   NEXUS: {
     name: "NEXUS",
     emoji: "☁️",
-    color: "#89C4E1",
+    color: "var(--ice)",
     description: "Cloud — API guidance & integration support",
     layer: "Cloud",
     personality: "Developer-focused, documentation-expert"
@@ -84,7 +84,7 @@ export const SUPERVISOR_CONFIG: Record<SupervisorName, {
   HERALD: {
     name: "HERALD",
     emoji: "🧬",
-    color: "#9B6FFF",
+    color: "var(--purple)",
     description: "AI Platform — Ollama management & benchmarking",
     layer: "AI Platform",
     personality: "Technical, infrastructure-focused"
@@ -318,3 +318,4 @@ export function useAssistantStream() {
 
   return { sendMessage };
 }
+

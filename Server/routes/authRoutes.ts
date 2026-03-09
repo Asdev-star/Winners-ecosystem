@@ -1,7 +1,6 @@
-// @ts-nocheck
 // Server/routes/authRoutes.ts
 
-import { Router, Request, Response } from "express";
+import { Router, type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
@@ -41,7 +40,13 @@ async function handleReferral(refCode: string | undefined, userId: string, email
   try {
     const { processReferral } = await import("../services/referralService.js");
     await processReferral(refCode, userId, email, name);
-  } catch { /* silent — referral failure should never block signup */ }
+  } catch {
+    /* silent - referral failure should never block signup */
+  }
+}
+
+function errorMessage(err: unknown) {
+  return err instanceof Error ? err.message : "Internal server error";
 }
 
 // ─── POST /auth/register ──────────────────────────────────────────────────────
@@ -156,7 +161,7 @@ router.post("/accept-invite", async (req: Request, res: Response) => {
   try {
     const invite = await db.invite.findUnique({ where: { token }, include: { tenant: true } });
     if (!invite)                       return res.status(404).json({ message: "Invite not found" });
-    if (invite.status !== "PENDING")   return res.status(400).json({ message: "Invite already used" });
+    if (invite.accepted)               return res.status(400).json({ message: "Invite already used" });
     if (new Date() > invite.expiresAt) return res.status(400).json({ message: "Invite expired" });
 
     const hashed = await bcrypt.hash(password, 10);
@@ -165,7 +170,7 @@ router.post("/accept-invite", async (req: Request, res: Response) => {
       include: { tenant: true },
     });
 
-    await db.invite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
+    await db.invite.update({ where: { id: invite.id }, data: { accepted: true } });
 
     // Process referral if code present
     await handleReferral(refCode, user.id, user.email, user.name);
@@ -240,9 +245,9 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
       token, isNewUser,
       user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("Google exchange error:", err);
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: errorMessage(err) });
   }
 });
 
@@ -292,3 +297,4 @@ router.get("/google/callback", async (req: Request, res: Response) => {
 });
 
 export default router;
+

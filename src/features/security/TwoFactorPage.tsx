@@ -33,7 +33,7 @@ const css = `
   .tf-method-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
   .tf-method-desc { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); line-height: 1.5; }
   .tf-method-check { position: absolute; top: 12px; right: 12px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; }
-  .tf-method-card.selected .tf-method-check { background: var(--gold); border-color: var(--gold); color: #080B10; }
+  .tf-method-card.selected .tf-method-check { background: var(--gold); border-color: var(--gold); color: var(--bg); }
 
   .tf-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
   .tf-section-title { font-size: 13px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
@@ -44,7 +44,7 @@ const css = `
   .tf-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 12px 14px; font-family: 'Space Mono', monospace; font-size: 18px; letter-spacing: 4px; color: var(--text); outline: none; text-align: center; }
   .tf-input:focus { border-color: var(--gold); }
   .tf-input::placeholder { font-size: 12px; letter-spacing: 1px; color: var(--text-dim); }
-  .tf-btn { background: var(--gold); color: #080B10; border: none; border-radius: 3px; padding: 12px 24px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; }
+  .tf-btn { background: var(--gold); color: var(--bg); border: none; border-radius: 3px; padding: 12px 24px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; }
   .tf-btn:hover { opacity: 0.88; }
   .tf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .tf-btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }

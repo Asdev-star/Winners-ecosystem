@@ -80,7 +80,7 @@ export const apiRateLimiter = rateLimit({
   legacyHeaders:   false,
   message:         { error: "API rate limit exceeded. Please slow down.", code: "API_RATE_LIMITED" },
   keyGenerator:    (req: Request) => {
-    const userId = (req as any).user?.userId;
+    const userId = req.user?.userId;
     return userId ? `user:${userId}` : `ip:${normalizeIp(req)}`;
   },
 });
@@ -94,7 +94,7 @@ export const exportRateLimiter = rateLimit({
   legacyHeaders:   false,
   message:         { error: "Export rate limit exceeded. Maximum 50 exports per hour.", code: "EXPORT_RATE_LIMITED" },
   keyGenerator:    (req: Request) => {
-    const userId = (req as any).user?.userId;
+    const userId = req.user?.userId;
     return `export:${userId ?? normalizeIp(req)}`;
   },
 });

@@ -1,6 +1,7 @@
 // Server/routes/activityRoutes.ts
 
 import { Router, Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
 import db from "../db.js";
@@ -8,6 +9,10 @@ import db from "../db.js";
 const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Internal server error";
+}
 
 // GET /activity?page=1&limit=50&category=auth
 router.get("/", async (req: Request, res: Response) => {
@@ -17,23 +22,23 @@ router.get("/", async (req: Request, res: Response) => {
   const category = req.query.category as string | undefined;
   const skip     = (page - 1) * limit;
 
-  const where: any = { tenantId };
+  const where: Prisma.ActivityLogWhereInput = { tenantId };
   if (category && category !== "all") where.category = category;
 
   try {
     const [logs, total] = await Promise.all([
-      (db as any).activityLog.findMany({
+      db.activityLog.findMany({
         where,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      (db as any).activityLog.count({ where }),
+      db.activityLog.count({ where }),
     ]);
 
     return res.json({ logs, total, page, limit, pages: Math.ceil(total / limit) });
-  } catch (err: any) {
-    return res.status(500).json({ message: err.message });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
@@ -43,14 +48,14 @@ router.get("/recent", async (req: Request, res: Response) => {
   const limit    = Math.min(20, parseInt(req.query.limit as string) || 5);
 
   try {
-    const logs = await (db as any).activityLog.findMany({
+    const logs = await db.activityLog.findMany({
       where:   { tenantId },
       orderBy: { createdAt: "desc" },
       take:    limit,
     });
     return res.json({ logs });
-  } catch (err: any) {
-    return res.status(500).json({ message: err.message });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
@@ -61,10 +66,10 @@ router.delete("/", async (req: Request, res: Response) => {
   }
   const tenantId = req.user!.tenantId;
   try {
-    const { count } = await (db as any).activityLog.deleteMany({ where: { tenantId } });
+    const { count } = await db.activityLog.deleteMany({ where: { tenantId } });
     return res.json({ message: `Cleared ${count} activity logs` });
-  } catch (err: any) {
-    return res.status(500).json({ message: err.message });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 

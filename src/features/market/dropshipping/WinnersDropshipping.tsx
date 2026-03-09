@@ -1,29 +1,85 @@
 // Phase 4A: Winners Dropshipping Hub
 // Complete dropshipping module with supplier integration, niches, calculator, and AI tools
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, type CSSProperties, type ReactNode } from "react";
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
-// Using CSS variables from global design system - with fallbacks for development
+// Using CSS variables from global design system
 const T = {
-  bg: "var(--bg, #0D1520)", 
-  surface: "var(--surface, #111D2E)", 
-  surface2: "var(--surface2, #172335)", 
-  surface3: "var(--surface3, #1C2B40)",
-  border: "var(--border, #1E3248)", 
-  gold: "var(--gold, #C9A84C)", 
-  gold2: "var(--gold, #E8C97A)", 
-  ice: "var(--ice, #89C4E1)",
-  blue: "var(--blue, #2B5F8E)", 
-  green: "var(--green, #2DD4A0)", 
-  purple: "var(--purple, #9B6FFF)", 
-  red: "var(--red, #E05A4E)",
-  orange: "var(--gold, #F08C3A)", 
-  teal: "var(--green, #0DBFAD)", 
-  text: "var(--text, #E8EEF5)", 
-  dim: "var(--text-dim, #5A7A96)", 
-  faint: "var(--border, #2E4A64)",
+  bg: "var(--bg)", 
+  surface: "var(--surface)", 
+  surface2: "var(--surface2)", 
+  surface3: "var(--surface3)",
+  border: "var(--border)", 
+  gold: "var(--gold)", 
+  gold2: "var(--gold)", 
+  ice: "var(--ice)",
+  blue: "var(--blue)", 
+  green: "var(--green)", 
+  purple: "var(--purple)", 
+  red: "var(--red)",
+  orange: "var(--gold)", 
+  teal: "var(--green)", 
+  text: "var(--text)", 
+  dim: "var(--text-dim)", 
+  faint: "var(--border)",
 };
+
+type ToolFormValues = Record<string, string>;
+
+type TabKey = "overview" | "suppliers" | "niches" | "calculator" | "ai" | "blueprint";
+
+interface LabelProps {
+  text: string;
+  color?: string;
+}
+
+interface TagProps {
+  children: ReactNode;
+  color?: string;
+  bg?: string;
+}
+
+interface CardProps {
+  children: ReactNode;
+  color?: string;
+  style?: CSSProperties;
+}
+
+type ProfitFieldKey = "sell" | "cost" | "ads" | "shipping" | "platform" | "returns";
+
+interface ProfitValues {
+  sell: number;
+  cost: number;
+  ads: number;
+  shipping: number;
+  platform: number;
+  returns: number;
+}
+
+interface ProfitField {
+  key: ProfitFieldKey;
+  label: string;
+  prefix: string;
+  color: string;
+}
+
+interface DropshippingToolField {
+  k: string;
+  label: string;
+  ph: string;
+}
+
+interface DropshippingTool {
+  id: string;
+  icon: string;
+  label: string;
+  color: string;
+  desc: string;
+  fields: DropshippingToolField[];
+  system: string;
+  prompt: (f: ToolFormValues) => string;
+}
 
 // ─── Supplier Catalog ────────────────────────────────────────────────────────
 const SUPPLIERS = [
@@ -98,11 +154,11 @@ const SUPPLIERS = [
 // ─── Niche Categories ────────────────────────────────────────────────────────
 const NICHES = [
   { id: "fashion", icon: "👗", name: "African Fashion", color: T.gold, demand: "Very High", competition: "Medium", margin: "40–65%", trend: "+34%", supplier: ["Printful", "Gelato", "CJ"] },
-  { id: "beauty", icon: "💄", name: "Beauty & Skincare", color: "var(--purple, #E06AA0)", demand: "Very High", competition: "High", margin: "35–70%", trend: "+28%", supplier: ["Spocket", "Zendrop", "CJ"] },
+  { id: "beauty", icon: "💄", name: "Beauty & Skincare", color: "var(--purple)", demand: "Very High", competition: "High", margin: "35–70%", trend: "+28%", supplier: ["Spocket", "Zendrop", "CJ"] },
   { id: "merch", icon: "👕", name: "Creator Merch", color: T.purple, demand: "High", competition: "Low", margin: "30–50%", trend: "+45%", supplier: ["Printful", "Gelato"] },
   { id: "homeware", icon: "🏠", name: "Home & Living", color: T.green, demand: "High", competition: "Medium", margin: "35–55%", trend: "+19%", supplier: ["Spocket", "AliExpress"] },
   { id: "tech", icon: "📱", name: "Tech Accessories", color: T.ice, demand: "Very High", competition: "High", margin: "25–45%", trend: "+22%", supplier: ["CJ", "AliExpress", "Zendrop"] },
-  { id: "fitness", icon: "💪", name: "Health & Fitness", color: "var(--green, #5DD87A)", demand: "High", competition: "Medium", margin: "40–60%", trend: "+38%", supplier: ["Zendrop", "Spocket"] },
+  { id: "fitness", icon: "💪", name: "Health & Fitness", color: "var(--green)", demand: "High", competition: "Medium", margin: "40–60%", trend: "+38%", supplier: ["Zendrop", "Spocket"] },
   { id: "kids", icon: "🧸", name: "Kids & Education", color: T.orange, demand: "High", competition: "Low", margin: "35–55%", trend: "+15%", supplier: ["AliExpress", "CJ"] },
   { id: "digital", icon: "💾", name: "Digital Products", color: T.gold, demand: "Very High", competition: "Low", margin: "90–99%", trend: "+67%", supplier: ["Self-hosted via Winners"] },
 ];
@@ -113,7 +169,7 @@ function useStream() {
   const [loading, setLoading] = useState(false);
   const abort = useRef(false);
 
-  const run = useCallback(async (system, user) => {
+  const run = useCallback(async (system: string, user: string) => {
     setOut(""); setLoading(true); abort.current = false;
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -126,6 +182,9 @@ function useStream() {
           messages: [{ role: "user", content: user }],
         }),
       });
+      if (!res.body) {
+        throw new Error("Missing response stream body");
+      }
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -149,7 +208,7 @@ function useStream() {
 }
 
 // ─── Components ─────────────────────────────────────────────────────────────
-function Label({ text, color = T.gold }) {
+function Label({ text, color = T.gold }: LabelProps) {
   return (
     <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 8.5, letterSpacing: "0.24em", textTransform: "uppercase", color, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ height: 1, width: 20, background: `linear-gradient(90deg,${color},transparent)` }} />
@@ -159,7 +218,7 @@ function Label({ text, color = T.gold }) {
   );
 }
 
-function Tag({ children, color = T.dim, bg }) {
+function Tag({ children, color = T.dim, bg }: TagProps) {
   return (
     <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 8.5, padding: "3px 9px", borderRadius: 3, background: bg || `${color}14`, border: `1px solid ${color}33`, color }}>
       {children}
@@ -167,7 +226,7 @@ function Tag({ children, color = T.dim, bg }) {
   );
 }
 
-function Card({ children, color, style = {} }) {
+function Card({ children, color, style = {} }: CardProps) {
   return (
     <div style={{ background: T.surface, border: `1px solid ${color ? color + "44" : T.border}`, borderRadius: 8, position: "relative", overflow: "hidden", ...style }}>
       {color && <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${color},transparent)` }} />}
@@ -178,14 +237,14 @@ function Card({ children, color, style = {} }) {
 
 // ─── Profit Calculator ───────────────────────────────────────────────────────
 function ProfitCalculator() {
-  const [vals, setVals] = useState({ sell: 49, cost: 18, ads: 8, shipping: 4, platform: 2.5, returns: 3 });
-  const set = (k, v) => setVals(p => ({ ...p, [k]: parseFloat(v) || 0 }));
+  const [vals, setVals] = useState<ProfitValues>({ sell: 49, cost: 18, ads: 8, shipping: 4, platform: 2.5, returns: 3 });
+  const set = (k: ProfitFieldKey, v: string) => setVals((p) => ({ ...p, [k]: parseFloat(v) || 0 }));
   const profit = vals.sell - vals.cost - vals.ads - vals.shipping - vals.platform - vals.returns;
-  const margin = vals.sell > 0 ? ((profit / vals.sell) * 100).toFixed(1) : 0;
+  const margin = vals.sell > 0 ? ((profit / vals.sell) * 100).toFixed(1) : "0.0";
   const roas = vals.ads > 0 ? (vals.sell / vals.ads).toFixed(2) : "∞";
   const monthly = (profit * 100).toFixed(0);
 
-  const fields = [
+  const fields: ProfitField[] = [
     { key: "sell", label: "Selling Price", prefix: "$", color: T.green },
     { key: "cost", label: "Product Cost", prefix: "$", color: T.red },
     { key: "ads", label: "Ad Spend / Order", prefix: "$", color: T.orange },
@@ -239,17 +298,17 @@ function ProfitCalculator() {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function WinnersDropshipping() {
-  const [tab, setTab] = useState("overview");
-  const [activeSupplier, setActiveSupplier] = useState(null);
-  const [activeNiche, setActiveNiche] = useState(null);
-  const [aiTool, setAiTool] = useState(null);
-  const [form, setForm] = useState({});
+  const [tab, setTab] = useState<TabKey>("overview");
+  const [activeSupplier, setActiveSupplier] = useState<string | null>(null);
+  const [activeNiche, setActiveNiche] = useState<string | null>(null);
+  const [aiTool, setAiTool] = useState<string | null>(null);
+  const [form, setForm] = useState<ToolFormValues>({});
   const { out, loading, run, reset } = useStream();
 
   const sup = SUPPLIERS.find(s => s.id === activeSupplier);
   const niche = NICHES.find(n => n.id === activeNiche);
 
-  const AI_TOOLS = [
+  const AI_TOOLS: DropshippingTool[] = [
     {
       id: "research", icon: "🔍", label: "Product Research AI",
       color: T.gold, desc: "Find winning products for any niche",
@@ -379,7 +438,7 @@ Make the copy culturally authentic. Include local phrases where appropriate.`,
     run(activeTool.system, activeTool.prompt(form));
   };
 
-  const TABS = [
+  const TABS: Array<{ id: TabKey; label: string }> = [
     { id: "overview", label: "Overview" },
     { id: "suppliers", label: "Suppliers" },
     { id: "niches", label: "Niches" },

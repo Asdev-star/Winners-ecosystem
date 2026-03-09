@@ -1,132 +1,127 @@
 // Server/routes/twoFactorRoutes.ts
 
-import { Router, Request, Response } from "express";
-import { authMiddleware } from "../middleware/authMiddleware.js";
-import db from "../db.js";
-import * as OTPAuth from "otpauth";
-import { Resend } from "resend";
 import crypto from "crypto";
+import { Router, type Request, type Response } from "express";
+import * as OTPAuth from "otpauth";
 import qrcode from "qrcode";
+import { Resend } from "resend";
+import db from "../db.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
-const router  = Router();
-const resend  = new Resend(process.env.RESEND_API_KEY);
+const router = Router();
+const resend = new Resend(process.env.RESEND_API_KEY);
 const APP_NAME = "Winners Ecosystem";
 
-// ─── TOTP Setup ───────────────────────────────────────────────────────────────
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Internal server error";
+}
 
-// POST /2fa/totp/setup — generate secret + QR code
 router.post("/totp/setup", authMiddleware, async (req: Request, res: Response) => {
   try {
     const user = await db.user.findUnique({ where: { id: req.user!.userId } });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const secret = new OTPAuth.Secret({ size: 20 });
-    const totp   = new OTPAuth.TOTP({
-      issuer:    APP_NAME,
-      label:     user.email,
+    const totp = new OTPAuth.TOTP({
+      issuer: APP_NAME,
+      label: user.email,
       algorithm: "SHA1",
-      digits:    6,
-      period:    30,
+      digits: 6,
+      period: 30,
       secret,
     });
 
     const otpauthUrl = totp.toString();
-    const qrDataUrl  = await qrcode.toDataURL(otpauthUrl);
+    const qrCode = await qrcode.toDataURL(otpauthUrl);
 
-    // Save secret temporarily (not enabled yet until verified)
     await db.user.update({
       where: { id: user.id },
-      data:  { twoFactorSecret: secret.base32, twoFactorMethod: "totp" },
+      data: { twoFactorSecret: secret.base32, twoFactorMethod: "totp" },
     });
 
-    res.json({ secret: secret.base32, qrCode: qrDataUrl, otpauthUrl });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json({ secret: secret.base32, qrCode, otpauthUrl });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// POST /2fa/totp/verify — verify code and enable TOTP
 router.post("/totp/verify", authMiddleware, async (req: Request, res: Response) => {
-  const { code } = req.body;
+  const code = typeof req.body?.code === "string" ? req.body.code : "";
   if (!code) return res.status(400).json({ message: "Code required" });
 
   try {
     const user = await db.user.findUnique({ where: { id: req.user!.userId } });
     if (!user?.twoFactorSecret) return res.status(400).json({ message: "Setup TOTP first" });
 
-    const totp  = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(user.twoFactorSecret), algorithm: "SHA1", digits: 6, period: 30 });
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(user.twoFactorSecret),
+      algorithm: "SHA1",
+      digits: 6,
+      period: 30,
+    });
     const delta = totp.validate({ token: code.replace(/\s/g, ""), window: 1 });
-
     if (delta === null) return res.status(400).json({ message: "Invalid code. Try again." });
 
-    // Generate backup codes
     const backupCodes = Array.from({ length: 8 }, () => crypto.randomBytes(4).toString("hex"));
-
     await db.user.update({
       where: { id: user.id },
-      data:  { twoFactorEnabled: true, twoFactorMethod: "totp", twoFactorBackup: backupCodes },
+      data: { twoFactorEnabled: true, twoFactorMethod: "totp", twoFactorBackup: backupCodes },
     });
 
-    res.json({ message: "TOTP enabled", backupCodes });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json({ message: "TOTP enabled", backupCodes });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// ─── Email OTP ────────────────────────────────────────────────────────────────
-
-// POST /2fa/email/setup — enable email OTP
 router.post("/email/setup", authMiddleware, async (req: Request, res: Response) => {
   try {
     const backupCodes = Array.from({ length: 8 }, () => crypto.randomBytes(4).toString("hex"));
     await db.user.update({
       where: { id: req.user!.userId },
-      data:  { twoFactorEnabled: true, twoFactorMethod: "email", twoFactorBackup: backupCodes },
+      data: { twoFactorEnabled: true, twoFactorMethod: "email", twoFactorBackup: backupCodes },
     });
-    res.json({ message: "Email 2FA enabled", backupCodes });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json({ message: "Email 2FA enabled", backupCodes });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// POST /2fa/email/send — send OTP email during login
 router.post("/email/send", async (req: Request, res: Response) => {
-  const { userId } = req.body;
+  const userId = typeof req.body?.userId === "string" ? req.body.userId : "";
   if (!userId) return res.status(400).json({ message: "userId required" });
 
   try {
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const code      = String(Math.floor(100000 + Math.random() * 900000));
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     await db.twoFactorOTP.create({ data: { userId, code, expiresAt } });
 
     await resend.emails.send({
-      from:    process.env.EMAIL_FROM ?? "Winners Ecosystem <onboarding@resend.dev>",
-      to:      user.email,
-      subject: `${code} — Your Winners Ecosystem login code`,
-      html: `
-        <div style="font-family: 'Syne', sans-serif; background: #080B10; color: #E8EDF2; padding: 40px; max-width: 480px; margin: 0 auto; border-radius: 8px;">
-          <div style="font-family: monospace; font-size: 10px; letter-spacing: 3px; color: #F5C842; margin-bottom: 24px;">● WINNERS ECOSYSTEM</div>
-          <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 8px;">Your login code</h2>
-          <p style="color: #5A6878; font-size: 13px; margin-bottom: 24px;">Use this code to complete your sign-in. It expires in 10 minutes.</p>
-          <div style="font-size: 42px; font-weight: 800; letter-spacing: 10px; color: #F5C842; font-family: monospace; margin-bottom: 24px;">${code}</div>
-          <p style="color: #5A6878; font-size: 11px; font-family: monospace;">If you didn't request this, ignore this email.</p>
-        </div>
-      `,
+      from: process.env.EMAIL_FROM ?? "Winners Ecosystem <onboarding@resend.dev>",
+      to: user.email,
+      subject: `${code} - Your Winners Ecosystem login code`,
+      html: `<div style="font-family:Arial,sans-serif;background:#080B10;color:#E8EDF2;padding:24px;max-width:480px;margin:0 auto;border-radius:8px;">
+        <div style="font-family:monospace;font-size:10px;letter-spacing:3px;color:#C9A84C;margin-bottom:18px;">WINNERS ECOSYSTEM</div>
+        <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Your login code</h2>
+        <p style="color:#5A6878;font-size:13px;margin-bottom:18px;">Use this code to complete sign-in. It expires in 10 minutes.</p>
+        <div style="font-size:42px;font-weight:700;letter-spacing:10px;color:#C9A84C;font-family:monospace;margin-bottom:18px;">${code}</div>
+        <p style="color:#5A6878;font-size:11px;font-family:monospace;">If you did not request this, ignore this email.</p>
+      </div>`,
     });
 
-    res.json({ message: "Code sent" });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json({ message: "Code sent" });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// POST /2fa/email/verify — verify email OTP during login
 router.post("/email/verify", async (req: Request, res: Response) => {
-  const { userId, code } = req.body;
+  const userId = typeof req.body?.userId === "string" ? req.body.userId : "";
+  const code = typeof req.body?.code === "string" ? req.body.code : "";
   if (!userId || !code) return res.status(400).json({ message: "userId and code required" });
 
   try {
@@ -134,64 +129,75 @@ router.post("/email/verify", async (req: Request, res: Response) => {
       where: { userId, code, used: false, expiresAt: { gte: new Date() } },
       orderBy: { createdAt: "desc" },
     });
-
     if (!otp) return res.status(400).json({ message: "Invalid or expired code" });
 
     await db.twoFactorOTP.update({ where: { id: otp.id }, data: { used: true } });
-    res.json({ message: "Verified" });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json({ message: "Verified" });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// ─── Shared ───────────────────────────────────────────────────────────────────
-
-// POST /2fa/totp/validate — validate TOTP during login
 router.post("/totp/validate", async (req: Request, res: Response) => {
-  const { userId, code } = req.body;
+  const userId = typeof req.body?.userId === "string" ? req.body.userId : "";
+  const code = typeof req.body?.code === "string" ? req.body.code : "";
   if (!userId || !code) return res.status(400).json({ message: "userId and code required" });
 
   try {
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user?.twoFactorSecret) return res.status(400).json({ message: "TOTP not set up" });
 
-    // Check backup codes first
     if (user.twoFactorBackup.includes(code)) {
-      const remaining = user.twoFactorBackup.filter((c) => c !== code);
+      const remaining = user.twoFactorBackup.filter((backupCode) => backupCode !== code);
       await db.user.update({ where: { id: userId }, data: { twoFactorBackup: remaining } });
       return res.json({ message: "Verified via backup code", backupUsed: true });
     }
 
-    const totp  = new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(user.twoFactorSecret), algorithm: "SHA1", digits: 6, period: 30 });
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(user.twoFactorSecret),
+      algorithm: "SHA1",
+      digits: 6,
+      period: 30,
+    });
     const delta = totp.validate({ token: code.replace(/\s/g, ""), window: 1 });
     if (delta === null) return res.status(400).json({ message: "Invalid code" });
 
-    res.json({ message: "Verified" });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json({ message: "Verified" });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// GET /2fa/status — get current 2FA status
 router.get("/status", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const user = await db.user.findUnique({ where: { id: req.user!.userId }, select: { twoFactorEnabled: true, twoFactorMethod: true, twoFactorBackup: true } });
-    res.json({ enabled: user?.twoFactorEnabled ?? false, method: user?.twoFactorMethod ?? null, backupCodesRemaining: user?.twoFactorBackup?.length ?? 0 });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    const user = await db.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { twoFactorEnabled: true, twoFactorMethod: true, twoFactorBackup: true },
+    });
+    return res.json({
+      enabled: user?.twoFactorEnabled ?? false,
+      method: user?.twoFactorMethod ?? null,
+      backupCodesRemaining: user?.twoFactorBackup?.length ?? 0,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// POST /2fa/disable — disable 2FA
 router.post("/disable", authMiddleware, async (req: Request, res: Response) => {
   try {
     await db.user.update({
       where: { id: req.user!.userId },
-      data:  { twoFactorEnabled: false, twoFactorSecret: null, twoFactorMethod: null, twoFactorBackup: [] },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        twoFactorMethod: null,
+        twoFactorBackup: [],
+      },
     });
-    res.json({ message: "2FA disabled" });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json({ message: "2FA disabled" });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 

@@ -12,7 +12,7 @@ export async function seedExternalCoursesIfNeeded(): Promise<void> {
         console.log("✅ External platforms already seeded");
         return;
       }
-    } catch (tableError: any) {
+    } catch {
       // Table doesn't exist yet - this is expected on first run
       // The table will be created by prisma db push during deployment
       console.log("⏳ ExternalPlatform table not ready yet, skipping seed");

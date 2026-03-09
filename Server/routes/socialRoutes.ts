@@ -1,8 +1,8 @@
-// @ts-nocheck
 // Server/routes/socialRoutes.ts
 // Phase 2 — Community Layer: Social Media Integrations
 // NOVA-Powered Cross-Platform Intelligence
 
+import type { Prisma } from "@prisma/client";
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
@@ -146,7 +146,7 @@ router.post("/accounts/connect/demo", authMiddleware, async (req: Request, res: 
 // DELETE /social/accounts/:id — Disconnect a platform
 router.delete("/accounts/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const userId = req.user!.userId;
     
     const account = await db.socialAccount.findFirst({
@@ -173,7 +173,7 @@ router.delete("/accounts/:id", authMiddleware, async (req: Request, res: Respons
 // POST /social/accounts/:id/sync — Force re-sync analytics
 router.post("/accounts/:id/sync", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const userId = req.user!.userId;
     
     const account = await db.socialAccount.findFirst({
@@ -302,8 +302,8 @@ router.get("/scheduled", authMiddleware, async (req: Request, res: Response) => 
     const userId = req.user!.userId;
     const { status } = req.query;
     
-    const where: any = { userId };
-    if (status) {
+    const where: Prisma.SocialScheduledPostWhereInput = { userId };
+    if (typeof status === "string" && status.length > 0) {
       where.status = status;
     }
     
@@ -327,7 +327,7 @@ router.get("/scheduled", authMiddleware, async (req: Request, res: Response) => 
 // DELETE /social/scheduled/:id — Cancel a scheduled post
 router.delete("/scheduled/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const userId = req.user!.userId;
     
     const post = await db.socialScheduledPost.findFirst({
@@ -380,7 +380,16 @@ router.get("/analytics/overview", authMiddleware, async (req: Request, res: Resp
     let totalEngagements = 0;
     let totalFollowers = 0;
     let totalFollowersGrowth = 0;
-    let platformData: Record<string, any> = {};
+    const platformData: Record<
+      string,
+      {
+        followers: number;
+        followersGrowth: number;
+        reach: number;
+        engagements: number;
+        engagementRate: number;
+      }
+    > = {};
     
     for (const account of accounts) {
       const latestMetrics = account.metrics[0];
@@ -420,7 +429,7 @@ router.get("/analytics/overview", authMiddleware, async (req: Request, res: Resp
 // GET /social/analytics/platform/:platform — Single platform breakdown
 router.get("/analytics/platform/:platform", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { platform } = req.params;
+    const platform = String(req.params.platform);
     const userId = req.user!.userId;
     const { days = "30" } = req.query;
     const daysNum = parseInt(days as string);

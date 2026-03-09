@@ -94,7 +94,6 @@ export default function AcademyPage() {
       {/* Academy Sub-Navigation */}
       <LayerSubNav
         layer="academy"
-        accentColor="--green"
         items={ACADEMY_SUBNAV}
         smartAction={{
           label: "Continue your React course",
@@ -187,6 +186,8 @@ export default function AcademyPage() {
       {filteredCourses.length === 0 ? (
         <EmptyState
           assistant="sage"
+          title="No courses found"
+          description="Adjust your filters or explore the full catalog."
           illustration="academy"
           ctaLabel="Browse All Courses"
           ctaPath="/academy"

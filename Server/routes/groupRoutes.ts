@@ -1,9 +1,8 @@
-// @ts-nocheck
 // Server/routes/groupRoutes.ts
 // Phase 2 — Community Layer V1.2: Groups
 // Register in Server/index.ts: app.use("/groups", groupRoutes)
 
-import { Router, Request, Response } from "express";
+import { Router, type Request, type Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { broadcastToTenant, WS_EVENTS } from "../services/wsService.js";
@@ -25,7 +24,7 @@ function slugify(name: string) {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
+    const { tenantId, userId } = req.user!;
 
     const groups = await db.group.findMany({
       where: { tenantId },
@@ -58,7 +57,7 @@ router.get("/", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
+    const { tenantId, userId } = req.user!;
     const { name, description, isPrivate = false } = req.body;
 
     if (!name?.trim()) return res.status(400).json({ error: "Name required" });
@@ -104,8 +103,8 @@ router.post("/", async (req: Request, res: Response) => {
 
 router.get("/:slug", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
-    const { slug } = req.params;
+    const { tenantId, userId } = req.user!;
+    const slug = String(req.params.slug ?? "");
 
     const group = await db.group.findFirst({
       where: { tenantId, slug },
@@ -144,8 +143,8 @@ router.get("/:slug", async (req: Request, res: Response) => {
 
 router.post("/:slug/join", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
-    const { slug } = req.params;
+    const { tenantId, userId } = req.user!;
+    const slug = String(req.params.slug ?? "");
 
     const group = await db.group.findFirst({ where: { tenantId, slug } });
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -169,8 +168,8 @@ router.post("/:slug/join", async (req: Request, res: Response) => {
 
 router.post("/:slug/leave", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
-    const { slug } = req.params;
+    const { tenantId, userId } = req.user!;
+    const slug = String(req.params.slug ?? "");
 
     const group = await db.group.findFirst({ where: { tenantId, slug } });
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -195,8 +194,8 @@ router.post("/:slug/leave", async (req: Request, res: Response) => {
 
 router.get("/:slug/posts", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
-    const { slug } = req.params;
+    const { tenantId, userId } = req.user!;
+    const slug = String(req.params.slug ?? "");
     const page  = parseInt(req.query.page as string) || 1;
     const limit = 20;
 
@@ -252,8 +251,8 @@ router.get("/:slug/posts", async (req: Request, res: Response) => {
 
 router.patch("/:slug", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
-    const { slug } = req.params;
+    const { tenantId, userId } = req.user!;
+    const slug = String(req.params.slug ?? "");
     const { name, description, isPrivate } = req.body;
 
     const group = await db.group.findFirst({ where: { tenantId, slug } });
@@ -285,8 +284,8 @@ router.patch("/:slug", async (req: Request, res: Response) => {
 
 router.delete("/:slug", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
-    const { slug } = req.params;
+    const { tenantId, userId } = req.user!;
+    const slug = String(req.params.slug ?? "");
 
     const group = await db.group.findFirst({ where: { tenantId, slug } });
     if (!group) return res.status(404).json({ error: "Group not found" });
@@ -316,8 +315,9 @@ router.delete("/:slug", async (req: Request, res: Response) => {
 
 router.patch("/:slug/members/:memberId/role", async (req: Request, res: Response) => {
   try {
-    const { tenantId, userId } = req.user as any;
-    const { slug, memberId } = req.params;
+    const { tenantId, userId } = req.user!;
+    const slug = String(req.params.slug ?? "");
+    const memberId = String(req.params.memberId ?? "");
     const { role } = req.body;
 
     if (!["ADMIN", "MEMBER"].includes(role)) {
@@ -352,4 +352,5 @@ router.patch("/:slug/members/:memberId/role", async (req: Request, res: Response
 });
 
 export default router;
+
 

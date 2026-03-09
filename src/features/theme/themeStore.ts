@@ -30,40 +30,40 @@ export function applyTheme(theme: Theme, animate = true) {
 
   if (theme === "light") {
     // Light mode — steel blue tones with bronze gold
-    root.style.setProperty("--bg",        "#EEF2F7");
-    root.style.setProperty("--surface",   "#FFFFFF");
-    root.style.setProperty("--surface2",  "#E4EBF4");
-    root.style.setProperty("--border",    "#C2D0E0");
-    root.style.setProperty("--text",      "#1A2B3C");
-    root.style.setProperty("--text-dim",  "#5A7A96");
-    root.style.setProperty("--gold",      "#B8912A");
-    root.style.setProperty("--gold-dim",  "rgba(184,145,42,0.12)");
-    root.style.setProperty("--gold-glow", "rgba(184,145,42,0.25)");
-    root.style.setProperty("--blue",      "#2B5F8E");
-    root.style.setProperty("--blue-dim",  "rgba(43,95,142,0.12)");
-    root.style.setProperty("--ice",       "#89C4E1");
-    root.style.setProperty("--red",       "#C0392B");
-    root.style.setProperty("--green",     "#1A7A5E");
-    root.style.setProperty("--purple",    "#6B4FA0");
+    root.style.setProperty("--bg",        "var(--theme-light-bg)");
+    root.style.setProperty("--surface",   "var(--theme-light-surface)");
+    root.style.setProperty("--surface2",  "var(--theme-light-surface2)");
+    root.style.setProperty("--border",    "var(--theme-light-border)");
+    root.style.setProperty("--text",      "var(--theme-light-text)");
+    root.style.setProperty("--text-dim",  "var(--theme-light-text-dim)");
+    root.style.setProperty("--gold",      "var(--theme-light-gold)");
+    root.style.setProperty("--gold-dim",  "var(--theme-light-gold-dim)");
+    root.style.setProperty("--gold-glow", "var(--theme-light-gold-glow)");
+    root.style.setProperty("--blue",      "var(--theme-light-blue)");
+    root.style.setProperty("--blue-dim",  "var(--theme-light-blue-dim)");
+    root.style.setProperty("--ice",       "var(--theme-light-ice)");
+    root.style.setProperty("--red",       "var(--theme-light-red)");
+    root.style.setProperty("--green",     "var(--theme-light-green)");
+    root.style.setProperty("--purple",    "var(--theme-light-purple)");
     root.classList.add("light");
     root.classList.remove("dark");
   } else {
     // Dark mode — deep navy with logo gold/bronze
-    root.style.setProperty("--bg",        "#0D1520");
-    root.style.setProperty("--surface",   "#111D2E");
-    root.style.setProperty("--surface2",  "#172335");
-    root.style.setProperty("--border",    "#1E3248");
-    root.style.setProperty("--text",      "#E8EEF5");
-    root.style.setProperty("--text-dim",  "#5A7A96");
-    root.style.setProperty("--gold",      "#C9A84C");
-    root.style.setProperty("--gold-dim",  "rgba(201,168,76,0.12)");
-    root.style.setProperty("--gold-glow", "rgba(201,168,76,0.25)");
-    root.style.setProperty("--blue",      "#2B5F8E");
-    root.style.setProperty("--blue-dim",  "rgba(43,95,142,0.15)");
-    root.style.setProperty("--ice",       "#89C4E1");
-    root.style.setProperty("--red",       "#E05A4E");
-    root.style.setProperty("--green",     "#2DD4A0");
-    root.style.setProperty("--purple",    "#9B6FFF");
+    root.style.setProperty("--bg",        "var(--theme-dark-bg)");
+    root.style.setProperty("--surface",   "var(--theme-dark-surface)");
+    root.style.setProperty("--surface2",  "var(--theme-dark-surface2)");
+    root.style.setProperty("--border",    "var(--theme-dark-border)");
+    root.style.setProperty("--text",      "var(--theme-dark-text)");
+    root.style.setProperty("--text-dim",  "var(--theme-dark-text-dim)");
+    root.style.setProperty("--gold",      "var(--theme-dark-gold)");
+    root.style.setProperty("--gold-dim",  "var(--theme-dark-gold-dim)");
+    root.style.setProperty("--gold-glow", "var(--theme-dark-gold-glow)");
+    root.style.setProperty("--blue",      "var(--theme-dark-blue)");
+    root.style.setProperty("--blue-dim",  "var(--theme-dark-blue-dim)");
+    root.style.setProperty("--ice",       "var(--theme-dark-ice)");
+    root.style.setProperty("--red",       "var(--theme-dark-red)");
+    root.style.setProperty("--green",     "var(--theme-dark-green)");
+    root.style.setProperty("--purple",    "var(--theme-dark-purple)");
     root.classList.add("dark");
     root.classList.remove("light");
   }

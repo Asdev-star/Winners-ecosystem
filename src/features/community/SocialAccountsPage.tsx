@@ -21,16 +21,16 @@ interface SocialAccount {
 }
 
 const PLATFORM_CONFIG: Record<string, { name: string; icon: string; color: string; description: string }> = {
-  facebook: { name: "Facebook", icon: "📘", color: "#1877F2", description: "Page insights, cross-posting, analytics" },
-  instagram: { name: "Instagram", icon: "📸", color: "#E4405F", description: "Reels, stories, audience insights" },
-  whatsapp: { name: "WhatsApp", icon: "💬", color: "#25D366", description: "Broadcast lists, notifications" },
-  telegram: { name: "Telegram", icon: "✈️", color: "#0088CC", description: "Channel posts, bot commands" },
-  twitter: { name: "X (Twitter)", icon: "𝕏", color: "#000000", description: "Threads, analytics, engagement" },
-  messenger: { name: "Messenger", icon: "💭", color: "#0064FF", description: "Notifications, broadcasts" },
-  linkedin: { name: "LinkedIn", icon: "💼", color: "#0A66C2", description: "Professional posts, certificate sharing" },
-  tiktok: { name: "TikTok", icon: "🎵", color: "#000000", description: "Video cross-posting, analytics" },
-  youtube: { name: "YouTube", icon: "▶️", color: "#FF0000", description: "Video embedding, channel analytics" },
-  threads: { name: "Threads", icon: "🧵", color: "#000000", description: "Cross-posting from Meta" },
+  facebook: { name: "Facebook", icon: "📘", color: "var(--blue)", description: "Page insights, cross-posting, analytics" },
+  instagram: { name: "Instagram", icon: "📸", color: "var(--red)", description: "Reels, stories, audience insights" },
+  whatsapp: { name: "WhatsApp", icon: "💬", color: "var(--green)", description: "Broadcast lists, notifications" },
+  telegram: { name: "Telegram", icon: "✈️", color: "var(--blue)", description: "Channel posts, bot commands" },
+  twitter: { name: "X (Twitter)", icon: "𝕏", color: "var(--text)", description: "Threads, analytics, engagement" },
+  messenger: { name: "Messenger", icon: "💭", color: "var(--ice)", description: "Notifications, broadcasts" },
+  linkedin: { name: "LinkedIn", icon: "💼", color: "var(--blue)", description: "Professional posts, certificate sharing" },
+  tiktok: { name: "TikTok", icon: "🎵", color: "var(--text)", description: "Video cross-posting, analytics" },
+  youtube: { name: "YouTube", icon: "▶️", color: "var(--red)", description: "Video embedding, channel analytics" },
+  threads: { name: "Threads", icon: "🧵", color: "var(--text)", description: "Cross-posting from Meta" },
 };
 
 export default function SocialAccountsPage() {
@@ -415,3 +415,4 @@ export default function SocialAccountsPage() {
     </div>
   );
 }
+

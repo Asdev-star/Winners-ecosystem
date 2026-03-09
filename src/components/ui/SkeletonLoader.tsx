@@ -1,6 +1,6 @@
 // Level I - Foundation Intelligence
 // Skeleton Loader - Animated shimmer to replace all spinners
-// Uses --surface2 color (#172335) for shimmer as per design system
+// Uses --surface2 token for shimmer as per design system
 
 interface SkeletonLoaderProps {
   variant?: 'card' | 'row' | 'avatar' | 'chart' | 'text' | 'title';
@@ -360,3 +360,4 @@ export function ChartSkeleton() {
     </div>
   );
 }
+

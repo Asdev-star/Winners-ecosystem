@@ -2,6 +2,7 @@
 // Phase 4: Winners Market - Order processing and management
 
 import { Router, Request, Response } from "express";
+import { OrderStatus, type Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 
@@ -18,6 +19,13 @@ function generateOrderNumber(): string {
   return `ORD-${timestamp}-${random}`;
 }
 
+function parseOrderStatus(value: string): OrderStatus | null {
+  const candidate = value.trim().toUpperCase();
+  return (Object.values(OrderStatus) as string[]).includes(candidate)
+    ? (candidate as OrderStatus)
+    : null;
+}
+
 // GET /orders - Get user's orders
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -29,8 +37,12 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
     const page = parseInt(pageStr) || 1;
     const limit = parseInt(limitStr) || 20;
 
-    const where: any = { userId, tenantId };
-    if (status) where.status = status;
+    const where: Prisma.OrderWhereInput = { userId, tenantId };
+    if (status) {
+      const parsedStatus = parseOrderStatus(status);
+      if (!parsedStatus) return res.status(400).json({ error: "Invalid order status" });
+      where.status = parsedStatus;
+    }
 
     const skip = (page - 1) * limit;
 
@@ -163,9 +175,8 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
-    const vendorAny = vendor as any;
-    const shippingCost = vendorAny.freeShipping ? 0 : (vendorAny.shippingPrice || 0);
-    const taxRate = vendorAny.taxRate || 0;
+    const shippingCost = vendor.freeShipping ? 0 : (vendor.shippingPrice || 0);
+    const taxRate = vendor.taxRate || 0;
     const taxAmount = subtotal * (taxRate / 100);
     const total = subtotal + shippingCost + taxAmount;
 
@@ -281,8 +292,12 @@ router.get("/vendor/all", authMiddleware, async (req: Request, res: Response) =>
       return res.status(403).json({ error: "Vendor not found" });
     }
 
-    const where: any = { vendorId: vendor.id };
-    if (status) where.status = status;
+    const where: Prisma.OrderWhereInput = { vendorId: vendor.id };
+    if (status) {
+      const parsedStatus = parseOrderStatus(status);
+      if (!parsedStatus) return res.status(400).json({ error: "Invalid order status" });
+      where.status = parsedStatus;
+    }
 
     const skip = (page - 1) * limit;
 

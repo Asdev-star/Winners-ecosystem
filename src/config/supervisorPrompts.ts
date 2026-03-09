@@ -127,9 +127,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   OMEGA: {
     name: "OMEGA",
     emoji: "🧠",
-    color: "#C9A84C",
-    accentColor: "#2DD4A0",
-    gradient: "linear-gradient(135deg, #2DD4A0, #C9A84C)",
+    color: "var(--gold)",
+    accentColor: "var(--green)",
+    gradient: "linear-gradient(135deg, var(--green), var(--gold))",
     domain: "Cross-layer synthesis",
     personalityRegister: "Strategic. Architecturally minded. Speaks in trajectories, not tasks. When OMEGA speaks, it carries the weight of having reviewed the full picture.",
     layer: "Orchestrator",
@@ -161,9 +161,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   ARIA: {
     name: "ARIA",
     emoji: "⬡",
-    color: "#2B5F8E",
-    accentColor: "#9B6FFF",
-    gradient: "linear-gradient(135deg, #2B5F8E, #9B6FFF)",
+    color: "var(--blue)",
+    accentColor: "var(--purple)",
+    gradient: "linear-gradient(135deg, var(--blue), var(--purple))",
     domain: "Core Engine — workspace health, billing, account intelligence",
     personalityRegister: "Reliable. Thorough. Slightly formal. The platform's institutional voice — a senior advisor who knows the full breadth of what the platform offers.",
     layer: "Core Engine",
@@ -194,9 +194,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   NOVA: {
     name: "NOVA",
     emoji: "👥",
-    color: "#89C4E1",
-    accentColor: "#2B5F8E",
-    gradient: "linear-gradient(135deg, #89C4E1, #2B5F8E)",
+    color: "var(--ice)",
+    accentColor: "var(--blue)",
+    gradient: "linear-gradient(135deg, var(--ice), var(--blue))",
     domain: "Community — posts, groups, connections, creator analytics, skill detection",
     personalityRegister: "Culturally aware. Current. Direct about performance data without discouraging. Understands African digital communities. Knows trends, timing, and what the community responds to.",
     layer: "Community",
@@ -228,9 +228,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   SAGE: {
     name: "SAGE",
     emoji: "🎓",
-    color: "#2DD4A0",
-    accentColor: "#2B5F8E",
-    gradient: "linear-gradient(135deg, #2DD4A0, #2B5F8E)",
+    color: "var(--green)",
+    accentColor: "var(--blue)",
+    gradient: "linear-gradient(135deg, var(--green), var(--blue))",
     domain: "Academy — courses, learning paths, certificates, cohorts, instructor tools",
     personalityRegister: "Patient. Precise. Encourages without flattering. Calibrates language to demonstrated learning level. Does not use advanced vocabulary with beginners or simplistic explanations with experts.",
     layer: "Academy",
@@ -262,9 +262,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   ATLAS: {
     name: "ATLAS",
     emoji: "🛒",
-    color: "#C9A84C",
-    accentColor: "#E05A4E",
-    gradient: "linear-gradient(135deg, #C9A84C, #E05A4E)",
+    color: "var(--gold)",
+    accentColor: "var(--red)",
+    gradient: "linear-gradient(135deg, var(--gold), var(--red))",
     domain: "Market — all ten verticals, commerce, digital marketing, streaming, trading",
     personalityRegister: "Commercially precise. Speaks entrepreneurship language. Numbers-first. If a product concept has weak margin, says so directly and proposes alternatives.",
     layer: "Market",
@@ -296,9 +296,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   FORGE: {
     name: "FORGE",
     emoji: "🤖",
-    color: "#9B6FFF",
-    accentColor: "#C9A84C",
-    gradient: "linear-gradient(135deg, #9B6FFF, #C9A84C)",
+    color: "var(--purple)",
+    accentColor: "var(--gold)",
+    gradient: "linear-gradient(135deg, var(--purple), var(--gold))",
     domain: "Intelligence Platform — AI infrastructure, credit usage, model routing",
     personalityRegister: "Technical but not inaccessible. Assumes users are intelligent. Precise about system behaviour, honest about limitations, clear about what AI infrastructure can and cannot do.",
     layer: "Intelligence",
@@ -330,9 +330,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   CIRCUIT: {
     name: "CIRCUIT",
     emoji: "💼",
-    color: "#2B5F8E",
-    accentColor: "#89C4E1",
-    gradient: "linear-gradient(135deg, #2B5F8E, #89C4E1)",
+    color: "var(--blue)",
+    accentColor: "var(--ice)",
+    gradient: "linear-gradient(135deg, var(--blue), var(--ice))",
     domain: "Work — job board, freelancer profiles, contracts, escrow, proposals",
     personalityRegister: "Precise. Efficient. Zero-waste in language. Does not celebrate potential — identifies gaps between current capability and market requirement and specifies how to close them.",
     layer: "Work",
@@ -364,9 +364,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   NEXUS: {
     name: "NEXUS",
     emoji: "☁️",
-    color: "#89C4E1",
-    accentColor: "#2B5F8E",
-    gradient: "linear-gradient(135deg, #89C4E1, #2B5F8E)",
+    color: "var(--ice)",
+    accentColor: "var(--blue)",
+    gradient: "linear-gradient(135deg, var(--ice), var(--blue))",
     domain: "Cloud — API access, developer tools, SDK, webhooks, plugins",
     personalityRegister: "Technical. Confident. Assumes developer-level context. Does not explain what an API is — explains what this specific API does, its limits, and fastest path to integration.",
     layer: "Cloud",
@@ -398,9 +398,9 @@ export const SUPERVISOR_PROMPTS: Record<SupervisorName, SupervisorPromptConfig> 
   HERALD: {
     name: "HERALD",
     emoji: "🧬",
-    color: "#2B5F8E",
-    accentColor: "#9B6FFF",
-    gradient: "linear-gradient(135deg, #2B5F8E, #9B6FFF)",
+    color: "var(--blue)",
+    accentColor: "var(--purple)",
+    gradient: "linear-gradient(135deg, var(--blue), var(--purple))",
     domain: "AI Platform — benchmarking, competitive positioning, platform health",
     personalityRegister: "Analytical. Forward-looking. Frames information in strategic context rather than tactical detail. Provides context about platform direction and market comparison.",
     layer: "AI Platform",
@@ -513,7 +513,7 @@ export function generateSystemPrompt(
     .replace("{timezone}", "Africa/Nairobi"); // TODO: Get from user profile
 
   // Fill in domain context
-  const filledDomainContext = domainContextTemplate;
+  let filledDomainContext = domainContextTemplate;
   if (domainContext) {
     Object.entries(domainContext).forEach(([key, value]) => {
       filledDomainContext = filledDomainContext.replace(`{${key}}`, value || "not available");
@@ -597,3 +597,4 @@ Example good openings:
 
 Generate one greeting that follows this pattern.`;
 }
+

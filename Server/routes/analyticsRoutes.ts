@@ -1,7 +1,6 @@
-// @ts-nocheck
 // server/routes/analyticsRoutes.ts
 
-import { Router, Request, Response } from "express";
+import { Router, type Request, type Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireMinRole, requirePermission, enforceTenant } from "../middleware/rbacMiddleware.js";
@@ -34,8 +33,10 @@ function formatDate(d: Date) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function isMissingTableError(err: any) {
-  return err?.code === "P2021" || String(err?.message ?? "").toLowerCase().includes("does not exist");
+function isMissingTableError(err: unknown) {
+  if (!err || typeof err !== "object") return false;
+  const candidate = err as { code?: unknown; message?: unknown };
+  return candidate.code === "P2021" || String(candidate.message ?? "").toLowerCase().includes("does not exist");
 }
 
 function buildZeroSeries(days: number) {

@@ -80,12 +80,24 @@ function generateForecast(data: { name: string; value: number }[]) {
   }));
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface ActivityTooltipRow {
+  dataKey: string;
+  name: string;
+  value: number;
+}
+
+interface ActivityTooltipProps {
+  active?: boolean;
+  payload?: ActivityTooltipRow[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: ActivityTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="ac2-tooltip">
       <div className="ac2-tooltip-label">{label}</div>
-      {payload.map((p: any) => (
+      {payload.map((p) => (
         <div key={p.dataKey} className="ac2-tooltip-val">{p.name}: {p.value.toLocaleString()}</div>
       ))}
     </div>

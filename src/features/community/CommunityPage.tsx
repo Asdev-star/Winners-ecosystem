@@ -1750,7 +1750,7 @@ export default function CommunityPage() {
             if (p.id !== postId) return p;
             return {
               ...p,
-              reactions: (data.reactions || (p as any).reactions) as any,
+              reactions: Array.isArray(data?.reactions) ? (data.reactions as { reaction: string; userId: string }[]) : (p.reactions ?? []),
               userReaction: reaction,
             };
           })
@@ -1873,18 +1873,17 @@ export default function CommunityPage() {
       {/* Universal Sub-Navigation */}
       <LayerSubNav
         layer="community"
-        accentColor="--ice"
         items={[
-          { id: "feed", label: "Feed", href: "/community", icon: "📰" },
-          { id: "groups", label: "Groups", href: "/community/groups", icon: "👥", badge: 3, badgeType: "normal" },
-          { id: "discover", label: "Discover", href: "/community/discover", icon: "🔍" },
-          { id: "messages", label: "Messages", href: "/messages", icon: "💬", badge: 2, badgeType: "alert" },
-          { id: "saved", label: "Saved", href: "/community/saved", icon: "🔖" },
-          { id: "analytics", label: "Analytics", href: "/community/analytics", icon: "📊" },
+          { id: "feed", label: "Feed", href: "/community" },
+          { id: "groups", label: "Groups", href: "/community/groups", badge: 3, badgeType: "normal" },
+          { id: "discover", label: "Discover", href: "/community/discover" },
+          { id: "messages", label: "Messages", href: "/messages", badge: 2, badgeType: "alert" },
+          { id: "saved", label: "Saved", href: "/community/saved" },
+          { id: "analytics", label: "Analytics", href: "/community/analytics" },
         ]}
         smartAction={{
           label: "3 posts match your skills",
-          supervisor: "NOVA",
+          supervisor: "nova",
           href: "/community?nova=insights",
           urgency: "normal",
         }}
@@ -2342,3 +2341,4 @@ export default function CommunityPage() {
     </>
   );
 }
+

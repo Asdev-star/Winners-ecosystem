@@ -2,35 +2,35 @@
 // Complete Market Hub with 10 Verticals + AI Tools
 // Build sequence: 4A → 4B → 4C → 4E → 4F → 4D → 4G → 4H → 4I → 4J
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────
-// Using CSS variables from global design system - with fallbacks for development
+// Using CSS variables from global design system
 const T = {
-  bg: "var(--bg, #0D1520)", 
-  surface: "var(--surface, #111D2E)", 
-  surface2: "var(--surface2, #172335)", 
-  surface3: "var(--surface3, #1C2B40)",
-  border: "var(--border, #1E3248)", 
-  border2: "var(--border, rgba(30,50,72,0.5))",
-  gold: "var(--gold, #C9A84C)", 
-  gold2: "var(--gold, #E8C97A)", 
-  gold3: "var(--gold, #8B6914)", 
-  goldDim: "var(--gold, rgba(201,168,76,0.08))",
-  ice: "var(--ice, #89C4E1)", 
-  blue: "var(--blue, #2B5F8E)", 
-  green: "var(--green, #2DD4A0)", 
-  purple: "var(--purple, #9B6FFF)",
-  red: "var(--red, #E05A4E)", 
-  orange: "var(--gold, #F0853A)", 
-  teal: "var(--green, #0DBFAD)", 
-  pink: "var(--purple, #E06AA0)",
-  text: "var(--text, #E8EEF5)", 
-  dim: "var(--text-dim, #5A7A96)", 
-  faint: "var(--border, #2E4A64)",
+  bg: "var(--bg)", 
+  surface: "var(--surface)", 
+  surface2: "var(--surface2)", 
+  surface3: "var(--surface3)",
+  border: "var(--border)", 
+  border2: "rgba(30,50,72,0.5)",
+  gold: "var(--gold)", 
+  gold2: "var(--gold)", 
+  gold3: "var(--gold)", 
+  goldDim: "rgba(201,168,76,0.08)",
+  ice: "var(--ice)", 
+  blue: "var(--blue)", 
+  green: "var(--green)", 
+  purple: "var(--purple)",
+  red: "var(--red)", 
+  orange: "var(--gold)", 
+  teal: "var(--green)", 
+  pink: "var(--purple)",
+  text: "var(--text)", 
+  dim: "var(--text-dim)", 
+  faint: "var(--border)",
 };
 
 // ─── All 10 Winners Market Verticals ───────────────────────────────────────
@@ -117,7 +117,7 @@ const VERTICALS = [
   },
   {
     id:"health", icon:"💪", label:"Winners Health",
-    color:"var(--green, #5DD87A)", badge:"V3 · Advanced",
+    color:"var(--green)", badge:"V3 · Advanced",
     tagline:"Fitness · Nutrition · Mental Wellness",
     desc:"A wellness marketplace where certified coaches sell workout programs, nutrition plans, and mental health content. AI-powered workout tracking, health analytics, and telehealth booking — built for the African wellness market.",
     revenue:["Coach program sales 20% cut","Wellness subscription plans","Telehealth booking commission","Supplement referral sales","Corporate wellness packages"],
@@ -127,7 +127,7 @@ const VERTICALS = [
   },
   {
     id:"fintech", icon:"🏦", label:"Winners Finance",
-    color:"var(--gold, #FFD166)", badge:"V3 · Advanced",
+    color:"var(--gold)", badge:"V3 · Advanced",
     tagline:"Payments · Savings · Micro-Loans",
     desc:"Embedded fintech for the ecosystem. Group savings (chamas), micro-investment pools, cross-border payment rails optimized for Africa, buy-now-pay-later for platform purchases, and financial literacy courses.",
     revenue:["Payment processing 1–2%","Savings pool management fee","Micro-loan interest 5–15%","BNPL service fee","Financial product referrals"],
@@ -138,7 +138,50 @@ const VERTICALS = [
 ];
 
 // ─── AI Tool Types ──────────────────────────────────────────────────────────
-const AI_TOOLS = ["Business Plan Generator", "CV Generator", "Marketing Strategy", "Pitch Deck Outline"];
+const AI_TOOLS = ["Business Plan Generator", "CV Generator", "Marketing Strategy", "Pitch Deck Outline"] as const;
+
+type AiToolKey = (typeof AI_TOOLS)[number];
+type Vertical = (typeof VERTICALS)[number];
+
+interface StreamPrompt {
+  sys: string;
+  user: string;
+}
+
+interface SectionLabelProps {
+  text: string;
+  color?: string;
+}
+
+interface VerticalCardProps {
+  v: Vertical;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+interface MarketFormData {
+  idea?: string;
+  market?: string;
+  budget?: string;
+  model?: string;
+  name?: string;
+  jobTarget?: string;
+  experience?: string;
+  education?: string;
+  skills?: string;
+  location?: string;
+  channels?: string;
+  stage?: string;
+  traction?: string;
+}
+
+type MarketFormKey = keyof MarketFormData;
+
+interface ToolField {
+  key: MarketFormKey;
+  label: string;
+  placeholder: string;
+}
 
 // ─── Streaming hook ─────────────────────────────────────────────────────────
 function useStream() {
@@ -146,7 +189,7 @@ function useStream() {
   const [streaming, setStreaming] = useState(false);
   const [done, setDone] = useState(false);
 
-  const run = useCallback(async (prompt, systemPrompt) => {
+  const run = useCallback(async (prompt: string, systemPrompt: string) => {
     setOutput(""); setDone(false); setStreaming(true);
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -160,6 +203,9 @@ function useStream() {
           messages:[{role:"user", content:prompt}],
         }),
       });
+      if (!res.body) {
+        throw new Error("Missing response stream body");
+      }
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -183,7 +229,7 @@ function useStream() {
 }
 
 // ─── Section label component ────────────────────────────────────────────────
-function SectionLabel({text, color=T.gold}) {
+function SectionLabel({text, color=T.gold}: SectionLabelProps) {
   return (
     <div style={{fontFamily:"'Space Mono',monospace", fontSize:8.5, letterSpacing:"0.25em",
       textTransform:"uppercase", color, marginBottom:14, display:"flex", alignItems:"center", gap:12}}>
@@ -195,7 +241,7 @@ function SectionLabel({text, color=T.gold}) {
 }
 
 // ─── Vertical Card ──────────────────────────────────────────────────────────
-function VerticalCard({v, isActive, onClick}) {
+function VerticalCard({v, isActive, onClick}: VerticalCardProps) {
   return (
     <div onClick={onClick} style={{
       background: isActive ? `${v.color}0C` : T.surface,
@@ -229,18 +275,18 @@ function VerticalCard({v, isActive, onClick}) {
 
 // ─── Main App ───────────────────────────────────────────────────────────────
 export default function WinnersMarketExpanded() {
-  const [activeVertical, setActiveVertical] = useState(null);
-  const [activeTool, setActiveTool] = useState(null);
-  const [formData, setFormData] = useState({});
+  const [activeVertical, setActiveVertical] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<AiToolKey | null>(null);
+  const [formData, setFormData] = useState<MarketFormData>({});
   const {output, streaming, done, run, reset} = useStream();
 
   const v = VERTICALS.find(x=>x.id===activeVertical);
 
   // ── Tool prompts ──────────────────────────────────────────────────────────
-  const buildPrompt = (tool) => {
+  const buildPrompt = (tool: AiToolKey): StreamPrompt => {
     const sys = `You are the Winners Ecosystem AI — an expert business advisor, career consultant, and strategist embedded in the Winners Market platform. You help entrepreneurs in Africa and globally start businesses, create professional documents, and build digital income streams. Be specific, structured, and actionable. Use clear sections with emojis as headers. Provide real numbers and realistic advice.`;
 
-    const prompts = {
+    const prompts: Record<AiToolKey, StreamPrompt> = {
       "Business Plan Generator": {
         sys,
         user: `Generate a professional business plan for:
@@ -327,7 +373,7 @@ Generate a 12-slide pitch deck with:
 For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
       },
     };
-    return prompts[tool] || {sys, user:`Help with: ${tool}`};
+    return prompts[tool];
   };
 
   const handleGenerate = () => {
@@ -336,7 +382,7 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
     run(user, sys);
   };
 
-  const toolFields = {
+  const toolFields: Record<AiToolKey, ToolField[]> = {
     "Business Plan Generator": [
       {key:"idea", label:"Business Idea", placeholder:"e.g. Online tutoring platform for STEM subjects in East Africa"},
       {key:"market", label:"Target Market", placeholder:"e.g. Students aged 13–22 in Kenya, Uganda, Tanzania"},
@@ -700,7 +746,7 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
           </div>
         </div>
       </div>
-      <AssistantPanel assistant="atlas" layer="market" />
+      <AssistantPanel assistant="atlas" page="market" />
     </>
   );
 }

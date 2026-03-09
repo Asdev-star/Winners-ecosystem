@@ -1,18 +1,49 @@
-// @ts-nocheck
 // Server/services/stripeService.ts
 
 import Stripe from "stripe";
 import db from "../db.js";
 import { notifyNewRevenue, notifyPlanUpgraded } from "./slackService.js";
 
-function getStripe() {
+function getStripe(): Stripe {
   if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY not set");
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
-// ─── Sync Stripe charges to revenueRecord table ───────────────────────────────
+function dayStart(dateString: string): Date {
+  const date = new Date(`${dateString}T00:00:00.000Z`);
+  return date;
+}
 
-export async function syncStripeRevenue(tenantId: string) {
+function dayEnd(dateString: string): Date {
+  const start = dayStart(dateString);
+  return new Date(start.getTime() + 24 * 60 * 60 * 1000);
+}
+
+function customerIdFromChargeCustomer(
+  customer: Stripe.Charge["customer"]
+): string | null {
+  if (!customer) return null;
+  if (typeof customer === "string") return customer;
+  return customer.id;
+}
+
+function customerIdFromInvoiceCustomer(
+  customer: Stripe.Invoice["customer"]
+): string | null {
+  if (!customer) return null;
+  if (typeof customer === "string") return customer;
+  return customer.id;
+}
+
+function customerIdFromSessionCustomer(
+  customer: Stripe.Checkout.Session["customer"]
+): string | null {
+  if (!customer) return null;
+  if (typeof customer === "string") return customer;
+  return customer.id;
+}
+
+export async function syncStripeRevenue(tenantId: string): Promise<{ synced: number; total: number }> {
   const stripe = getStripe();
 
   const charges = await stripe.charges.list({
@@ -20,33 +51,50 @@ export async function syncStripeRevenue(tenantId: string) {
     created: { gte: Math.floor(Date.now() / 1000) - 90 * 24 * 60 * 60 },
   });
 
-  const successfulCharges = charges.data.filter((c) => c.paid && !c.refunded);
-
+  const successfulCharges = charges.data.filter((charge) => charge.paid && !charge.refunded);
   const byDate: Record<string, number> = {};
+
   for (const charge of successfulCharges) {
     const date = new Date(charge.created * 1000).toISOString().split("T")[0];
     byDate[date] = (byDate[date] ?? 0) + charge.amount / 100;
   }
 
-  for (const [dateStr, amount] of Object.entries(byDate)) {
-    const date = new Date(dateStr);
-    const existing = await db.revenueRecord.findFirst({ where: { tenantId, date } });
+  for (const [dateString, amount] of Object.entries(byDate)) {
+    const existing = await db.revenueRecord.findFirst({
+      where: {
+        tenantId,
+        source: "stripe",
+        recordedAt: {
+          gte: dayStart(dateString),
+          lt: dayEnd(dateString),
+        },
+      },
+    });
+
     if (existing) {
-      await db.revenueRecord.update({ where: { id: existing.id }, data: { amount, source: "stripe" } });
+      await db.revenueRecord.update({
+        where: { id: existing.id },
+        data: { amount, source: "stripe" },
+      });
     } else {
-      await db.revenueRecord.create({ data: { tenantId, date, amount, source: "stripe" } });
+      await db.revenueRecord.create({
+        data: {
+          tenantId,
+          amount,
+          source: "stripe",
+          recordedAt: dayStart(dateString),
+        },
+      });
     }
   }
 
   return { synced: Object.keys(byDate).length, total: successfulCharges.length };
 }
 
-// ─── Get Stripe dashboard stats ───────────────────────────────────────────────
-
 export async function getStripeStats() {
   const stripe = getStripe();
-  const now    = Math.floor(Date.now() / 1000);
-  const day30  = now - 30 * 24 * 60 * 60;
+  const now = Math.floor(Date.now() / 1000);
+  const day30 = now - 30 * 24 * 60 * 60;
 
   const [charges, customers, subscriptions, balance] = await Promise.all([
     stripe.charges.list({ limit: 100, created: { gte: day30 } }),
@@ -55,84 +103,83 @@ export async function getStripeStats() {
     stripe.balance.retrieve(),
   ]);
 
-  const successfulCharges = charges.data.filter((c) => c.paid && !c.refunded);
-  const mrr = subscriptions.data.reduce((sum, sub) => {
-    const item  = sub.items.data[0];
-    const price = item?.price;
-    if (!price?.unit_amount) return sum;
-    const monthly = price.recurring?.interval === "year" ? price.unit_amount / 12 : price.unit_amount;
+  const successfulCharges = charges.data.filter((charge) => charge.paid && !charge.refunded);
+  const mrr = subscriptions.data.reduce((sum, subscription) => {
+    const firstItem = subscription.items.data[0];
+    const unitAmount = firstItem?.price?.unit_amount;
+    if (!unitAmount) return sum;
+    const monthly =
+      firstItem?.price?.recurring?.interval === "year" ? unitAmount / 12 : unitAmount;
     return sum + monthly / 100;
   }, 0);
 
   return {
     last30Days: {
-      revenue:      successfulCharges.reduce((s, c) => s + c.amount / 100, 0),
+      revenue: successfulCharges.reduce((sum, charge) => sum + charge.amount / 100, 0),
       transactions: successfulCharges.length,
       newCustomers: customers.data.length,
-      refunds:      charges.data.filter((c) => c.refunded).length,
+      refunds: charges.data.filter((charge) => charge.refunded).length,
     },
-    subscriptions: { active: subscriptions.data.length, mrr: Math.round(mrr) },
+    subscriptions: {
+      active: subscriptions.data.length,
+      mrr: Math.round(mrr),
+    },
     balance: {
-      available: balance.available.reduce((s, b) => s + b.amount, 0) / 100,
-      pending:   balance.pending.reduce((s, b) => s + b.amount, 0) / 100,
+      available: balance.available.reduce((sum, entry) => sum + entry.amount, 0) / 100,
+      pending: balance.pending.reduce((sum, entry) => sum + entry.amount, 0) / 100,
     },
-    recentCharges: successfulCharges.slice(0, 10).map((c) => ({
-      id:          c.id,
-      amount:      c.amount / 100,
-      currency:    c.currency,
-      description: c.description ?? c.statement_descriptor ?? "Payment",
-      customer:    typeof c.customer === "string" ? c.customer : (c.customer as any)?.id,
-      date:        new Date(c.created * 1000).toISOString(),
-      status:      c.status,
+    recentCharges: successfulCharges.slice(0, 10).map((charge) => ({
+      id: charge.id,
+      amount: charge.amount / 100,
+      currency: charge.currency,
+      description: charge.description ?? charge.statement_descriptor ?? "Payment",
+      customer: customerIdFromChargeCustomer(charge.customer),
+      date: new Date(charge.created * 1000).toISOString(),
+      status: charge.status,
     })),
   };
 }
 
-// ─── Create Stripe checkout session ──────────────────────────────────────────
-
 export async function createCheckoutSession(params: {
-  plan:       "PRO" | "ENTERPRISE";
-  tenantId:   string;
-  userId:     string;
-  email:      string;
+  plan: "PRO" | "ENTERPRISE";
+  tenantId: string;
+  userId: string;
+  email: string;
   successUrl: string;
-  cancelUrl:  string;
+  cancelUrl: string;
 }) {
   const stripe = getStripe();
 
-  const priceId = params.plan === "PRO"
-    ? process.env.STRIPE_PRO_PRICE_ID
-    : process.env.STRIPE_ENTERPRISE_PRICE_ID;
+  const priceId =
+    params.plan === "PRO"
+      ? process.env.STRIPE_PRO_PRICE_ID
+      : process.env.STRIPE_ENTERPRISE_PRICE_ID;
 
   if (!priceId) {
-    throw new Error(`Price ID for ${params.plan} not set. Add STRIPE_PRO_PRICE_ID or STRIPE_ENTERPRISE_PRICE_ID to environment variables.`);
+    throw new Error(
+      `Price ID for ${params.plan} not set. Add STRIPE_PRO_PRICE_ID or STRIPE_ENTERPRISE_PRICE_ID.`
+    );
   }
 
-  const session = await stripe.checkout.sessions.create({
+  return stripe.checkout.sessions.create({
     payment_method_types: ["card"],
-    mode:                 "subscription",
-    customer_email:       params.email,
+    mode: "subscription",
+    customer_email: params.email,
     line_items: [{ price: priceId, quantity: 1 }],
     metadata: {
       tenantId: params.tenantId,
-      userId:   params.userId,
-      plan:     params.plan,
+      userId: params.userId,
+      plan: params.plan,
     },
     success_url: params.successUrl,
-    cancel_url:  params.cancelUrl,
+    cancel_url: params.cancelUrl,
   });
-
-  return session;
 }
-
-// ─── Create billing portal session ───────────────────────────────────────────
 
 export async function createPortalSession(customerId: string, returnUrl: string) {
   const stripe = getStripe();
   return stripe.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
 }
-
-// ─── Create course purchase checkout session ─────────────────────────────────
 
 export async function createCourseCheckoutSession(params: {
   courseId: string;
@@ -146,11 +193,10 @@ export async function createCourseCheckoutSession(params: {
   cancelUrl: string;
 }) {
   const stripe = getStripe();
-  const currency = params.currency || "usd";
+  const currency = params.currency ?? "usd";
 
-  // Create a price for this course dynamically
-  const price = await stripe.prices.create({
-    unit_amount: Math.round(params.price * 100), // Convert to cents
+  const dynamicPrice = await stripe.prices.create({
+    unit_amount: Math.round(params.price * 100),
     currency,
     product_data: {
       name: params.courseTitle,
@@ -160,11 +206,11 @@ export async function createCourseCheckoutSession(params: {
     },
   });
 
-  const session = await stripe.checkout.sessions.create({
+  return stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     mode: "payment",
     customer_email: params.email,
-    line_items: [{ price: price.id, quantity: 1 }],
+    line_items: [{ price: dynamicPrice.id, quantity: 1 }],
     metadata: {
       courseId: params.courseId,
       userId: params.userId,
@@ -174,106 +220,106 @@ export async function createCourseCheckoutSession(params: {
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
   });
-
-  return session;
 }
 
-// ─── Handle Stripe webhook events ─────────────────────────────────────────────
-
 export async function handleWebhookEvent(payload: Buffer, signature: string) {
-  const stripe        = getStripe();
+  const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
-
   const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
   switch (event.type) {
-
     case "checkout.session.completed": {
-      const session  = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object as Stripe.Checkout.Session;
       const tenantId = session.metadata?.tenantId;
-      const plan     = session.metadata?.plan as "PRO" | "ENTERPRISE";
+      const plan = session.metadata?.plan as "PRO" | "ENTERPRISE" | undefined;
 
       if (tenantId && plan) {
+        const customerId = customerIdFromSessionCustomer(session.customer);
+        const subscriptionId =
+          typeof session.subscription === "string" ? session.subscription : null;
+
         const tenant = await db.tenant.update({
           where: { id: tenantId },
           data: {
             plan,
-            stripeCustomerId:     session.customer as string,
-            stripeSubscriptionId: session.subscription as string,
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId,
           },
         });
 
-        // Notify Slack — plan upgraded
         await notifyPlanUpgraded({
-          fromPlan:   "FREE",
-          toPlan:     plan,
+          fromPlan: "FREE",
+          toPlan: plan,
           upgradedBy: session.customer_email ?? "Customer",
           tenantName: tenant.name,
         }).catch(() => {});
       }
-      break;
-    }
 
-    case "customer.subscription.deleted": {
-      const sub    = event.data.object as Stripe.Subscription;
-      const tenant = await db.tenant.findFirst({ where: { stripeSubscriptionId: sub.id } });
-      if (tenant) await db.tenant.update({ where: { id: tenant.id }, data: { plan: "FREE" } });
-      break;
-    }
-
-    case "invoice.payment_succeeded": {
-      const invoice = event.data.object as Stripe.Invoice;
-      const tenant  = await db.tenant.findFirst({ where: { stripeCustomerId: invoice.customer as string } });
-
-      if (tenant && invoice.amount_paid > 0) {
-        await db.revenueRecord.create({
-          data: {
-            tenantId: tenant.id,
-            date:     new Date(),
-            amount:   invoice.amount_paid / 100,
-            source:   "stripe_subscription",
-          },
-        });
-
-        // Notify Slack — new revenue
-        await notifyNewRevenue({
-          amount:     invoice.amount_paid / 100,
-          currency:   invoice.currency.toUpperCase(),
-          customer:   invoice.customer_email ?? undefined,
-          source:     "Stripe",
-          tenantName: tenant.name,
-        }).catch(() => {});
-      }
-      break;
-    }
-
-    // Handle course purchases
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      
-      // Check if this is a course purchase
       if (session.metadata?.type === "course_purchase") {
-        const courseId = session.metadata?.courseId;
-        const userId = session.metadata?.userId;
-        
+        const courseId = session.metadata.courseId;
+        const userId = session.metadata.userId;
+
         if (courseId && userId) {
-          // Create enrollment for the user
           const existingEnrollment = await db.enrollment.findUnique({
             where: { courseId_userId: { courseId, userId } },
           });
 
           if (!existingEnrollment) {
             await db.enrollment.create({
-              data: {
-                courseId,
-                userId,
-              },
+              data: { courseId, userId },
             });
           }
         }
       }
       break;
     }
+
+    case "customer.subscription.deleted": {
+      const subscription = event.data.object as Stripe.Subscription;
+      const tenant = await db.tenant.findFirst({
+        where: { stripeSubscriptionId: subscription.id },
+      });
+      if (tenant) {
+        await db.tenant.update({
+          where: { id: tenant.id },
+          data: { plan: "FREE" },
+        });
+      }
+      break;
+    }
+
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId = customerIdFromInvoiceCustomer(invoice.customer);
+      if (!customerId) break;
+
+      const tenant = await db.tenant.findFirst({
+        where: { stripeCustomerId: customerId },
+      });
+
+      if (tenant && invoice.amount_paid > 0) {
+        await db.revenueRecord.create({
+          data: {
+            tenantId: tenant.id,
+            recordedAt: new Date(),
+            amount: invoice.amount_paid / 100,
+            source: "stripe_subscription",
+          },
+        });
+
+        await notifyNewRevenue({
+          amount: invoice.amount_paid / 100,
+          currency: invoice.currency?.toUpperCase() ?? "USD",
+          customer: invoice.customer_email ?? undefined,
+          source: "Stripe",
+          tenantName: tenant.name,
+        }).catch(() => {});
+      }
+      break;
+    }
+
+    default:
+      break;
   }
 
   return { received: true, type: event.type };

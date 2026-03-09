@@ -1,42 +1,50 @@
 // Server/routes/referralRoutes.ts
 
-import { Router, Request, Response } from "express";
+import { Router, type Request, type Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
-import { getOrCreateReferralCode, getReferralStats, processReferral } from "../services/referralService.js";
+import {
+  getOrCreateReferralCode,
+  getReferralStats,
+  processReferral,
+} from "../services/referralService.js";
 
 const router = Router();
 
-// GET /referral/stats — get referral stats for current user
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Internal server error";
+}
+
 router.get("/stats", authMiddleware, async (req: Request, res: Response) => {
   try {
     const stats = await getReferralStats(req.user!.userId, req.user!.tenantId);
-    res.json(stats);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json(stats);
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// GET /referral/code — get or create referral code
 router.get("/code", authMiddleware, async (req: Request, res: Response) => {
   try {
     const code = await getOrCreateReferralCode(req.user!.userId);
-    const APP_URL = process.env.APP_URL ?? "https://winners-empire-eco.up.railway.app";
-    res.json({ code, url: `${APP_URL}/signup?ref=${code}` });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    const appUrl = process.env.APP_URL ?? "https://winners-empire-eco.up.railway.app";
+    return res.json({ code, url: `${appUrl}/signup?ref=${code}` });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-// POST /referral/process — called after new user signup with ref code
 router.post("/process", async (req: Request, res: Response) => {
-  const { code, userId, email, name } = req.body;
-  if (!code || !userId) return res.status(400).json({ message: "code and userId required" });
+  const { code, userId, email, name } = req.body ?? {};
+  if (!code || !userId) {
+    return res.status(400).json({ message: "code and userId required" });
+  }
+
   try {
     await processReferral(code, userId, email, name);
-    res.json({ message: "Referral processed" });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+    return res.json({ message: "Referral processed" });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
   }
 });
 
-export default router;// fixed
+export default router;

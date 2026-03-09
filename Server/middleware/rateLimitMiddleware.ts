@@ -104,7 +104,7 @@ export const postLimiter = rateLimit({
   },
   keyGenerator: (req: Request) => {
     // Per user ID if authenticated, otherwise IP
-    const userId = (req as any).user?.userId;
+    const userId = req.user?.userId;
     return userId ?? getClientIp(req);
   },
 });
@@ -121,7 +121,7 @@ export const aiLimiter = rateLimit({
     error:   "AI limit reached",
     message: "You've used your AI recommendation quota for this hour.",
   },
-  keyGenerator: (req: Request) => (req as any).user?.userId ?? getClientIp(req),
+  keyGenerator: (req: Request) => req.user?.userId ?? getClientIp(req),
 });
 
 // ─── XSS / Injection Sanitizer ───────────────────────────────────────────────
@@ -134,18 +134,18 @@ export function xssSanitizer(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-function sanitizeObject(obj: any): any {
+function sanitizeObject(obj: unknown): unknown {
   if (typeof obj === "string") {
     return obj
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
       .replace(/javascript:/gi, "")
       .replace(/on\w+\s*=/gi, "");
   }
-  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  if (Array.isArray(obj)) return obj.map((item) => sanitizeObject(item));
   if (typeof obj === "object" && obj !== null) {
-    const sanitized: any = {};
-    for (const key of Object.keys(obj)) {
-      sanitized[key] = sanitizeObject(obj[key]);
+    const sanitized: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeObject(value);
     }
     return sanitized;
   }

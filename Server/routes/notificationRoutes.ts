@@ -9,8 +9,18 @@ const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
 
+interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: string;
+  link: string;
+}
+
 // In-memory store per tenant (replace with DB table in production)
-const notifStore: Record<string, any[]> = {};
+const notifStore: Record<string, NotificationItem[]> = {};
 
 function getTenantNotifs(tenantId: string) {
   if (!notifStore[tenantId]) {

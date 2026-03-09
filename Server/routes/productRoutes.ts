@@ -2,6 +2,7 @@
 // Phase 4: Winners Market - Product CRUD operations
 
 import { Router, Request, Response } from "express";
+import type { Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 
@@ -11,12 +12,19 @@ const router = Router();
 const getParam = (p: string | string[] | undefined): string => 
   Array.isArray(p) ? p[0] : (p || "");
 
+interface ProductImageInput {
+  url: string;
+  alt?: string;
+  position?: number;
+  isPrimary?: boolean;
+}
+
 // GET /products - List products (public)
 router.get("/", async (req: Request, res: Response) => {
   try {
     const { category, search, vendorId, page = "1", limit = "20" } = req.query;
     
-    const where: any = { isActive: true };
+    const where: Prisma.ProductWhereInput = { isActive: true };
     
     if (category) where.category = String(category);
     if (vendorId) where.vendorId = String(vendorId);
@@ -237,7 +245,15 @@ router.post("/:id/images", authMiddleware, async (req: Request, res: Response) =
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
     const id = getParam(req.params.id);
-    const images = req.body;
+    const images: ProductImageInput[] = Array.isArray(req.body)
+      ? req.body
+          .filter(
+            (entry): entry is ProductImageInput =>
+              typeof entry === "object" &&
+              entry !== null &&
+              typeof (entry as { url?: unknown }).url === "string"
+          )
+      : [];
 
     // Update product images // Array of { url, alt, position, isPrimary }
 
@@ -258,7 +274,7 @@ router.post("/:id/images", authMiddleware, async (req: Request, res: Response) =
     }
 
     const createdImages = await db.productImage.createMany({
-      data: images.map((img: any, idx: number) => ({
+      data: images.map((img, idx: number) => ({
         productId: id,
         url: img.url,
         alt: img.alt,

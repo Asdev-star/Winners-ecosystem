@@ -3,7 +3,7 @@
 // Handles quiz creation, attempts, grading, and AI-powered generation
 
 import db from "../db.js";
-import { QuestionType } from "@prisma/client";
+import { QuestionType, type Prisma } from "@prisma/client";
 
 interface QuizAnswer {
   questionId: string;
@@ -222,7 +222,7 @@ export async function submitQuizAttempt(
       score: totalScore,
       percentage,
       passed,
-      answers: gradedAnswers as any,
+      answers: gradedAnswers as unknown as Prisma.InputJsonValue,
       timeTakenSecs,
       completedAt: new Date()
     }
@@ -284,7 +284,7 @@ export async function getQuizResults(attemptId: string, userId: string) {
 
 // Get all quiz attempts for a user
 export async function getUserQuizAttempts(userId: string, courseId?: string) {
-  const where: any = { userId };
+  const where: Prisma.QuizAttemptWhereInput = { userId };
   
   if (courseId) {
     where.quiz = { courseId };
@@ -313,8 +313,8 @@ export async function generateQuizWithAI(
   lessonContent: string,
   numQuestions: number = 5
 ): Promise<{
-  quiz: any;
-  questions: any[];
+  quiz: Awaited<ReturnType<typeof createQuiz>>;
+  questions: Array<Record<string, unknown>>;
 }> {
   // This would call the AI service to generate questions
   // For now, return a placeholder structure

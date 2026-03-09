@@ -10,6 +10,10 @@ import db                            from "../db.js";
 
 const router = Router();
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Internal server error";
+}
+
 // ─── POST /gdpr/privacy-ack — Privacy Policy Acknowledgment ───────────────────
 // User explicitly acknowledges privacy policy; timestamped in the DB.
 
@@ -20,7 +24,7 @@ router.post("/privacy-ack", authMiddleware, async (req: Request, res: Response) 
 
   try {
     // Upsert privacy acknowledgment
-    await (db as any).privacyAcknowledgment.upsert({
+    await db.privacyAcknowledgment.upsert({
       where:  { userId },
       update: { acknowledgedAt: new Date(), policyVersion: version },
       create: { userId, tenantId, acknowledgedAt: new Date(), policyVersion: version },
@@ -37,8 +41,8 @@ router.post("/privacy-ack", authMiddleware, async (req: Request, res: Response) 
       acknowledgedAt: new Date().toISOString(),
       policyVersion: version,
     });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
   }
 });
 
@@ -81,7 +85,7 @@ router.get("/my-data", authMiddleware, async (req: Request, res: Response) => {
         where:   { followingId: userId },
         select:  { followerId: true, createdAt: true },
       }),
-      (db as any).activityLog?.findMany({
+      db.activityLog.findMany({
         where:   { userId },
         select:  { action: true, category: true, createdAt: true, ip: true },
         orderBy: { createdAt: "desc" },
@@ -104,8 +108,8 @@ router.get("/my-data", authMiddleware, async (req: Request, res: Response) => {
       activityLog: { count: activity?.length ?? 0, items: activity ?? [] },
       notice: "This export contains all personal data we hold for your account as required by GDPR Article 20.",
     });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
   }
 });
 
@@ -188,8 +192,8 @@ router.delete("/me", authMiddleware, async (req: Request, res: Response) => {
       deletedAt:   new Date().toISOString(),
       notice:      "This action is irreversible and complies with GDPR Article 17 (Right to Erasure).",
     });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
   }
 });
 
