@@ -1,9 +1,10 @@
 // src/features/academy/InstructorDashboard.tsx — Instructor Dashboard
 // Phase 3: Academy Layer — Manage courses, modules, lessons, and view analytics
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAcademyStore, type Course } from "./academyStore";
+import QuizBuilder from "./components/QuizBuilder";
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -293,6 +294,8 @@ const css = `
 export default function InstructorDashboard() {
   const navigate = useNavigate();
   const { instructorCourses, loading, error, fetchInstructorCourses } = useAcademyStore();
+  const [activeTab, setActiveTab] = useState<'courses' | 'quizzes' | 'analytics'>('courses');
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInstructorCourses();
@@ -393,30 +396,144 @@ export default function InstructorDashboard() {
           </div>
         </div>
 
-        <div className="inst-courses-header">
-          <div className="inst-courses-title">Your Courses</div>
+        {/* Tab Nav */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 28, borderBottom: '1px solid var(--border)' }}>
+          {(['courses', 'quizzes', 'analytics'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: '10px 20px',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === tab ? '2px solid var(--gold)' : '2px solid transparent',
+                cursor: 'pointer',
+                fontFamily: 'Space Mono, monospace',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: activeTab === tab ? 'var(--gold)' : 'var(--text-dim)',
+                marginBottom: -1,
+                transition: 'all 200ms ease',
+              }}
+            >
+              {tab === 'courses' ? '📚 Courses' : tab === 'quizzes' ? '✏️ Quiz Builder' : '📊 Analytics'}
+            </button>
+          ))}
         </div>
 
-        {instructorCourses.length === 0 ? (
-          <div className="inst-empty">
-            <div className="inst-empty-icon">📚</div>
-            <div className="inst-empty-title">No courses yet</div>
-            <div className="inst-empty-text">
-              Create your first course and start teaching
-            </div>
-            <button className="inst-btn inst-btn-primary" onClick={handleCreateCourse}>
-              Create Course
-            </button>
+        {activeTab === 'courses' && (
+          <>
+            {instructorCourses.length === 0 ? (
+              <div className="inst-empty">
+                <div className="inst-empty-icon">📚</div>
+                <div className="inst-empty-title">No courses yet</div>
+                <div className="inst-empty-text">
+                  Create your first course and start teaching
+                </div>
+                <button className="inst-btn inst-btn-primary" onClick={handleCreateCourse}>
+                  Create Course
+                </button>
+              </div>
+            ) : (
+              <div className="inst-course-grid">
+                {instructorCourses.map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    onEdit={() => handleEditCourse(course.id)}
+                    onView={() => handleViewCourse(course.slug)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'quizzes' && (
+          <div>
+            {instructorCourses.length === 0 ? (
+              <div style={{ padding: '28px 0', color: 'var(--text-dim)', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>
+                Create a course first to add quizzes.
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: 18, display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, color: 'var(--text-dim)', textTransform: 'uppercase' }}>Select Course:</div>
+                  <select
+                    value={selectedCourseId ?? ''}
+                    onChange={(e) => setSelectedCourseId(e.target.value || null)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: 5,
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface2)',
+                      color: 'var(--text)',
+                      fontFamily: 'Syne, sans-serif',
+                      fontSize: 14,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="">Choose a course…</option>
+                    {instructorCourses.map((c) => (
+                      <option key={c.id} value={c.id}>{c.title}</option>
+                    ))}
+                  </select>
+                </div>
+                {selectedCourseId ? (
+                  <QuizBuilder courseId={selectedCourseId} />
+                ) : (
+                  <div style={{ padding: '28px 20px', border: '1px dashed var(--border)', borderRadius: 6, textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'Space Mono, monospace', fontSize: 11 }}>
+                    Select a course above to manage its quizzes
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        ) : (
-          <div className="inst-course-grid">
+        )}
+
+        {activeTab === 'analytics' && (
+          <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
             {instructorCourses.map((course) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                onEdit={() => handleEditCourse(course.id)}
-                onView={() => handleViewCourse(course.slug)}
-              />
+              <div key={course.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 18, position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--gold), transparent)' }} />
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 12, lineHeight: 1.3 }}>
+                  {course.title}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={{ background: 'var(--surface2)', borderRadius: 5, padding: '10px 12px' }}>
+                    <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 4 }}>Students</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--ice)' }}>{course.enrollmentCount}</div>
+                  </div>
+                  <div style={{ background: 'var(--surface2)', borderRadius: 5, padding: '10px 12px' }}>
+                    <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 4 }}>Est. Revenue</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--gold)' }}>
+                      ${(course.enrollmentCount * course.price).toLocaleString()}
+                    </div>
+                  </div>
+                  <div style={{ background: 'var(--surface2)', borderRadius: 5, padding: '10px 12px' }}>
+                    <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 4 }}>Modules</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{course.modules.length}</div>
+                  </div>
+                  <div style={{ background: 'var(--surface2)', borderRadius: 5, padding: '10px 12px' }}>
+                    <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: 4 }}>Lessons</div>
+                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+                      {course.modules.reduce((sum, m) => sum + m.lessons.length, 0)}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+                  <span style={{
+                    fontFamily: 'Space Mono, monospace', fontSize: 9, padding: '3px 8px',
+                    borderRadius: 10, textTransform: 'uppercase',
+                    background: course.published ? 'rgba(45,212,160,0.12)' : 'rgba(90,122,150,0.12)',
+                    border: `1px solid ${course.published ? 'rgba(45,212,160,0.3)' : 'var(--border)'}`,
+                    color: course.published ? 'var(--green)' : 'var(--text-dim)',
+                  }}>
+                    {course.published ? '● Published' : '○ Draft'}
+                  </span>
+                </div>
+              </div>
             ))}
           </div>
         )}

@@ -99,6 +99,53 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
+// ─── GET /groups/search — search/discover groups ─────────────────────────────
+// MUST be registered before /:slug to avoid slug-match conflict
+
+router.get("/search", async (req: Request, res: Response) => {
+  try {
+    const { tenantId, userId } = req.user!;
+    const q     = String(req.query.q ?? "").trim();
+    const type  = String(req.query.type ?? "all");
+    const limit = Math.min(parseInt(String(req.query.limit ?? "20")), 50);
+
+    const where: Record<string, unknown> = { tenantId };
+    if (type === "public") where.isPrivate = false;
+    if (q) {
+      where.OR = [
+        { name:        { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { slug:        { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    const groups = await db.group.findMany({
+      where: where as never,
+      include: {
+        createdBy: { select: { id: true, name: true } },
+        _count:    { select: { members: true, posts: true } },
+        members:   { where: { userId }, select: { role: true } },
+      },
+      orderBy: [{ members: { _count: "desc" } }, { createdAt: "desc" }],
+      take: limit,
+    });
+
+    const myGroups = type === "my"
+      ? groups.filter((g) => g.members.length > 0)
+      : groups;
+
+    res.json(myGroups.map((g) => ({
+      ...g,
+      memberCount: g._count.members,
+      postCount:   g._count.posts,
+      isMember:    g.members.length > 0,
+      myRole:      g.members[0]?.role ?? null,
+    })));
+  } catch (err) {
+    res.status(500).json({ error: "Failed to search groups" });
+  }
+});
+
 // ─── GET /groups/:slug — get group detail ────────────────────────────────────
 
 router.get("/:slug", async (req: Request, res: Response) => {
@@ -176,14 +223,14 @@ router.post("/:slug/leave", async (req: Request, res: Response) => {
 
     // Owner can't leave — they must transfer or delete
     const membership = await db.groupMember.findFirst({
-      where: { groupId: group.id, userId },
+      where: { groupId: group.id, userId, tenantId },
     });
     if (!membership) return res.status(400).json({ error: "Not a member" });
     if (membership.role === "OWNER") {
       return res.status(400).json({ error: "Owner cannot leave — delete group or transfer ownership" });
     }
 
-    await db.groupMember.delete({ where: { id: membership.id } });
+    await db.groupMember.delete({ where: { id_tenantId: { id: membership.id, tenantId } } });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to leave group" });
@@ -259,14 +306,14 @@ router.patch("/:slug", async (req: Request, res: Response) => {
     if (!group) return res.status(404).json({ error: "Group not found" });
 
     const membership = await db.groupMember.findFirst({
-      where: { groupId: group.id, userId },
+      where: { groupId: group.id, userId, tenantId },
     });
     if (!membership || !["OWNER", "ADMIN"].includes(membership.role)) {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
     const updated = await db.group.update({
-      where: { id: group.id },
+      where: { id_tenantId: { id: group.id, tenantId } },
       data: {
         ...(name        !== undefined && { name:        name.trim() }),
         ...(description !== undefined && { description: description.trim() }),
@@ -291,7 +338,7 @@ router.delete("/:slug", async (req: Request, res: Response) => {
     if (!group) return res.status(404).json({ error: "Group not found" });
 
     const membership = await db.groupMember.findFirst({
-      where: { groupId: group.id, userId },
+      where: { groupId: group.id, userId, tenantId },
     });
     if (!membership || membership.role !== "OWNER") {
       return res.status(403).json({ error: "Only owner can delete group" });
@@ -300,11 +347,11 @@ router.delete("/:slug", async (req: Request, res: Response) => {
     // Cascade handled by Prisma schema (onDelete: Cascade on GroupMember)
     // Unlink posts from group but don't delete them
     await db.post.updateMany({
-      where: { groupId: group.id },
+      where: { groupId: group.id, tenantId },
       data:  { groupId: null },
     });
 
-    await db.group.delete({ where: { id: group.id } });
+    await db.group.delete({ where: { id_tenantId: { id: group.id, tenantId } } });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete group" });
@@ -328,26 +375,94 @@ router.patch("/:slug/members/:memberId/role", async (req: Request, res: Response
     if (!group) return res.status(404).json({ error: "Group not found" });
 
     const myMembership = await db.groupMember.findFirst({
-      where: { groupId: group.id, userId },
+      where: { groupId: group.id, userId, tenantId },
     });
     if (!myMembership || !["OWNER", "ADMIN"].includes(myMembership.role)) {
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
     const target = await db.groupMember.findFirst({
-      where: { groupId: group.id, userId: memberId },
+      where: { groupId: group.id, userId: memberId, tenantId },
     });
     if (!target) return res.status(404).json({ error: "Member not found" });
     if (target.role === "OWNER") return res.status(400).json({ error: "Cannot change owner role" });
 
     const updated = await db.groupMember.update({
-      where: { id: target.id },
+      where: { id_tenantId: { id: target.id, tenantId } },
       data:  { role },
     });
 
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: "Failed to update member role" });
+  }
+});
+
+// ─── DELETE /groups/:slug/members/:memberId — remove member ──────────────────
+
+router.delete("/:slug/members/:memberId", async (req: Request, res: Response) => {
+  try {
+    const { tenantId, userId } = req.user!;
+    const slug     = String(req.params.slug ?? "");
+    const memberId = String(req.params.memberId ?? "");
+
+    const group = await db.group.findFirst({ where: { tenantId, slug } });
+    if (!group) return res.status(404).json({ error: "Group not found" });
+
+    const myMembership = await db.groupMember.findFirst({
+      where: { groupId: group.id, userId, tenantId },
+    });
+    if (!myMembership || !["OWNER", "ADMIN"].includes(myMembership.role)) {
+      return res.status(403).json({ error: "Insufficient permissions" });
+    }
+
+    const target = await db.groupMember.findFirst({
+      where: { groupId: group.id, userId: memberId, tenantId },
+    });
+    if (!target) return res.status(404).json({ error: "Member not found" });
+    if (target.role === "OWNER") return res.status(400).json({ error: "Cannot remove group owner" });
+    if (target.role === "ADMIN" && myMembership.role !== "OWNER") {
+      return res.status(403).json({ error: "Only owner can remove admins" });
+    }
+
+    await db.groupMember.delete({ where: { id_tenantId: { id: target.id, tenantId } } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to remove member" });
+  }
+});
+
+// ─── POST /groups/:slug/posts/:postId/pin — pin/unpin post ───────────────────
+
+router.post("/:slug/posts/:postId/pin", async (req: Request, res: Response) => {
+  try {
+    const { tenantId, userId } = req.user!;
+    const slug   = String(req.params.slug ?? "");
+    const postId = String(req.params.postId ?? "");
+
+    const group = await db.group.findFirst({ where: { tenantId, slug } });
+    if (!group) return res.status(404).json({ error: "Group not found" });
+
+    const membership = await db.groupMember.findFirst({
+      where: { groupId: group.id, userId, tenantId },
+    });
+    if (!membership || !["OWNER", "ADMIN"].includes(membership.role)) {
+      return res.status(403).json({ error: "Only admins can pin posts" });
+    }
+
+    const post = await db.post.findFirst({
+      where: { id: postId, groupId: group.id, tenantId },
+    });
+    if (!post) return res.status(404).json({ error: "Post not found in this group" });
+
+    const updated = await db.post.update({
+      where: { id_tenantId: { id: postId, tenantId } },
+      data: { isPinned: !post.isPinned },
+    });
+
+    res.json({ pinned: updated.isPinned });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to pin post" });
   }
 });
 

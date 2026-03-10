@@ -258,6 +258,7 @@ const PLATFORMS = [
       { path: "/academy/paths", label: "Learning Paths" },
       { path: "/academy/explore", label: "Explore Global" },
       { path: "/academy/study-groups", label: "Study Groups" },
+      { path: "/academy/live-sessions", label: "Live Sessions" },
       { path: "/academy/instructor", label: "Instructor" },
       { path: "/academy/my-learning", label: "My Learning" },
     ],

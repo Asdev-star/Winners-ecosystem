@@ -21,6 +21,23 @@ interface WorkStats {
   completedContracts: number;
 }
 
+interface OmegaAnalysis {
+  trustScore: number;
+  currentStage: string;
+  skills: { skill: string; confidence: number }[];
+  certificates: number;
+  enrollments: number;
+  posts: number;
+  followers: number;
+  insights: {
+    strengths: string[];
+    opportunities: string[];
+    nextBestAction: string;
+    predictedOutcome: string;
+    ecosystemHealth: string;
+  };
+}
+
 interface ActivityEntry {
   id: string;
   action: string;
@@ -254,6 +271,7 @@ const css = `
   .omega-stats-row { grid-template-columns: repeat(2,1fr); }
   .omega-feed { grid-template-columns: 1fr; }
   .omega-links { grid-template-columns: repeat(2,1fr); }
+  .omega-insights-grid { grid-template-columns: 1fr !important; }
 }
 @media (max-width:768px) {
   .omega-root { padding: 16px; }
@@ -286,10 +304,10 @@ const LOOP_STAGES = [
 ];
 
 const ACTION_ITEMS = [
-  { text: "Wire NOVA skill detection → Academy recommendations", supervisor: "NOVA", path: "/community" },
-  { text: "Complete Market checkout Stripe payment flow", supervisor: "ATLAS", path: "/market/checkout" },
-  { text: "Build CIRCUIT AI job-matching algorithm", supervisor: "CIRCUIT", path: "/work" },
-  { text: "Deploy HERALD FastAPI local model service", supervisor: "HERALD", path: "/intelligence/platform" },
+  { text: "Activate mobile push notifications via Firebase FCM", supervisor: "FORGE", path: "/settings" },
+  { text: "Write first Vitest test suite — auth + API mounts", supervisor: "ARIA", path: "/ops" },
+  { text: "Deploy HERALD FastAPI local AI model service", supervisor: "HERALD", path: "/intelligence/platform" },
+  { text: "Expand CIRCUIT — add escrow contract milestone tracking", supervisor: "CIRCUIT", path: "/work" },
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -318,13 +336,23 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+const STAGE_INDEX: Record<string, number> = {
+  community: 0, nova: 1, academy: 2, certificate: 3, work: 4, contract: 5, market: 6,
+};
+
+const HEALTH_COLOR: Record<string, string> = {
+  excellent: "var(--green)", good: "var(--gold)", needs_attention: "var(--red)", developing: "var(--text-dim)",
+};
+
 export default function OmegaDashboard() {
   const { user, token } = useAuthStore();
 
-  const [stats, setStats] = useState<EcosystemStats | null>(null);
-  const [workStats, setWorkStats] = useState<WorkStats | null>(null);
-  const [activity, setActivity] = useState<ActivityEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats]             = useState<EcosystemStats | null>(null);
+  const [workStats, setWorkStats]     = useState<WorkStats | null>(null);
+  const [activity, setActivity]       = useState<ActivityEntry[]>([]);
+  const [analysis, setAnalysis]       = useState<OmegaAnalysis | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [analysisLoading, setAnalysisLoading] = useState(true);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -360,9 +388,19 @@ export default function OmegaDashboard() {
     }
   }, [token]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadAnalysis = useCallback(async () => {
+    setAnalysisLoading(true);
+    try {
+      const res = await fetch(`${API}/omega/analyze`, { headers });
+      if (res.ok) setAnalysis(await res.json());
+    } catch { /* silent */ } finally {
+      setAnalysisLoading(false);
+    }
+  }, [token]);
 
-  const loopStageActive = 2;
+  useEffect(() => { load(); loadAnalysis(); }, [load, loadAnalysis]);
+
+  const loopStageActive = analysis ? (STAGE_INDEX[analysis.currentStage] ?? 2) : 2;
 
   return (
     <>
@@ -463,10 +501,73 @@ export default function OmegaDashboard() {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 16, fontSize: 12, color: "var(--text-dim)", fontFamily: "'Space Mono', monospace" }}>
-            Active stage: <span style={{ color: "var(--gold)" }}>Academy</span> — Complete a course to advance to Work matching
+          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "'Space Mono', monospace" }}>
+              Active stage: <span style={{ color: "var(--gold)", textTransform: "capitalize" }}>
+                {analysisLoading ? "—" : (analysis?.currentStage ?? "community")}
+              </span>
+            </span>
+            {analysis && (
+              <span style={{
+                fontFamily: "'Space Mono', monospace", fontSize: 9, padding: "3px 10px",
+                borderRadius: 3, border: "1px solid",
+                color: HEALTH_COLOR[analysis.insights.ecosystemHealth] ?? "var(--text-dim)",
+                borderColor: HEALTH_COLOR[analysis.insights.ecosystemHealth] ?? "var(--border)",
+                background: "rgba(0,0,0,0.2)", textTransform: "uppercase", letterSpacing: "0.1em",
+              }}>
+                {analysis.insights.ecosystemHealth.replace("_", " ")} health
+              </span>
+            )}
+            {analysis && (
+              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: "var(--text-dim)" }}>
+                Trust Score: <span style={{ color: "var(--gold)" }}>{analysis.trustScore}/100</span>
+              </span>
+            )}
           </div>
         </div>
+
+        {/* OMEGA Insights Panel */}
+        {(analysis || analysisLoading) && (
+          <div className="omega-insights-grid" style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 28,
+          }}>
+            <div className="omega-feed-main" style={{ borderColor: "rgba(45,212,160,0.2)" }}>
+              <div className="omega-feed-title" style={{ color: "var(--green)" }}>✦ Strengths</div>
+              {analysisLoading ? [0,1,2].map(i => (
+                <div key={i} className="omega-skeleton" style={{ height: 11, borderRadius: 3, marginBottom: 10, width: `${70+i*10}%` }} />
+              )) : analysis?.insights.strengths.map((s, i) => (
+                <div key={i} style={{ fontSize: 12, color: "var(--text)", padding: "6px 0", borderBottom: "1px solid var(--border)", lineHeight: 1.5 }}>
+                  <span style={{ color: "var(--green)", marginRight: 6 }}>✓</span>{s}
+                </div>
+              ))}
+            </div>
+            <div className="omega-feed-main" style={{ borderColor: "rgba(201,168,76,0.2)" }}>
+              <div className="omega-feed-title" style={{ color: "var(--gold)" }}>⬡ Opportunities</div>
+              {analysisLoading ? [0,1,2].map(i => (
+                <div key={i} className="omega-skeleton" style={{ height: 11, borderRadius: 3, marginBottom: 10, width: `${60+i*12}%` }} />
+              )) : analysis?.insights.opportunities.map((o, i) => (
+                <div key={i} style={{ fontSize: 12, color: "var(--text)", padding: "6px 0", borderBottom: "1px solid var(--border)", lineHeight: 1.5 }}>
+                  <span style={{ color: "var(--gold)", marginRight: 6 }}>→</span>{o}
+                </div>
+              ))}
+            </div>
+            <div className="omega-feed-main" style={{ borderColor: "rgba(155,111,255,0.2)" }}>
+              <div className="omega-feed-title" style={{ color: "var(--purple)" }}>🧠 OMEGA Recommends</div>
+              {analysisLoading ? (
+                <div className="omega-skeleton" style={{ height: 50, borderRadius: 4 }} />
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, marginBottom: 12 }}>
+                    {analysis?.insights.nextBestAction}
+                  </div>
+                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: "var(--text-dim)", lineHeight: 1.5 }}>
+                    Predicted outcome: {analysis?.insights.predictedOutcome}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Intelligence Feed + Action Queue */}
         <div className="omega-feed">

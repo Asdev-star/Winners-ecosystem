@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { OrderStatus, type Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
+import { handleWebhookEvent } from "../services/stripeService.js";
 
 function getStripe(): Stripe {
   if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY not set");
@@ -89,10 +90,11 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
 router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
     const id = getParam(req.params.id as string | string[] | undefined);
 
     const order = await db.order.findFirst({
-      where: { id, userId },
+      where: { id, userId, tenantId },
       include: {
         vendor: { select: { storeName: true, storeSlug: true } },
         items: {
@@ -146,8 +148,8 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
     }
 
     // Verify vendor
-    const vendor = await db.vendor.findUnique({
-      where: { id: vendorId }
+    const vendor = await db.vendor.findFirst({
+      where: { id: vendorId, tenantId }
     });
 
     if (!vendor) {
@@ -353,7 +355,7 @@ router.put("/:id/status", authMiddleware, async (req: Request, res: Response) =>
     }
 
     const order = await db.order.findFirst({
-      where: { id, vendorId: vendor.id }
+      where: { id, vendorId: vendor.id, tenantId }
     });
 
     if (!order) {
@@ -361,7 +363,7 @@ router.put("/:id/status", authMiddleware, async (req: Request, res: Response) =>
     }
 
     const updated = await db.order.update({
-      where: { id },
+      where: { id, tenantId },
       data: { status }
     });
 
@@ -410,7 +412,7 @@ router.post("/checkout-session", authMiddleware, async (req: Request, res: Respo
     const vendorId = cart.items[0]?.product?.vendor?.id;
     if (!vendorId) return res.status(400).json({ error: "Could not determine vendor for this cart" });
 
-    const vendor = await db.vendor.findUnique({ where: { id: vendorId } });
+    const vendor = await db.vendor.findFirst({ where: { id: vendorId, tenantId } });
     if (!vendor) return res.status(400).json({ error: "Vendor not found" });
 
     // Calculate totals
@@ -483,13 +485,13 @@ router.post("/checkout-session", authMiddleware, async (req: Request, res: Respo
 
     // Store Stripe session id on the order
     await db.order.update({
-      where: { id: order.id },
+      where: { id: order.id, tenantId },
       data:  { stripeSessionId: session.id },
     });
 
     // Mark cart as converted
-    await db.cart.update({ where: { id: cart.id }, data: { status: "CONVERTED" } });
-    await db.vendor.update({ where: { id: vendorId }, data: { totalSales: { increment: 1 } } });
+    await db.cart.update({ where: { id: cart.id, tenantId }, data: { status: "CONVERTED" } });
+    await db.vendor.update({ where: { id: vendorId, tenantId }, data: { totalSales: { increment: 1 } } });
 
     return res.json({ url: session.url, orderId: order.id });
   } catch (error) {
@@ -500,34 +502,20 @@ router.post("/checkout-session", authMiddleware, async (req: Request, res: Respo
 
 // POST /orders/webhook — Stripe webhook for payment confirmation
 router.post("/webhook", async (req: Request, res: Response) => {
-  const sig = req.headers["stripe-signature"] as string;
-  const secret = process.env.STRIPE_MARKET_WEBHOOK_SECRET ?? process.env.STRIPE_WEBHOOK_SECRET ?? "";
+  const signature = typeof req.headers["stripe-signature"] === "string"
+    ? req.headers["stripe-signature"]
+    : "";
 
-  let event: Stripe.Event;
   try {
-    const stripe  = getStripe();
-    const payload = (req as any).rawBody || (Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body ?? {})));
-    event = stripe.webhooks.constructEvent(payload, sig, secret);
-  } catch {
-    return res.status(400).json({ error: "Webhook signature verification failed" });
+    const payloadBuffer = (req as any).rawBody || (Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(JSON.stringify(req.body ?? {})));
+    const result = await handleWebhookEvent(payloadBuffer, signature);
+    return res.json(result);
+  } catch (error) {
+    console.error("Stripe order webhook error:", error instanceof Error ? error.message : "Unknown error");
+    return res.status(400).json({ message: error instanceof Error ? error.message : "Webhook error" });
   }
-
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const orderId = session.metadata?.orderId;
-    if (orderId) {
-      try {
-        await db.order.update({
-          where: { id: orderId },
-          data:  { status: "CONFIRMED", paymentStatus: "PAID", stripePaymentIntentId: session.payment_intent as string ?? undefined },
-        });
-      } catch (e) {
-        console.error("[orderRoutes] webhook order update error:", e);
-      }
-    }
-  }
-
-  return res.json({ received: true });
 });
 
 export default router;

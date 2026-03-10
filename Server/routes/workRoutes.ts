@@ -1,11 +1,15 @@
 // Server/routes/workRoutes.ts
 // Phase 6 — Winners Work — Freelancer Marketplace API
 // Job listings, freelancer profiles, applications, contracts
+// V1.1 — CIRCUIT AI matching + proposal generation
 
 import { Router, Request, Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
+import Anthropic from "@anthropic-ai/sdk";
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const router = Router();
 router.use(authMiddleware);
@@ -172,7 +176,10 @@ router.patch("/jobs/:id", async (req: Request, res: Response) => {
       }
     }
 
-    const updated = await db.jobListing.update({ where: { id: jobId }, data: data as never });
+    const updated = await db.jobListing.update({
+      where: { id: jobId, tenantId },
+      data: data as never
+    });
     return res.json(updated);
   } catch (error) {
     console.error("[work] Update job error:", error);
@@ -192,7 +199,10 @@ router.delete("/jobs/:id", async (req: Request, res: Response) => {
     });
     if (!job) return res.status(404).json({ message: "Job not found or not yours" });
 
-    await db.jobListing.update({ where: { id: jobId }, data: { status: "CANCELLED" } });
+    await db.jobListing.update({
+      where: { id: jobId, tenantId },
+      data: { status: "CANCELLED" }
+    });
     return res.json({ message: "Job closed" });
   } catch (error) {
     console.error("[work] Delete job error:", error);
@@ -283,7 +293,7 @@ router.post("/freelancers", async (req: Request, res: Response) => {
 
   try {
     const profile = await db.freelancerProfile.upsert({
-      where:  { userId },
+      where:  { userId_tenantId: { userId, tenantId } },
       update: {
         title:           title?.trim()  ?? undefined,
         bio:             bio?.trim()    ?? undefined,
@@ -402,6 +412,7 @@ router.post("/jobs/:id/apply", async (req: Request, res: Response) => {
       data: {
         jobId,
         freelancerId:  profile.id,
+        tenantId,
         coverLetter:   coverLetter?.trim() ?? null,
         proposedRate:  proposedRate  ? parseFloat(proposedRate) : null,
         estimatedDays: estimatedDays ? parseInt(estimatedDays) : null,
@@ -411,7 +422,7 @@ router.post("/jobs/:id/apply", async (req: Request, res: Response) => {
     });
 
     await db.jobListing.update({
-      where: { id: jobId },
+      where: { id: jobId, tenantId },
       data:  { applicationCount: { increment: 1 } },
     });
 
@@ -483,6 +494,7 @@ router.get("/applications/mine", async (req: Request, res: Response) => {
 // PATCH /work/applications/:id/status — update application status (client)
 router.patch("/applications/:id/status", async (req: Request, res: Response) => {
   const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
   const appId  = String(req.params.id);
   const { status } = req.body;
 
@@ -492,15 +504,15 @@ router.patch("/applications/:id/status", async (req: Request, res: Response) => 
   }
 
   try {
-    const application = await db.jobApplication.findUnique({
-      where:   { id: appId },
+    const application = await db.jobApplication.findFirst({
+      where:   { id: appId, tenantId },
       include: { job: true },
     });
     if (!application) return res.status(404).json({ message: "Application not found" });
     if (application.job.clientId !== userId) return res.status(403).json({ message: "Not your job" });
 
     const updated = await db.jobApplication.update({
-      where: { id: appId },
+      where: { id: appId, tenantId },
       data:  { status },
     });
 
@@ -522,7 +534,7 @@ router.get("/contracts", async (req: Request, res: Response) => {
   try {
     const profile = await db.freelancerProfile.findFirst({ where: { userId, tenantId } });
 
-    const where: Record<string, unknown> = { status: { not: "DRAFT" } };
+    const where: Record<string, unknown> = { tenantId, status: { not: "DRAFT" } };
     if (role === "client") {
       where.clientId = userId;
     } else if (role === "freelancer" && profile) {
@@ -563,6 +575,7 @@ router.get("/contracts/:id", async (req: Request, res: Response) => {
     const contract = await db.contract.findFirst({
       where: {
         id: contractId,
+        tenantId,
         OR: [
           { clientId: userId },
           ...(profile ? [{ freelancerId: profile.id }] : []),
@@ -586,6 +599,184 @@ router.get("/contracts/:id", async (req: Request, res: Response) => {
   }
 });
 
+// ─── CIRCUIT AI ───────────────────────────────────────────────────────────────
+
+// GET /work/circuit/recommendations — AI-ranked job matches for logged-in freelancer
+router.get("/circuit/recommendations", async (req: Request, res: Response) => {
+  const userId   = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+
+  try {
+    const [profile, certificates, skills, openJobs] = await Promise.all([
+      db.freelancerProfile.findFirst({
+        where:   { userId, tenantId },
+        include: { portfolioItems: { take: 5 } },
+      }),
+      db.certificate.findMany({ where: { userId }, include: { course: { select: { title: true, category: true } } } }),
+      db.novaSkillDetection.findMany({
+        where:   { userId, confidence: { gte: 0.65 } },
+        orderBy: { confidence: "desc" },
+        take:    20,
+      }),
+      db.jobListing.findMany({
+        where:   { tenantId, status: "OPEN" },
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+        take:    30,
+        include: { client: { select: { id: true, name: true } }, _count: { select: { applications: true } } },
+      }),
+    ]);
+
+    if (!profile) {
+      return res.json({ matches: [], message: "Create a freelancer profile to get AI job matches." });
+    }
+
+    const freelancerContext = {
+      title:        profile.title,
+      bio:          profile.bio,
+      skills:       profile.skills,
+      detectedSkills: skills.map((s) => ({ skill: s.skill, confidence: s.confidence })),
+      certificates: certificates.map((c) => ({ course: c.course?.title, category: c.course?.category })),
+      hourlyRate:   profile.hourlyRate,
+      availability: profile.availability,
+      experience:   profile.yearsExperience,
+    };
+
+    const jobSummaries = openJobs.map((j) => ({
+      id:          j.id,
+      title:       j.title,
+      category:    j.category,
+      skills:      j.skills,
+      level:       j.experienceLevel,
+      type:        j.jobType,
+      budgetMin:   j.budgetMin,
+      budgetMax:   j.budgetMax,
+      currency:    j.currency,
+      description: j.description.slice(0, 300),
+    }));
+
+    const prompt = `You are CIRCUIT, the AI job-matching supervisor for Winners Work marketplace.
+
+Analyze this freelancer profile and rank these jobs by match score (0–100).
+
+FREELANCER:
+${JSON.stringify(freelancerContext, null, 2)}
+
+AVAILABLE JOBS (${jobSummaries.length}):
+${JSON.stringify(jobSummaries, null, 2)}
+
+Return a JSON array of the top 10 best matches with this exact structure:
+[
+  {
+    "jobId": "string",
+    "score": 85,
+    "headline": "Why this is a great match (1 sentence)",
+    "strengths": ["skill match 1", "skill match 2"],
+    "gaps": ["missing skill or experience gap"],
+    "estimatedRate": "suggested bid amount (number in ${openJobs[0]?.currency || "USD"})"
+  }
+]
+
+Only return valid JSON. No explanation text outside the array.`;
+
+    const response = await anthropic.messages.create({
+      model:      "claude-opus-4-5",
+      max_tokens: 2048,
+      messages:   [{ role: "user", content: prompt }],
+    });
+
+    const rawText = response.content[0].type === "text" ? response.content[0].text : "[]";
+    const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+    const matches: unknown[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+    const enriched = (matches as { jobId: string; score: number; headline: string; strengths: string[]; gaps: string[]; estimatedRate: string }[]).map((m) => {
+      const job = openJobs.find((j) => j.id === m.jobId);
+      return { ...m, job };
+    }).filter((m) => m.job);
+
+    return res.json({ matches: enriched, freelancerProfile: profile });
+  } catch (error) {
+    console.error("[CIRCUIT] Recommendations error:", error);
+    return res.status(500).json({ message: "CIRCUIT AI is temporarily unavailable." });
+  }
+});
+
+// POST /work/circuit/proposal/:jobId — CIRCUIT generates a personalized proposal
+router.post("/circuit/proposal/:jobId", async (req: Request, res: Response) => {
+  const userId   = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  const jobId    = String(req.params.jobId);
+  const { tone = "professional" } = req.body;
+
+  try {
+    const [profile, job, certificates, skills] = await Promise.all([
+      db.freelancerProfile.findFirst({
+        where:   { userId, tenantId },
+        include: { portfolioItems: { take: 3 } },
+      }),
+      db.jobListing.findFirst({
+        where:   { id: jobId, tenantId, status: "OPEN" },
+        include: { client: { select: { name: true } } },
+      }),
+      db.certificate.findMany({ where: { userId }, include: { course: { select: { title: true } } } }),
+      db.novaSkillDetection.findMany({
+        where:   { userId, confidence: { gte: 0.7 } },
+        orderBy: { confidence: "desc" },
+        take:    10,
+      }),
+    ]);
+
+    if (!profile) return res.status(400).json({ message: "Create a freelancer profile first." });
+    if (!job)     return res.status(404).json({ message: "Job not found." });
+
+    const prompt = `You are CIRCUIT, the AI job-matching supervisor for Winners Work. Write a winning proposal.
+
+JOB:
+Title: ${job.title}
+Category: ${job.category}
+Description: ${job.description}
+Required Skills: ${job.skills.join(", ")}
+Experience Level: ${job.experienceLevel}
+Budget: ${job.budgetMin ?? "Open"}–${job.budgetMax ?? "Open"} ${job.currency}
+
+FREELANCER:
+Name: (to be filled by user)
+Title: ${profile.title}
+Bio: ${profile.bio}
+Skills: ${profile.skills.join(", ")}
+Detected Skills (AI): ${skills.map((s) => s.skill).join(", ")}
+Certificates: ${certificates.map((c) => c.course?.title).filter(Boolean).join(", ")}
+Experience: ${profile.yearsExperience ?? "Not specified"} years
+Rate: ${profile.hourlyRate ? `$${profile.hourlyRate}/hr` : "Flexible"}
+Portfolio: ${profile.portfolioItems.map((p) => p.title).join(", ")}
+
+Tone: ${tone} (options: professional, confident, warm)
+
+Write a compelling proposal (200–300 words) that:
+1. Opens with a specific hook referencing the job's core challenge
+2. Demonstrates relevant experience with concrete examples
+3. References their certified skills and portfolio items naturally
+4. Proposes a specific approach/methodology
+5. Closes with a clear call to action and suggested rate
+
+Return JSON: { "proposal": "full proposal text", "suggestedRate": number, "currency": "${job.currency}", "estimatedDays": number }`;
+
+    const response = await anthropic.messages.create({
+      model:      "claude-opus-4-5",
+      max_tokens: 1024,
+      messages:   [{ role: "user", content: prompt }],
+    });
+
+    const rawText = response.content[0].type === "text" ? response.content[0].text : "{}";
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : { proposal: rawText, suggestedRate: profile.hourlyRate, currency: job.currency, estimatedDays: 7 };
+
+    return res.json({ ...result, job: { id: job.id, title: job.title, category: job.category } });
+  } catch (error) {
+    console.error("[CIRCUIT] Proposal error:", error);
+    return res.status(500).json({ message: "CIRCUIT AI is temporarily unavailable." });
+  }
+});
+
 // ─── STATS ────────────────────────────────────────────────────────────────────
 
 // GET /work/stats — platform stats
@@ -596,7 +787,7 @@ router.get("/stats", async (req: Request, res: Response) => {
     const [jobCount, freelancerCount, contractCount] = await Promise.all([
       db.jobListing.count({ where: { tenantId, status: "OPEN" } }),
       db.freelancerProfile.count({ where: { tenantId, availability: "AVAILABLE" } }),
-      db.contract.count({ where: { status: "COMPLETED" } }),
+      db.contract.count({ where: { tenantId, status: "COMPLETED" } }),
     ]);
 
     return res.json({

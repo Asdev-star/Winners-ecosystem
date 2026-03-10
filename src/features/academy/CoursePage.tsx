@@ -7,6 +7,7 @@ import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
 import { API_BASE } from "../../lib/api";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
+import QuizTaker from "./components/QuizTaker";
 
 interface Course {
   id: string;
@@ -58,6 +59,7 @@ export default function CoursePage() {
   const [error, setError] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'content' | 'quizzes'>('content');
   const { user } = useAuthStore();
 
   const fetchCourse = useCallback(async () => {
@@ -364,95 +366,160 @@ export default function CoursePage() {
             </div>
           )}
 
-          {/* Course Content */}
-          <div>
-            <h2 style={{
-              fontFamily: 'Syne, sans-serif',
-              fontSize: 24,
-              fontWeight: 700,
-              color: 'var(--text)',
-              marginBottom: 24
-            }}>
-              Course Content
-            </h2>
-
-            {course.modules.map(module => (
-              <div key={module.id} style={{ marginBottom: 24 }}>
-                <h3 style={{
-                  fontFamily: 'Syne, sans-serif',
-                  fontSize: 18,
-                  fontWeight: 600,
-                  color: 'var(--text)',
-                  marginBottom: 12
-                }}>
-                  {module.title}
-                </h3>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {module.lessons.map(lesson => {
-                    const isCompleted = enrollment?.progress.some(p => p.lessonId === lesson.id && p.completed);
-                    const isSelected = selectedLesson === lesson.id;
-
-                    return (
-                      <div
-                        key={lesson.id}
-                        onClick={() => setSelectedLesson(isSelected ? null : lesson.id)}
-                        style={{
-                          padding: 16,
-                          borderRadius: 6,
-                          border: '1px solid var(--border)',
-                          background: isSelected ? 'var(--surface2)' : 'var(--surface)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <div style={{
-                            fontFamily: 'Syne, sans-serif',
-                            fontSize: 16,
-                            color: 'var(--text)',
-                            marginBottom: 4
-                          }}>
-                            {lesson.title}
-                          </div>
-                          <div style={{
-                            fontFamily: 'Space Mono, monospace',
-                            fontSize: 11,
-                            color: 'var(--text-dim)'
-                          }}>
-                            {lesson.duration} min {isCompleted && '• ✅ Completed'}
-                          </div>
-                        </div>
-
-                        {enrollment && !isCompleted && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleLessonComplete(lesson.id);
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: 4,
-                              border: '1px solid var(--green)',
-                              background: 'var(--green)',
-                              color: 'var(--bg)',
-                              fontFamily: 'Space Mono, monospace',
-                              fontSize: 10,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Mark Complete
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+          {/* Tab Nav */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
+            {(['content', 'quizzes'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: '10px 20px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: activeTab === tab ? '2px solid var(--gold)' : '2px solid transparent',
+                  cursor: 'pointer',
+                  fontFamily: 'Space Mono, monospace',
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: activeTab === tab ? 'var(--gold)' : 'var(--text-dim)',
+                  marginBottom: -1,
+                  transition: 'all 200ms ease',
+                }}
+              >
+                {tab === 'content' ? '📚 Content' : '✏️ Quizzes'}
+              </button>
             ))}
           </div>
+
+          {activeTab === 'content' && (
+            <div>
+              {course.modules.map((module, moduleIndex) => (
+                <div key={module.id} style={{ marginBottom: 24 }}>
+                  <h3 style={{
+                    fontFamily: 'Syne, sans-serif',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    marginBottom: 12
+                  }}>
+                    {module.title}
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {module.lessons.map((lesson, lessonIndex) => {
+                      const isCompleted = enrollment?.progress.some(p => p.lessonId === lesson.id && p.completed);
+                      const isSelected = selectedLesson === lesson.id;
+                      const isFreePreview = moduleIndex === 0 && lessonIndex === 0;
+                      const canAccess = !!enrollment || isFreePreview;
+
+                      return (
+                        <div
+                          key={lesson.id}
+                          onClick={() => canAccess && setSelectedLesson(isSelected ? null : lesson.id)}
+                          style={{
+                            padding: 16,
+                            borderRadius: 6,
+                            border: `1px solid ${isSelected ? 'var(--gold)' : 'var(--border)'}`,
+                            background: isSelected ? 'var(--surface2)' : 'var(--surface)',
+                            cursor: canAccess ? 'pointer' : 'default',
+                            opacity: canAccess ? 1 : 0.6,
+                            transition: 'all 200ms ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <div style={{
+                                  fontFamily: 'Syne, sans-serif',
+                                  fontSize: 16,
+                                  color: 'var(--text)',
+                                }}>
+                                  {lesson.title}
+                                </div>
+                                {isFreePreview && !enrollment && (
+                                  <span style={{
+                                    fontFamily: 'Space Mono, monospace',
+                                    fontSize: 9,
+                                    padding: '2px 7px',
+                                    borderRadius: 10,
+                                    background: 'rgba(45,212,160,0.12)',
+                                    border: '1px solid rgba(45,212,160,0.3)',
+                                    color: 'var(--green)',
+                                    letterSpacing: '0.06em',
+                                    textTransform: 'uppercase',
+                                  }}>
+                                    Free Preview
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{
+                                fontFamily: 'Space Mono, monospace',
+                                fontSize: 11,
+                                color: 'var(--text-dim)'
+                              }}>
+                                {lesson.duration} min {isCompleted && '· ✅ Completed'}
+                                {!canAccess && ' · 🔒 Enroll to access'}
+                              </div>
+                            </div>
+
+                            {enrollment && !isCompleted && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleLessonComplete(lesson.id);
+                                }}
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: 4,
+                                  border: '1px solid var(--green)',
+                                  background: 'var(--green)',
+                                  color: 'var(--bg)',
+                                  fontFamily: 'Space Mono, monospace',
+                                  fontSize: 10,
+                                  cursor: 'pointer',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                Mark Complete
+                              </button>
+                            )}
+                          </div>
+
+                          {isSelected && lesson.videoUrl && (
+                            <div style={{ marginTop: 14 }}>
+                              <video
+                                src={lesson.videoUrl}
+                                controls
+                                style={{ width: '100%', borderRadius: 4, background: '#000' }}
+                              />
+                            </div>
+                          )}
+                          {isSelected && lesson.content && (
+                            <div style={{
+                              marginTop: 14,
+                              fontFamily: 'Syne, sans-serif',
+                              fontSize: 14,
+                              color: 'var(--text)',
+                              lineHeight: 1.7,
+                              padding: '12px 0',
+                              borderTop: '1px solid var(--border)',
+                            }}>
+                              {lesson.content}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'quizzes' && (
+            <QuizTaker courseId={course.id} />
+          )}
         </div>
 
         {/* Sidebar */}

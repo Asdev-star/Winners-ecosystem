@@ -90,7 +90,17 @@ const LEVEL_LABELS: Record<string, string> = {
   expert: "Expert",
 };
 
-type TabType = "jobs" | "freelancers" | "contracts" | "post";
+type TabType = "jobs" | "freelancers" | "contracts" | "post" | "circuit";
+
+interface CircuitMatch {
+  jobId: string;
+  score: number;
+  headline: string;
+  strengths: string[];
+  gaps: string[];
+  estimatedRate: string;
+  job: JobListing & { client: { id: string; name: string } };
+}
 
 function budgetDisplay(min: number | null, max: number | null, currency: string, jobType: string) {
   if (!min && !max) return "Budget: Negotiable";
@@ -147,6 +157,14 @@ export default function WorkPage() {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState("");
   const [postSuccess, setPostSuccess] = useState(false);
+
+  const [circuitMatches, setCircuitMatches] = useState<CircuitMatch[]>([]);
+  const [circuitLoading, setCircuitLoading] = useState(false);
+  const [circuitMessage, setCircuitMessage] = useState("");
+  const [proposalJobId, setProposalJobId] = useState<string | null>(null);
+  const [proposalData, setProposalData] = useState<{ proposal: string; suggestedRate: number; currency: string; estimatedDays: number } | null>(null);
+  const [proposalLoading, setProposalLoading] = useState(false);
+  const [proposalTone, setProposalTone] = useState("professional");
 
   const headers = useCallback((): Record<string, string> => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -214,13 +232,51 @@ export default function WorkPage() {
     }
   }, [headers]);
 
+  const fetchCircuitMatches = useCallback(async () => {
+    setCircuitLoading(true);
+    setCircuitMessage("");
+    try {
+      const res = await fetch(`${API_BASE}/work/circuit/recommendations`, { headers: headers() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      setCircuitMatches(data.matches ?? []);
+      if (data.message) setCircuitMessage(data.message);
+    } catch (err) {
+      setCircuitMessage(err instanceof Error ? err.message : "CIRCUIT AI unavailable");
+      setCircuitMatches([]);
+    } finally {
+      setCircuitLoading(false);
+    }
+  }, [headers]);
+
+  const generateProposal = useCallback(async (jobId: string) => {
+    setProposalJobId(jobId);
+    setProposalData(null);
+    setProposalLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/work/circuit/proposal/${jobId}`, {
+        method:  "POST",
+        headers: headers(),
+        body:    JSON.stringify({ tone: proposalTone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      setProposalData(data);
+    } catch (err) {
+      setCircuitMessage(err instanceof Error ? err.message : "Proposal generation failed");
+    } finally {
+      setProposalLoading(false);
+    }
+  }, [headers, proposalTone]);
+
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
   useEffect(() => {
     if (activeTab === "jobs")        fetchJobs();
     if (activeTab === "freelancers") fetchFreelancers();
     if (activeTab === "contracts")   fetchContracts();
-  }, [activeTab, fetchJobs, fetchFreelancers, fetchContracts]);
+    if (activeTab === "circuit")     fetchCircuitMatches();
+  }, [activeTab, fetchJobs, fetchFreelancers, fetchContracts, fetchCircuitMatches]);
 
   function changeTab(tab: TabType) {
     setActiveTab(tab);
@@ -469,6 +525,68 @@ export default function WorkPage() {
       .modal-close { position:absolute; top:16px; right:16px; background:transparent; border:none;
         color:var(--text-dim); font-size:20px; cursor:pointer; }
 
+      .circuit-panel { display:flex; flex-direction:column; gap:16px; }
+      .circuit-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:12px; }
+      .circuit-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; color:var(--text); margin:0; }
+      .circuit-meta { font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); }
+      .circuit-refresh { background:transparent; border:1px solid var(--border); border-radius:4px;
+        padding:8px 14px; font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase;
+        color:var(--text-dim); cursor:pointer; transition:all .15s; }
+      .circuit-refresh:hover { border-color:var(--purple); color:var(--purple); }
+
+      .circuit-match-card { background:var(--surface); border:1px solid var(--border); border-radius:6px;
+        padding:20px; position:relative; overflow:hidden; transition:border-color .2s; }
+      .circuit-match-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px;
+        background:linear-gradient(90deg, var(--purple), transparent); }
+      .circuit-match-card:hover { border-color:var(--purple); }
+
+      .circuit-score-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+      .circuit-score-ring { width:52px; height:52px; flex-shrink:0; }
+      .circuit-score-info { flex:1; }
+      .circuit-score-label { font-family:'Space Mono',monospace; font-size:8px; text-transform:uppercase;
+        letter-spacing:.1em; color:var(--text-dim); margin:0 0 2px; }
+      .circuit-score-value { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:800; color:var(--purple); margin:0; }
+      .circuit-match-title { font-family:'Syne',sans-serif; font-size:.95rem; font-weight:700; color:var(--text); margin:0 0 4px; }
+      .circuit-headline { font-family:'Syne',sans-serif; font-size:13px; color:var(--text-dim); margin:0 0 12px; line-height:1.5; }
+
+      .circuit-tags-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+      .circuit-tag { font-family:'Space Mono',monospace; font-size:9px; text-transform:uppercase;
+        padding:3px 8px; border-radius:3px; border:1px solid; }
+      .circuit-tag.strength { color:var(--green);  border-color:rgba(45,212,160,.3);  background:rgba(45,212,160,.08); }
+      .circuit-tag.gap      { color:var(--gold);   border-color:rgba(201,168,76,.3);  background:rgba(201,168,76,.08); }
+
+      .circuit-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+      .circuit-rate { font-family:'Space Mono',monospace; font-size:11px; color:var(--gold); }
+      .circuit-actions { display:flex; gap:8px; }
+      .btn-circuit { padding:8px 16px; border-radius:4px; font-family:'Space Mono',monospace;
+        font-size:10px; text-transform:uppercase; cursor:pointer; transition:all .15s; border:none; }
+      .btn-circuit.primary { background:var(--purple); color:var(--text); }
+      .btn-circuit.primary:hover { opacity:.85; }
+      .btn-circuit.secondary { background:transparent; border:1px solid var(--border); color:var(--text-dim); }
+      .btn-circuit.secondary:hover { border-color:var(--purple); color:var(--purple); }
+      .btn-circuit:disabled { opacity:.5; cursor:not-allowed; }
+
+      .proposal-modal-box { background:var(--surface); border:1px solid var(--border); border-radius:8px;
+        padding:28px; width:100%; max-width:680px; max-height:85vh; overflow-y:auto; position:relative; }
+      .proposal-modal-box::before { content:''; position:absolute; top:0; left:0; right:0; height:2px;
+        background:linear-gradient(90deg, var(--purple), var(--ice)); }
+      .proposal-text { font-family:'Syne',sans-serif; font-size:14px; color:var(--text); line-height:1.8;
+        background:var(--surface2); border:1px solid var(--border); border-radius:6px;
+        padding:20px; margin-bottom:16px; white-space:pre-wrap; }
+      .proposal-copy { background:var(--purple); border:none; border-radius:4px; padding:10px 20px;
+        font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase;
+        color:var(--text); cursor:pointer; transition:opacity .15s; }
+      .proposal-copy:hover { opacity:.85; }
+      .circuit-tone-row { display:flex; gap:8px; margin-bottom:16px; align-items:center; }
+      .circuit-tone-label { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-right:4px; }
+      .tone-btn { background:transparent; border:1px solid var(--border); border-radius:3px;
+        padding:4px 12px; font-family:'Space Mono',monospace; font-size:9px; text-transform:uppercase;
+        color:var(--text-dim); cursor:pointer; transition:all .15s; }
+      .tone-btn.active { background:rgba(155,111,255,.15); border-color:var(--purple); color:var(--purple); }
+      .circuit-empty { text-align:center; padding:48px 24px; background:var(--surface);
+        border:1px solid var(--border); border-radius:6px; }
+      .circuit-empty p { font-family:'Syne',sans-serif; font-size:14px; color:var(--text-dim); margin:0 0 16px; }
+
       .cta-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin-top:32px; }
       .cta-card-work { background:var(--surface); border:1px solid var(--border); border-radius:6px;
         padding:24px; text-align:center; position:relative; overflow:hidden; }
@@ -527,6 +645,7 @@ export default function WorkPage() {
             { id: "freelancers", label: "🧑‍💻 Find Talent" },
             { id: "contracts",   label: "📄 My Contracts" },
             { id: "post",        label: "+ Post a Job" },
+            { id: "circuit",     label: "🤖 CIRCUIT AI" },
           ] as { id: TabType; label: string }[]).map((tab) => (
             <button
               key={tab.id}
@@ -950,6 +1069,125 @@ export default function WorkPage() {
               </form>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === "circuit" && (
+        <div className="circuit-panel">
+          <div className="circuit-header">
+            <div>
+              <h2 className="circuit-title">💼 CIRCUIT AI — Job Matching</h2>
+              <p className="circuit-meta">AI-ranked matches based on your skills, certificates, and profile</p>
+            </div>
+            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+              <span className="circuit-tone-label">Proposal tone:</span>
+              {["professional", "confident", "warm"].map((t) => (
+                <button key={t} className={`tone-btn ${proposalTone === t ? "active" : ""}`} onClick={() => setProposalTone(t)}>{t}</button>
+              ))}
+              <button className="circuit-refresh" onClick={fetchCircuitMatches} disabled={circuitLoading}>
+                {circuitLoading ? "Analysing…" : "↺ Refresh"}
+              </button>
+            </div>
+          </div>
+
+          {circuitMessage && (
+            <div style={{ background:"rgba(201,168,76,.08)", border:"1px solid rgba(201,168,76,.25)", borderRadius:6, padding:"12px 16px", fontFamily:"'Syne',sans-serif", fontSize:13, color:"var(--gold)" }}>
+              {circuitMessage}
+            </div>
+          )}
+
+          {circuitLoading ? (
+            [1,2,3].map((i) => (
+              <div key={i} className="work-skeleton">
+                <div className="skel-line" style={{ width:"60%", height:16, marginBottom:12 }} />
+                <div className="skel-line" style={{ width:"90%" }} />
+                <div className="skel-line" style={{ width:"75%" }} />
+              </div>
+            ))
+          ) : circuitMatches.length === 0 ? (
+            <div className="circuit-empty">
+              <div style={{ fontSize:48, marginBottom:16 }}>🤖</div>
+              <p>No matches yet — make sure you have a freelancer profile with skills listed.</p>
+              <Link to="/work/profile" className="cta-btn-work primary">Set Up Profile →</Link>
+            </div>
+          ) : (
+            circuitMatches.map((match) => {
+              const score = match.score;
+              const r = 22;
+              const circ = 2 * Math.PI * r;
+              const dash = (score / 100) * circ;
+              const scoreColor = score >= 80 ? "var(--green)" : score >= 60 ? "var(--gold)" : "var(--ice)";
+
+              return (
+                <div key={match.jobId} className="circuit-match-card">
+                  <div className="circuit-score-row">
+                    <svg className="circuit-score-ring" viewBox="0 0 52 52">
+                      <circle cx="26" cy="26" r={r} fill="none" stroke="var(--border)" strokeWidth="4" />
+                      <circle cx="26" cy="26" r={r} fill="none" stroke={scoreColor} strokeWidth="4"
+                        strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
+                        transform="rotate(-90 26 26)" />
+                      <text x="26" y="30" textAnchor="middle" fontSize="11" fontWeight="700"
+                        fill={scoreColor} fontFamily="'Space Mono',monospace">{score}</text>
+                    </svg>
+                    <div className="circuit-score-info">
+                      <p className="circuit-score-label">Match Score</p>
+                      <h3 className="circuit-match-title">{match.job?.title}</h3>
+                    </div>
+                    <div style={{ fontFamily:"'Space Mono',monospace", fontSize:9, color:"var(--text-dim)", textAlign:"right" }}>
+                      <div>{match.job?.category?.replace(/_/g, " ")}</div>
+                      <div style={{ marginTop:3 }}>{budgetDisplay(match.job?.budgetMin ?? null, match.job?.budgetMax ?? null, match.job?.currency ?? "USD", match.job?.jobType ?? "fixed")}</div>
+                    </div>
+                  </div>
+
+                  <p className="circuit-headline">{match.headline}</p>
+
+                  <div className="circuit-tags-row">
+                    {match.strengths?.map((s) => <span key={s} className="circuit-tag strength">✓ {s}</span>)}
+                    {match.gaps?.map((g) => <span key={g} className="circuit-tag gap">△ {g}</span>)}
+                  </div>
+
+                  <div className="circuit-footer">
+                    <div className="circuit-rate">💡 Suggested bid: {match.estimatedRate}</div>
+                    <div className="circuit-actions">
+                      <button
+                        className="btn-circuit primary"
+                        onClick={() => generateProposal(match.jobId)}
+                        disabled={proposalLoading && proposalJobId === match.jobId}
+                      >
+                        {proposalLoading && proposalJobId === match.jobId ? "Writing…" : "✍ Generate Proposal"}
+                      </button>
+                      <button className="btn-circuit secondary" onClick={() => setApplyModal(match.job as unknown as JobListing)}>
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+
+                  {proposalData && proposalJobId === match.jobId && (
+                    <div style={{ marginTop:16, padding:"16px", background:"var(--surface2)", borderRadius:6, border:"1px solid rgba(155,111,255,.2)" }}>
+                      <div style={{ fontFamily:"'Space Mono',monospace", fontSize:9, textTransform:"uppercase", letterSpacing:".1em", color:"var(--purple)", marginBottom:10 }}>
+                        🤖 CIRCUIT Proposal — {proposalTone} tone
+                      </div>
+                      <div className="proposal-text">{proposalData.proposal}</div>
+                      <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
+                        <button className="proposal-copy" onClick={() => navigator.clipboard.writeText(proposalData.proposal)}>
+                          Copy Proposal
+                        </button>
+                        <span style={{ fontFamily:"'Space Mono',monospace", fontSize:10, color:"var(--gold)" }}>
+                          Rate: {proposalData.currency} {proposalData.suggestedRate} · Est. {proposalData.estimatedDays} days
+                        </span>
+                        <button className="btn-circuit secondary" onClick={() => {
+                          setApplyForm({ ...applyForm, coverLetter: proposalData.proposal, proposedRate: String(proposalData.suggestedRate), estimatedDays: String(proposalData.estimatedDays) });
+                          setApplyModal(match.job as unknown as JobListing);
+                        }}>
+                          Apply with this Proposal →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 

@@ -501,6 +501,16 @@ router.post("/page-insight", async (req: Request, res: Response) => {
         "You are OMEGA, the Master Orchestrator for Winners Ecosystem. You see across all layers and provide strategic cross-platform insights.",
       topic: "ecosystem overview",
     },
+    nexus: {
+      system:
+        "You are NEXUS, the Cloud & Developer Supervisor for Winners Ecosystem. You help developers integrate APIs, manage webhooks, and build on the Winners platform.",
+      topic: "API usage and developer integration",
+    },
+    herald: {
+      system:
+        "You are HERALD, the AI Platform Supervisor for Winners Ecosystem. You manage local AI models (Ollama, Whisper, ComfyUI), GPU routing, and offline capabilities.",
+      topic: "local AI model management and performance",
+    },
   };
 
   const config = assistantPrompts[assistant] ?? assistantPrompts.aria;
@@ -540,6 +550,9 @@ Return valid JSON only: { "insight": "your insight here" }`;
       market: "ATLAS is monitoring trends. Set up your store to receive insights.",
       work: "CIRCUIT is scanning for opportunities. Complete your profile to start.",
       intelligence: "FORGE is optimizing your AI. Send a message to get started.",
+      "omega-dashboard": "OMEGA is monitoring all 9 layers. Your ecosystem health looks strong.",
+      platform: "HERALD is ready to activate local AI models. Configure Ollama to begin.",
+      cloud: "NEXUS is standing by. Add your first API key to activate the developer platform.",
     };
 
     return res.json({

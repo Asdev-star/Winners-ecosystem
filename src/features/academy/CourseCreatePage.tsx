@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAcademyStore } from "./academyStore";
+import ImageUploader from "./components/ImageUploader";
 
 const CATEGORIES = [
   "Digital Marketing",
@@ -541,16 +542,12 @@ export default function CourseCreatePage() {
             <div className="form-section-title">Media</div>
             <div className="form-grid single">
               <div className="form-field">
-                <label className="form-label">Thumbnail URL</label>
-                <input
-                  type="url"
-                  name="thumbnail"
-                  className="form-input"
+                <ImageUploader
                   value={formData.thumbnail}
-                  onChange={handleChange}
-                  placeholder="https://example.com/image.jpg"
+                  onChange={(url) => setFormData((prev) => ({ ...prev, thumbnail: url }))}
+                  label="Course Thumbnail"
+                  hint="Recommended: 1280×720px · JPG, PNG, WebP · max 10MB"
                 />
-                <div className="form-hint">Recommended: 1280x720px</div>
               </div>
 
               <div className="form-field">

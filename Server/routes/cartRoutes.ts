@@ -276,11 +276,11 @@ router.post("/merge", authMiddleware, async (req: Request, res: Response) => {
       }
       
       // Delete guest cart
-      await db.cart.delete({ where: { id: guestCart.id } });
+      await db.cart.delete({ where: { id: guestCart.id, tenantId } });
     } else {
       // Convert guest cart to user cart
       await db.cart.update({
-        where: { id: guestCart.id },
+        where: { id: guestCart.id, tenantId },
         data: { userId, sessionId: null }
       });
     }

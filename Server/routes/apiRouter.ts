@@ -38,6 +38,9 @@ import productRoutes from "./productRoutes.js";
 import cartRoutes from "./cartRoutes.js";
 import orderRoutes from "./orderRoutes.js";
 import workRoutes from "./workRoutes.js";
+import liveSessionRoutes from "./liveSessionRoutes.js";
+import quizRoutes from "./quizRoutes.js";
+import lectureUploadRoutes from "./lectureUploadRoutes.js";
 
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
@@ -73,12 +76,15 @@ const gatewayRoutes = [
   "/chat",
   "/messages",
   "/ai-platform",
+  "/live-sessions",
   "/community",
   "/vendors",
   "/products",
   "/cart",
   "/orders",
   "/work",
+  "/quizzes",
+  "/lecture-uploads",
 ];
 
 router.get("/", (_req, res) => {
@@ -123,6 +129,7 @@ router.use("/academy", academyRoutes);
 router.use("/chat", chatRoutes);
 router.use("/messages", messageRoutes);
 router.use("/ai-platform", aiPlatformRoutes);
+router.use("/live-sessions", liveSessionRoutes);
 router.use("/spaces", liveSpaceRoutes);
 router.use("/opportunities", opportunityRoutes);
 router.use("/community", communityIntelligenceRoutes);
@@ -133,5 +140,7 @@ router.use("/products", productRoutes);
 router.use("/cart", cartRoutes);
 router.use("/orders", orderRoutes);
 router.use("/work", workRoutes);
+router.use("/quizzes", quizRoutes);
+router.use("/lecture-uploads", lectureUploadRoutes);
 
 export default router;

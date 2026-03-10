@@ -243,14 +243,14 @@ router.get("/:id", async (req: Request, res: Response) => {
         likes:    { where: { userId }, select: { id: true } },
         tags:     { include: { tag: true } },
         comments: {
-          where:   { deletedAt: null, parentId: null },
+          where:   { deletedAt: null, parentId: null, tenantId },
           orderBy: { createdAt: "asc" },
           include: {
             author:   { select: { id: true, name: true, email: true } },
             _count:   { select: { likes: true, replies: true } },
             likes:    { where: { userId }, select: { id: true } },
             replies: {
-              where:   { deletedAt: null },
+              where:   { deletedAt: null, tenantId },
               orderBy: { createdAt: "asc" },
               include: {
                 author: { select: { id: true, name: true, email: true } },
@@ -362,16 +362,16 @@ router.post("/:id/like", async (req: Request, res: Response) => {
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     const existing = await db.like.findUnique({
-      where: { userId_postId: { userId, postId } },
+      where: { userId_postId_tenantId: { userId, postId, tenantId } },
     });
 
     if (existing) {
-      await db.like.delete({ where: { userId_postId: { userId, postId } } });
-      const count = await db.like.count({ where: { postId } });
+      await db.like.delete({ where: { userId_postId_tenantId: { userId, postId, tenantId } } });
+      const count = await db.like.count({ where: { postId, tenantId } });
       return res.json({ liked: false, likeCount: count });
     } else {
-      await db.like.create({ data: { userId, postId } });
-      const count = await db.like.count({ where: { postId } });
+      await db.like.create({ data: { userId, postId, tenantId } });
+      const count = await db.like.count({ where: { postId, tenantId } });
       return res.json({ liked: true, likeCount: count });
     }
   } catch (error) {
@@ -400,32 +400,34 @@ router.post("/:id/react", async (req: Request, res: Response) => {
     });
     if (!post) return res.status(404).json({ message: "Post not found" });
 
-    // Check existing reaction
+    // Check existing reaction of any type for this user on this post
     const existing = await db.postReaction.findFirst({
-      where: { userId, postId },
+      where: { userId, postId, tenantId },
     });
 
     if (existing) {
       if (existing.reaction === reaction) {
         // Remove reaction if same
-        await db.postReaction.delete({ where: { id: existing.id } });
+        await db.postReaction.delete({ 
+          where: { userId_postId_reaction_tenantId: { userId, postId, reaction, tenantId } } 
+        });
       } else {
         // Update to new reaction
         await db.postReaction.update({
-          where: { id: existing.id },
+          where: { id: existing.id, tenantId },
           data: { reaction },
         });
       }
     } else {
       // Create new reaction
       await db.postReaction.create({
-        data: { userId, postId, reaction },
+        data: { userId, postId, reaction, tenantId },
       });
     }
 
     // Get all reactions for this post
     const reactions = await db.postReaction.findMany({
-      where: { postId },
+      where: { postId, tenantId },
       select: { reaction: true, userId: true },
     });
 
@@ -452,14 +454,14 @@ router.get("/:id/comments", async (req: Request, res: Response) => {
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     const comments = await db.comment.findMany({
-      where:   { postId, parentId: null, deletedAt: null },
+      where:   { postId, parentId: null, deletedAt: null, tenantId },
       orderBy: { createdAt: "asc" },
       include: {
         author:   { select: { id: true, name: true, email: true } },
         _count:   { select: { likes: true, replies: true } },
         likes:    { where: { userId }, select: { id: true } },
         replies: {
-          where:   { deletedAt: null },
+          where:   { deletedAt: null, tenantId },
           orderBy: { createdAt: "asc" },
           include: {
             author: { select: { id: true, name: true, email: true } },
@@ -509,6 +511,7 @@ router.post("/:id/comments", async (req: Request, res: Response) => {
       data: {
         postId,
         authorId,
+        tenantId,
         content:  content.trim(),
         parentId: parentId ?? null,
       },
@@ -546,7 +549,7 @@ router.delete("/:id/comments/:commentId", async (req: Request, res: Response) =>
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     const comment = await db.comment.findFirst({
-      where: { id: commentId, postId, deletedAt: null },
+      where: { id: commentId, postId, tenantId, deletedAt: null },
     });
     if (!comment) return res.status(404).json({ message: "Comment not found" });
 
@@ -554,7 +557,7 @@ router.delete("/:id/comments/:commentId", async (req: Request, res: Response) =>
     if (!canDelete) return res.status(403).json({ message: "Cannot delete this comment" });
 
     await db.comment.update({
-      where: { id: commentId },
+      where: { id: commentId, tenantId },
       data:  { deletedAt: new Date() },
     });
 
@@ -568,6 +571,7 @@ router.delete("/:id/comments/:commentId", async (req: Request, res: Response) =>
 // ─── POST /posts/:id/comments/:commentId/like ─────────────────────────────────
 
 router.post("/:id/comments/:commentId/like", async (req: Request, res: Response) => {
+  const tenantId  = req.user!.tenantId;
   const userId    = req.user!.userId;
   const commentId = String(req.params.commentId);
 
@@ -577,12 +581,12 @@ router.post("/:id/comments/:commentId/like", async (req: Request, res: Response)
     });
 
     if (existing) {
-      await db.like.delete({ where: { userId_commentId: { userId, commentId } } });
-      const count = await db.like.count({ where: { commentId } });
+      await db.like.delete({ where: { userId_commentId: { userId, commentId }, tenantId } });
+      const count = await db.like.count({ where: { commentId, tenantId } });
       return res.json({ liked: false, likeCount: count });
     } else {
-      await db.like.create({ data: { userId, commentId } });
-      const count = await db.like.count({ where: { commentId } });
+      await db.like.create({ data: { userId, commentId, tenantId } });
+      const count = await db.like.count({ where: { commentId, tenantId } });
       return res.json({ liked: true, likeCount: count });
     }
   } catch (error) {

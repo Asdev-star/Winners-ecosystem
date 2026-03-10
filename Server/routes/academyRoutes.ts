@@ -200,7 +200,9 @@ router.put("/courses/:id", authMiddleware, async (req, res) => {
     }
 
     const courseId = String(req.params.id ?? "");
-    const course = await db.course.findUnique({ where: { id: courseId } });
+    const course = await db.course.findUnique({ 
+      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } } 
+    });
 
     if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
       return res.status(403).json({ error: "Not authorized" });
@@ -220,7 +222,7 @@ router.put("/courses/:id", authMiddleware, async (req, res) => {
     if (req.body?.published !== undefined) updateData.published = Boolean(req.body.published);
 
     const updatedCourse = await db.course.update({
-      where: { id: courseId },
+      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } },
       data: updateData,
     });
 
@@ -244,7 +246,9 @@ router.post("/courses/:courseId/modules", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "title is required" });
     }
 
-    const course = await db.course.findUnique({ where: { id: courseId } });
+    const course = await db.course.findUnique({ 
+      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } } 
+    });
 
     if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
       return res.status(403).json({ error: "Not authorized" });
@@ -253,6 +257,7 @@ router.post("/courses/:courseId/modules", authMiddleware, async (req, res) => {
     const moduleRecord = await db.module.create({
       data: {
         courseId,
+        tenantId: req.user.tenantId,
         title,
         description: asOptionalString(req.body?.description),
         order: asInt(req.body?.order, 0),
@@ -280,7 +285,7 @@ router.post("/modules/:moduleId/lessons", authMiddleware, async (req, res) => {
     }
 
     const moduleRecord = await db.module.findUnique({
-      where: { id: moduleId },
+      where: { id_tenantId: { id: moduleId, tenantId: req.user.tenantId } },
       include: { course: true },
     });
 
@@ -291,6 +296,7 @@ router.post("/modules/:moduleId/lessons", authMiddleware, async (req, res) => {
     const lesson = await db.lesson.create({
       data: {
         moduleId,
+        tenantId: req.user.tenantId,
         title,
         description: asOptionalString(req.body?.description),
         content: asOptionalString(req.body?.content),
@@ -647,6 +653,33 @@ router.get("/certificates/:certificateId/pdf", authMiddleware, async (req, res) 
   } catch (error) {
     console.error("Error generating certificate PDF:", error);
     res.status(500).json({ error: "Failed to generate certificate PDF" });
+  }
+});
+
+router.delete("/courses/:id", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const courseId = String(req.params.id ?? "");
+    const course = await db.course.findUnique({
+      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } },
+    });
+
+    if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    await db.course.update({
+      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } },
+      data: { deletedAt: new Date() },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting course:", error);
+    res.status(500).json({ error: "Failed to delete course" });
   }
 });
 

@@ -408,11 +408,13 @@ model Post {
   @@index([authorId])
   @@index([tenantId, isPinned])
   @@index([groupId])
+  @@unique([id, tenantId])
   @@map("posts")
 }
 
 model Comment {
   id        String    @id @default(cuid())
+  tenantId  String
   postId    String
   authorId  String
   content   String
@@ -421,31 +423,38 @@ model Comment {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  tenant  Tenant    @relation(fields: [tenantId], references: [id])
   post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   author  User      @relation("CommentAuthor", fields: [authorId], references: [id])
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies Comment[] @relation("CommentReplies")
   likes   Like[]
 
+  @@index([tenantId])
   @@index([postId])
   @@index([authorId])
   @@index([parentId])
+  @@unique([id, tenantId])
   @@map("comments")
 }
 
 model Like {
   id        String   @id @default(cuid())
+  tenantId  String
   userId    String
   postId    String?
   commentId String?
   createdAt DateTime @default(now())
 
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, postId])
-  @@unique([userId, commentId])
+  @@unique([id, tenantId])
+  @@unique([userId, postId, tenantId])
+  @@unique([userId, commentId, tenantId])
+  @@index([tenantId])
   @@index([postId])
   @@index([commentId])
   @@map("likes")
@@ -454,29 +463,38 @@ model Like {
 // Six-reaction system for community posts
 model PostReaction {
   id        String   @id @default(cuid())
+  tenantId  String
   userId    String
   postId    String
-  reaction  String // like, celebrate, support, insightful, funny, curious
+  reaction  String // ❤️, 🔥, 💡, 👏, 😂, 😱
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, postId, reaction])
+  @@unique([userId, postId, reaction, tenantId])
+  @@index([tenantId])
   @@index([postId])
   @@index([reaction])
+  @@unique([id, tenantId])
+  @@map("post_reactions")
 }
 
 model Follow {
   id          String   @id @default(cuid())
+  tenantId    String
   followerId  String
   followingId String
   createdAt   DateTime @default(now())
 
-  follower  User @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  follower  User   @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User   @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
 
-  @@unique([followerId, followingId])
+  @@unique([id, tenantId])
+  @@unique([followerId, followingId, tenantId])
+  @@index([tenantId])
   @@index([followerId])
   @@index([followingId])
   @@map("follows")
@@ -530,15 +548,19 @@ model Group {
 
 model GroupMember {
   id       String          @id @default(cuid())
+  tenantId String
   groupId  String
   userId   String
   role     GroupMemberRole @default(MEMBER)
   joinedAt DateTime        @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([groupId, userId])
+  @@unique([id, tenantId])
+  @@unique([groupId, userId, tenantId])
+  @@index([tenantId])
   @@index([groupId])
   @@index([userId])
   @@map("group_members")
@@ -553,6 +575,7 @@ enum GroupMemberRole {
 // Group Learning Tracks (Facebook Events adapted for professional development)
 model GroupLearningTrack {
   id           String   @id @default(cuid())
+  tenantId     String
   groupId      String
   title        String
   description  String?
@@ -566,9 +589,12 @@ model GroupLearningTrack {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  tenant  Tenant @relation(fields: [tenantId], references: [id])
   group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   creator User  @relation("LearningTrackCreator", fields: [createdById], references: [id])
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([groupId])
   @@index([createdById])
   @@map("group_learning_tracks")
@@ -646,6 +672,7 @@ model Opportunity {
   tenantId String
   userId   String
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
 
   title       String
   description String            @db.Text
@@ -660,6 +687,7 @@ model Opportunity {
   updatedAt DateTime  @updatedAt
   expiresAt DateTime?
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([type])
   @@index([category])
@@ -684,6 +712,9 @@ model Notification {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
   @@index([userId, read])
   @@index([tenantId])
   @@map("notifications")
@@ -720,6 +751,7 @@ enum OpportunityStatus {
 
 model CreatorSubscription {
   id           String             @id @default(cuid())
+  tenantId     String
   subscriberId String
   creatorId    String
   subscriber   User               @relation("Subscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
@@ -734,7 +766,11 @@ model CreatorSubscription {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
   @@unique([subscriberId, creatorId])
+  @@index([tenantId])
   @@index([creatorId])
   @@index([subscriberId])
   @@map("creator_subscriptions")
@@ -762,6 +798,9 @@ model CreatorTier {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
   @@unique([creatorId, name])
   @@index([tenantId])
   @@map("creator_tiers")
@@ -784,9 +823,11 @@ model CommunityChallenge {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant      Tenant                         @relation(fields: [tenantId], references: [id])
   submissions CommunityChallengeSubmission[]
   winners     CommunityChallengeWinner[]
 
+  @@unique([id, tenantId])
   @@index([tenantId, status])
   @@index([endsAt])
   @@map("community_challenges")
@@ -794,6 +835,7 @@ model CommunityChallenge {
 
 model CommunityChallengeSubmission {
   id          String  @id @default(cuid())
+  tenantId    String
   challengeId String
   userId      String
   postId      String?
@@ -802,16 +844,20 @@ model CommunityChallengeSubmission {
 
   createdAt DateTime @default(now())
 
+  tenant    Tenant             @relation(fields: [tenantId], references: [id])
   challenge CommunityChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([challengeId, userId])
+  @@index([tenantId])
   @@index([challengeId, engagement(sort: Desc)])
   @@map("challenge_submissions")
 }
 
 model CommunityChallengeWinner {
   id           String @id @default(cuid())
+  tenantId     String
   challengeId  String
   userId       String
   rank         Int // 1st, 2nd, 3rd
@@ -819,10 +865,13 @@ model CommunityChallengeWinner {
 
   createdAt DateTime @default(now())
 
+  tenant    Tenant             @relation(fields: [tenantId], references: [id])
   challenge CommunityChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([challengeId, rank])
+  @@index([tenantId])
   @@map("challenge_winners")
 }
 
@@ -834,16 +883,20 @@ model CommunityChallengeWinner {
 // Skills Endorsement System (LinkedIn-inspired)
 model SkillEndorsement {
   id         String   @id @default(cuid())
+  tenantId   String
   userId     String // User being endorsed
   endorserId String // User giving endorsement
   skill      String
   weight     Float    @default(1.0) // Weight based on endorser's trust score
   createdAt  DateTime @default(now())
 
-  endorsee User @relation("Endorsee", fields: [userId], references: [id], onDelete: Cascade)
-  endorser User @relation("Endorser", fields: [endorserId], references: [id], onDelete: Cascade)
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  endorsee User   @relation("Endorsee", fields: [userId], references: [id], onDelete: Cascade)
+  endorser User   @relation("Endorser", fields: [endorserId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([endorserId, userId, skill])
+  @@index([tenantId])
   @@index([userId, skill])
   @@index([endorserId])
   @@map("skill_endorsements")
@@ -852,6 +905,7 @@ model SkillEndorsement {
 // NOVA Skill Detection Results
 model NovaSkillDetection {
   id         String   @id @default(cuid())
+  tenantId   String
   postId     String
   userId     String
   skill      String
@@ -863,10 +917,13 @@ model NovaSkillDetection {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation("UserNovaSkills", fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User   @relation("UserNovaSkills", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([userId, postId, skill])
+  @@index([tenantId])
   @@index([postId])
   @@index([skill])
   @@index([userId])
@@ -876,6 +933,7 @@ model NovaSkillDetection {
 // Community Insights (NOVA's intelligence)
 model CommunityInsight {
   id        String   @id @default(cuid())
+  tenantId  String
   userId    String?
   type      String // 'posting_momentum', 'skill_detected', 'opportunity_match', 'engagement_alert'
   title     String
@@ -884,6 +942,10 @@ model CommunityInsight {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId, isRead])
   @@index([type])
   @@index([createdAt(sort: Desc)])
@@ -893,15 +955,19 @@ model CommunityInsight {
 // Saved Posts (Bookmarks)
 model SavedPost {
   id        String   @id @default(cuid())
+  tenantId  String
   userId    String
   postId    String
   isPublic  Boolean  @default(false) // Public bookmarks for social proof
   createdAt DateTime @default(now())
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([userId, postId])
+  @@index([tenantId])
   @@index([userId])
   @@index([postId])
   @@map("saved_posts")
@@ -910,14 +976,18 @@ model SavedPost {
 // Quote-Share (X-inspired) - when users share with commentary
 model QuotePost {
   id           String   @id @default(cuid())
+  tenantId     String
   postId       String // the quoting post
   quotedPostId String // the original post being quoted
   createdAt    DateTime @default(now())
 
-  post       Post @relation("QuotingPost", fields: [postId], references: [id], onDelete: Cascade)
-  quotedPost Post @relation("QuotedPost", fields: [quotedPostId], references: [id], onDelete: Cascade)
+  tenant     Tenant @relation(fields: [tenantId], references: [id])
+  post       Post   @relation("QuotingPost", fields: [postId], references: [id], onDelete: Cascade)
+  quotedPost Post   @relation("QuotedPost", fields: [quotedPostId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([postId, quotedPostId])
+  @@index([tenantId])
   @@index([postId])
   @@index([quotedPostId])
   @@map("quote_posts")
@@ -926,18 +996,24 @@ model QuotePost {
 // User Feed Preferences
 model UserFeedPreference {
   id               String   @id @default(cuid())
+  tenantId         String
   userId           String   @unique
   feedMode         String   @default("foryou") // 'foryou', 'following', 'intelligence'
   novaIntelligence Boolean  @default(true)
   quickPostEnabled Boolean  @default(true)
   updatedAt        DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@map("user_feed_preferences")
 }
 
 // Agentic Loop Tracking per User
 model AgenticLoopProgress {
   id             String    @id @default(cuid())
+  tenantId       String
   userId         String
   stage          Int       @default(1) // 1-7
   stageName      String // 'skill_detection', 'learning', 'certification', 'work_match', 'contract', 'vendor', 'compound'
@@ -950,7 +1026,11 @@ model AgenticLoopProgress {
   updatedAt      DateTime  @updatedAt
   createdAt      DateTime  @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
   @@unique([userId])
+  @@index([tenantId])
   @@index([userId])
   @@map("agentic_loop_progress")
 }
@@ -994,6 +1074,7 @@ model Conversation {
   participants ConversationParticipant[]
   messages     Message[]
 
+  @@unique([id, tenantId])
   @@index([tenantId, updatedAt(sort: Desc)])
   @@index([createdById])
   @@map("conversations")
@@ -1001,16 +1082,20 @@ model Conversation {
 
 model ConversationParticipant {
   id             String           @id @default(cuid())
+  tenantId       String
   conversationId String
   userId         String
   role           ConversationRole @default(MEMBER)
   lastReadAt     DateTime         @default(now())
   joinedAt       DateTime         @default(now())
 
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([conversationId, userId])
+  @@index([tenantId])
   @@index([conversationId])
   @@index([userId])
   @@map("conversation_participants")
@@ -1024,6 +1109,7 @@ enum ConversationRole {
 
 model Message {
   id             String      @id @default(cuid())
+  tenantId       String
   conversationId String
   senderId       String
   content        String
@@ -1033,10 +1119,13 @@ model Message {
   updatedAt      DateTime    @updatedAt
   deletedAt      DateTime?
 
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
   conversation Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User          @relation("MessageSender", fields: [senderId], references: [id])
   reads        MessageRead[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([conversationId, createdAt(sort: Desc)])
   @@index([senderId])
   @@map("messages")
@@ -1052,14 +1141,18 @@ enum MessageType {
 
 model MessageRead {
   id        String   @id @default(cuid())
+  tenantId  String
   messageId String
   userId    String
   readAt    DateTime @default(now())
 
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([messageId, userId])
+  @@index([tenantId])
   @@index([messageId])
   @@index([userId])
   @@map("message_reads")
@@ -1122,6 +1215,7 @@ enum CourseLevel {
 
 model Module {
   id          String   @id @default(cuid())
+  tenantId    String
   courseId    String
   title       String
   description String?
@@ -1129,15 +1223,19 @@ model Module {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenant Tenant   @relation(fields: [tenantId], references: [id])
+  course Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([courseId, order])
   @@map("modules")
 }
 
 model Lesson {
   id          String   @id @default(cuid())
+  tenantId    String
   moduleId    String
   title       String
   description String?
@@ -1149,16 +1247,20 @@ model Lesson {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
   module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress    LessonProgress[]
   assignments Assignment[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([moduleId, order])
   @@map("lessons")
 }
 
 model Enrollment {
   id              String           @id @default(cuid())
+  tenantId        String
   courseId        String
   userId          String
   status          EnrollmentStatus @default(ACTIVE)
@@ -1168,12 +1270,15 @@ model Enrollment {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
   course      Course           @relation(fields: [courseId], references: [id])
   user        User             @relation("CourseEnrollment", fields: [userId], references: [id])
   progress    LessonProgress[]
   certificate Certificate?
 
-  @@unique([courseId, userId])
+  @@unique([id, tenantId])
+  @@unique([courseId, userId, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@index([courseId])
   @@map("enrollments")
@@ -1188,6 +1293,7 @@ enum EnrollmentStatus {
 
 model LessonProgress {
   id           String    @id @default(cuid())
+  tenantId     String
   enrollmentId String
   lessonId     String
   userId       String
@@ -1197,27 +1303,34 @@ model LessonProgress {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
   enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   user       User       @relation("LessonProgress", fields: [userId], references: [id])
 
+  @@unique([id, tenantId])
   @@unique([enrollmentId, lessonId])
+  @@index([tenantId])
   @@index([userId])
   @@map("lesson_progress")
 }
 
 model Certificate {
   id           String   @id @default(cuid())
+  tenantId     String
   enrollmentId String   @unique
   courseId     String
   userId       String
   verifyToken  String   @unique @default(cuid())
   issuedAt     DateTime @default(now())
 
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
   enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
   course     Course     @relation(fields: [courseId], references: [id])
   user       User       @relation("CourseCertificate", fields: [userId], references: [id])
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@index([courseId])
   @@map("certificates")
@@ -1290,6 +1403,7 @@ model ExternalCourse {
 
 model ExternalCourseEnrollment {
   id              String    @id @default(cuid())
+  tenantId        String
   userId          String
   externalCourseId String
   enrolledAt      DateTime  @default(now())
@@ -1298,9 +1412,12 @@ model ExternalCourseEnrollment {
   certificateUrl  String?   // URL to external certificate
   isSynced        Boolean   @default(false) // Synced with Winners certificate
 
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
   externalCourse ExternalCourse @relation(fields: [externalCourseId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, externalCourseId])
+  @@unique([id, tenantId])
+  @@unique([userId, externalCourseId, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@map("external_course_enrollments")
 }
@@ -1308,18 +1425,25 @@ model ExternalCourseEnrollment {
 // User-saved external courses
 model ExternalCourseSave {
   id         String         @id @default(cuid())
+  tenantId   String
   userId     String
   courseId   String
   course     ExternalCourse @relation(fields:[courseId], references:[id])
   sageNote   String?        @db.Text // SAGE's note when it recommended this
   savedAt    DateTime       @default(now())
-  @@unique([userId, courseId])
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([userId, courseId, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@map("external_course_saves")
 }
 
 model Review {
   id        String   @id @default(cuid())
+  tenantId  String
   courseId  String
   userId    String
   rating    Int
@@ -1327,10 +1451,13 @@ model Review {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user   User   @relation("CourseReview", fields: [userId], references: [id])
 
-  @@unique([courseId, userId])
+  @@unique([id, tenantId])
+  @@unique([courseId, userId, tenantId])
+  @@index([tenantId])
   @@index([courseId])
   @@map("reviews")
 }
@@ -1338,6 +1465,7 @@ model Review {
 // ─── Quiz System ──────────────────────────────────────────────────────────────
 model Quiz {
   id               String   @id @default(cuid())
+  tenantId         String
   courseId         String
   moduleId         String?
   title            String
@@ -1349,15 +1477,19 @@ model Quiz {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
   questions QuizQuestion[]
   attempts  QuizAttempt[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([courseId])
   @@map("quizzes")
 }
 
 model QuizQuestion {
   id            String       @id @default(cuid())
+  tenantId      String
   quizId        String
   question      String       @db.Text
   questionType  QuestionType @default(MULTIPLE_CHOICE)
@@ -1368,8 +1500,11 @@ model QuizQuestion {
   order         Int          @default(0)
   createdAt     DateTime     @default(now())
 
-  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade, map: "QuizQuestions")
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade, map: "QuizQuestions")
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([quizId])
   @@map("quiz_questions")
 }
@@ -1381,6 +1516,7 @@ enum QuestionType {
 
 model QuizAttempt {
   id            String    @id @default(cuid())
+  tenantId      String
   quizId        String
   userId        String
   score         Int // raw score
@@ -1391,9 +1527,12 @@ model QuizAttempt {
   startedAt     DateTime  @default(now())
   completedAt   DateTime?
 
-  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade, map: "QuizAttempts")
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade, map: "QuizAttempts")
 
+  @@unique([id, tenantId])
   @@unique([quizId, userId], name: "quiz_user_attempt") // one attempt per user per quiz
+  @@index([tenantId])
   @@index([userId])
   @@index([quizId])
   @@map("quiz_attempts")
@@ -1403,6 +1542,7 @@ model QuizAttempt {
 // REC 02: AI Flashcard Engine with Spaced Repetition
 model Flashcard {
   id       String   @id @default(cuid())
+  tenantId String
   userId   String
   courseId String?
   lessonId String?
@@ -1423,10 +1563,13 @@ model Flashcard {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant  Tenant            @relation(fields: [tenantId], references: [id])
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   course  Course?           @relation(fields: [courseId], references: [id], onDelete: SetNull)
   reviews FlashcardReview[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@index([courseId])
   @@index([nextReview]) // for fetching due cards
@@ -1436,14 +1579,18 @@ model Flashcard {
 // REC 02: Flashcard Review History
 model FlashcardReview {
   id          String   @id @default(cuid())
+  tenantId    String
   flashcardId String
   userId      String
   quality     Int // 0-5 SM-2 quality rating
   reviewedAt  DateTime @default(now())
 
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
   flashcard Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([flashcardId])
   @@index([userId])
   @@map("flashcard_reviews")
@@ -1452,6 +1599,7 @@ model FlashcardReview {
 // REC 01: Knowledge Graph - Course concept relationships
 model KnowledgeGraphNode {
   id          String  @id @default(cuid())
+  tenantId    String
   courseId    String
   concept     String // e.g., "React Hooks", "API Design"
   description String? @db.Text
@@ -1461,26 +1609,33 @@ model KnowledgeGraphNode {
 
   createdAt DateTime @default(now())
 
+  tenant   Tenant               @relation(fields: [tenantId], references: [id])
   course   Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
   outgoing KnowledgeGraphEdge[] @relation("EdgeFrom")
   incoming KnowledgeGraphEdge[] @relation("EdgeTo")
 
+  @@unique([id, tenantId])
   @@unique([courseId, concept])
+  @@index([tenantId])
   @@index([courseId])
   @@map("knowledge_graph_nodes")
 }
 
 model KnowledgeGraphEdge {
   id         String @id @default(cuid())
+  tenantId   String
   fromNodeId String
   toNodeId   String
   relation   String // "prerequisites", "related", "builds_on", "example_of"
   weight     Float  @default(1.0)
 
+  tenant   Tenant             @relation(fields: [tenantId], references: [id])
   fromNode KnowledgeGraphNode @relation("EdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
   toNode   KnowledgeGraphNode @relation("EdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([fromNodeId, toNodeId, relation])
+  @@index([tenantId])
   @@index([fromNodeId])
   @@index([toNodeId])
   @@map("knowledge_graph_edges")
@@ -1489,6 +1644,7 @@ model KnowledgeGraphEdge {
 // REC 05: Mentor Network
 model Mentor {
   id           String   @id @default(cuid())
+  tenantId     String
   userId       String   @unique
   bio          String?  @db.Text
   expertise    String[] // skill areas
@@ -1504,15 +1660,19 @@ model Mentor {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant   Tenant          @relation(fields: [tenantId], references: [id])
   user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessions MentorSession[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@map("mentors")
 }
 
 model MentorSession {
   id        String  @id @default(cuid())
+  tenantId  String
   mentorId  String
   learnerId String
   courseId  String?
@@ -1530,10 +1690,13 @@ model MentorSession {
 
   createdAt DateTime @default(now())
 
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
   mentor  Mentor  @relation(fields: [mentorId], references: [id], onDelete: Cascade)
   learner User    @relation("MentorSessionLearner", fields: [learnerId], references: [id], onDelete: Cascade)
   course  Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([mentorId])
   @@index([learnerId])
   @@map("mentor_sessions")
@@ -1542,6 +1705,7 @@ model MentorSession {
 // REC 06: Live Learning Sessions
 model LiveSession {
   id          String  @id @default(cuid())
+  tenantId    String
   courseId    String?
   hostId      String
   title       String
@@ -1565,10 +1729,13 @@ model LiveSession {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  tenant    Tenant                @relation(fields: [tenantId], references: [id])
   host      User                  @relation(fields: [hostId], references: [id], onDelete: Cascade)
   course    Course?               @relation(fields: [courseId], references: [id], onDelete: SetNull)
   attendees LiveSessionAttendee[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([hostId])
   @@index([courseId])
   @@index([status])
@@ -1577,15 +1744,19 @@ model LiveSession {
 
 model LiveSessionAttendee {
   id        String    @id @default(cuid())
+  tenantId  String
   sessionId String
   userId    String
   joinedAt  DateTime  @default(now())
   leftAt    DateTime?
 
+  tenant  Tenant      @relation(fields: [tenantId], references: [id])
   session LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([sessionId, userId])
+  @@index([tenantId])
   @@index([sessionId])
   @@index([userId])
   @@map("live_session_attendees")
@@ -1593,8 +1764,9 @@ model LiveSessionAttendee {
 
 // SAGE Learner Profile - 6-category memory system
 model LearnerProfile {
-  id     String @id @default(cuid())
-  userId String @unique
+  id       String   @id @default(cuid())
+  tenantId String
+  userId   String   @unique
 
   // Category 1: Skills & Competencies
   skills Json? // { skill: string, level: 0-100, lastValidated: date }[]
@@ -1620,8 +1792,11 @@ model LearnerProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@map("learner_profiles")
 }
@@ -1629,6 +1804,7 @@ model LearnerProfile {
 // ─── REC 10: Learning Streak System ───────────────────────────────────────────
 model LearningStreak {
   id               String    @id @default(cuid())
+  tenantId         String
   userId           String    @unique
   currentStreak    Int       @default(0)
   longestStreak    Int       @default(0)
@@ -1637,8 +1813,11 @@ model LearningStreak {
   milestones       Json      @default("[]") // [{days, achievedAt, badge}]
   updatedAt        DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@map("learning_streaks")
 }
@@ -1646,6 +1825,7 @@ model LearningStreak {
 // ─── REC 1: Lecture-to-Notes ───────────────────────────────────────────────
 model LectureUpload {
   id            String   @id @default(cuid())
+  tenantId      String
   userId        String
   courseId      String? // if linked to a specific course
   fileName      String
@@ -1659,9 +1839,12 @@ model LectureUpload {
   creditsCost   Int      @default(15)
   createdAt     DateTime @default(now())
 
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@index([courseId])
   @@map("lecture_uploads")
@@ -1670,6 +1853,7 @@ model LectureUpload {
 // ─── REC 7: Learning Paths ───────────────────────────────────────────────────
 model LearningPath {
   id            String   @id @default(cuid())
+  tenantId      String
   title         String
   description   String   @db.Text
   tagline       String
@@ -1683,16 +1867,20 @@ model LearningPath {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
   pathCourses PathCourse[]
   enrollments PathEnrollment[]
   course      Course?          @relation(fields: [courseId], references: [id])
   courseId    String?
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@map("learning_paths")
 }
 
 model PathCourse {
   id         String       @id @default(cuid())
+  tenantId   String
   pathId     String
   path       LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
   courseId   String
@@ -1700,7 +1888,11 @@ model PathCourse {
   orderIndex Int
   required   Boolean      @default(true)
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
   @@unique([pathId, courseId])
+  @@index([tenantId])
   @@index([pathId])
   @@index([courseId])
   @@map("path_courses")
@@ -1708,6 +1900,7 @@ model PathCourse {
 
 model PathEnrollment {
   id              String       @id @default(cuid())
+  tenantId        String
   pathId          String
   path            LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
   userId          String
@@ -1716,9 +1909,12 @@ model PathEnrollment {
   certificateId   String?
   createdAt       DateTime     @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([pathId, userId])
+  @@index([tenantId])
   @@index([pathId])
   @@index([userId])
   @@map("path_enrollments")
@@ -1727,6 +1923,7 @@ model PathEnrollment {
 // ─── REC 3: SAGE Study Groups ───────────────────────────────────────────────
 model StudyGroup {
   id          String   @id @default(cuid())
+  tenantId    String
   courseId    String
   creatorId   String
   name        String
@@ -1736,10 +1933,13 @@ model StudyGroup {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
+  tenant  Tenant        @relation(fields: [tenantId], references: [id])
   course  Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   creator User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   members StudyMember[]
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([courseId])
   @@index([creatorId])
   @@map("study_groups")
@@ -1747,6 +1947,7 @@ model StudyGroup {
 
 model StudyMember {
   id       String     @id @default(cuid())
+  tenantId String
   groupId  String
   group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   userId   String
@@ -1754,7 +1955,11 @@ model StudyMember {
   role     String     @default("member") // member|facilitator
   joinedAt DateTime   @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
   @@unique([groupId, userId])
+  @@index([tenantId])
   @@index([groupId])
   @@index([userId])
   @@map("study_members")
@@ -1763,6 +1968,7 @@ model StudyMember {
 // ─── REC 5: Assignment Review Engine ─────────────────────────────────────────
 model Assignment {
   id          String    @id @default(cuid())
+  tenantId    String
   lessonId    String
   lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   title       String
@@ -1772,16 +1978,20 @@ model Assignment {
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
 
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
   submissions Submission[]
   course      Course?      @relation(fields: [courseId], references: [id])
   courseId    String?
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([lessonId])
   @@map("assignments")
 }
 
 model Submission {
   id             String     @id @default(cuid())
+  tenantId       String
   assignmentId   String
   assignment     Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   userId         String
@@ -1793,6 +2003,10 @@ model Submission {
   sageReviewedAt DateTime?
   submittedAt    DateTime   @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([assignmentId])
   @@index([userId])
   @@map("submissions")
@@ -1812,12 +2026,14 @@ model CorporateAccount {
   tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   enrollments CorporateEnroll[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@map("corporate_accounts")
 }
 
 model CorporateEnroll {
   id          String           @id @default(cuid())
+  tenantId    String
   corporateId String
   corporate   CorporateAccount @relation(fields: [corporateId], references: [id], onDelete: Cascade)
   userId      String
@@ -1828,6 +2044,10 @@ model CorporateEnroll {
   completedAt DateTime?
   createdAt   DateTime         @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([corporateId])
   @@index([userId])
   @@index([courseId])
@@ -1837,6 +2057,7 @@ model CorporateEnroll {
 // ─── REC 14: Learner Notebook ───────────────────────────────────────────────
 model LearnerNote {
   id             String   @id @default(cuid())
+  tenantId       String
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   courseId       String?
@@ -1850,6 +2071,10 @@ model LearnerNote {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@index([courseId])
   @@map("learner_notes")
@@ -1861,7 +2086,7 @@ model LearnerNote {
 model SocialAccount {
   id           String   @id @default(cuid())
   userId       String
-  tenantId     String?
+  tenantId     String
   platform     String   // facebook|instagram|whatsapp|telegram|twitter|messenger|linkedin|tiktok|youtube|threads|discord|pinterest|snapchat|substack|medium
   platformId   String
   username     String?
@@ -1878,13 +2103,16 @@ model SocialAccount {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  tenant   Tenant                 @relation(fields: [tenantId], references: [id])
   user     User                   @relation(fields:[userId], references:[id], onDelete: Cascade)
   posts    SocialCrossPost[]
   metrics  SocialMetricSnapshot[]
   skills   SocialSkillSignal[]
   scheduled SocialScheduledPost[]
 
+  @@unique([id, tenantId])
   @@unique([userId, platform, platformId])
+  @@index([tenantId])
   @@index([userId])
   @@index([platform])
   @@map("social_accounts")
@@ -1892,17 +2120,22 @@ model SocialAccount {
 
 model SocialCrossPost {
   id              String        @id @default(cuid())
+  tenantId        String
   userId          String
-  user            User         @relation(fields:[userId], references:[id], onDelete: Cascade)
   communityPostId String?
   socialAccountId String
-  socialAccount   SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
   platformPostId  String?
   status          String        @default("pending")  // pending|published|failed|skipped
   error           String?       @db.Text
   publishedAt     DateTime?
   createdAt       DateTime      @default(now())
 
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  user          User         @relation(fields:[userId], references:[id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId])
   @@index([communityPostId])
   @@index([socialAccountId, status])
@@ -1911,10 +2144,9 @@ model SocialCrossPost {
 
 model SocialMetricSnapshot {
   id              String        @id @default(cuid())
+  tenantId        String
   userId          String
-  user            User         @relation(fields:[userId], references:[id], onDelete: Cascade)
   socialAccountId String
-  socialAccount   SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
   platform        String
   snapshotDate    DateTime      @default(now())
   followers       Int           @default(0)
@@ -1929,7 +2161,13 @@ model SocialMetricSnapshot {
   platformData    Json?         @default("{}")
   createdAt       DateTime      @default(now())
 
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  user          User         @relation(fields:[userId], references:[id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
   @@unique([socialAccountId, snapshotDate])
+  @@index([tenantId])
   @@index([userId])
   @@index([socialAccountId])
   @@index([snapshotDate])
@@ -1938,10 +2176,9 @@ model SocialMetricSnapshot {
 
 model SocialSkillSignal {
   id              String        @id @default(cuid())
+  tenantId        String
   userId          String
-  user            User         @relation(fields:[userId], references:[id], onDelete: Cascade)
   socialAccountId String?
-  socialAccount   SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
   platform        String
   platformPostId  String?
   content         String        @db.Text  // post content that was analysed
@@ -1952,6 +2189,12 @@ model SocialSkillSignal {
   loopFired       Boolean       @default(false)  // has this triggered Agentic Loop?
   createdAt       DateTime      @default(now())
 
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  user          User         @relation(fields:[userId], references:[id], onDelete: Cascade)
+  socialAccount SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId, skill])
   @@index([platform])
   @@index([isActioned])
@@ -1960,10 +2203,9 @@ model SocialSkillSignal {
 
 model SocialScheduledPost {
   id              String        @id @default(cuid())
+  tenantId        String
   userId          String
-  user            User         @relation(fields:[userId], references:[id], onDelete: Cascade)
   socialAccountId String?
-  socialAccount   SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
   communityPostId String?
   content         String        @db.Text
   mediaUrls       String[]      @default([])
@@ -1975,6 +2217,12 @@ model SocialScheduledPost {
   publishedAt     DateTime?
   createdAt       DateTime      @default(now())
 
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  user          User         @relation(fields:[userId], references:[id], onDelete: Cascade)
+  socialAccount SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([userId, scheduledFor])
   @@index([status, scheduledFor])
   @@map("social_scheduled_posts")
@@ -2011,6 +2259,7 @@ model VideoRoom {
   breakouts    BreakoutRoom[]
   qaQuestions  QAQuestion[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([hostId, status])
   @@map("video_rooms")
@@ -2018,6 +2267,7 @@ model VideoRoom {
 
 model VideoRoomParticipant {
   id       String    @id @default(cuid())
+  tenantId String
   roomId   String
   userId   String
   role     String    @default("participant")
@@ -2026,24 +2276,31 @@ model VideoRoomParticipant {
   cameraOn Boolean   @default(false)
   micOn     Boolean   @default(false)
 
-  room VideoRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant    @relation(fields: [tenantId], references: [id])
+  room   VideoRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([roomId, userId])
+  @@index([tenantId])
   @@index([roomId])
   @@map("video_room_participants")
 }
 
 model BreakoutRoom {
   id           String    @id @default(cuid())
+  tenantId     String
   parentRoomId String
   name         String
   maxMembers   Int       @default(6)
   createdAt    DateTime  @default(now())
   endedAt      DateTime?
 
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
   parentRoom VideoRoom @relation(fields: [parentRoomId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([parentRoomId])
   @@map("breakout_rooms")
 }
@@ -2096,6 +2353,7 @@ model BroadcastStream {
   superChats SuperChat[]
   ppvAccess PPVAccess[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([hostId, status])
   @@map("broadcast_streams")
@@ -2103,22 +2361,27 @@ model BroadcastStream {
 
 model StreamViewer {
   id        String    @id @default(cuid())
+  tenantId  String
   streamId  String
   userId    String
   joinedAt  DateTime  @default(now())
   leftAt    DateTime?
   watchSecs Int       @default(0)
 
+  tenant Tenant          @relation(fields: [tenantId], references: [id])
   stream BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([streamId, userId])
+  @@index([tenantId])
   @@index([streamId])
   @@map("stream_viewers")
 }
 
 model SuperChat {
   id          String    @id @default(cuid())
+  tenantId    String
   streamId    String
   userId      String
   message     String    @db.Text
@@ -2128,25 +2391,32 @@ model SuperChat {
   pinnedUntil DateTime
   createdAt   DateTime  @default(now())
 
+  tenant Tenant          @relation(fields: [tenantId], references: [id])
   stream BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
   user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([streamId])
   @@map("super_chats")
 }
 
 model PPVAccess {
   id       String   @id @default(cuid())
+  tenantId String
   streamId String
   userId   String
   paidAt   DateTime @default(now())
   amount   Float
   stripeId String
 
+  tenant Tenant          @relation(fields: [tenantId], references: [id])
   stream BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
   user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([streamId, userId])
+  @@index([tenantId])
   @@map("ppv_access")
 }
 
@@ -2159,6 +2429,7 @@ enum StreamStatus {
 
 model SessionTranscript {
   id             String    @id @default(cuid())
+  tenantId       String
   sessionType    String
   sessionId      String    @unique
   rawTranscript  String    @db.Text
@@ -2171,11 +2442,16 @@ model SessionTranscript {
   language       String    @default("en")
   createdAt      DateTime  @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@map("session_transcripts")
 }
 
 model QAQuestion {
   id          String   @id @default(cuid())
+  tenantId    String
   sessionId   String
   sessionType String
   userId      String
@@ -2186,9 +2462,12 @@ model QAQuestion {
   answeredAt  DateTime?
   createdAt   DateTime @default(now())
 
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   videoRoom  VideoRoom? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([sessionId, novaScore])
   @@map("qa_questions")
 }
@@ -2213,20 +2492,25 @@ model StudioEvent {
   host   User         @relation(fields: [hostId], references: [id])
   rsvps  StudioRsvp[]
 
+  @@unique([id, tenantId])
   @@index([tenantId, scheduledAt])
   @@map("studio_events")
 }
 
 model StudioRsvp {
   id        String   @id @default(cuid())
+  tenantId  String
   eventId   String
   userId    String
   createdAt DateTime @default(now())
 
-  event StudioEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant      @relation(fields: [tenantId], references: [id])
+  event  StudioEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
   @@unique([eventId, userId])
+  @@index([tenantId])
   @@index([eventId])
   @@map("studio_rsvps")
 }
@@ -2267,6 +2551,7 @@ model Vendor {
 
   @@index([tenantId])
   @@index([userId])
+  @@unique([id, tenantId])
   @@map("vendors")
 }
 
@@ -2322,6 +2607,7 @@ model Product {
   reviews   ProductReview[]
 
   @@unique([tenantId, slug])
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([vendorId])
   @@index([category])
@@ -2331,6 +2617,7 @@ model Product {
 // Product variants (size, color, etc.)
 model ProductVariant {
   id            String   @id @default(cuid())
+  tenantId      String
   productId     String
   name          String
   sku           String?
@@ -2343,11 +2630,14 @@ model ProductVariant {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems  CartItem[]
   orderItems OrderItem[]
 
+  @@unique([id, tenantId])
   @@unique([productId, sku])
+  @@index([tenantId])
   @@index([productId])
   @@map("product_variants")
 }
@@ -2355,6 +2645,7 @@ model ProductVariant {
 // Product images
 model ProductImage {
   id        String   @id @default(cuid())
+  tenantId  String
   productId String
   url       String
   alt       String?
@@ -2362,8 +2653,11 @@ model ProductImage {
   isPrimary Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([productId])
   @@map("product_images")
 }
@@ -2383,6 +2677,7 @@ model Cart {
   items  CartItem[]
 
   @@unique([tenantId, sessionId])
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([userId])
   @@index([sessionId])
@@ -2398,6 +2693,7 @@ enum CartStatus {
 // Cart items
 model CartItem {
   id          String   @id @default(cuid())
+  tenantId    String
   cartId      String
   productId   String
   variantId   String?
@@ -2406,11 +2702,14 @@ model CartItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant  Tenant          @relation(fields: [tenantId], references: [id])
   cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product        @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id])
 
+  @@unique([id, tenantId])
   @@unique([cartId, productId, variantId])
+  @@index([tenantId])
   @@index([cartId])
   @@index([productId])
   @@map("cart_items")
@@ -2466,6 +2765,7 @@ model Order {
   @@index([userId])
   @@index([vendorId])
   @@index([orderNumber])
+  @@unique([id, tenantId])
   @@map("orders")
 }
 
@@ -2491,6 +2791,7 @@ enum PaymentStatus {
 // Order items
 model OrderItem {
   id              String   @id @default(cuid())
+  tenantId        String
   orderId         String
   productId       String
   variantId       String?
@@ -2501,10 +2802,13 @@ model OrderItem {
   total           Float
   createdAt       DateTime @default(now())
 
+  tenant  Tenant          @relation(fields: [tenantId], references: [id])
   order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product         @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id])
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([orderId])
   @@index([productId])
   @@map("order_items")
@@ -2513,6 +2817,7 @@ model OrderItem {
 // Order tracking
 model OrderTracking {
   id             String   @id @default(cuid())
+  tenantId       String
   orderId        String   @unique
   carrier        String?
   trackingNumber String?
@@ -2522,8 +2827,11 @@ model OrderTracking {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([orderId])
   @@map("order_tracking")
 }
@@ -2531,6 +2839,7 @@ model OrderTracking {
 // Product reviews
 model ProductReview {
   id          String   @id @default(cuid())
+  tenantId    String
   productId   String
   userId      String
   orderId     String?
@@ -2544,10 +2853,13 @@ model ProductReview {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user   User    @relation(fields: [userId], references: [id])
 
+  @@unique([id, tenantId])
   @@unique([productId, userId])
+  @@index([tenantId])
   @@index([productId])
   @@index([userId])
   @@map("product_reviews")
@@ -2556,6 +2868,7 @@ model ProductReview {
 // Vendor reviews
 model VendorReview {
   id          String   @id @default(cuid())
+  tenantId    String
   vendorId    String
   userId      String
   orderId     String?
@@ -2567,10 +2880,13 @@ model VendorReview {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
   vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id])
 
+  @@unique([id, tenantId])
   @@unique([vendorId, userId])
+  @@index([tenantId])
   @@index([vendorId])
   @@index([userId])
   @@map("vendor_reviews")
@@ -2589,6 +2905,7 @@ model AIPlatformUsage {
   latencyMs Int
   createdAt DateTime @default(now())
 
+  @@unique([id, tenantId])
   @@index([userId, createdAt])
   @@index([tenantId, createdAt])
   @@map("ai_platform_usage")
@@ -2606,6 +2923,7 @@ model AIConversation {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
+  @@unique([id, tenantId])
   @@index([userId, updatedAt])
   @@index([tenantId, updatedAt])
   @@map("ai_conversations")
@@ -2614,6 +2932,7 @@ model AIConversation {
 // AI Messages within conversations
 model AIMessage {
   id             String         @id @default(cuid())
+  tenantId       String
   conversationId String
   conversation   AIConversation @relation(fields:[conversationId], references:[id], onDelete: Cascade)
   role           String         // user | assistant | system
@@ -2624,6 +2943,7 @@ model AIMessage {
   filesMeta      Json?
   createdAt      DateTime       @default(now())
 
+  @@unique([id, tenantId])
   @@index([conversationId, createdAt])
   @@map("ai_messages")
 }
@@ -2642,6 +2962,7 @@ model AssistantMemory {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  @@unique([id, tenantId])
   @@unique([userId, assistant, memoryType])
   @@index([userId, assistant])
   @@index([tenantId, assistant])
@@ -2651,6 +2972,7 @@ model AssistantMemory {
 // Assistant Actions - AI-initiated actions requiring approval or tracking
 model AssistantAction {
   id           String    @id @default(cuid())
+  tenantId     String
   assistant    String    // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
   actionType   String    // notify | escalate | recommend | trigger | generate | flag | onboard | match
   targetUserId String?
@@ -2665,8 +2987,12 @@ model AssistantAction {
   result       String?   @db.Text
   createdAt    DateTime  @default(now())
 
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
   @@index([assistant, status])
   @@index([targetUserId])
+  @@index([tenantId])
   @@map("assistant_actions")
 }
 
@@ -2681,11 +3007,12 @@ model AgenticLoop {
   steps         Json     // Array of step objects: { step, assistant, action, status }
   outcome       String?  @db.Text
   revenueImpact Float?
-  status        String   @default("active") // active | completed | failed | paused
+  status        String   // active | completed | failed | paused
   completedAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  @@unique([id, tenantId])
   @@index([userId, status])
   @@index([tenantId, status])
   @@map("agentic_loops")
@@ -2709,6 +3036,7 @@ model AIInteraction {
   metadata    Json?
   createdAt   DateTime @default(now())
 
+  @@unique([id, tenantId])
   @@index([userId, createdAt])
   @@index([tenantId, createdAt])
   @@index([agentType, createdAt])
@@ -2755,6 +3083,7 @@ model JobListing {
   @@index([clientId])
   @@index([category])
   @@index([createdAt])
+  @@unique([id, tenantId])
   @@map("job_listings")
 }
 
@@ -2804,6 +3133,8 @@ model FreelancerProfile {
   @@index([tenantId])
   @@index([skills])
   @@index([availability])
+  @@unique([id, tenantId])
+  @@unique([userId, tenantId])
   @@map("freelancer_profiles")
 }
 
@@ -2816,6 +3147,7 @@ enum Availability {
 // Portfolio Items - freelancer's work samples
 model PortfolioItem {
   id             String   @id @default(cuid())
+  tenantId       String
   freelancerId   String
   title          String
   description    String?  @db.Text
@@ -2825,8 +3157,11 @@ model PortfolioItem {
   toolsUsed      String[]
   createdAt      DateTime @default(now())
 
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
   freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([freelancerId])
   @@map("portfolio_items")
 }
@@ -2834,6 +3169,7 @@ model PortfolioItem {
 // Job Application - freelancer applying to a job
 model JobApplication {
   id            String             @id @default(cuid())
+  tenantId      String
   jobId         String
   freelancerId  String
   coverLetter   String?            @db.Text
@@ -2845,13 +3181,16 @@ model JobApplication {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
   job        JobListing         @relation(fields: [jobId], references: [id], onDelete: Cascade)
   freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, freelancerId])
+  @@index([tenantId])
   @@index([jobId])
   @@index([freelancerId])
   @@index([status])
+  @@unique([id, tenantId])
   @@map("job_applications")
 }
 
@@ -2868,6 +3207,7 @@ enum ApplicationStatus {
 // Contract - hired relationship
 model Contract {
   id              String          @id @default(cuid())
+  tenantId        String
   jobId           String?
   clientId        String
   freelancerId    String
@@ -2888,6 +3228,7 @@ model Contract {
   updatedAt       DateTime        @updatedAt
   completedAt     DateTime?
 
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
   job        JobListing?        @relation(fields: [jobId], references: [id], onDelete: SetNull)
   client     User               @relation("ClientContracts", fields: [clientId], references: [id])
   freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id])
@@ -2895,9 +3236,11 @@ model Contract {
   escrow     EscrowPayment?
   reviews    WorkReview[]
 
+  @@index([tenantId])
   @@index([clientId])
   @@index([freelancerId])
   @@index([status])
+  @@unique([id, tenantId])
   @@map("contracts")
 }
 
@@ -2913,6 +3256,7 @@ enum ContractStatus {
 // Contract Milestone - for fixed-price contracts
 model ContractMilestone {
   id          String           @id @default(cuid())
+  tenantId    String
   contractId  String
   title      String
   description String?          @db.Text
@@ -2923,8 +3267,11 @@ model ContractMilestone {
   paidAt      DateTime?
   createdAt   DateTime         @default(now())
 
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([contractId])
   @@map("contract_milestones")
 }
@@ -2941,6 +3288,7 @@ enum MilestoneStatus {
 // Escrow Payment - secure payment handling
 model EscrowPayment {
   id              String         @id @default(cuid())
+  tenantId        String
   contractId      String         @unique
   amount          Float
   currency        String         @default("USD")
@@ -2952,8 +3300,11 @@ model EscrowPayment {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([clientId])
   @@index([freelancerId])
   @@map("escrow_payments")
@@ -2969,6 +3320,7 @@ enum EscrowStatus {
 // Work Review - client/freelancer reviews
 model WorkReview {
   id           String   @id @default(cuid())
+  tenantId     String
   contractId   String
   reviewerId   String   // client or freelancer
   revieweeId   String   // freelancer or client
@@ -2976,8 +3328,11 @@ model WorkReview {
   comment      String?  @db.Text
   createdAt    DateTime @default(now())
 
-  contract    Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
+  @@unique([id, tenantId])
+  @@index([tenantId])
   @@index([contractId])
   @@index([reviewerId])
   @@index([revieweeId])

@@ -236,9 +236,12 @@ function GroupDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
   const [posts, setPosts]   = useState<GroupPost[]>([]);
   const [content, setContent] = useState("");
   const [posting, setPosting] = useState(false);
-  const [tab, setTab]       = useState<"feed" | "members">("feed");
+  const [tab, setTab]       = useState<"feed" | "members" | "admin">("feed");
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState("");
+  const [settingsForm, setSettingsForm] = useState({ name: "", description: "", isPrivate: false });
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsMsg, setSettingsMsg] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -251,6 +254,7 @@ function GroupDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
       const [gData, pData] = await Promise.all([gRes.json(), pRes.json()]);
       setGroup(gData);
       setPosts(pData.posts ?? []);
+      setSettingsForm({ name: gData.name, description: gData.description ?? "", isPrivate: gData.isPrivate });
     } catch {
       setError("Failed to load group");
     } finally {
@@ -273,6 +277,43 @@ function GroupDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
     } finally {
       setPosting(false);
     }
+  };
+
+  const saveSettings = async () => {
+    if (!group) return;
+    setSettingsSaving(true); setSettingsMsg("");
+    try {
+      const res = await fetch(`${API}/groups/${slug}`, {
+        method: "PATCH", headers: authHeaders(),
+        body: JSON.stringify(settingsForm),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      await load();
+      setSettingsMsg("✓ Settings saved");
+    } catch { setSettingsMsg("Failed to save settings"); }
+    finally { setSettingsSaving(false); }
+  };
+
+  const changeMemberRole = async (memberId: string, role: "ADMIN" | "MEMBER") => {
+    await fetch(`${API}/groups/${slug}/members/${memberId}/role`, {
+      method: "PATCH", headers: authHeaders(), body: JSON.stringify({ role }),
+    });
+    load();
+  };
+
+  const removeMember = async (memberId: string, memberName: string) => {
+    if (!confirm(`Remove ${memberName} from this group?`)) return;
+    await fetch(`${API}/groups/${slug}/members/${memberId}`, {
+      method: "DELETE", headers: authHeaders(),
+    });
+    load();
+  };
+
+  const togglePin = async (postId: string) => {
+    await fetch(`${API}/groups/${slug}/posts/${postId}/pin`, {
+      method: "POST", headers: authHeaders(),
+    });
+    load();
   };
 
   const toggleLike = async (postId: string) => {
@@ -343,13 +384,19 @@ function GroupDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
 
         {/* Tabs */}
         <div style={styles.tabs}>
-          {(["feed", "members"] as const).map((t) => (
+          {([
+            { id: "feed",    label: "📋 Feed" },
+            { id: "members", label: "👥 Members" },
+            ...(group.myRole === "OWNER" || group.myRole === "ADMIN"
+              ? [{ id: "admin", label: "⚙️ Admin" }]
+              : []),
+          ] as { id: "feed" | "members" | "admin"; label: string }[]).map((t) => (
             <button
-              key={t}
-              style={{ ...styles.tab, ...(tab === t ? styles.tabActive : {}) }}
-              onClick={() => setTab(t)}
+              key={t.id}
+              style={{ ...styles.tab, ...(tab === t.id ? styles.tabActive : {}) }}
+              onClick={() => setTab(t.id)}
             >
-              {t === "feed" ? "📋 Feed" : "👥 Members"}
+              {t.label}
             </button>
           ))}
         </div>
@@ -423,6 +470,11 @@ function GroupDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
                     <button style={styles.actionBtn}>
                       <span style={{ color: "var(--text-dim)" }}>💬 {post.commentCount}</span>
                     </button>
+                    {(group.myRole === "OWNER" || group.myRole === "ADMIN") && (
+                      <button style={styles.actionBtn} onClick={() => togglePin(post.id)} title="Pin/unpin post">
+                        <span style={{ color: "var(--gold)", opacity: 0.7 }}>📌</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -459,6 +511,123 @@ function GroupDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
           ))}
         </div>
       )}
+
+      {tab === "admin" && (group.myRole === "OWNER" || group.myRole === "ADMIN") && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+
+          {/* Group Settings */}
+          <div style={styles.composeCard}>
+            <div style={styles.modalBorder} />
+            <div style={{ padding: "20px 24px" }}>
+              <div style={{ fontFamily: "Space Mono, monospace", fontSize: "11px", color: "var(--gold)", letterSpacing: "0.08em", marginBottom: "16px" }}>
+                ⚙️ GROUP SETTINGS
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div>
+                  <label style={{ fontFamily: "Space Mono, monospace", fontSize: "9px", color: "var(--text-dim)", letterSpacing: "0.08em", display: "block", marginBottom: "6px" }}>
+                    GROUP NAME
+                  </label>
+                  <input
+                    style={{ ...styles.composeTextarea, height: "auto", padding: "10px 12px", borderRadius: "4px", resize: "none" as const }}
+                    value={settingsForm.name}
+                    onChange={(e) => setSettingsForm((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="Group name"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontFamily: "Space Mono, monospace", fontSize: "9px", color: "var(--text-dim)", letterSpacing: "0.08em", display: "block", marginBottom: "6px" }}>
+                    DESCRIPTION
+                  </label>
+                  <textarea
+                    style={{ ...styles.composeTextarea, height: "80px" }}
+                    value={settingsForm.description}
+                    onChange={(e) => setSettingsForm((f) => ({ ...f, description: e.target.value }))}
+                    placeholder="Group description"
+                  />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <input
+                    type="checkbox"
+                    id="isPrivate"
+                    checked={settingsForm.isPrivate}
+                    onChange={(e) => setSettingsForm((f) => ({ ...f, isPrivate: e.target.checked }))}
+                    style={{ accentColor: "var(--gold)" }}
+                  />
+                  <label htmlFor="isPrivate" style={{ fontFamily: "Space Mono, monospace", fontSize: "10px", color: "var(--text-dim)", cursor: "pointer" }}>
+                    Private group (invite-only)
+                  </label>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <button
+                    style={settingsSaving ? styles.postBtnDisabled : styles.postBtn}
+                    onClick={saveSettings}
+                    disabled={settingsSaving}
+                  >
+                    {settingsSaving ? "Saving..." : "Save Settings"}
+                  </button>
+                  {settingsMsg && (
+                    <span style={{
+                      fontFamily: "Space Mono, monospace", fontSize: "10px",
+                      color: settingsMsg.startsWith("✓") ? "var(--green)" : "var(--red)",
+                    }}>
+                      {settingsMsg}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Member Management */}
+          <div style={styles.composeCard}>
+            <div style={styles.modalBorder} />
+            <div style={{ padding: "20px 24px" }}>
+              <div style={{ fontFamily: "Space Mono, monospace", fontSize: "11px", color: "var(--gold)", letterSpacing: "0.08em", marginBottom: "16px" }}>
+                👥 MEMBER MANAGEMENT
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {(group as any).members?.map((m: any) => (
+                  <div key={m.id} style={{ ...styles.memberRow, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                    <div style={styles.postAvatar}>{initials(m.user.name ?? m.user.email)}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: "13px" }}>{m.user.name ?? m.user.email}</div>
+                      <div style={{ fontFamily: "Space Mono, monospace", fontSize: "9px", color: "var(--text-dim)", marginTop: "2px" }}>
+                        {m.role}
+                      </div>
+                    </div>
+                    {m.role !== "OWNER" && (
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        {group.myRole === "OWNER" && (
+                          <button
+                            style={{
+                              background: "transparent", border: "1px solid var(--border)", borderRadius: "4px",
+                              padding: "4px 10px", cursor: "pointer", fontFamily: "Space Mono, monospace",
+                              fontSize: "9px", color: "var(--purple)", letterSpacing: "0.05em",
+                            }}
+                            onClick={() => changeMemberRole(m.userId, m.role === "ADMIN" ? "MEMBER" : "ADMIN")}
+                          >
+                            {m.role === "ADMIN" ? "Demote" : "Make Admin"}
+                          </button>
+                        )}
+                        <button
+                          style={{
+                            background: "transparent", border: "1px solid rgba(224,90,78,0.3)", borderRadius: "4px",
+                            padding: "4px 10px", cursor: "pointer", fontFamily: "Space Mono, monospace",
+                            fontSize: "9px", color: "var(--red)", letterSpacing: "0.05em",
+                          }}
+                          onClick={() => removeMember(m.userId, m.user.name ?? m.user.email)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -489,16 +658,27 @@ function NicheGroupCard({ niche, onJoin }: { niche: typeof NICH_GROUPS[0]; onJoi
 }
 
 export default function GroupsPage() {
-  const [groups, setGroups]         = useState<Group[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [selectedSlug, setSelected] = useState<string | null>(null);
-  const [filter, setFilter]         = useState<"all" | "mine">("all");
-  const [search, setSearch]         = useState("");
+  const [groups, setGroups]             = useState<Group[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [showCreate, setShowCreate]     = useState(false);
+  const [selectedSlug, setSelected]     = useState<string | null>(null);
+  const [filter, setFilter]             = useState<"all" | "mine" | "discover">("all");
+  const [search, setSearch]             = useState("");
+  const [discoverResults, setDiscover]  = useState<Group[]>([]);
+  const [discoverQuery, setDiscoverQ]   = useState("");
+  const [discoverLoading, setDiscoverL] = useState(false);
+
+  useEffect(() => { loadGroups(); }, []);
 
   useEffect(() => {
-    loadGroups();
-  }, []);
+    if (filter !== "discover") return;
+    const timer = setTimeout(() => runDiscover(discoverQuery), 350);
+    return () => clearTimeout(timer);
+  }, [discoverQuery, filter]);
+
+  useEffect(() => {
+    if (filter === "discover" && discoverResults.length === 0) runDiscover("");
+  }, [filter]);
 
   const loadGroups = async () => {
     setLoading(true);
@@ -513,9 +693,22 @@ export default function GroupsPage() {
     }
   };
 
+  const runDiscover = async (q: string) => {
+    setDiscoverL(true);
+    try {
+      const params = new URLSearchParams({ type: "public", limit: "30" });
+      if (q) params.set("q", q);
+      const res  = await fetch(`${API}/groups/search?${params}`, { headers: authHeaders() });
+      if (res.ok) setDiscover(await res.json());
+    } catch { /* silent */ } finally {
+      setDiscoverL(false);
+    }
+  };
+
   const handleJoin = async (slug: string) => {
     await fetch(`${API}/groups/${slug}/join`, { method: "POST", headers: authHeaders() });
     loadGroups();
+    if (filter === "discover") runDiscover(discoverQuery);
   };
 
   const handleLeave = async (slug: string) => {
@@ -602,67 +795,104 @@ export default function GroupsPage() {
       {/* Filters */}
       <div style={styles.filterRow}>
         <div style={styles.filterTabs}>
-          {(["all", "mine"] as const).map((f) => (
+          {([
+            { id: "all",      label: "All Groups" },
+            { id: "mine",     label: "My Groups" },
+            { id: "discover", label: "🔍 Discover" },
+          ] as { id: "all" | "mine" | "discover"; label: string }[]).map((f) => (
             <button
-              key={f}
-              style={{ ...styles.filterTab, ...(filter === f ? styles.filterTabActive : {}) }}
-              onClick={() => setFilter(f)}
+              key={f.id}
+              style={{ ...styles.filterTab, ...(filter === f.id ? styles.filterTabActive : {}) }}
+              onClick={() => setFilter(f.id)}
             >
-              {f === "all" ? "All Groups" : "My Groups"}
+              {f.label}
             </button>
           ))}
         </div>
-        <input
-          style={styles.searchInput}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search groups..."
-        />
+        {filter === "discover" ? (
+          <input
+            style={styles.searchInput}
+            value={discoverQuery}
+            onChange={(e) => setDiscoverQ(e.target.value)}
+            placeholder="Search all public groups..."
+            autoFocus
+          />
+        ) : (
+          <input
+            style={styles.searchInput}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search groups..."
+          />
+        )}
       </div>
 
-      {/* Groups grid */}
-      {loading ? (
-        <div style={styles.loadWrap}>
-          <div style={styles.spinner} />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div style={styles.emptyState}>
-          <div style={{ fontSize: "40px", marginBottom: "12px" }}>👥</div>
-          <div style={{ fontWeight: 700, fontSize: "16px", marginBottom: "6px" }}>
-            {filter === "mine" ? "You haven't joined any groups yet" : "No groups found"}
-          </div>
-          <div style={{ color: "var(--text-dim)", fontSize: "13px", marginBottom: "20px" }}>
-            {filter === "mine" ? "Join or create a group to get started" : "Be the first to create a group"}
-          </div>
-          <button style={styles.createGroupBtn} onClick={() => setShowCreate(true)}>
-            + Create First Group
-          </button>
-        </div>
-      ) : (
-        <div style={styles.groupsGrid}>
-          {/* Featured Niche Groups */}
-          <div style={styles.nicheSection}>
-            <div style={styles.nicheSectionTitle}>
-              <span>⭐</span> Featured Communities
+      {/* Discover Tab */}
+      {filter === "discover" && (
+        discoverLoading ? (
+          <div style={styles.loadWrap}><div style={styles.spinner} /></div>
+        ) : discoverResults.length === 0 ? (
+          <div style={styles.emptyState}>
+            <div style={{ fontSize: "40px", marginBottom: "12px" }}>🔍</div>
+            <div style={{ fontWeight: 700, fontSize: "16px", marginBottom: "6px" }}>No public groups found</div>
+            <div style={{ color: "var(--text-dim)", fontSize: "13px", marginBottom: "20px" }}>
+              Try a different search or create one
             </div>
-            <div style={styles.nicheGrid}>
-              {NICH_GROUPS.slice(0, 4).map((niche) => (
-                <NicheGroupCard key={niche.id} niche={niche} onJoin={handleJoin} />
-              ))}
-            </div>
+            <button style={styles.createGroupBtn} onClick={() => setShowCreate(true)}>+ Create Group</button>
           </div>
+        ) : (
+          <div style={styles.groupsGrid}>
+            {discoverResults.map((g) => (
+              <GroupCard key={g.id} group={g} onJoin={handleJoin} onLeave={handleLeave} onSelect={setSelected} />
+            ))}
+          </div>
+        )
+      )}
 
-          {/* User Groups */}
-          {filtered.map((g) => (
-            <GroupCard
-              key={g.id}
-              group={g}
-              onJoin={handleJoin}
-              onLeave={handleLeave}
-              onSelect={setSelected}
-            />
-          ))}
-        </div>
+      {/* All / Mine Groups grid */}
+      {filter !== "discover" && (
+        loading ? (
+          <div style={styles.loadWrap}>
+            <div style={styles.spinner} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={styles.emptyState}>
+            <div style={{ fontSize: "40px", marginBottom: "12px" }}>👥</div>
+            <div style={{ fontWeight: 700, fontSize: "16px", marginBottom: "6px" }}>
+              {filter === "mine" ? "You haven't joined any groups yet" : "No groups found"}
+            </div>
+            <div style={{ color: "var(--text-dim)", fontSize: "13px", marginBottom: "20px" }}>
+              {filter === "mine" ? "Join or create a group to get started" : "Be the first to create a group"}
+            </div>
+            <button style={styles.createGroupBtn} onClick={() => setShowCreate(true)}>
+              + Create First Group
+            </button>
+          </div>
+        ) : (
+          <div style={styles.groupsGrid}>
+            {filter === "all" && (
+              <div style={styles.nicheSection}>
+                <div style={styles.nicheSectionTitle}>
+                  <span>⭐</span> Featured Communities
+                </div>
+                <div style={styles.nicheGrid}>
+                  {NICH_GROUPS.slice(0, 4).map((niche) => (
+                    <NicheGroupCard key={niche.id} niche={niche} onJoin={handleJoin} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {filtered.map((g) => (
+              <GroupCard
+                key={g.id}
+                group={g}
+                onJoin={handleJoin}
+                onLeave={handleLeave}
+                onSelect={setSelected}
+              />
+            ))}
+          </div>
+        )
       )}
 
       {/* Create modal */}

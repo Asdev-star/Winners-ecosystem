@@ -23,9 +23,10 @@ interface ProductImageInput {
 // GET /products - List products (public)
 router.get("/", async (req: Request, res: Response) => {
   try {
+    const tenantId = req.headers["x-tenant-id"] as string || req.user?.tenantId;
     const { category, search, vendorId, page = "1", limit = "20" } = req.query;
     
-    const where: Prisma.ProductWhereInput = { isActive: true };
+    const where: Prisma.ProductWhereInput = { isActive: true, tenantId };
     
     if (category) where.category = String(category);
     if (vendorId) where.vendorId = String(vendorId);
@@ -73,10 +74,11 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /products/:id - Get single product
 router.get("/:id", async (req: Request, res: Response) => {
   try {
+    const tenantId = req.headers["x-tenant-id"] as string || req.user?.tenantId;
     const id = getParam(req.params.id);
 
-    const product = await db.product.findUnique({
-      where: { id },
+    const product = await db.product.findFirst({
+      where: { id, tenantId },
       include: {
         vendor: {
           select: { 
@@ -104,7 +106,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 
     // Increment view count
     await db.product.update({
-      where: { id },
+      where: { id, tenantId },
       data: { viewCount: { increment: 1 } }
     });
 
@@ -186,7 +188,7 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     // Verify ownership
     const productId = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0] || '';
     const product = await db.product.findFirst({
-      where: { id: productId, vendorId: vendor.id }
+      where: { id: productId, vendorId: vendor.id, tenantId }
     });
 
     if (!product) {
@@ -194,7 +196,7 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     const updated = await db.product.update({
-      where: { id: typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0] || '' },
+      where: { id: productId, tenantId },
       data: updateData
     });
 
@@ -221,7 +223,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     const product = await db.product.findFirst({
-      where: { id, vendorId: vendor.id }
+      where: { id, vendorId: vendor.id, tenantId }
     });
 
     if (!product) {
@@ -229,7 +231,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     await db.product.update({
-      where: { id: req.params.id as string },
+      where: { id, tenantId },
       data: { isActive: false }
     });
 

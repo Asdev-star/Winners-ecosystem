@@ -271,6 +271,26 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
           }
         }
       }
+
+      // Handle market order purchase
+      const orderId = session.metadata?.orderId;
+      const orderTenantId = session.metadata?.tenantId;
+      if (orderId && orderTenantId) {
+        try {
+          await db.order.update({
+            where: {
+              id_tenantId: { id: orderId, tenantId: orderTenantId },
+            },
+            data: {
+              status: "CONFIRMED",
+              paymentStatus: "PAID",
+              stripePaymentIntentId: (session.payment_intent as string) ?? undefined,
+            },
+          });
+        } catch (e) {
+          console.error("[stripeService] market order update error:", e);
+        }
+      }
       break;
     }
 

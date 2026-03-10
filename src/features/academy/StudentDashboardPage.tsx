@@ -55,6 +55,7 @@ export default function StudentDashboardPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [issuingCourseId, setIssuingCourseId] = useState<string | null>(null);
+  const [downloadingCertId, setDownloadingCertId] = useState<string | null>(null);
 
   const loadDashboard = useCallback(async () => {
     if (!user) {
@@ -141,6 +142,27 @@ export default function StudentDashboardPage() {
       setError(err instanceof Error ? err.message : "Failed to issue certificate");
     } finally {
       setIssuingCourseId(null);
+    }
+  };
+
+  const downloadCertificate = async (certId: string, courseTitle: string) => {
+    setDownloadingCertId(certId);
+    try {
+      const res = await fetch(`${API_BASE}/academy/certificates/${certId}/pdf`, {
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to generate PDF');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificate-${courseTitle.replace(/\s+/g, '-').toLowerCase()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Download failed');
+    } finally {
+      setDownloadingCertId(null);
     }
   };
 
@@ -342,17 +364,39 @@ export default function StudentDashboardPage() {
                   border: "1px solid var(--border)",
                   borderRadius: 6,
                   padding: 14,
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, var(--gold), transparent)" }} />
                 <div style={{ fontFamily: "Syne, sans-serif", fontSize: 16, color: "var(--text)", fontWeight: 700, marginBottom: 6 }}>
                   {certificate.course.title}
                 </div>
                 <div style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)" }}>
                   Instructor: {certificate.course.instructor?.name ?? "Instructor"}
                 </div>
-                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--green)", marginTop: 6 }}>
+                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--green)", marginTop: 6, marginBottom: 12 }}>
                   Issued {formatDate(certificate.issuedAt)}
                 </div>
+                <button
+                  onClick={() => void downloadCertificate(certificate.id, certificate.course.title)}
+                  disabled={downloadingCertId === certificate.id}
+                  style={{
+                    padding: "7px 12px",
+                    borderRadius: 4,
+                    border: "1px solid var(--gold)",
+                    background: "rgba(201,168,76,0.10)",
+                    color: "var(--gold)",
+                    fontFamily: "Space Mono, monospace",
+                    fontSize: 10,
+                    cursor: downloadingCertId === certificate.id ? "not-allowed" : "pointer",
+                    opacity: downloadingCertId === certificate.id ? 0.6 : 1,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  {downloadingCertId === certificate.id ? "Generating PDF…" : "⬇ Download PDF"}
+                </button>
               </div>
             ))}
           </div>

@@ -1,3 +1,6 @@
 {
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "cloudinary": "^2.9.0"
+  }
 }

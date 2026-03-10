@@ -61,6 +61,8 @@ import CourseCreatePage from "./features/academy/CourseCreatePage";
 import LearningPathsPage from "./features/academy/LearningPathsPage";
 import StudyGroupPage from "./features/academy/StudyGroupPage";
 import QuizEngine from "./features/academy/QuizEngine";
+import LiveSessionsPage from "./features/academy/LiveSessionsPage";
+import CertificateVerificationPage from "./features/academy/CertificateVerificationPage";
 import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
 import MarketPage from "./features/market/MarketPage";
 import ProductPage from "./features/market/ProductPage";
@@ -98,6 +100,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/sso/exchange" element={<SsoExchangePage />} />
+          <Route path="/verify/:token" element={<CertificateVerificationPage />} />
 
           <Route
             element={
@@ -209,6 +212,7 @@ function App() {
               element={<StudyGroupPage />}
             />
             <Route path="academy/quiz/:quizId" element={<QuizEngine />} />
+            <Route path="academy/live-sessions" element={<LiveSessionsPage />} />
             <Route path="market" element={<WinnersMarketExpanded />} />
             <Route path="market/dropshipping" element={<WinnersDropshipping />} />
             <Route path="market/product/:productId" element={<ProductPage />} />

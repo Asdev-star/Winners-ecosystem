@@ -144,42 +144,51 @@ export default function AcademyPage() {
         </p>
       </div>
 
-      {/* Search and Filter */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 32, flexWrap: 'wrap' }}>
+      {/* Search */}
+      <div style={{ marginBottom: 18 }}>
         <input
           type="text"
           placeholder="Search courses..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
-            flex: 1,
-            minWidth: 200,
+            width: '100%',
             padding: '12px 16px',
             borderRadius: 6,
             border: '1px solid var(--border)',
             background: 'var(--surface2)',
             color: 'var(--text)',
-            fontFamily: 'Syne, sans-serif'
+            fontFamily: 'Syne, sans-serif',
+            fontSize: 15,
+            boxSizing: 'border-box',
           }}
         />
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          style={{
-            padding: '12px 16px',
-            borderRadius: 6,
-            border: '1px solid var(--border)',
-            background: 'var(--surface2)',
-            color: 'var(--text)',
-            fontFamily: 'Syne, sans-serif'
-          }}
-        >
-          {categories.map(cat => (
-            <option key={cat} value={cat}>
-              {cat === "all" ? "All Categories" : cat}
-            </option>
-          ))}
-        </select>
+      </div>
+
+      {/* Category Filter Chips */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 20,
+              border: selectedCategory === cat ? '1px solid var(--gold)' : '1px solid var(--border)',
+              background: selectedCategory === cat ? 'rgba(201,168,76,0.12)' : 'var(--surface2)',
+              color: selectedCategory === cat ? 'var(--gold)' : 'var(--text-dim)',
+              fontFamily: 'Space Mono, monospace',
+              fontSize: 10,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              cursor: 'pointer',
+              transition: 'all 200ms ease',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {cat === 'all' ? 'All Categories' : cat}
+          </button>
+        ))}
       </div>
 
       {/* Course Grid */}

@@ -8,10 +8,11 @@ import db from "../db.js";
 const router = Router();
 
 // GET /vendors - List all vendors (public marketplace)
-router.get("/", async (_req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
+    const tenantId = req.headers["x-tenant-id"] as string || req.user?.tenantId;
     const vendors = await db.vendor.findMany({
-      where: { status: "APPROVED" },
+      where: { status: "APPROVED", tenantId },
       include: {
         owner: {
           select: { id: true, name: true }
@@ -105,7 +106,7 @@ router.put("/me", authMiddleware, async (req: Request, res: Response) => {
     }
 
     const updated = await db.vendor.update({
-      where: { id: vendor.id },
+      where: { id: vendor.id, tenantId },
       data: {
         storeName: storeName ?? vendor.storeName,
         description: description ?? vendor.description,
@@ -124,11 +125,12 @@ router.put("/me", authMiddleware, async (req: Request, res: Response) => {
 // GET /vendors/:id - Get vendor by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {
+    const tenantId = req.headers["x-tenant-id"] as string || req.user?.tenantId;
     const idParam = req.params.id;
     const id = Array.isArray(idParam) ? idParam[0] : (idParam || "");
 
-    const vendor = await db.vendor.findUnique({
-      where: { id },
+    const vendor = await db.vendor.findFirst({
+      where: { id, tenantId },
       include: {
         owner: {
           select: { id: true, name: true }

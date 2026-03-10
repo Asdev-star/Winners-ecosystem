@@ -10,6 +10,7 @@ import LayerSubNav from "../../components/ui/LayerSubNav";
 import ContextBar from "../../components/ui/ContextBar";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
+import { usePresence } from "./usePresence";
 
 const API = API_BASE;
 
@@ -1563,6 +1564,7 @@ function PostSkeleton() {
 export default function CommunityPage() {
   const token = useAuthStore((s) => s.token);
   const user  = useAuthStore((s) => s.user);
+  const { isOnline, onlineCount } = usePresence();
 
   // Feed state
   const [posts, setPosts]         = useState<Post[]>([]);
@@ -1598,7 +1600,6 @@ export default function CommunityPage() {
   const [opportunityUpdatedAt, setOpportunityUpdatedAt] = useState<string | null>(null);
   const [nextLoopAction, setNextLoopAction] = useState("Post more to trigger skill detection");
 
-  const [onlineCount, setOnlineCount]   = useState(43);
   const [totalPosts, setTotalPosts]     = useState(127);
   const [totalLikes, setTotalLikes]     = useState(891);
   const [loopStage, setLoopStage]       = useState(1);
@@ -1749,9 +1750,23 @@ export default function CommunityPage() {
       setNewPostsCount(0);
       return;
     }
-    const t = setTimeout(() => setNewPostsCount(2), 18000);
-    return () => clearTimeout(t);
-  }, [feedTab]);
+    const storedToken = token || localStorage.getItem("token");
+    if (!storedToken) return;
+
+    const wsUrl = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws?token=${storedToken}`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "NEW_POST") {
+          setNewPostsCount((c) => c + 1);
+        }
+      } catch { /* ignore parse errors */ }
+    };
+
+    return () => { socket.close(); };
+  }, [feedTab, token]);
 
   // ── Post handlers ──────────────────────────────────────────────────────────── ────────────────────────────────────────────────────────────
   const handlePost = async (c = content, t = tags) => {
@@ -2213,7 +2228,7 @@ export default function CommunityPage() {
                       <div className="cm-post-meta">
                         <span className="cm-post-role">{post.author?.role ?? "Member"}</span>
                         <span className="cm-post-time">{timeAgo(post.createdAt)}</span>
-                        {Math.random() > 0.6 && <div className="cm-post-online" title="Online now" />}
+                        {isOnline(post.authorId) && <div className="cm-post-online" title="Active now" />}
                       </div>
                     </div>
                     {post.isPinned && <span className="cm-pinned-badge">📌 Pinned</span>}
