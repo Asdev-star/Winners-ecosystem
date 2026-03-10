@@ -11,14 +11,6 @@ const router = Router();
 const prisma = db;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Define a custom request type for authenticated routes
-interface AuthenticatedRequest extends Request {
-  user: {
-    userId: string;
-    tenantId: string;
-  };
-}
-
 // Middleware to require authentication
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
@@ -31,10 +23,10 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 router.get(
   "/analyze",
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const userId = req.user.userId;
-      const tenantId = req.user.tenantId;
+      const userId = req.user!.userId;
+      const tenantId = req.user!.tenantId;
 
       // Gather user data from all layers
       const [
@@ -149,9 +141,9 @@ Provide a JSON response with:
 router.get(
   "/briefing",
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const userId = req.user.userId;
+      const userId = req.user!.userId;
 
       // Get recent activity
       const [recentPosts, recentEnrollments, newFollowers, skills] =
@@ -246,9 +238,9 @@ Generate a JSON response:
 router.get(
   "/health",
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const tenantId = req.user.tenantId;
+      const tenantId = req.user!.tenantId;
 
       // Get community health metrics
       const [totalUsers, activeUsers, totalPosts, totalSkills, avgTrustScore] =
@@ -306,9 +298,9 @@ router.get(
 router.get(
   "/forecast",
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const userId = req.user.userId;
+      const userId = req.user!.userId;
 
       // Get user's business metrics
       const [skills, certificates, completedEnrollments, loopProgress] =

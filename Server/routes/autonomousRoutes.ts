@@ -12,14 +12,6 @@ const prisma = db;
 const SEVEN_DAYS_IN_MS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-// Define a custom request type for authenticated routes
-interface AuthenticatedRequest extends Request {
-  user: {
-    userId: string;
-    tenantId: string;
-  };
-}
-
 // Middleware to require authentication
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
@@ -32,9 +24,9 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 router.get(
   "/weekly-report",
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const userId = req.user.userId;
+      const userId = req.user!.userId;
       const forceRegenerate = req.query.force === "true";
 
       // Check for existing report from last 7 days
@@ -148,9 +140,9 @@ Generate a JSON response:
 router.post(
   "/circuit/proposal-score",
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const userId = req.user.userId;
+      const userId = req.user!.userId;
       const { proposalText, jobDescription } = req.body;
 
       if (!proposalText || !jobDescription) {
@@ -215,7 +207,7 @@ Calculate a JSON response:
 router.get(
   "/insights/trending",
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       // Get trending skills from recent posts
       const recentSkills = await prisma.novaSkillDetection.findMany({
@@ -252,7 +244,7 @@ router.get(
 router.post(
   "/insights/analyze-content",
   requireAuth,
-  async (req: AuthenticatedRequest, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { content } = req.body;
 
