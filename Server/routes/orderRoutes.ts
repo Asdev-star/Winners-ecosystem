@@ -2,9 +2,15 @@
 // Phase 4: Winners Market - Order processing and management
 
 import { Router, Request, Response } from "express";
+import Stripe from "stripe";
 import { OrderStatus, type Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
+
+function getStripe(): Stripe {
+  if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY not set");
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+}
 
 const router = Router();
 
@@ -373,6 +379,155 @@ router.put("/:id/status", authMiddleware, async (req: Request, res: Response) =>
     console.error("[orderRoutes] Error updating order status:", error);
     res.status(500).json({ error: "Failed to update order" });
   }
+});
+
+// POST /orders/checkout-session — Stripe Checkout for market orders
+router.post("/checkout-session", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId  = req.user!.userId;
+    const tenantId = req.user!.tenantId;
+    const { cartId, shippingName, shippingAddress, shippingCity, shippingState, shippingZip, shippingCountry, shippingPhone } = req.body;
+
+    if (!cartId) return res.status(400).json({ error: "cartId is required" });
+
+    const cart = await db.cart.findFirst({
+      where: { id: cartId, tenantId, userId, status: "ACTIVE" },
+      include: {
+        items: {
+          include: {
+            product: { include: { vendor: { select: { id: true, storeName: true } } } },
+            variant: true,
+          },
+        },
+      },
+    });
+
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ error: "Cart is empty or not found" });
+    }
+
+    // Derive vendorId from first item's product (MVP: single-vendor checkout)
+    const vendorId = cart.items[0]?.product?.vendor?.id;
+    if (!vendorId) return res.status(400).json({ error: "Could not determine vendor for this cart" });
+
+    const vendor = await db.vendor.findUnique({ where: { id: vendorId } });
+    if (!vendor) return res.status(400).json({ error: "Vendor not found" });
+
+    // Calculate totals
+    let subtotal = 0;
+    const orderItems: Array<{ productId: string; variantId: string | null; name: string; sku: string | null; quantity: number; price: number; total: number }> = [];
+
+    for (const item of cart.items) {
+      const itemPrice = item.price;
+      const itemTotal = itemPrice * item.quantity;
+      subtotal += itemTotal;
+      orderItems.push({
+        productId: item.productId,
+        variantId: item.variantId ?? null,
+        name:      item.product.name,
+        sku:       item.variant?.sku ?? (item.product as { sku?: string }).sku ?? null,
+        quantity:  item.quantity,
+        price:     itemPrice,
+        total:     itemTotal,
+      });
+    }
+
+    const shippingCost = vendor.freeShipping ? 0 : (vendor.shippingPrice ?? 0);
+    const taxRate      = vendor.taxRate ?? 0;
+    const taxAmount    = Math.round(subtotal * (taxRate / 100));
+    const total        = subtotal + shippingCost + taxAmount;
+
+    // Create PENDING order first (so we have an orderId for Stripe metadata)
+    const order = await db.order.create({
+      data: {
+        tenantId, userId, vendorId,
+        orderNumber:     generateOrderNumber(),
+        subtotal, shippingCost, taxAmount, total,
+        currency:        "USD",
+        shippingName:    shippingName ?? "",
+        shippingAddress: shippingAddress ?? "",
+        shippingCity:    shippingCity ?? "",
+        shippingState:   shippingState ?? "",
+        shippingZip:     shippingZip ?? "",
+        shippingCountry: shippingCountry ?? "US",
+        shippingPhone:   shippingPhone ?? "",
+        paymentMethod:   "STRIPE",
+        status:          "PENDING",
+        paymentStatus:   "PENDING",
+      },
+    });
+
+    await db.orderItem.createMany({
+      data: orderItems.map((item) => ({ ...item, orderId: order.id })),
+    });
+
+    // Create Stripe Checkout session
+    const stripe   = getStripe();
+    const appUrl   = process.env.APP_URL ?? "https://winners-empire-eco.up.railway.app";
+    const lineItems = cart.items.map((item) => ({
+      price_data: {
+        currency:     "usd",
+        unit_amount:  Math.round(item.price),        // already in cents (DB stores cents)
+        product_data: { name: item.product.name },
+      },
+      quantity: item.quantity,
+    }));
+
+    const session = await stripe.checkout.sessions.create({
+      mode:          "payment",
+      line_items:    lineItems,
+      success_url:   `${appUrl}/market/orders?payment=success&order=${order.id}`,
+      cancel_url:    `${appUrl}/market/checkout?cancelled=true`,
+      metadata: { orderId: order.id, tenantId, userId },
+    });
+
+    // Store Stripe session id on the order
+    await db.order.update({
+      where: { id: order.id },
+      data:  { stripeSessionId: session.id },
+    });
+
+    // Mark cart as converted
+    await db.cart.update({ where: { id: cart.id }, data: { status: "CONVERTED" } });
+    await db.vendor.update({ where: { id: vendorId }, data: { totalSales: { increment: 1 } } });
+
+    return res.json({ url: session.url, orderId: order.id });
+  } catch (error) {
+    console.error("[orderRoutes] checkout-session error:", error);
+    return res.status(500).json({ error: "Failed to create checkout session" });
+  }
+});
+
+// POST /orders/webhook — Stripe webhook for payment confirmation
+router.post("/webhook", async (req: Request, res: Response) => {
+  const sig = req.headers["stripe-signature"] as string;
+  const secret = process.env.STRIPE_MARKET_WEBHOOK_SECRET ?? process.env.STRIPE_WEBHOOK_SECRET ?? "";
+
+  let event: Stripe.Event;
+  try {
+    const stripe  = getStripe();
+    const payload = (req as any).rawBody || (Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body ?? {})));
+    event = stripe.webhooks.constructEvent(payload, sig, secret);
+  } catch {
+    return res.status(400).json({ error: "Webhook signature verification failed" });
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const orderId = session.metadata?.orderId;
+    if (orderId) {
+      try {
+        await db.order.update({
+          where: { id: orderId },
+          data:  { status: "CONFIRMED", paymentStatus: "PAID", stripePaymentIntentId: session.payment_intent as string ?? undefined },
+        });
+      } catch (e) {
+        console.error("[orderRoutes] webhook order update error:", e);
+      }
+    }
+  }
+
+  return res.json({ received: true });
 });
 
 export default router;

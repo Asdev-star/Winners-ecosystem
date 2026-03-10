@@ -2446,6 +2446,8 @@ model Order {
   paymentMethod       String?
   paymentStatus       PaymentStatus @default(PENDING)
   stripePaymentId     String?
+  stripeSessionId     String?
+  stripePaymentIntentId String?
   stripeCustomerId   String?
   notes               String?      @db.Text
   metadata            Json?

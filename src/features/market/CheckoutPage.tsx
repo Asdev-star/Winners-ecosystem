@@ -125,30 +125,32 @@ export default function CheckoutPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch(`${API_BASE}/orders`, {
+      const res = await fetch(`${API_BASE}/orders/checkout-session`, {
         method: "POST",
         headers,
         body: JSON.stringify({
-          cartId: cart.id,
-          vendorId: cart.items[0]?.product.id, // Would need proper vendor handling
-          shippingName: shipping.name,
+          cartId:          cart.id,
+          shippingName:    shipping.name,
           shippingAddress: shipping.address,
-          shippingCity: shipping.city,
-          shippingState: shipping.state,
-          shippingZip: shipping.zip,
+          shippingCity:    shipping.city,
+          shippingState:   shipping.state,
+          shippingZip:     shipping.zip,
           shippingCountry: shipping.country,
-          shippingPhone: shipping.phone,
-          paymentMethod,
+          shippingPhone:   shipping.phone,
         }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to create order");
+        throw new Error(data.error || "Failed to create checkout session");
       }
 
       const data = await res.json();
-      setOrderSuccess(data.order?.orderNumber || data.orderNumber);
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setOrderSuccess(data.orderId || "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to place order");
     } finally {

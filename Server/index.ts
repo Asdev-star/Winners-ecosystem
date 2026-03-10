@@ -112,7 +112,14 @@ app.use(
 );
 
 // 4. Body Parsing
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({
+  limit: "10mb",
+  verify: (req: any, _res: any, buf: Buffer) => {
+    if (req.originalUrl.includes("/webhook")) {
+      req.rawBody = buf;
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // 5. XSS Sanitization — strip dangerous patterns from all string inputs
