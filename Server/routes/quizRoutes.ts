@@ -13,9 +13,11 @@ const router = Router();
 router.post("/quizzes", authMiddleware, async (req, res) => {
   try {
     const { courseId, moduleId, title, description, passingScore, timeLimit, shuffleQuestions, showResults } = req.body;
+    const tenantId = req.user!.tenantId;
     
     const quiz = await db.quiz.create({
       data: {
+        tenantId,
         courseId,
         moduleId,
         title,
@@ -82,10 +84,11 @@ router.get("/quizzes/:quizId", async (req, res) => {
 });
 
 // Add a question to a quiz
-router.post("/quizzes/:quizId/questions", async (req, res) => {
+router.post("/quizzes/:quizId/questions", authMiddleware, async (req, res) => {
   try {
     const quizId = String(req.params.quizId);
     const { question, type, options, correctAnswer, points, order, explanation } = req.body;
+    const tenantId = req.user!.tenantId;
     
     // Get the current max order for this quiz
     const lastQuestion = await db.quizQuestion.findFirst({
@@ -97,6 +100,7 @@ router.post("/quizzes/:quizId/questions", async (req, res) => {
     
     const newQuestion = await db.quizQuestion.create({
       data: {
+        tenantId,
         quizId,
         question,
         questionType: type as QuestionType,
@@ -162,6 +166,7 @@ router.post("/quizzes/:quizId/attempts", authMiddleware, async (req, res) => {
     // Create the attempt record
     const attempt = await db.quizAttempt.create({
       data: {
+        tenantId: req.user!.tenantId,
         userId,
         quizId,
         answers: gradedAnswers,

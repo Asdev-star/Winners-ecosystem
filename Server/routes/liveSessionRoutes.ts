@@ -2,7 +2,8 @@
 // Live session routes for Academy live cohorts
 
 import { Router, Request, Response } from "express";
-import { prisma } from "../db.js";
+import db from "../db.js";
+const prisma = db;
 
 const router = Router();
 
@@ -11,15 +12,14 @@ router.get("/", async (_req: Request, res: Response): Promise<void> => {
   try {
     const sessions = await prisma.liveSession.findMany({
       where: {
-        status: "SCHEDULED",
+        status: "scheduled",
         scheduledAt: { gte: new Date() },
       },
       include: {
-        instructor: {
+        host: {
           select: {
             id: true,
             name: true,
-            avatar: true,
           },
         },
         course: {
@@ -57,11 +57,10 @@ router.get("/my-sessions", async (req: Request, res: Response): Promise<void> =>
         },
       },
       include: {
-        instructor: {
+        host: {
           select: {
             id: true,
             name: true,
-            avatar: true,
           },
         },
         course: {
@@ -89,17 +88,16 @@ router.get("/my-sessions", async (req: Request, res: Response): Promise<void> =>
 // GET /live-sessions/:id - Get single session details
 router.get("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const userId = req.user!.userId;
 
     const session = await prisma.liveSession.findUnique({
       where: { id },
       include: {
-        instructor: {
+        host: {
           select: {
             id: true,
             name: true,
-            avatar: true,
             bio: true,
           },
         },
@@ -118,7 +116,6 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
             user: {
               select: {
                 name: true,
-                avatar: true,
               },
             },
           },
@@ -137,9 +134,9 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
     }
 
     const isAttending = session.attendees.some((a) => a.userId === userId);
-    const isInstructor = session.instructorId === userId;
+    const isHost = session.hostId === userId;
 
-    res.json({ session, isAttending, isInstructor });
+    res.json({ session, isAttending, isHost });
   } catch (error) {
     console.error("Error fetching session:", error);
     res.status(500).json({ error: "Failed to fetch session" });
@@ -151,15 +148,13 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
-    const { title, description, courseId, scheduledAt, duration, maxAttendees, isPaid, price } = req.body;
+    const { title, description, courseId, scheduledAt, durationMin, maxParticipants, sessionType } = req.body;
 
-    // Validate required fields
-    if (!title || !scheduledAt || !duration) {
-      res.status(400).json({ error: "Title, scheduledAt, and duration are required" });
+    if (!title || !scheduledAt || !durationMin) {
+      res.status(400).json({ error: "Title, scheduledAt, and durationMin are required" });
       return;
     }
 
-    // Check if user is an instructor for this course
     if (courseId) {
       const course = await prisma.course.findFirst({
         where: {
@@ -181,20 +176,18 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         title,
         description,
         courseId,
-        instructorId: userId,
+        hostId: userId,
         scheduledAt: new Date(scheduledAt),
-        duration,
-        maxAttendees: maxAttendees || 100,
-        status: "SCHEDULED",
-        isPaid: isPaid || false,
-        price: price || 0,
+        durationMin,
+        maxParticipants: maxParticipants || 100,
+        status: "scheduled",
+        sessionType: sessionType || "workshop",
       },
       include: {
-        instructor: {
+        host: {
           select: {
             id: true,
             name: true,
-            avatar: true,
           },
         },
         course: {
@@ -214,12 +207,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// PUT /live-sessions/:id - Update session (instructor only)
+// PUT /live-sessions/:id - Update session (host only)
 router.put("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const userId = req.user!.userId;
-    const { title, description, scheduledAt, duration, maxAttendees, status } = req.body;
+    const { title, description, scheduledAt, durationMin, maxParticipants, status } = req.body;
 
     const existing = await prisma.liveSession.findUnique({ where: { id } });
 
@@ -228,7 +221,7 @@ router.put("/:id", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (existing.instructorId !== userId) {
+    if (existing.hostId !== userId) {
       res.status(403).json({ error: "Not authorized to update this session" });
       return;
     }
@@ -239,16 +232,15 @@ router.put("/:id", async (req: Request, res: Response): Promise<void> => {
         ...(title && { title }),
         ...(description && { description }),
         ...(scheduledAt && { scheduledAt: new Date(scheduledAt) }),
-        ...(duration && { duration }),
-        ...(maxAttendees && { maxAttendees }),
+        ...(durationMin && { durationMin }),
+        ...(maxParticipants && { maxParticipants }),
         ...(status && { status }),
       },
       include: {
-        instructor: {
+        host: {
           select: {
             id: true,
             name: true,
-            avatar: true,
           },
         },
         course: {
@@ -271,7 +263,7 @@ router.put("/:id", async (req: Request, res: Response): Promise<void> => {
 // POST /live-sessions/:id/join - Join a live session
 router.post("/:id/join", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
 
@@ -287,30 +279,28 @@ router.post("/:id/join", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (session.status !== "SCHEDULED" && session.status !== "LIVE") {
+    if (session.status !== "scheduled" && session.status !== "live") {
       res.status(400).json({ error: "Session is not available for joining" });
       return;
     }
 
-    if (session.maxAttendees && session._count.attendees >= session.maxAttendees) {
+    if (session.maxParticipants && session._count.attendees >= session.maxParticipants) {
       res.status(400).json({ error: "Session is full" });
       return;
     }
 
-    // Check if already attending
-    const existing = await prisma.liveSessionAttendee.findFirst({
+    const existingAttendee = await prisma.liveSessionAttendee.findFirst({
       where: {
         sessionId: id,
         userId,
       },
     });
 
-    if (existing) {
+    if (existingAttendee) {
       res.status(400).json({ error: "Already attending this session" });
       return;
     }
 
-    // Create attendance record
     await prisma.liveSessionAttendee.create({
       data: {
         sessionId: id,
@@ -320,11 +310,10 @@ router.post("/:id/join", async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    // Update session status to LIVE if it was scheduled
-    if (session.status === "SCHEDULED") {
+    if (session.status === "scheduled") {
       await prisma.liveSession.update({
         where: { id },
-        data: { status: "LIVE" },
+        data: { status: "live" },
       });
     }
 
@@ -338,7 +327,7 @@ router.post("/:id/join", async (req: Request, res: Response): Promise<void> => {
 // POST /live-sessions/:id/leave - Leave a live session
 router.post("/:id/leave", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const userId = req.user!.userId;
 
     const existing = await prisma.liveSessionAttendee.findFirst({
@@ -364,10 +353,10 @@ router.post("/:id/leave", async (req: Request, res: Response): Promise<void> => 
   }
 });
 
-// DELETE /live-sessions/:id - Delete session (instructor only)
+// DELETE /live-sessions/:id - Delete session (host only)
 router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const userId = req.user!.userId;
 
     const existing = await prisma.liveSession.findUnique({ where: { id } });
@@ -377,17 +366,15 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    if (existing.instructorId !== userId) {
+    if (existing.hostId !== userId) {
       res.status(403).json({ error: "Not authorized to delete this session" });
       return;
     }
 
-    // Delete all attendees first
     await prisma.liveSessionAttendee.deleteMany({
       where: { sessionId: id },
     });
 
-    // Delete the session
     await prisma.liveSession.delete({
       where: { id },
     });

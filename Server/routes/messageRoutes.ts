@@ -101,7 +101,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
           tenantId,
           createdById: userId,
           isGroup: false,
-          participants: { create: [{ userId, role: "MEMBER" }, { userId: participantId, role: "MEMBER" }] }
+          participants: { create: [{ tenantId, userId, role: "MEMBER" }, { tenantId, userId: participantId, role: "MEMBER" }] }
         },
         include: {
           participants: { include: { user: { select: { id: true, name: true, email: true } } } },
@@ -168,6 +168,7 @@ router.get("/:conversationId", authMiddleware, async (req: Request, res: Respons
 router.post("/:conversationId", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
     const convId = String(req.params.conversationId);
     const { content, type = "TEXT", metadata } = req.body;
 
@@ -181,6 +182,7 @@ router.post("/:conversationId", authMiddleware, async (req: Request, res: Respon
 
     const message = await db.message.create({
       data: {
+        tenantId,
         conversationId: convId,
         senderId: userId,
         content,

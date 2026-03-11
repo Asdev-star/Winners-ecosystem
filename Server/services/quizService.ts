@@ -21,6 +21,7 @@ interface GradedAnswer {
 
 // Create a quiz for a course/module
 export async function createQuiz(data: {
+  tenantId: string;
   courseId: string;
   moduleId?: string;
   title: string;
@@ -32,6 +33,7 @@ export async function createQuiz(data: {
 }) {
   return await db.quiz.create({
     data: {
+      tenantId: data.tenantId,
       courseId: data.courseId,
       moduleId: data.moduleId,
       title: data.title,
@@ -46,6 +48,7 @@ export async function createQuiz(data: {
 
 // Add a question to a quiz
 export async function addQuestion(data: {
+  tenantId: string;
   quizId: string;
   question: string;
   questionType?: QuestionType;
@@ -57,6 +60,7 @@ export async function addQuestion(data: {
 }) {
   return await db.quizQuestion.create({
     data: {
+      tenantId: data.tenantId,
       quizId: data.quizId,
       question: data.question,
       questionType: data.questionType ?? QuestionType.MULTIPLE_CHOICE,
@@ -70,7 +74,7 @@ export async function addQuestion(data: {
 }
 
 // Start a quiz attempt
-export async function startQuizAttempt(quizId: string, userId: string) {
+export async function startQuizAttempt(quizId: string, userId: string, tenantId: string) {
   // Check for existing attempt
   const existing = await db.quizAttempt.findUnique({
     where: {
@@ -104,6 +108,7 @@ export async function startQuizAttempt(quizId: string, userId: string) {
   // Create new attempt
   const attempt = await db.quizAttempt.create({
     data: {
+      tenantId,
       quizId,
       userId,
       score: 0,
@@ -311,7 +316,8 @@ export async function generateQuizWithAI(
   courseId: string,
   moduleId: string,
   lessonContent: string,
-  numQuestions: number = 5
+  numQuestions: number = 5,
+  tenantId: string = ""
 ): Promise<{
   quiz: Awaited<ReturnType<typeof createQuiz>>;
   questions: Array<Record<string, unknown>>;
@@ -320,6 +326,7 @@ export async function generateQuizWithAI(
   // For now, return a placeholder structure
   
   const quiz = await createQuiz({
+    tenantId,
     courseId,
     moduleId,
     title: `Module Quiz - Generated`,

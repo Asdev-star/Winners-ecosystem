@@ -2,11 +2,30 @@
 // Handles lecture uploads for courses with AI-powered processing (transcript, notes, quiz)
 
 import { Router, Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
 import { uploadVideo, deleteFile } from "../services/cloudinaryService.js";
+import prisma from "../db.js";
 
 const router = Router();
-const prisma = new PrismaClient();
+
+// Types for request bodies
+interface CreateUploadBody {
+  courseId?: string;
+  fileName: string;
+}
+
+interface UploadVideoBody {
+  videoData: string;
+}
+
+// Helper to extract Cloudinary public_id from URL
+const extractPublicId = (url: string): string | null => {
+  if (!url) return null;
+  const parts = url.split("/");
+  const fileName = parts[parts.length - 1].split(".")[0];
+  const folder = parts[parts.length - 2];
+  return `${folder}/${fileName}`;
+};
 
 // POST /lecture-uploads - Create a new lecture upload record
 router.post("/", async (req: Request, res: Response): Promise<void> => {
@@ -17,7 +36,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { courseId, fileName } = req.body;
+    const { courseId, fileName } = req.body as CreateUploadBody;
 
     if (!fileName) {
       res.status(400).json({ error: "fileName is required" });
@@ -69,8 +88,8 @@ router.post("/:id/upload", async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const { id } = req.params;
-    const { videoData } = req.body;
+    const id = String(req.params.id);
+    const { videoData } = req.body as UploadVideoBody;
 
     if (!videoData) {
       res.status(400).json({ error: "Video data is required" });
@@ -93,8 +112,9 @@ router.post("/:id/upload", async (req: Request, res: Response): Promise<void> =>
 
     // Upload to Cloudinary
     const folder = `winners-academy/${user.tenantId}/lectures`;
-    const uploadResult = await uploadVideo(videoData, folder, {
-      resource_type: "video",
+    const uploadResult = await uploadVideo(videoData, {
+      folder,
+      resourceType: "video",
       eager: [
         { streaming_attachment: true },
         { format: "m3u8", resource_type: "video" }
@@ -105,7 +125,7 @@ router.post("/:id/upload", async (req: Request, res: Response): Promise<void> =>
     const updatedUpload = await prisma.lectureUpload.update({
       where: { id },
       data: {
-        fileUrl: uploadResult.secure_url,
+        fileUrl: uploadResult.secureUrl,
         durationSecs: Math.round(uploadResult.duration || 0),
         status: "complete"
       }
@@ -117,9 +137,9 @@ router.post("/:id/upload", async (req: Request, res: Response): Promise<void> =>
     
     // Mark as failed if upload didn't work
     try {
-      const { id } = req.params;
+      const failId = String(req.params.id);
       await prisma.lectureUpload.update({
-        where: { id },
+        where: { id: failId },
         data: { status: "failed" }
       });
     } catch {
@@ -191,7 +211,7 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     const lectureUpload = await prisma.lectureUpload.findFirst({
       where: {
@@ -236,7 +256,7 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     // Find the lecture upload
     const lectureUpload = await prisma.lectureUpload.findFirst({
@@ -253,11 +273,9 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
     }
 
     // Delete from Cloudinary if exists
-    if (lectureUpload.fileUrl) {
+    const publicId = extractPublicId(lectureUpload.fileUrl);
+    if (publicId) {
       try {
-        // Extract public_id from URL if it's a Cloudinary URL
-        const urlParts = lectureUpload.fileUrl.split("/");
-        const publicId = urlParts.slice(-2, -1).join("/") + "/" + urlParts.slice(-1)[0].split(".")[0];
         await deleteFile(publicId, "video");
       } catch {
         // Ignore Cloudinary delete errors
@@ -286,9 +304,6 @@ router.get("/signature", async (req: Request, res: Response): Promise<void> => {
     }
 
     const timestamp = Math.round(Date.now() / 1000);
-    
-    // Generate signature for signed upload
-    const crypto = await import("crypto");
     const signature = crypto
       .createHash("sha256")
       .update(process.env.CLOUDINARY_API_SECRET + `timestamp=${timestamp}`)

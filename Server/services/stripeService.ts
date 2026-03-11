@@ -258,15 +258,16 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
       if (session.metadata?.type === "course_purchase") {
         const courseId = session.metadata.courseId;
         const userId = session.metadata.userId;
+        const courseTenantId = session.metadata.tenantId;
 
-        if (courseId && userId) {
-          const existingEnrollment = await db.enrollment.findUnique({
-            where: { courseId_userId: { courseId, userId } },
+        if (courseId && userId && courseTenantId) {
+          const existingEnrollment = await db.enrollment.findFirst({
+            where: { courseId, userId, tenantId: courseTenantId },
           });
 
           if (!existingEnrollment) {
             await db.enrollment.create({
-              data: { courseId, userId },
+              data: { tenantId: courseTenantId, courseId, userId },
             });
           }
         }

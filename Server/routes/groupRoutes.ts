@@ -76,7 +76,7 @@ router.post("/", async (req: Request, res: Response) => {
         isPrivate,
         createdById: userId,
         members: {
-          create: { userId, role: "OWNER" },
+          create: { tenantId, userId, role: "OWNER" },
         },
       },
       include: {
@@ -202,7 +202,7 @@ router.post("/:slug/join", async (req: Request, res: Response) => {
     if (existing) return res.status(400).json({ error: "Already a member" });
 
     await db.groupMember.create({
-      data: { groupId: group.id, userId, role: "MEMBER" },
+      data: { tenantId, groupId: group.id, userId, role: "MEMBER" },
     });
 
     res.json({ success: true, groupId: group.id });
@@ -313,7 +313,7 @@ router.patch("/:slug", async (req: Request, res: Response) => {
     }
 
     const updated = await db.group.update({
-      where: { id_tenantId: { id: group.id, tenantId } },
+      where: { id: group.id },
       data: {
         ...(name        !== undefined && { name:        name.trim() }),
         ...(description !== undefined && { description: description.trim() }),
@@ -351,7 +351,7 @@ router.delete("/:slug", async (req: Request, res: Response) => {
       data:  { groupId: null },
     });
 
-    await db.group.delete({ where: { id_tenantId: { id: group.id, tenantId } } });
+    await db.group.delete({ where: { id: group.id } });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete group" });

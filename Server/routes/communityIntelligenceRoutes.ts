@@ -306,6 +306,7 @@ router.post("/skills/detect", async (req: Request, res: Response) => {
               },
             },
             create: {
+              tenantId,
               userId,
               postId,
               skill: skill.skill,
@@ -333,6 +334,7 @@ router.post("/skills/detect", async (req: Request, res: Response) => {
         await db.agenticLoopProgress.upsert({
           where: { userId },
           create: {
+            tenantId,
             userId,
             stage: 2,
             stageName: "skill_detection",

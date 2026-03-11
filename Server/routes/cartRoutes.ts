@@ -128,6 +128,7 @@ router.post("/items", async (req: Request, res: Response) => {
       // Add new item
       await db.cartItem.create({
         data: {
+          tenantId,
           cartId: cart.id,
           productId,
           variantId: variantId || null,
@@ -265,6 +266,7 @@ router.post("/merge", authMiddleware, async (req: Request, res: Response) => {
         } else {
           await db.cartItem.create({
             data: {
+              tenantId,
               cartId: userCart.id,
               productId: item.productId,
               variantId: item.variantId,

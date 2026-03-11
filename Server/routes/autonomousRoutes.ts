@@ -27,6 +27,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const userId = req.user!.userId;
+      const tenantId = req.user!.tenantId;
       const forceRegenerate = req.query.force === "true";
 
       // Check for existing report from last 7 days
@@ -116,6 +117,7 @@ Generate a JSON response:
       // Save to database
       await prisma.communityInsight.create({
         data: {
+          tenantId,
           userId,
           type: "weekly_report",
           title: `Weekly Report - ${new Date().toISOString().split("T")[0]}`,

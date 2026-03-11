@@ -28,6 +28,7 @@
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.2",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "exceljs": "^4.4.0",
@@ -110,14 +111,18 @@
       {
         "from": "public",
         "to": "public",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "public/icon.ico"

@@ -201,7 +201,7 @@ router.put("/courses/:id", authMiddleware, async (req, res) => {
 
     const courseId = String(req.params.id ?? "");
     const course = await db.course.findUnique({ 
-      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } } 
+      where: { id: courseId } 
     });
 
     if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
@@ -222,7 +222,7 @@ router.put("/courses/:id", authMiddleware, async (req, res) => {
     if (req.body?.published !== undefined) updateData.published = Boolean(req.body.published);
 
     const updatedCourse = await db.course.update({
-      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } },
+      where: { id: courseId },
       data: updateData,
     });
 
@@ -247,7 +247,7 @@ router.post("/courses/:courseId/modules", authMiddleware, async (req, res) => {
     }
 
     const course = await db.course.findUnique({ 
-      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } } 
+      where: { id: courseId } 
     });
 
     if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
@@ -353,7 +353,7 @@ router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
 
     // Free course - enroll directly
     const existingEnrollment = await db.enrollment.findUnique({
-      where: { courseId_userId: { courseId, userId } },
+      where: { courseId_userId_tenantId: { courseId, userId, tenantId: req.user.tenantId } },
     });
 
     if (existingEnrollment) {
@@ -362,6 +362,7 @@ router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
 
     const enrollment = await db.enrollment.create({
       data: {
+        tenantId: req.user.tenantId,
         courseId,
         userId,
       },
@@ -445,12 +446,11 @@ router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
       return res.status(404).json({ error: "Lesson not found" });
     }
 
-    const enrollment = await db.enrollment.findUnique({
+    const enrollment = await db.enrollment.findFirst({
       where: {
-        courseId_userId: {
-          courseId: lesson.module.courseId,
-          userId,
-        },
+        courseId: lesson.module.courseId,
+        userId,
+        tenantId: req.user.tenantId,
       },
     });
 
@@ -473,6 +473,7 @@ router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
         completedAt: completed ? new Date() : null,
       },
       create: {
+        tenantId: req.user.tenantId,
         enrollmentId: enrollment.id,
         lessonId,
         userId,
@@ -501,12 +502,11 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
     const courseId = String(req.params.courseId ?? "");
     const userId = req.user.userId;
 
-    const enrollment = await db.enrollment.findUnique({
+    const enrollment = await db.enrollment.findFirst({
       where: {
-        courseId_userId: {
-          courseId,
-          userId,
-        },
+        courseId,
+        userId,
+        tenantId: req.user.tenantId,
       },
       include: { progress: true },
     });
@@ -543,6 +543,7 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
 
     const certificate = await db.certificate.create({
       data: {
+        tenantId: req.user.tenantId,
         enrollmentId: enrollment.id,
         courseId,
         userId,
@@ -664,7 +665,7 @@ router.delete("/courses/:id", authMiddleware, async (req, res) => {
 
     const courseId = String(req.params.id ?? "");
     const course = await db.course.findUnique({
-      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } },
+      where: { id: courseId },
     });
 
     if (!course || course.instructorId !== req.user.userId || course.tenantId !== req.user.tenantId) {
@@ -672,7 +673,7 @@ router.delete("/courses/:id", authMiddleware, async (req, res) => {
     }
 
     await db.course.update({
-      where: { id_tenantId: { id: courseId, tenantId: req.user.tenantId } },
+      where: { id: courseId },
       data: { deletedAt: new Date() },
     });
 
@@ -698,12 +699,11 @@ router.post("/courses/:courseId/reviews", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "rating is required (1-5)" });
     }
 
-    const enrollment = await db.enrollment.findUnique({
+    const enrollment = await db.enrollment.findFirst({
       where: {
-        courseId_userId: {
-          courseId,
-          userId,
-        },
+        courseId,
+        userId,
+        tenantId: req.user!.tenantId,
       },
     });
 
@@ -713,9 +713,10 @@ router.post("/courses/:courseId/reviews", authMiddleware, async (req, res) => {
 
     const review = await db.review.upsert({
       where: {
-        courseId_userId: {
+        courseId_userId_tenantId: {
           courseId,
           userId,
+          tenantId: req.user!.tenantId,
         },
       },
       update: {
@@ -723,6 +724,7 @@ router.post("/courses/:courseId/reviews", authMiddleware, async (req, res) => {
         body: comment,
       },
       create: {
+        tenantId: req.user!.tenantId,
         courseId,
         userId,
         rating,

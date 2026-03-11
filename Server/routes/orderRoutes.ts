@@ -372,7 +372,7 @@ router.put("/:id/status", authMiddleware, async (req: Request, res: Response) =>
       await db.orderTracking.upsert({
         where: { orderId: id },
         update: { trackingNumber, carrier, status: "IN_TRANSIT" },
-        create: { orderId: id, trackingNumber, carrier, status: "IN_TRANSIT" }
+        create: { tenantId, orderId: id, trackingNumber, carrier, status: "IN_TRANSIT" }
       });
     }
 
@@ -460,7 +460,7 @@ router.post("/checkout-session", authMiddleware, async (req: Request, res: Respo
     });
 
     await db.orderItem.createMany({
-      data: orderItems.map((item) => ({ ...item, orderId: order.id })),
+      data: orderItems.map((item) => ({ ...item, tenantId, orderId: order.id })),
     });
 
     // Create Stripe Checkout session

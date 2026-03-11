@@ -278,6 +278,7 @@ router.post("/:id/images", authMiddleware, async (req: Request, res: Response) =
 
     const createdImages = await db.productImage.createMany({
       data: images.map((img, idx: number) => ({
+        tenantId,
         productId: id,
         url: img.url,
         alt: img.alt,

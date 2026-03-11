@@ -214,6 +214,7 @@ router.put("/rooms/:id/start", authMiddleware, async (req, res) => {
 router.put("/rooms/:id/end", authMiddleware, async (req, res) => {
   try {
     const roomId = String(req.params.id);
+    const tenantId = req.user!.tenantId;
     const room = await db.videoRoom.findFirst({
       where: { id: roomId, hostId: req.user!.userId },
     });
@@ -234,6 +235,7 @@ router.put("/rooms/:id/end", authMiddleware, async (req, res) => {
     // Create transcript record (NOVA will process async)
     await db.sessionTranscript.create({
       data: {
+        tenantId,
         sessionType: "video_room",
         sessionId: roomId,
         rawTranscript: "",
@@ -269,6 +271,7 @@ router.post("/rooms/:id/join", authMiddleware, async (req, res) => {
       where: { roomId_userId: { roomId, userId: req.user!.userId } },
       update: { leftAt: null, joinedAt: new Date() },
       create: {
+        tenantId: req.user!.tenantId,
         roomId,
         userId: req.user!.userId,
         role: room.hostId === req.user!.userId ? "host" : "participant",
@@ -303,6 +306,7 @@ router.post("/rooms/:id/breakout", authMiddleware, async (req, res) => {
 
     const breakout = await db.breakoutRoom.create({
       data: {
+        tenantId: req.user!.tenantId,
         parentRoomId: roomId,
         name,
         maxMembers: maxMembers || 6,
@@ -323,6 +327,7 @@ router.post("/rooms/:id/questions", authMiddleware, async (req, res) => {
 
     const q = await db.qAQuestion.create({
       data: {
+        tenantId: req.user!.tenantId,
         sessionId: roomId,
         sessionType: "video_room",
         userId: req.user!.userId,
@@ -497,6 +502,7 @@ router.put("/streams/:id/start", authMiddleware, async (req, res) => {
 router.put("/streams/:id/end", authMiddleware, async (req, res) => {
   try {
     const streamId = String(req.params.id);
+    const tenantId = req.user!.tenantId;
     const stream = await db.broadcastStream.findFirst({
       where: { id: streamId, hostId: req.user!.userId },
     });
@@ -513,6 +519,7 @@ router.put("/streams/:id/end", authMiddleware, async (req, res) => {
     // Create transcript record
     await db.sessionTranscript.create({
       data: {
+        tenantId,
         sessionType: "broadcast",
         sessionId: streamId,
         rawTranscript: "",
@@ -553,7 +560,7 @@ router.post("/streams/:id/view", authMiddleware, async (req, res) => {
     const viewer = await db.streamViewer.upsert({
       where: { streamId_userId: { streamId, userId: req.user!.userId } },
       update: { leftAt: null, joinedAt: new Date() },
-      create: { streamId, userId: req.user!.userId },
+      create: { tenantId: req.user!.tenantId, streamId, userId: req.user!.userId },
     });
 
     // Update peak viewers
@@ -594,6 +601,7 @@ router.post("/streams/:id/superchat", authMiddleware, async (req, res) => {
     
     const superChat = await db.superChat.create({
       data: {
+        tenantId: req.user!.tenantId,
         streamId,
         userId: req.user!.userId,
         message,
@@ -634,6 +642,7 @@ router.post("/streams/:id/ppv", authMiddleware, async (req, res) => {
     
     const ppvAccess = await db.pPVAccess.create({
       data: {
+        tenantId: req.user!.tenantId,
         streamId,
         userId: req.user!.userId,
         amount: stream.ppvPrice,
@@ -775,7 +784,7 @@ router.post("/events/:id/rsvp", authMiddleware, async (req, res) => {
     const rsvp = await db.studioRsvp.upsert({
       where: { eventId_userId: { eventId, userId: req.user!.userId } },
       update: {},
-      create: { eventId, userId: req.user!.userId },
+      create: { tenantId: req.user!.tenantId, eventId, userId: req.user!.userId },
     });
 
     await db.studioEvent.update({

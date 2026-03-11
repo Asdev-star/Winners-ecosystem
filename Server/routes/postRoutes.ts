@@ -576,12 +576,12 @@ router.post("/:id/comments/:commentId/like", async (req: Request, res: Response)
   const commentId = String(req.params.commentId);
 
   try {
-    const existing = await db.like.findUnique({
-      where: { userId_commentId: { userId, commentId } },
+    const existing = await db.like.findFirst({
+      where: { userId, commentId, tenantId },
     });
 
     if (existing) {
-      await db.like.delete({ where: { userId_commentId: { userId, commentId }, tenantId } });
+      await db.like.delete({ where: { id: existing.id } });
       const count = await db.like.count({ where: { commentId, tenantId } });
       return res.json({ liked: false, likeCount: count });
     } else {

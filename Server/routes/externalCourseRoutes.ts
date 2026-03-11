@@ -23,6 +23,7 @@ router.post("/certificates/import", authMiddleware, async (req, res) => {
 
     const { certificateData, manualData } = req.body;
     const userId = req.user.userId;
+    const tenantId = req.user.tenantId;
 
     // If PDF base64 was provided, extract with Claude
     let extractedData = null;
@@ -83,9 +84,10 @@ Return ONLY valid JSON. No preamble.`;
     // Create or update enrollment with certificate
     const enrollment = await db.externalCourseEnrollment.upsert({
       where: {
-        userId_externalCourseId: {
+        userId_externalCourseId_tenantId: {
           userId,
           externalCourseId: finalData.courseName, // This would need proper course ID lookup
+          tenantId,
         },
       },
       update: {
@@ -94,6 +96,7 @@ Return ONLY valid JSON. No preamble.`;
         isSynced: true,
       },
       create: {
+        tenantId,
         userId,
         externalCourseId: "", // Would need to lookup based on course name
         certificateUrl: finalData.verificationUrl,
@@ -182,6 +185,7 @@ router.post("/:id/enroll", authMiddleware, async (req, res) => {
 
     const courseId = String(req.params.id);
     const userId = req.user.userId;
+    const tenantId = req.user.tenantId;
 
     const course = await db.externalCourse.findUnique({
       where: { id: courseId },
@@ -192,12 +196,11 @@ router.post("/:id/enroll", authMiddleware, async (req, res) => {
     }
 
     // Check if already enrolled
-    const existing = await db.externalCourseEnrollment.findUnique({
+    const existing = await db.externalCourseEnrollment.findFirst({
       where: {
-        userId_externalCourseId: {
-          userId,
-          externalCourseId: courseId,
-        },
+        userId,
+        externalCourseId: courseId,
+        tenantId,
       },
     });
 
@@ -208,6 +211,7 @@ router.post("/:id/enroll", authMiddleware, async (req, res) => {
     // Create enrollment
     const enrollment = await db.externalCourseEnrollment.create({
       data: {
+        tenantId,
         userId,
         externalCourseId: courseId,
       },
@@ -261,12 +265,11 @@ router.patch("/:id/progress", authMiddleware, async (req, res) => {
     const courseId = String(req.params.id);
     const { progress, completedAt, certificateUrl } = req.body;
 
-    const enrollment = await db.externalCourseEnrollment.findUnique({
+    const enrollment = await db.externalCourseEnrollment.findFirst({
       where: {
-        userId_externalCourseId: {
-          userId: req.user.userId,
-          externalCourseId: courseId,
-        },
+        userId: req.user.userId,
+        externalCourseId: courseId,
+        tenantId: req.user.tenantId,
       },
     });
 
@@ -303,12 +306,11 @@ router.post("/:id/sync-certificate", authMiddleware, async (req, res) => {
     const courseId = String(req.params.id);
     const { certificateUrl } = req.body;
 
-    const enrollment = await db.externalCourseEnrollment.findUnique({
+    const enrollment = await db.externalCourseEnrollment.findFirst({
       where: {
-        userId_externalCourseId: {
-          userId: req.user.userId,
-          externalCourseId: courseId,
-        },
+        userId: req.user.userId,
+        externalCourseId: courseId,
+        tenantId: req.user.tenantId,
       },
     });
 
@@ -408,7 +410,7 @@ router.get("/meta/platforms", (req, res) => {
 router.post("/:id/save", authMiddleware, async (req, res) => {
   try {
     const courseId = String(req.params.id);
-    const { userId } = req.user;
+    const { userId, tenantId } = req.user;
     const { sageNote } = req.body;
 
     const course = await db.externalCourse.findUnique({
@@ -421,10 +423,11 @@ router.post("/:id/save", authMiddleware, async (req, res) => {
 
     const save = await db.externalCourseSave.upsert({
       where: {
-        userId_courseId: { userId, courseId },
+        userId_courseId_tenantId: { userId, courseId, tenantId },
       },
       update: { sageNote },
       create: {
+        tenantId,
         userId,
         courseId,
         sageNote,
@@ -442,11 +445,11 @@ router.post("/:id/save", authMiddleware, async (req, res) => {
 router.delete("/:id/save", authMiddleware, async (req, res) => {
   try {
     const courseId = String(req.params.id);
-    const { userId } = req.user;
+    const { userId, tenantId } = req.user;
 
     await db.externalCourseSave.delete({
       where: {
-        userId_courseId: { userId, courseId },
+        userId_courseId_tenantId: { userId, courseId, tenantId },
       },
     });
 

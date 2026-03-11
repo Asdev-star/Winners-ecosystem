@@ -207,6 +207,7 @@ router.post("/publish", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { content, mediaUrls, communityPostId, platforms } = req.body;
     const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
     
     if (!content || !platforms || platforms.length === 0) {
       return res.status(400).json({ error: "Content and at least one platform are required" });
@@ -229,6 +230,7 @@ router.post("/publish", authMiddleware, async (req: Request, res: Response) => {
       // For demo, create a cross-post record with "published" status
       const crossPost = await db.socialCrossPost.create({
         data: {
+          tenantId,
           userId,
           communityPostId,
           socialAccountId: account.id,
@@ -258,6 +260,7 @@ router.post("/schedule", authMiddleware, async (req: Request, res: Response) => 
   try {
     const { content, mediaUrls, communityPostId, platform, scheduledFor } = req.body;
     const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
     
     if (!content || !platform || !scheduledFor) {
       return res.status(400).json({ error: "Content, platform, and scheduled time are required" });
@@ -273,6 +276,7 @@ router.post("/schedule", authMiddleware, async (req: Request, res: Response) => 
     
     const scheduledPost = await db.socialScheduledPost.create({
       data: {
+        tenantId,
         userId,
         socialAccountId: account.id,
         communityPostId,

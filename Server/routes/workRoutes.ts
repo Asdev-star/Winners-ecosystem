@@ -370,6 +370,7 @@ router.post("/freelancers/portfolio", async (req: Request, res: Response) => {
 
     const item = await db.portfolioItem.create({
       data: {
+        tenantId,
         freelancerId: profile.id,
         title:        title.trim(),
         description:  description?.trim() ?? null,

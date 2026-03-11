@@ -77,7 +77,7 @@ router.post("/posts/:postId/save", authMiddleware, async (req: Request, res: Res
       return res.json({ saved: false });
     }
 
-    await db.savedPost.create({ data: { userId, postId } });
+    await db.savedPost.create({ data: { tenantId: req.user!.tenantId, userId, postId } });
     return res.json({ saved: true });
   } catch (error) {
     if (isMissingTable(error)) return res.json({ saved: false, error: "Table not ready" });
@@ -139,7 +139,7 @@ router.put("/feed-preferences", authMiddleware, async (req: Request, res: Respon
       const preference = await db.userFeedPreference.upsert({
         where: { userId },
         update: { feedMode, novaIntelligence, quickPostEnabled },
-        create: { userId, feedMode, novaIntelligence, quickPostEnabled },
+        create: { tenantId: req.user!.tenantId, userId, feedMode, novaIntelligence, quickPostEnabled },
       });
       return res.json(preference);
     } catch {
@@ -262,7 +262,7 @@ router.post("/conversations", authMiddleware, async (req: Request, res: Response
         : "";
 
     const uniqueIds = new Set<string>([userId, ...participantIds]);
-    const participantCreates = [...uniqueIds].map((id) => ({ userId: id }));
+    const participantCreates = [...uniqueIds].map((id) => ({ tenantId, userId: id }));
 
     const conversation = await db.conversation.create({
       data: {
@@ -284,6 +284,7 @@ router.post("/conversations", authMiddleware, async (req: Request, res: Response
     if (initialMessage) {
       await db.message.create({
         data: {
+          tenantId,
           conversationId: conversation.id,
           senderId: userId,
           content: initialMessage,
@@ -315,6 +316,7 @@ router.post("/conversations/:id/messages", authMiddleware, async (req: Request, 
 
     const message = await db.message.create({
       data: {
+        tenantId: req.user!.tenantId,
         conversationId,
         senderId: userId,
         content,
