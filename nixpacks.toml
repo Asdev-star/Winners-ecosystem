@@ -9,4 +9,4 @@ cmds = ["npm install --legacy-peer-deps"]
 cmds = ["npx prisma generate", "npm run build:client", "npx tsc -p tsconfig.server.json"]
 
 [start]
-cmd = "node dist/server/index.js"
+cmd = "npx prisma db push --skip-generate --accept-data-loss && node dist/server/index.js"

@@ -71,8 +71,9 @@ router.get("/courses", async (_req, res) => {
 
     res.json(courses.map(withCourseStats));
   } catch (error) {
-    console.error("Error fetching courses:", error);
-    res.status(500).json({ error: "Failed to fetch courses" });
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Error fetching courses:", msg, error);
+    res.status(500).json({ error: "Failed to fetch courses", detail: msg });
   }
 });
 
