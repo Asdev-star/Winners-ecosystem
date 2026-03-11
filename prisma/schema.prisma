@@ -27,29 +27,110 @@ model Tenant {
   stripeCustomerId     String?
   stripeSubscriptionId String?
 
-  users                  User[]
-  invites                Invite[]
-  revenueRecords         RevenueRecord[]
-  analyticsEvents        AnalyticsEvent[]
-  referralCredits        ReferralCredit[]
-  posts                  Post[]
-  groups                 Group[]
-  privacyAcknowledgments PrivacyAcknowledgment[]
-  courses                Course[]
-  conversations          Conversation[]
-  liveSpaces             LiveSpace[]
-  videoRooms            VideoRoom[]
-  broadcastStreams      BroadcastStream[]
-  studioEvents          StudioEvent[]
-  corporateAccount     CorporateAccount?
+  users                         User[]
+  invites                       Invite[]
+  revenueRecords                RevenueRecord[]
+  analyticsEvents               AnalyticsEvent[]
+  referralCredits               ReferralCredit[]
+  posts                         Post[]
+  groups                        Group[]
+  privacyAcknowledgments        PrivacyAcknowledgment[]
+  courses                       Course[]
+  conversations                 Conversation[]
+  liveSpaces                    LiveSpace[]
+  videoRooms                    VideoRoom[]
+  broadcastStreams              BroadcastStream[]
+  studioEvents                  StudioEvent[]
+  corporateAccount              CorporateAccount?
   // Market relations
-  vendors               Vendor[]
-  products              Product[]
-  carts                 Cart[]
-  orders                Order[]
+  vendors                       Vendor[]
+  products                      Product[]
+  carts                         Cart[]
+  orders                        Order[]
   // Work relations
-  jobListings           JobListing[]
-  freelancerProfiles    FreelancerProfile[]
+  jobListings                   JobListing[]
+  freelancerProfiles            FreelancerProfile[]
+  comments                      Comment[]
+  likes                         Like[]
+  postReactions                 PostReaction[]
+  follows                       Follow[]
+  groupMembers                  GroupMember[]
+  groupLearningTracks           GroupLearningTrack[]
+  opportunities                 Opportunity[]
+  notifications                 Notification[]
+  creatorSubscriptions          CreatorSubscription[]
+  creatorTiers                  CreatorTier[]
+  communityChallenges           CommunityChallenge[]
+  communityChallengeSubmissions CommunityChallengeSubmission[]
+  communityChallengeWinners     CommunityChallengeWinner[]
+  skillEndorsements             SkillEndorsement[]
+  novaSkillDetections           NovaSkillDetection[]
+  communityInsights             CommunityInsight[]
+  savedPosts                    SavedPost[]
+  quotePosts                    QuotePost[]
+  userFeedPreferences           UserFeedPreference[]
+  agenticLoopProgresses         AgenticLoopProgress[]
+  conversationParticipants      ConversationParticipant[]
+  messages                      Message[]
+  messageReads                  MessageRead[]
+  modules                       Module[]
+  lessons                       Lesson[]
+  enrollments                   Enrollment[]
+  lessonProgresses              LessonProgress[]
+  certificates                  Certificate[]
+  externalCourseEnrollments     ExternalCourseEnrollment[]
+  externalCourseSaves           ExternalCourseSave[]
+  reviews                       Review[]
+  quizzes                       Quiz[]
+  quizQuestions                 QuizQuestion[]
+  quizAttempts                  QuizAttempt[]
+  flashcards                    Flashcard[]
+  flashcardReviews              FlashcardReview[]
+  knowledgeGraphNodes           KnowledgeGraphNode[]
+  knowledgeGraphEdges           KnowledgeGraphEdge[]
+  mentors                       Mentor[]
+  mentorSessions                MentorSession[]
+  liveSessions                  LiveSession[]
+  liveSessionAttendees          LiveSessionAttendee[]
+  learnerProfiles               LearnerProfile[]
+  learningStreaks               LearningStreak[]
+  lectureUploads                LectureUpload[]
+  learningPaths                 LearningPath[]
+  pathCourses                   PathCourse[]
+  pathEnrollments               PathEnrollment[]
+  studyGroups                   StudyGroup[]
+  studyMembers                  StudyMember[]
+  assignments                   Assignment[]
+  submissions                   Submission[]
+  corporateEnrolls              CorporateEnroll[]
+  learnerNotes                  LearnerNote[]
+  socialAccounts                SocialAccount[]
+  socialCrossPosts              SocialCrossPost[]
+  socialMetricSnapshots         SocialMetricSnapshot[]
+  socialSkillSignals            SocialSkillSignal[]
+  socialScheduledPosts          SocialScheduledPost[]
+  videoRoomParticipants         VideoRoomParticipant[]
+  breakoutRooms                 BreakoutRoom[]
+  streamViewers                 StreamViewer[]
+  superChats                    SuperChat[]
+  ppvaccesses                   PPVAccess[]
+  sessionTranscripts            SessionTranscript[]
+  qaquestions                   QAQuestion[]
+  studioRsvps                   StudioRsvp[]
+  productVariants               ProductVariant[]
+  productImages                 ProductImage[]
+  cartItems                     CartItem[]
+  orderItems                    OrderItem[]
+  orderTrackings                OrderTracking[]
+  productReviews                ProductReview[]
+  vendorReviews                 VendorReview[]
+  assistantActions              AssistantAction[]
+  portfolioItems                PortfolioItem[]
+  jobApplications               JobApplication[]
+  contracts                     Contract[]
+  contractMilestones            ContractMilestone[]
+  escrowPayments                EscrowPayment[]
+  workReviews                   WorkReview[]
 
   @@map("tenants")
 }
@@ -116,21 +197,21 @@ model User {
 
   // Social Media Integrations
   socialAccounts        SocialAccount[]
-  socialCrossPosts       SocialCrossPost[]
+  socialCrossPosts      SocialCrossPost[]
   socialMetricSnapshots SocialMetricSnapshot[]
   socialSkillSignals    SocialSkillSignal[]
   socialScheduledPosts  SocialScheduledPost[]
 
   // Community Studio - Video Rooms & Broadcasts
-  hostedVideoRooms     VideoRoom[]
+  hostedVideoRooms        VideoRoom[]
   videoRoomParticipations VideoRoomParticipant[]
-  hostedBroadcasts    BroadcastStream[]
-  streamViewers       StreamViewer[]
-  superChats          SuperChat[]
-  ppvPurchases       PPVAccess[]
-  studioEvents        StudioEvent[]
-  studioRsvps         StudioRsvp[]
-  qaQuestions        QAQuestion[]
+  hostedBroadcasts        BroadcastStream[]
+  streamViewers           StreamViewer[]
+  superChats              SuperChat[]
+  ppvPurchases            PPVAccess[]
+  studioEvents            StudioEvent[]
+  studioRsvps             StudioRsvp[]
+  qaQuestions             QAQuestion[]
 
   // SAGE Super-Intelligence V2 Relations
   flashcards         Flashcard[]
@@ -170,16 +251,16 @@ model User {
   corporateEnrolls    CorporateEnroll[]
 
   // Work - Freelance Marketplace
-  postedJobs           JobListing[]
-  clientContracts     Contract[]                   @relation("ClientContracts")
-  freelancerProfile   FreelancerProfile?
+  postedJobs        JobListing[]
+  clientContracts   Contract[]         @relation("ClientContracts")
+  freelancerProfile FreelancerProfile?
 
   // Market relations
-  vendors             Vendor[]
-  carts              Cart[]
-  orders             Order[]
-  productReviews     ProductReview[]
-  vendorReviews      VendorReview[]
+  vendors        Vendor[]
+  carts          Cart[]
+  orders         Order[]
+  productReviews ProductReview[]
+  vendorReviews  VendorReview[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -404,11 +485,11 @@ model Post {
   quotingPosts  QuotePost[]          @relation("QuotingPost")
   quotedInPosts QuotePost[]          @relation("QuotedPost")
 
+  @@unique([id, tenantId])
   @@index([tenantId, createdAt(sort: Desc)])
   @@index([authorId])
   @@index([tenantId, isPinned])
   @@index([groupId])
-  @@unique([id, tenantId])
   @@map("posts")
 }
 
@@ -430,11 +511,11 @@ model Comment {
   replies Comment[] @relation("CommentReplies")
   likes   Like[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([postId])
   @@index([authorId])
   @@index([parentId])
-  @@unique([id, tenantId])
   @@map("comments")
 }
 
@@ -474,10 +555,10 @@ model PostReaction {
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId, reaction, tenantId])
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([postId])
   @@index([reaction])
-  @@unique([id, tenantId])
   @@map("post_reactions")
 }
 
@@ -555,8 +636,8 @@ model GroupMember {
   joinedAt DateTime        @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group  Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@unique([groupId, userId, tenantId])
@@ -590,8 +671,8 @@ model GroupLearningTrack {
   updatedAt    DateTime @updatedAt
 
   tenant  Tenant @relation(fields: [tenantId], references: [id])
-  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  creator User  @relation("LearningTrackCreator", fields: [createdById], references: [id])
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator User   @relation("LearningTrackCreator", fields: [createdById], references: [id])
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -1223,8 +1304,8 @@ model Module {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant Tenant   @relation(fields: [tenantId], references: [id])
-  course Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
 
   @@unique([id, tenantId])
@@ -1339,59 +1420,59 @@ model Certificate {
 // ─── External Course Integrations (Coursera, FreeCodeCamp, Udemy, etc.) ────────
 
 model ExternalPlatform {
-  id        String          @id // COURSERA, FREECODECAMP, etc.
+  id        String   @id // COURSERA, FREECODECAMP, etc.
   name      String
   icon      String?
   tenantId  String
-  createdAt DateTime        @default(now())
+  createdAt DateTime @default(now())
 }
 
 // FreeCodeCamp sync for username-based import
 model FreeCodeCampSync {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  fccUsername     String
-  lastSynced      DateTime  @default(now())
-  certifications  Json      @default("[]") // [{name, completedDate, verificationUrl}]
-  createdAt       DateTime  @default(now())
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  fccUsername    String
+  lastSynced     DateTime @default(now())
+  certifications Json     @default("[]") // [{name, completedDate, verificationUrl}]
+  createdAt      DateTime @default(now())
 }
 
 model ExternalCourse {
-  id           String         @id @default(cuid())
-  tenantId     String
-  platform     String         // References ExternalPlatform.id
-  platformName String?        // Denormalized for easier access
-  externalId   String         // ID from external platform
-  title        String
-  description  String?
-  thumbnailUrl String?
-  courseUrl    String         // Link to external course
-  affiliateUrl String?        // Affiliate link for revenue tracking
-  instructor   String?
-  institution  String?        // University or organization
-  duration     Int?           // Duration in minutes
-  category     String?
-  subcategory  String?
-  difficulty   String?        // Beginner, Intermediate, Advanced
-  tags         String[]
-  price        Float          @default(0) // 0 = free
-  currency     String         @default("USD")
-  rating       Float?
-  reviewCount  Int            @default(0)
-  enrollmentCount Int         @default(0)
-  isVerified   Boolean        @default(false) // Verified by Winners team
-  isFeatured   Boolean        @default(false)
-  sageRecommended Boolean    @default(false)
-  africanRelevance Int       @default(5) // 1-10 SAGE-scored relevance for African market
+  id                String   @id @default(cuid())
+  tenantId          String
+  platform          String // References ExternalPlatform.id
+  platformName      String? // Denormalized for easier access
+  externalId        String // ID from external platform
+  title             String
+  description       String?
+  thumbnailUrl      String?
+  courseUrl         String // Link to external course
+  affiliateUrl      String? // Affiliate link for revenue tracking
+  instructor        String?
+  institution       String? // University or organization
+  duration          Int? // Duration in minutes
+  category          String?
+  subcategory       String?
+  difficulty        String? // Beginner, Intermediate, Advanced
+  tags              String[]
+  price             Float    @default(0) // 0 = free
+  currency          String   @default("USD")
+  rating            Float?
+  reviewCount       Int      @default(0)
+  enrollmentCount   Int      @default(0)
+  isVerified        Boolean  @default(false) // Verified by Winners team
+  isFeatured        Boolean  @default(false)
+  sageRecommended   Boolean  @default(false)
+  africanRelevance  Int      @default(5) // 1-10 SAGE-scored relevance for African market
   workContractCount Int      @default(0) // CIRCUIT-populated: live job count for skills
-  hasCertificate Boolean     @default(true)
-  certificateType String?    // "Professional Certificate", "Specialization", etc.
-  lastSynced   DateTime      @default(now())
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  hasCertificate    Boolean  @default(true)
+  certificateType   String? // "Professional Certificate", "Specialization", etc.
+  lastSynced        DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  enrollments  ExternalCourseEnrollment[]
-  saves        ExternalCourseSave[]
+  enrollments ExternalCourseEnrollment[]
+  saves       ExternalCourseSave[]
 
   @@unique([platform, externalId])
   @@index([tenantId])
@@ -1402,15 +1483,15 @@ model ExternalCourse {
 }
 
 model ExternalCourseEnrollment {
-  id              String    @id @default(cuid())
-  tenantId        String
-  userId          String
+  id               String    @id @default(cuid())
+  tenantId         String
+  userId           String
   externalCourseId String
-  enrolledAt      DateTime  @default(now())
-  completedAt     DateTime?
-  progress        Int       @default(0) // 0-100 percentage
-  certificateUrl  String?   // URL to external certificate
-  isSynced        Boolean   @default(false) // Synced with Winners certificate
+  enrolledAt       DateTime  @default(now())
+  completedAt      DateTime?
+  progress         Int       @default(0) // 0-100 percentage
+  certificateUrl   String? // URL to external certificate
+  isSynced         Boolean   @default(false) // Synced with Winners certificate
 
   tenant         Tenant         @relation(fields: [tenantId], references: [id])
   externalCourse ExternalCourse @relation(fields: [externalCourseId], references: [id], onDelete: Cascade)
@@ -1424,15 +1505,15 @@ model ExternalCourseEnrollment {
 
 // User-saved external courses
 model ExternalCourseSave {
-  id         String         @id @default(cuid())
-  tenantId   String
-  userId     String
-  courseId   String
-  course     ExternalCourse @relation(fields:[courseId], references:[id])
-  sageNote   String?        @db.Text // SAGE's note when it recommended this
-  savedAt    DateTime       @default(now())
+  id       String         @id @default(cuid())
+  tenantId String
+  userId   String
+  courseId String
+  course   ExternalCourse @relation(fields: [courseId], references: [id])
+  sageNote String?        @db.Text // SAGE's note when it recommended this
+  savedAt  DateTime       @default(now())
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@unique([id, tenantId])
   @@unique([userId, courseId, tenantId])
@@ -1764,9 +1845,9 @@ model LiveSessionAttendee {
 
 // SAGE Learner Profile - 6-category memory system
 model LearnerProfile {
-  id       String   @id @default(cuid())
+  id       String @id @default(cuid())
   tenantId String
-  userId   String   @unique
+  userId   String @unique
 
   // Category 1: Skills & Competencies
   skills Json? // { skill: string, level: 0-100, lastValidated: date }[]
@@ -2084,30 +2165,30 @@ model LearnerNote {
 // NOVA-Powered Cross-Platform Intelligence for Community Layer
 
 model SocialAccount {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
   tenantId     String
-  platform     String   // facebook|instagram|whatsapp|telegram|twitter|messenger|linkedin|tiktok|youtube|threads|discord|pinterest|snapchat|substack|medium
+  platform     String // facebook|instagram|whatsapp|telegram|twitter|messenger|linkedin|tiktok|youtube|threads|discord|pinterest|snapchat|substack|medium
   platformId   String
   username     String?
   displayName  String?
   profileImage String?
-  accessToken  String?  @db.Text  // encrypted
-  refreshToken String?  @db.Text  // encrypted
+  accessToken  String?   @db.Text // encrypted
+  refreshToken String?   @db.Text // encrypted
   tokenExpiry  DateTime?
-  pageId       String?             // Facebook Page / Instagram Business account ID
+  pageId       String? // Facebook Page / Instagram Business account ID
   pageName     String?
   scopes       String[]  @default([])
-  active       Boolean  @default(true)
+  active       Boolean   @default(true)
   lastSynced   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  tenant   Tenant                 @relation(fields: [tenantId], references: [id])
-  user     User                   @relation(fields:[userId], references:[id], onDelete: Cascade)
-  posts    SocialCrossPost[]
-  metrics  SocialMetricSnapshot[]
-  skills   SocialSkillSignal[]
+  tenant    Tenant                 @relation(fields: [tenantId], references: [id])
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts     SocialCrossPost[]
+  metrics   SocialMetricSnapshot[]
+  skills    SocialSkillSignal[]
   scheduled SocialScheduledPost[]
 
   @@unique([id, tenantId])
@@ -2119,20 +2200,20 @@ model SocialAccount {
 }
 
 model SocialCrossPost {
-  id              String        @id @default(cuid())
+  id              String    @id @default(cuid())
   tenantId        String
   userId          String
   communityPostId String?
   socialAccountId String
   platformPostId  String?
-  status          String        @default("pending")  // pending|published|failed|skipped
-  error           String?       @db.Text
+  status          String    @default("pending") // pending|published|failed|skipped
+  error           String?   @db.Text
   publishedAt     DateTime?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime  @default(now())
 
   tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  user          User         @relation(fields:[userId], references:[id], onDelete: Cascade)
-  socialAccount SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -2143,27 +2224,27 @@ model SocialCrossPost {
 }
 
 model SocialMetricSnapshot {
-  id              String        @id @default(cuid())
+  id              String   @id @default(cuid())
   tenantId        String
   userId          String
   socialAccountId String
   platform        String
-  snapshotDate    DateTime      @default(now())
-  followers       Int           @default(0)
-  followersGrowth Int           @default(0)
-  reach           Int           @default(0)
-  impressions     Int           @default(0)
-  engagements     Int           @default(0)
-  engagementRate  Float         @default(0)
-  posts           Int           @default(0)
+  snapshotDate    DateTime @default(now())
+  followers       Int      @default(0)
+  followersGrowth Int      @default(0)
+  reach           Int      @default(0)
+  impressions     Int      @default(0)
+  engagements     Int      @default(0)
+  engagementRate  Float    @default(0)
+  posts           Int      @default(0)
   topPostId       String?
-  topPostReach    Int           @default(0)
-  platformData    Json?         @default("{}")
-  createdAt       DateTime      @default(now())
+  topPostReach    Int      @default(0)
+  platformData    Json?    @default("{}")
+  createdAt       DateTime @default(now())
 
   tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  user          User         @relation(fields:[userId], references:[id], onDelete: Cascade)
-  socialAccount SocialAccount @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@unique([socialAccountId, snapshotDate])
@@ -2175,23 +2256,23 @@ model SocialMetricSnapshot {
 }
 
 model SocialSkillSignal {
-  id              String        @id @default(cuid())
+  id              String   @id @default(cuid())
   tenantId        String
   userId          String
   socialAccountId String?
   platform        String
   platformPostId  String?
-  content         String        @db.Text  // post content that was analysed
+  content         String   @db.Text // post content that was analysed
   skill           String
-  confidence      Float         @default(0)  // 0-1
-  category        String?       // technical|creative|business|soft
-  isActioned      Boolean       @default(false)  // has NOVA acted on this?
-  loopFired       Boolean       @default(false)  // has this triggered Agentic Loop?
-  createdAt       DateTime      @default(now())
+  confidence      Float    @default(0) // 0-1
+  category        String? // technical|creative|business|soft
+  isActioned      Boolean  @default(false) // has NOVA acted on this?
+  loopFired       Boolean  @default(false) // has this triggered Agentic Loop?
+  createdAt       DateTime @default(now())
 
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  user          User         @relation(fields:[userId], references:[id], onDelete: Cascade)
-  socialAccount SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -2202,24 +2283,24 @@ model SocialSkillSignal {
 }
 
 model SocialScheduledPost {
-  id              String        @id @default(cuid())
+  id              String    @id @default(cuid())
   tenantId        String
   userId          String
   socialAccountId String?
   communityPostId String?
-  content         String        @db.Text
-  mediaUrls       String[]      @default([])
+  content         String    @db.Text
+  mediaUrls       String[]  @default([])
   platform        String
-  adaptedContent  String?       @db.Text  // platform-specific adapted content
+  adaptedContent  String?   @db.Text // platform-specific adapted content
   scheduledFor    DateTime
-  status          String        @default("scheduled")  // scheduled|published|failed|cancelled
-  novaOptimised   Boolean       @default(false)
+  status          String    @default("scheduled") // scheduled|published|failed|cancelled
+  novaOptimised   Boolean   @default(false)
   publishedAt     DateTime?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime  @default(now())
 
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  user          User         @relation(fields:[userId], references:[id], onDelete: Cascade)
-  socialAccount SocialAccount? @relation(fields:[socialAccountId], references:[id], onDelete: Cascade)
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -2253,8 +2334,8 @@ model VideoRoom {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  tenant       Tenant                   @relation(fields: [tenantId], references: [id])
-  host         User                     @relation(fields: [hostId], references: [id])
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id])
+  host         User                   @relation(fields: [hostId], references: [id])
   participants VideoRoomParticipant[]
   breakouts    BreakoutRoom[]
   qaQuestions  QAQuestion[]
@@ -2274,7 +2355,7 @@ model VideoRoomParticipant {
   joinedAt DateTime  @default(now())
   leftAt   DateTime?
   cameraOn Boolean   @default(false)
-  micOn     Boolean   @default(false)
+  micOn    Boolean   @default(false)
 
   tenant Tenant    @relation(fields: [tenantId], references: [id])
   room   VideoRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
@@ -2347,11 +2428,11 @@ model BroadcastStream {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  tenant    Tenant         @relation(fields: [tenantId], references: [id])
-  host      User           @relation(fields: [hostId], references: [id])
-  viewers   StreamViewer[]
+  tenant     Tenant         @relation(fields: [tenantId], references: [id])
+  host       User           @relation(fields: [hostId], references: [id])
+  viewers    StreamViewer[]
   superChats SuperChat[]
-  ppvAccess PPVAccess[]
+  ppvAccess  PPVAccess[]
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -2380,20 +2461,20 @@ model StreamViewer {
 }
 
 model SuperChat {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   tenantId    String
   streamId    String
   userId      String
-  message     String    @db.Text
+  message     String   @db.Text
   amount      Float
-  currency    String    @default("USD")
+  currency    String   @default("USD")
   stripeId    String
   pinnedUntil DateTime
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime @default(now())
 
   tenant Tenant          @relation(fields: [tenantId], references: [id])
   stream BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -2412,7 +2493,7 @@ model PPVAccess {
 
   tenant Tenant          @relation(fields: [tenantId], references: [id])
   stream BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@unique([streamId, userId])
@@ -2428,19 +2509,19 @@ enum StreamStatus {
 }
 
 model SessionTranscript {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   tenantId       String
   sessionType    String
-  sessionId      String    @unique
-  rawTranscript  String    @db.Text
-  novaSummary    String?   @db.Text
+  sessionId      String   @unique
+  rawTranscript  String   @db.Text
+  novaSummary    String?  @db.Text
   novaHighlights Json?
   novaSkills     Json?
   qaLog          Json?
-  wordCount      Int       @default(0)
-  durationSecs   Int       @default(0)
-  language       String    @default("en")
-  createdAt      DateTime  @default(now())
+  wordCount      Int      @default(0)
+  durationSecs   Int      @default(0)
+  language       String   @default("en")
+  createdAt      DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
@@ -2450,21 +2531,21 @@ model SessionTranscript {
 }
 
 model QAQuestion {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   tenantId    String
   sessionId   String
   sessionType String
   userId      String
-  question    String   @db.Text
-  novaScore   Float    @default(0)
-  upvotes     Int      @default(0)
-  answered    Boolean  @default(false)
+  question    String    @db.Text
+  novaScore   Float     @default(0)
+  upvotes     Int       @default(0)
+  answered    Boolean   @default(false)
   answeredAt  DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
-  tenant     Tenant     @relation(fields: [tenantId], references: [id])
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  videoRoom  VideoRoom? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoRoom VideoRoom? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -2521,37 +2602,37 @@ model StudioRsvp {
 
 // Vendor - sellers on the marketplace
 model Vendor {
-  id              String    @id @default(cuid())
+  id              String       @id @default(cuid())
   tenantId        String
   userId          String
   storeName       String
-  storeSlug       String    @unique
-  description     String?   @db.Text
+  storeSlug       String       @unique
+  description     String?      @db.Text
   logo            String?
   banner          String?
-  verified        Boolean   @default(false)
-  trustScore      Float     @default(0)
-  totalSales      Int       @default(0)
-  totalRevenue    Float     @default(0)
-  payoutBalance   Float     @default(0)
+  verified        Boolean      @default(false)
+  trustScore      Float        @default(0)
+  totalSales      Int          @default(0)
+  totalRevenue    Float        @default(0)
+  payoutBalance   Float        @default(0)
   payoutMethod    String?
   stripeAccountId String?
-  freeShipping    Boolean   @default(false)
-  shippingPrice   Float     @default(0)
-  taxRate         Float     @default(0)
+  freeShipping    Boolean      @default(false)
+  shippingPrice   Float        @default(0)
+  taxRate         Float        @default(0)
   status          VendorStatus @default(PENDING)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  tenant    Tenant         @relation(fields: [tenantId], references: [id])
-  owner     User           @relation(fields: [userId], references: [id])
-  products  Product[]
-  orders    Order[]
-  reviews   VendorReview[]
+  tenant   Tenant         @relation(fields: [tenantId], references: [id])
+  owner    User           @relation(fields: [userId], references: [id])
+  products Product[]
+  orders   Order[]
+  reviews  VendorReview[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([userId])
-  @@unique([id, tenantId])
   @@map("vendors")
 }
 
@@ -2564,12 +2645,12 @@ enum VendorStatus {
 
 // Product - items for sale
 model Product {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   tenantId        String
   vendorId        String
   name            String
   slug            String
-  description     String?   @db.Text
+  description     String?  @db.Text
   price           Float
   comparePrice    Float?
   costPrice       Float?
@@ -2581,30 +2662,30 @@ model Product {
   brand           String?
   weight          Float?
   weightUnit      String?
-  isDigital       Boolean   @default(false)
-  isActive        Boolean   @default(true)
-  isFeatured      Boolean   @default(false)
-  stockQuantity    Int       @default(0)
-  lowStockAlert   Int       @default(10)
-  allowBackorder  Boolean   @default(false)
+  isDigital       Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  isFeatured      Boolean  @default(false)
+  stockQuantity   Int      @default(0)
+  lowStockAlert   Int      @default(10)
+  allowBackorder  Boolean  @default(false)
   shippingType    String?
-  freeShipping    Boolean   @default(false)
+  freeShipping    Boolean  @default(false)
   shippingPrice   Float?
   taxRate         Float?
   metaTitle       String?
   metaDescription String?
-  viewCount       Int       @default(0)
-  soldCount       Int       @default(0)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  viewCount       Int      @default(0)
+  soldCount       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  tenant     Tenant            @relation(fields: [tenantId], references: [id])
+  tenant     Tenant           @relation(fields: [tenantId], references: [id])
   vendor     Vendor           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   variants   ProductVariant[]
-  images    ProductImage[]
+  images     ProductImage[]
   cartItems  CartItem[]
   orderItems OrderItem[]
-  reviews   ProductReview[]
+  reviews    ProductReview[]
 
   @@unique([tenantId, slug])
   @@unique([id, tenantId])
@@ -2692,19 +2773,19 @@ enum CartStatus {
 
 // Cart items
 model CartItem {
-  id          String   @id @default(cuid())
-  tenantId    String
-  cartId      String
-  productId   String
-  variantId   String?
-  quantity    Int
-  price       Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  tenantId  String
+  cartId    String
+  productId String
+  variantId String?
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   tenant  Tenant          @relation(fields: [tenantId], references: [id])
-  cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product        @relation(fields: [productId], references: [id])
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id])
 
   @@unique([id, tenantId])
@@ -2717,55 +2798,55 @@ model CartItem {
 
 // Order
 model Order {
-  id                  String       @id @default(cuid())
-  tenantId            String
-  userId              String
-  vendorId            String
-  orderNumber         String       @unique
-  status              OrderStatus  @default(PENDING)
-  subtotal            Float
-  shippingCost        Float        @default(0)
-  taxAmount           Float        @default(0)
-  discountAmount      Float        @default(0)
-  total               Float
-  currency            String       @default("USD")
-  shippingName        String?
-  shippingAddress     String?      @db.Text
-  shippingCity        String?
-  shippingState       String?
-  shippingZip         String?
-  shippingCountry     String?
-  shippingPhone       String?
-  billingName         String?
-  billingAddress      String?      @db.Text
-  billingCity         String?
-  billingState        String?
-  billingZip          String?
-  billingCountry      String?
-  paymentMethod       String?
-  paymentStatus       PaymentStatus @default(PENDING)
-  stripePaymentId     String?
-  stripeSessionId     String?
+  id                    String        @id @default(cuid())
+  tenantId              String
+  userId                String
+  vendorId              String
+  orderNumber           String        @unique
+  status                OrderStatus   @default(PENDING)
+  subtotal              Float
+  shippingCost          Float         @default(0)
+  taxAmount             Float         @default(0)
+  discountAmount        Float         @default(0)
+  total                 Float
+  currency              String        @default("USD")
+  shippingName          String?
+  shippingAddress       String?       @db.Text
+  shippingCity          String?
+  shippingState         String?
+  shippingZip           String?
+  shippingCountry       String?
+  shippingPhone         String?
+  billingName           String?
+  billingAddress        String?       @db.Text
+  billingCity           String?
+  billingState          String?
+  billingZip            String?
+  billingCountry        String?
+  paymentMethod         String?
+  paymentStatus         PaymentStatus @default(PENDING)
+  stripePaymentId       String?
+  stripeSessionId       String?
   stripePaymentIntentId String?
-  stripeCustomerId   String?
-  notes               String?      @db.Text
-  metadata            Json?
-  shippedAt           DateTime?
-  deliveredAt         DateTime?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  stripeCustomerId      String?
+  notes                 String?       @db.Text
+  metadata              Json?
+  shippedAt             DateTime?
+  deliveredAt           DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
-  tenant   Tenant      @relation(fields: [tenantId], references: [id])
-  user     User        @relation(fields: [userId], references: [id])
-  vendor   Vendor      @relation(fields: [vendorId], references: [id])
+  tenant   Tenant         @relation(fields: [tenantId], references: [id])
+  user     User           @relation(fields: [userId], references: [id])
+  vendor   Vendor         @relation(fields: [vendorId], references: [id])
   items    OrderItem[]
   tracking OrderTracking?
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([userId])
   @@index([vendorId])
   @@index([orderNumber])
-  @@unique([id, tenantId])
   @@map("orders")
 }
 
@@ -2790,17 +2871,17 @@ enum PaymentStatus {
 
 // Order items
 model OrderItem {
-  id              String   @id @default(cuid())
-  tenantId        String
-  orderId         String
-  productId       String
-  variantId       String?
-  name            String
-  sku             String?
-  quantity        Int
-  price           Float
-  total           Float
-  createdAt       DateTime @default(now())
+  id        String   @id @default(cuid())
+  tenantId  String
+  orderId   String
+  productId String
+  variantId String?
+  name      String
+  sku       String?
+  quantity  Int
+  price     Float
+  total     Float
+  createdAt DateTime @default(now())
 
   tenant  Tenant          @relation(fields: [tenantId], references: [id])
   order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -2838,24 +2919,24 @@ model OrderTracking {
 
 // Product reviews
 model ProductReview {
-  id          String   @id @default(cuid())
-  tenantId    String
-  productId   String
-  userId      String
-  orderId     String?
-  rating      Int
-  title       String?
-  content     String?  @db.Text
-  images      String[]
-  isVerified  Boolean  @default(false)
-  isApproved  Boolean  @default(true)
-  helpfulCount Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  tenantId     String
+  productId    String
+  userId       String
+  orderId      String?
+  rating       Int
+  title        String?
+  content      String?  @db.Text
+  images       String[]
+  isVerified   Boolean  @default(false)
+  isApproved   Boolean  @default(true)
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id])
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user   User    @relation(fields: [userId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
 
   @@unique([id, tenantId])
   @@unique([productId, userId])
@@ -2867,18 +2948,18 @@ model ProductReview {
 
 // Vendor reviews
 model VendorReview {
-  id          String   @id @default(cuid())
-  tenantId    String
-  vendorId    String
-  userId      String
-  orderId     String?
-  rating      Int
-  title       String?
-  content     String?  @db.Text
-  isVerified  Boolean  @default(false)
-  isApproved  Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  tenantId   String
+  vendorId   String
+  userId     String
+  orderId    String?
+  rating     Int
+  title      String?
+  content    String?  @db.Text
+  isVerified Boolean  @default(false)
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
   vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
@@ -2898,8 +2979,8 @@ model AIPlatformUsage {
   id        String   @id @default(cuid())
   userId    String
   tenantId  String
-  action    String   // chat | image | speech | code
-  model     String   // ollama | claude | comfyui | whisper
+  action    String // chat | image | speech | code
+  model     String // ollama | claude | comfyui | whisper
   tokens    Int      @default(0)
   cost      Float    @default(0)
   latencyMs Int
@@ -2918,7 +2999,7 @@ model AIConversation {
   tenantId  String
   title     String      @default("New Conversation")
   model     String      @default("llama3.1")
-  provider  String?    // ollama | claude | openai | gemini
+  provider  String? // ollama | claude | openai | gemini
   messages  AIMessage[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -2934,10 +3015,10 @@ model AIMessage {
   id             String         @id @default(cuid())
   tenantId       String
   conversationId String
-  conversation   AIConversation @relation(fields:[conversationId], references:[id], onDelete: Cascade)
-  role           String         // user | assistant | system
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String // user | assistant | system
   content        String         @db.Text
-  provider       String?        // ollama | claude | openai | gemini
+  provider       String? // ollama | claude | openai | gemini
   model          String?
   tokensUsed     Int            @default(0)
   filesMeta      Json?
@@ -2950,17 +3031,17 @@ model AIMessage {
 
 // Assistant Memory - persistent memory per user per assistant
 model AssistantMemory {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   tenantId   String
-  assistant  String   // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
-  memoryType String   // user_profile | preference | journey | milestone | flag | skill | goal
-  content    String   @db.Text
-  confidence Float    @default(1.0)
-  source     String?  // Which feature created this memory
+  assistant  String // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
+  memoryType String // user_profile | preference | journey | milestone | flag | skill | goal
+  content    String    @db.Text
+  confidence Float     @default(1.0)
+  source     String? // Which feature created this memory
   expiresAt  DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@unique([id, tenantId])
   @@unique([userId, assistant, memoryType])
@@ -2973,10 +3054,10 @@ model AssistantMemory {
 model AssistantAction {
   id           String    @id @default(cuid())
   tenantId     String
-  assistant    String    // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
-  actionType   String    // notify | escalate | recommend | trigger | generate | flag | onboard | match
+  assistant    String // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
+  actionType   String // notify | escalate | recommend | trigger | generate | flag | onboard | match
   targetUserId String?
-  targetLayer  String?   // community | academy | market | work | intelligence
+  targetLayer  String? // community | academy | market | work | intelligence
   targetId     String?
   description  String    @db.Text
   payload      Json?
@@ -2998,19 +3079,19 @@ model AssistantAction {
 
 // Agentic Loop - tracks cross-layer automation flows
 model AgenticLoop {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
   tenantId      String
-  loopType      String   // skill_detection | course_recommendation | work_match | vendor_onboarding
-  trigger       String   // What started this loop
-  currentStep   Int      @default(0)
-  steps         Json     // Array of step objects: { step, assistant, action, status }
-  outcome       String?  @db.Text
+  loopType      String // skill_detection | course_recommendation | work_match | vendor_onboarding
+  trigger       String // What started this loop
+  currentStep   Int       @default(0)
+  steps         Json // Array of step objects: { step, assistant, action, status }
+  outcome       String?   @db.Text
   revenueImpact Float?
-  status        String   // active | completed | failed | paused
+  status        String // active | completed | failed | paused
   completedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@unique([id, tenantId])
   @@index([userId, status])
@@ -3020,21 +3101,21 @@ model AgenticLoop {
 
 // AI Interaction - detailed log of every AI request
 model AIInteraction {
-  id          String   @id @default(cuid())
-  userId      String
-  tenantId    String
-  layer       String   // community | academy | market | work | intelligence | core
-  agentType   String   // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
-  input       String   @db.Text
-  output      String?  @db.Text
-  model       String?
-  provider    String?
-  tokens      Int      @default(0)
-  latencyMs   Int
-  cost        Float    @default(0)
-  filesMeta   Json?
-  metadata    Json?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  layer     String // community | academy | market | work | intelligence | core
+  agentType String // omega | aria | nova | sage | atlas | forge | circuit | nexus | herald
+  input     String   @db.Text
+  output    String?  @db.Text
+  model     String?
+  provider  String?
+  tokens    Int      @default(0)
+  latencyMs Int
+  cost      Float    @default(0)
+  filesMeta Json?
+  metadata  Json?
+  createdAt DateTime @default(now())
 
   @@unique([id, tenantId])
   @@index([userId, createdAt])
@@ -3049,41 +3130,41 @@ model AIInteraction {
 
 // Job Listing - posted by clients
 model JobListing {
-  id              String        @id @default(cuid())
-  tenantId        String
-  clientId        String
-  title           String
-  description     String        @db.Text
-  requirements    String?       @db.Text
-  category        String        // software_dev | digital_marketing | creative | writing | finance | business | music | other
-  skills          String[]
-  experienceLevel String        // entry | mid | senior | expert
-  jobType        String        // fixed | hourly
-  budgetMin      Float?
-  budgetMax      Float?
-  currency       String        @default("USD")
-  duration       String?       // weeks/months estimate
-  location       String?       // remote | specific country/city
-  deadline       DateTime?
-  status         JobStatus     @default(OPEN)
-  isFeatured     Boolean       @default(false)
-  isVerified     Boolean       @default(false)
-  viewCount      Int           @default(0)
-  applicationCount Int         @default(0)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  expiresAt       DateTime?
+  id               String    @id @default(cuid())
+  tenantId         String
+  clientId         String
+  title            String
+  description      String    @db.Text
+  requirements     String?   @db.Text
+  category         String // software_dev | digital_marketing | creative | writing | finance | business | music | other
+  skills           String[]
+  experienceLevel  String // entry | mid | senior | expert
+  jobType          String // fixed | hourly
+  budgetMin        Float?
+  budgetMax        Float?
+  currency         String    @default("USD")
+  duration         String? // weeks/months estimate
+  location         String? // remote | specific country/city
+  deadline         DateTime?
+  status           JobStatus @default(OPEN)
+  isFeatured       Boolean   @default(false)
+  isVerified       Boolean   @default(false)
+  viewCount        Int       @default(0)
+  applicationCount Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  expiresAt        DateTime?
 
-  tenant      Tenant            @relation(fields: [tenantId], references: [id])
-  client      User              @relation(fields: [clientId], references: [id])
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  client       User             @relation(fields: [clientId], references: [id])
   applications JobApplication[]
-  contracts   Contract[]
+  contracts    Contract[]
 
+  @@unique([id, tenantId])
   @@index([tenantId, status])
   @@index([clientId])
   @@index([category])
   @@index([createdAt])
-  @@unique([id, tenantId])
   @@map("job_listings")
 }
 
@@ -3098,43 +3179,43 @@ enum JobStatus {
 
 // Freelancer Profile - talent's public profile
 model FreelancerProfile {
-  id              String           @id @default(cuid())
-  userId          String           @unique
+  id              String       @id @default(cuid())
+  userId          String       @unique
   tenantId        String
-  title           String?          // e.g. "Senior React Developer"
-  bio             String?          @db.Text
+  title           String? // e.g. "Senior React Developer"
+  bio             String?      @db.Text
   hourlyRate      Float?
-  availability    Availability    @default(AVAILABLE)
+  availability    Availability @default(AVAILABLE)
   yearsExperience Int?
-  languages       String[]         @default(["English"])
+  languages       String[]     @default(["English"])
   skills          String[]
   portfolioUrl    String?
   linkedInUrl     String?
   githubUrl       String?
   timezone        String?
   country         String?
-  isVerified      Boolean          @default(false)
-  trustScore      Float            @default(0)
-  totalEarnings   Float            @default(0)
-  totalJobs       Int              @default(0)
-  successRate     Float            @default(0)
-  responseTime    Int              @default(24) // hours
-  badges          String[]         @default([])
-  certificates    String[]         @default([]) // Academy certificate IDs
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  isVerified      Boolean      @default(false)
+  trustScore      Float        @default(0)
+  totalEarnings   Float        @default(0)
+  totalJobs       Int          @default(0)
+  successRate     Float        @default(0)
+  responseTime    Int          @default(24) // hours
+  badges          String[]     @default([])
+  certificates    String[]     @default([]) // Academy certificate IDs
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  user           User              @relation(fields: [userId], references: [id])
-  tenant         Tenant            @relation(fields: [tenantId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
   applications   JobApplication[]
   contracts      Contract[]
   portfolioItems PortfolioItem[]
 
+  @@unique([id, tenantId])
+  @@unique([userId, tenantId])
   @@index([tenantId])
   @@index([skills])
   @@index([availability])
-  @@unique([id, tenantId])
-  @@unique([userId, tenantId])
   @@map("freelancer_profiles")
 }
 
@@ -3146,16 +3227,16 @@ enum Availability {
 
 // Portfolio Items - freelancer's work samples
 model PortfolioItem {
-  id             String   @id @default(cuid())
-  tenantId       String
-  freelancerId   String
-  title          String
-  description    String?  @db.Text
-  category       String?
-  url            String?
-  imageUrl       String?
-  toolsUsed      String[]
-  createdAt      DateTime @default(now())
+  id           String   @id @default(cuid())
+  tenantId     String
+  freelancerId String
+  title        String
+  description  String?  @db.Text
+  category     String?
+  url          String?
+  imageUrl     String?
+  toolsUsed    String[]
+  createdAt    DateTime @default(now())
 
   tenant     Tenant            @relation(fields: [tenantId], references: [id])
   freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
@@ -3168,29 +3249,29 @@ model PortfolioItem {
 
 // Job Application - freelancer applying to a job
 model JobApplication {
-  id            String             @id @default(cuid())
+  id            String            @id @default(cuid())
   tenantId      String
   jobId         String
   freelancerId  String
-  coverLetter   String?            @db.Text
+  coverLetter   String?           @db.Text
   proposedRate  Float?
   estimatedDays Int?
   status        ApplicationStatus @default(PENDING)
   cvUrl         String?
   portfolioUrls String[]
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   tenant     Tenant            @relation(fields: [tenantId], references: [id])
-  job        JobListing         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job        JobListing        @relation(fields: [jobId], references: [id], onDelete: Cascade)
   freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, freelancerId])
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([jobId])
   @@index([freelancerId])
   @@index([status])
-  @@unique([id, tenantId])
   @@map("job_applications")
 }
 
@@ -3206,41 +3287,41 @@ enum ApplicationStatus {
 
 // Contract - hired relationship
 model Contract {
-  id              String          @id @default(cuid())
-  tenantId        String
-  jobId           String?
-  clientId        String
-  freelancerId    String
-  title           String
-  description     String?         @db.Text
-  status          ContractStatus  @default(ACTIVE)
-  startDate       DateTime
-  endDate         DateTime?
-  paymentType     String          // fixed | hourly
-  amount          Float           // total for fixed, hourly rate for hourly
-  currency        String          @default("USD")
-  hoursLogged     Float           @default(0)
-  hoursApproved   Float           @default(0)
-  platformFee     Float           @default(0)
-  clientRating    Float?
+  id               String         @id @default(cuid())
+  tenantId         String
+  jobId            String?
+  clientId         String
+  freelancerId     String
+  title            String
+  description      String?        @db.Text
+  status           ContractStatus @default(ACTIVE)
+  startDate        DateTime
+  endDate          DateTime?
+  paymentType      String // fixed | hourly
+  amount           Float // total for fixed, hourly rate for hourly
+  currency         String         @default("USD")
+  hoursLogged      Float          @default(0)
+  hoursApproved    Float          @default(0)
+  platformFee      Float          @default(0)
+  clientRating     Float?
   freelancerRating Float?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  completedAt     DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  completedAt      DateTime?
 
-  tenant     Tenant            @relation(fields: [tenantId], references: [id])
-  job        JobListing?        @relation(fields: [jobId], references: [id], onDelete: SetNull)
-  client     User               @relation("ClientContracts", fields: [clientId], references: [id])
-  freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id])
+  tenant     Tenant              @relation(fields: [tenantId], references: [id])
+  job        JobListing?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  client     User                @relation("ClientContracts", fields: [clientId], references: [id])
+  freelancer FreelancerProfile   @relation(fields: [freelancerId], references: [id])
   milestones ContractMilestone[]
   escrow     EscrowPayment?
   reviews    WorkReview[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@index([clientId])
   @@index([freelancerId])
   @@index([status])
-  @@unique([id, tenantId])
   @@map("contracts")
 }
 
@@ -3255,17 +3336,17 @@ enum ContractStatus {
 
 // Contract Milestone - for fixed-price contracts
 model ContractMilestone {
-  id          String           @id @default(cuid())
+  id          String          @id @default(cuid())
   tenantId    String
   contractId  String
-  title      String
-  description String?          @db.Text
+  title       String
+  description String?         @db.Text
   amount      Float
   dueDate     DateTime?
-  status      MilestoneStatus  @default(PENDING)
+  status      MilestoneStatus @default(PENDING)
   completedAt DateTime?
   paidAt      DateTime?
-  createdAt   DateTime         @default(now())
+  createdAt   DateTime        @default(now())
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id])
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
@@ -3287,18 +3368,18 @@ enum MilestoneStatus {
 
 // Escrow Payment - secure payment handling
 model EscrowPayment {
-  id              String         @id @default(cuid())
+  id              String       @id @default(cuid())
   tenantId        String
-  contractId      String         @unique
+  contractId      String       @unique
   amount          Float
-  currency        String         @default("USD")
-  status          EscrowStatus   @default(HELD)
+  currency        String       @default("USD")
+  status          EscrowStatus @default(HELD)
   clientId        String
   freelancerId    String
   stripePaymentId String?
   releasedAt      DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id])
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
@@ -3319,14 +3400,14 @@ enum EscrowStatus {
 
 // Work Review - client/freelancer reviews
 model WorkReview {
-  id           String   @id @default(cuid())
-  tenantId     String
-  contractId   String
-  reviewerId   String   // client or freelancer
-  revieweeId   String   // freelancer or client
-  rating       Float    // 1-5
-  comment      String?  @db.Text
-  createdAt    DateTime @default(now())
+  id         String   @id @default(cuid())
+  tenantId   String
+  contractId String
+  reviewerId String // client or freelancer
+  revieweeId String // freelancer or client
+  rating     Float // 1-5
+  comment    String?  @db.Text
+  createdAt  DateTime @default(now())
 
   tenant   Tenant   @relation(fields: [tenantId], references: [id])
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
