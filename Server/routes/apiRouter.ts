@@ -41,6 +41,7 @@ import workRoutes from "./workRoutes.js";
 import liveSessionRoutes from "./liveSessionRoutes.js";
 import quizRoutes from "./quizRoutes.js";
 import lectureUploadRoutes from "./lectureUploadRoutes.js";
+import cloudRoutes from "./cloudRoutes.js";
 
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
@@ -85,6 +86,7 @@ const gatewayRoutes = [
   "/work",
   "/quizzes",
   "/lecture-uploads",
+  "/cloud",
 ];
 
 router.get("/", (_req, res) => {
@@ -142,5 +144,6 @@ router.use("/orders", orderRoutes);
 router.use("/work", workRoutes);
 router.use("/quizzes", quizRoutes);
 router.use("/lecture-uploads", lectureUploadRoutes);
+router.use("/cloud", cloudRoutes);
 
 export default router;

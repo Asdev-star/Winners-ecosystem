@@ -131,6 +131,15 @@ model Tenant {
   contractMilestones            ContractMilestone[]
   escrowPayments                EscrowPayment[]
   workReviews                   WorkReview[]
+  // Cloud Layer relations
+  apiKeys                       ApiKey[]
+  connectorInstalls             ConnectorInstall[]
+  webhookSubscriptions          WebhookSubscription[]
+  automations                   Automation[]
+  aiAgents                      AIAgent[]
+  usageLogs                     UsageLog[]
+  siteDeploys                   SiteDeploy[]
+  dnsZones                      DNSZone[]
 
   @@map("tenants")
 }
@@ -3418,4 +3427,255 @@ model WorkReview {
   @@index([reviewerId])
   @@index([revieweeId])
   @@map("work_reviews")
+}
+
+// ─── PHASE 8 — WINNERS CLOUD LAYER ───────────────────────────────────────────
+
+model ApiKey {
+  id           String    @id @default(cuid())
+  tenantId     String
+  userId       String
+  name         String
+  keyHash      String    @unique
+  prefix       String
+  scopes       String[]
+  rateLimitRpm Int       @default(60)
+  lastUsedAt   DateTime?
+  expiresAt    DateTime?
+  revoked      Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  usageLogs UsageLog[]
+
+  @@index([tenantId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+model Connector {
+  id           String             @id @default(cuid())
+  name         String
+  slug         String             @unique
+  description  String             @db.Text
+  logoUrl      String             @default("")
+  category     String
+  authType     String
+  tier         String             @default("community")
+  price        Float              @default(0)
+  installCount Int                @default(0)
+  rating       Float              @default(0)
+  reviewCount  Int                @default(0)
+  developerId  String?
+  published    Boolean            @default(false)
+  verified     Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+
+  installs ConnectorInstall[]
+
+  @@index([category])
+  @@index([published, verified])
+  @@map("connectors")
+}
+
+model ConnectorInstall {
+  id            String    @id @default(cuid())
+  connectorId   String
+  tenantId      String
+  userId        String
+  credentials   Bytes
+  credentialsIv String
+  active        Boolean   @default(true)
+  lastUsedAt    DateTime?
+  installedAt   DateTime  @default(now())
+
+  connector Connector @relation(fields: [connectorId], references: [id])
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@unique([connectorId, tenantId])
+  @@index([tenantId])
+  @@map("connector_installs")
+}
+
+model WebhookSubscription {
+  id        String            @id @default(cuid())
+  tenantId  String
+  userId    String
+  url       String
+  events    String[]
+  secret    String
+  active    Boolean           @default(true)
+  failCount Int               @default(0)
+  createdAt DateTime          @default(now())
+
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId])
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id             String              @id @default(cuid())
+  subscriptionId String
+  event          String
+  payload        Json
+  statusCode     Int?
+  responseMs     Int?
+  success        Boolean             @default(false)
+  attempts       Int                 @default(1)
+  nextRetryAt    DateTime?
+  createdAt      DateTime            @default(now())
+
+  subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId])
+  @@map("webhook_deliveries")
+}
+
+model Automation {
+  id          String          @id @default(cuid())
+  tenantId    String
+  userId      String
+  name        String
+  description String?
+  trigger     Json
+  steps       Json
+  active      Boolean         @default(true)
+  runCount    Int             @default(0)
+  lastRunAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tenant Tenant          @relation(fields: [tenantId], references: [id])
+  runs   AutomationRun[]
+
+  @@index([tenantId])
+  @@map("automations")
+}
+
+model AutomationRun {
+  id           String     @id @default(cuid())
+  automationId String
+  status       String
+  startedAt    DateTime   @default(now())
+  completedAt  DateTime?
+  logs         Json
+  error        String?    @db.Text
+  creditsUsed  Int        @default(0)
+
+  automation Automation @relation(fields: [automationId], references: [id])
+
+  @@index([automationId])
+  @@map("automation_runs")
+}
+
+model AIAgent {
+  id                    String     @id @default(cuid())
+  tenantId              String
+  userId                String
+  name                  String
+  description           String     @db.Text
+  goal                  String     @db.Text
+  baseAssistant         String     @default("omega")
+  tools                 String[]
+  schedule              String?
+  triggerEvent          String?
+  maxRuntime            Int        @default(300)
+  maxCreditsPerRun      Int        @default(100)
+  humanApprovalRequired Boolean    @default(false)
+  active                Boolean    @default(true)
+  runCount              Int        @default(0)
+  lastRunAt             DateTime?
+  createdAt             DateTime   @default(now())
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id])
+  runs   AgentRun[]
+
+  @@index([tenantId])
+  @@map("ai_agents")
+}
+
+model AgentRun {
+  id          String    @id @default(cuid())
+  agentId     String
+  status      String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  reasoning   Json
+  actionsLog  Json
+  result      String?   @db.Text
+  creditsUsed Int       @default(0)
+  approved    Boolean?
+
+  agent AIAgent @relation(fields: [agentId], references: [id])
+
+  @@index([agentId])
+  @@map("agent_runs")
+}
+
+model UsageLog {
+  id       String   @id @default(cuid())
+  tenantId String
+  userId   String
+  apiKeyId String?
+  action   String
+  credits  Int
+  metadata Json?
+  billedAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  apiKey ApiKey? @relation(fields: [apiKeyId], references: [id])
+
+  @@index([tenantId, billedAt])
+  @@map("usage_logs")
+}
+
+model SiteDeploy {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  domain    String?
+  subdomain String   @unique
+  framework String
+  status    String
+  url       String?
+  sslActive Boolean  @default(false)
+  deployedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("site_deploys")
+}
+
+model DNSZone {
+  id        String      @id @default(cuid())
+  tenantId  String
+  domain    String      @unique
+  verified  Boolean     @default(false)
+  ns        String[]
+  createdAt DateTime    @default(now())
+
+  tenant  Tenant      @relation(fields: [tenantId], references: [id])
+  records DNSRecord[]
+
+  @@map("dns_zones")
+}
+
+model DNSRecord {
+  id        String   @id @default(cuid())
+  zoneId    String
+  type      String
+  name      String
+  value     String
+  ttl       Int      @default(3600)
+  priority  Int?
+  createdAt DateTime @default(now())
+
+  zone DNSZone @relation(fields: [zoneId], references: [id])
+
+  @@index([zoneId])
+  @@map("dns_records")
 }
