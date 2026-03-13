@@ -441,8 +441,7 @@ export default function WinnersIntelligencePage() {
     if (assistantId === "aria") {
       navigate("/intelligence/aria");
     } else {
-      // Future: navigate to specific assistant chat
-      console.log(`Opening ${assistantId}...`);
+      navigate(`/intelligence/agents/${assistantId}`);
     }
   };
 
@@ -544,6 +543,38 @@ export default function WinnersIntelligencePage() {
             <div className="neural-node" style={{background: "var(--blue)"}}>☁️</div>
             <div className="neural-node" style={{background: "var(--purple)"}}>🧬</div>
           </div>
+        </div>
+
+        {/* Quick Nav */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 32 }}>
+          {[
+            { label: "Agentic Loop", emoji: "🔁", path: "/intelligence/loop", desc: "Track your progress" },
+            { label: "Memory Manager", emoji: "🧠", path: "/intelligence/memory", desc: "What supervisors know" },
+            { label: "AI Credits", emoji: "⚡", path: "/intelligence/credits", desc: "Balance & history" },
+            { label: "Weekly Reports", emoji: "📊", path: "/intelligence/reports", desc: "OMEGA intelligence" },
+          ].map((item) => (
+            <div
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 6,
+                padding: "14px 16px",
+                cursor: "pointer",
+                transition: "border-color 200ms ease",
+                position: "relative",
+                overflow: "hidden",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--purple)")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+            >
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, var(--purple), transparent)" }} />
+              <div style={{ fontSize: 20, marginBottom: 6 }}>{item.emoji}</div>
+              <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 13, color: "var(--text)", marginBottom: 2 }}>{item.label}</div>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{item.desc}</div>
+            </div>
+          ))}
         </div>
 
         {/* Assistant Grid */}

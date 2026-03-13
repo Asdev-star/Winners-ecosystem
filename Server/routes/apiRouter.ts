@@ -47,6 +47,8 @@ import omegaRoutes from "./omegaRoutes.js";
 import supervisorRoutes from "./supervisorRoutes.js";
 import communityExtrasRoutes from "./communityExtrasRoutes.js";
 import autonomousRoutes from "./autonomousRoutes.js";
+import agenticLoopRoutes from "./agenticLoopRoutes.js";
+import creditRoutes from "./creditRoutes.js";
 
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
@@ -97,6 +99,8 @@ const gatewayRoutes = [
   "/supervisors",
   "/community-extras",
   "/insights",
+  "/agentic",
+  "/credits",
 ];
 
 router.get("/", (_req, res) => {
@@ -160,5 +164,7 @@ router.use("/omega", omegaRoutes);
 router.use("/supervisors", supervisorRoutes);
 router.use("/community-extras", communityExtrasRoutes);
 router.use("/insights", autonomousRoutes);
+router.use("/agentic", agenticLoopRoutes);
+router.use("/credits", creditRoutes);
 
 export default router;

@@ -9,6 +9,8 @@ import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
 import { getOnlineUsers, broadcastToTenant, WS_EVENTS } from "../services/wsService.js";
+import { detectSkillsInPost } from "../services/novaSkillDetection.js";
+import { triggerAgenticLoop } from "../services/agenticLoopService.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -159,6 +161,18 @@ router.post("/", async (req: Request, res: Response) => {
       type:    WS_EVENTS.NEW_POST,
       post:   { id: post.id, content: post.content, author: { id: authorId } },
       subtype: "FEED_POST",
+    });
+
+    // NOVA skill detection (fire-and-forget — never blocks response)
+    detectSkillsInPost(post.id, post.content, authorId, tenantId);
+
+    // Agentic Loop trigger (fire-and-forget)
+    triggerAgenticLoop({
+      userId: authorId,
+      tenantId,
+      triggerType: "community_post",
+      layer: "community",
+      data: { postId: post.id },
     });
 
     return res.status(201).json({

@@ -56,6 +56,11 @@ import WinnersChat from "./features/intelligence/WinnersChat";
 import WinnersIntelligencePage from "./features/intelligence/WinnersIntelligencePage";
 import AIPlatformPage from "./features/intelligence/ai-platform/AIPlatformPage";
 import OmegaDashboard from "./features/intelligence/OmegaDashboard";
+import SupervisorPage from "./features/intelligence/SupervisorPage";
+import LoopTrackerPage from "./features/intelligence/LoopTrackerPage";
+import MemoryManagerPage from "./features/intelligence/MemoryManagerPage";
+import CreditsPage from "./features/intelligence/CreditsPage";
+import ReportsPage from "./features/intelligence/ReportsPage";
 import InstructorDashboard from "./features/academy/InstructorDashboard";
 import CourseCreatePage from "./features/academy/CourseCreatePage";
 import LearningPathsPage from "./features/academy/LearningPathsPage";
@@ -199,6 +204,11 @@ function App() {
             <Route path="intelligence/aria" element={<WinnersChat />} />
             <Route path="intelligence/omega" element={<OmegaDashboard />} />
             <Route path="intelligence/platform" element={<AIPlatformPage />} />
+            <Route path="intelligence/agents/:name" element={<SupervisorPage />} />
+            <Route path="intelligence/loop" element={<LoopTrackerPage />} />
+            <Route path="intelligence/memory" element={<MemoryManagerPage />} />
+            <Route path="intelligence/credits" element={<CreditsPage />} />
+            <Route path="intelligence/reports" element={<ReportsPage />} />
             <Route
               path="academy/instructor"
               element={<InstructorDashboard />}

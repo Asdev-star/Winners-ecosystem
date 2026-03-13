@@ -5,6 +5,7 @@
 import { Router, Request, Response } from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { checkAICredits, deductAICredits } from "../middleware/aiCreditsMiddleware.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -262,7 +263,7 @@ function isValidAssistant(key: string): key is AssistantKey {
 
 // ─── POST /chat/message — streaming SSE ───────────────────────────────────────
 
-router.post("/message", async (req: Request, res: Response) => {
+router.post("/message", checkAICredits, async (req: Request, res: Response) => {
   const { message, history = [], assistant: rawAssistant, context } = req.body as {
     message: string;
     history?: Array<{ role: "user" | "assistant"; content: string }>;
@@ -324,6 +325,12 @@ router.post("/message", async (req: Request, res: Response) => {
     res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
     res.write("data: [DONE]\n\n");
     res.end();
+
+    if (req.user) {
+      setImmediate(() => {
+        deductAICredits(req.user!.userId, req.user!.tenantId, assistantKey);
+      });
+    }
   } catch (err: unknown) {
     console.error(`[chatRoutes] ${assistantKey} stream error:`, err);
     const fallback = FALLBACK_MESSAGES[assistantKey];

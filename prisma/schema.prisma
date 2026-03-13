@@ -3133,6 +3133,54 @@ model AIInteraction {
   @@map("ai_interactions")
 }
 
+// OMEGA Daily Briefing - cached cross-layer summary per user
+model OMEGABriefing {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  tenantId    String
+  content     String    @db.Text
+  highlights  Json
+  topAction   Json
+  loopStatus  Json
+  generatedAt DateTime  @default(now())
+  expiresAt   DateTime
+  openedAt    DateTime?
+  actedOnAt   DateTime?
+
+  @@index([tenantId])
+  @@map("omega_briefings")
+}
+
+// AI Credit Ledger - every credit transaction
+model AICredit {
+  id          String   @id @default(cuid())
+  userId      String
+  tenantId    String
+  action      String
+  amount      Int
+  balance     Int
+  description String
+  refId       String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([tenantId])
+  @@map("ai_credits")
+}
+
+// User Credit Balance - current balance per user
+model UserCreditBalance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  tenantId  String
+  balance   Int      @default(200)
+  tier      String   @default("free")
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("user_credit_balances")
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PHASE 6: WINNERS WORK — Freelance Marketplace & Jobs
 // ═══════════════════════════════════════════════════════════════════════════════

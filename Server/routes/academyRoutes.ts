@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { createCourseCheckoutSession } from "../services/stripeService.js";
+import { triggerAgenticLoop } from "../services/agenticLoopService.js";
 
 const router = Router();
 
@@ -378,6 +379,14 @@ router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
         timeSpent: item.watchedSecs,
       })),
     });
+
+    triggerAgenticLoop({
+      userId,
+      tenantId: req.user!.tenantId,
+      triggerType: "course_enrolled",
+      layer: "academy",
+      data: { courseId, courseTitle: enrollment.course.title },
+    });
   } catch (error) {
     console.error("Error enrolling in course:", error);
     res.status(500).json({ error: "Failed to enroll" });
@@ -488,6 +497,16 @@ router.post("/lessons/:lessonId/progress", authMiddleware, async (req, res) => {
       ...progress,
       timeSpent: progress.watchedSecs,
     });
+
+    if (completed) {
+      triggerAgenticLoop({
+        userId,
+        tenantId: req.user!.tenantId,
+        triggerType: "lesson_completed",
+        layer: "academy",
+        data: { lessonId, courseId: lesson.module.courseId, courseTitle: lesson.module.course.title },
+      });
+    }
   } catch (error) {
     console.error("Error updating progress:", error);
     res.status(500).json({ error: "Failed to update progress" });
@@ -552,6 +571,14 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
     });
 
     res.status(201).json(certificate);
+
+    triggerAgenticLoop({
+      userId,
+      tenantId: req.user!.tenantId,
+      triggerType: "certificate_earned",
+      layer: "academy",
+      data: { certificateId: certificate.id, courseId },
+    });
   } catch (error) {
     console.error("Error generating certificate:", error);
     res.status(500).json({ error: "Failed to generate certificate" });

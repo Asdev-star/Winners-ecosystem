@@ -2,9 +2,13 @@
 // OMEGA Master Orchestrator — Real Ecosystem Health Dashboard
 
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import AssistantPanel from "../../components/ui/AssistantPanel";
+import OMEGABriefingCard from "./components/OMEGABriefingCard";
+import AgenticLoopVisualiser from "./components/AgenticLoopVisualiser";
+import CreditMeter from "./components/CreditMeter";
+import AutoActionCard from "./components/AutoActionCard";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 
@@ -347,8 +351,18 @@ const HEALTH_COLOR: Record<string, string> = {
   excellent: "var(--green)", good: "var(--gold)", needs_attention: "var(--red)", developing: "var(--text-dim)",
 };
 
+interface PendingAction {
+  id: string;
+  assistant: string;
+  actionType: string;
+  description: string;
+  payload?: Record<string, unknown>;
+  createdAt: string;
+}
+
 export default function OmegaDashboard() {
   const { user, token } = useAuthStore();
+  const navigate = useNavigate();
 
   const [stats, setStats]             = useState<EcosystemStats | null>(null);
   const [workStats, setWorkStats]     = useState<WorkStats | null>(null);
@@ -356,16 +370,21 @@ export default function OmegaDashboard() {
   const [analysis, setAnalysis]       = useState<OmegaAnalysis | null>(null);
   const [loading, setLoading]         = useState(true);
   const [analysisLoading, setAnalysisLoading] = useState(true);
+  const [pendingActions, setPendingActions]   = useState<PendingAction[]>([]);
+  const [loopState, setLoopState]             = useState<{ stage: string; stageIndex: number; loopCount: number; completedStages: string[] } | null>(null);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const load = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const [revRes, workRes, actRes] = await Promise.allSettled([
+      const [revRes, workRes, actRes, actionsRes, loopRes] = await Promise.allSettled([
         fetch(`${API}/analytics/revenue?period=30d`, { headers }),
         fetch(`${API}/work/stats`, { headers }),
         fetch(`${API}/activity?limit=6`, { headers }),
+        fetch(`${API}/agentic/actions/${user.id}`, { headers }),
+        fetch(`${API}/agentic/loop/${user.id}`, { headers }),
       ]);
 
       if (revRes.status === "fulfilled" && revRes.value.ok) {
@@ -386,10 +405,22 @@ export default function OmegaDashboard() {
         const d = await actRes.value.json();
         setActivity(d.activities ?? d.items ?? []);
       }
+
+      if (actionsRes.status === "fulfilled" && actionsRes.value.ok) {
+        const d = await actionsRes.value.json();
+        setPendingActions(d.actions ?? []);
+      }
+
+      if (loopRes.status === "fulfilled" && loopRes.value.ok) {
+        const d = await loopRes.value.json();
+        const stageOrder = ["community", "academy", "work", "market", "intelligence"];
+        const completedStages = stageOrder.slice(0, d.stageIndex ?? 0);
+        setLoopState({ stage: d.stage ?? "community", stageIndex: d.stageIndex ?? 0, loopCount: d.loopCount ?? 0, completedStages });
+      }
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   const loadAnalysis = useCallback(async () => {
     setAnalysisLoading(true);
@@ -416,11 +447,17 @@ export default function OmegaDashboard() {
             <h1 className="omega-title">OMEGA <em>Dashboard</em></h1>
             <div className="omega-subtitle">Master Orchestrator · Cross-Layer Intelligence · Agentic Loop Monitor</div>
           </div>
-          <div className="omega-badge">
-            <span className="omega-badge-dot" />
-            Master Orchestrator Active
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <CreditMeter compact onClick={() => navigate("/intelligence/credits")} />
+            <div className="omega-badge">
+              <span className="omega-badge-dot" />
+              Master Orchestrator Active
+            </div>
           </div>
         </div>
+
+        {/* OMEGA Briefing */}
+        <OMEGABriefingCard />
 
         {/* Ecosystem Stats */}
         <div className="omega-stats-row">
@@ -491,41 +528,52 @@ export default function OmegaDashboard() {
         <div className="omega-loop-section">
           <div className="omega-loop-header">
             <div className="omega-loop-title">Agentic Loop — Ecosystem Compounding Engine</div>
-            <div className="omega-loop-badge">Loop #{(user?.name ?? "").slice(0,1) || "1"} Active</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {analysis && (
+                <span style={{
+                  fontFamily: "'Space Mono', monospace", fontSize: 9, padding: "3px 10px",
+                  borderRadius: 3, border: "1px solid",
+                  color: HEALTH_COLOR[analysis.insights.ecosystemHealth] ?? "var(--text-dim)",
+                  borderColor: HEALTH_COLOR[analysis.insights.ecosystemHealth] ?? "var(--border)",
+                  background: "rgba(0,0,0,0.2)", textTransform: "uppercase", letterSpacing: "0.1em",
+                }}>
+                  {analysis.insights.ecosystemHealth.replace("_", " ")} health
+                </span>
+              )}
+              <Link to="/intelligence/loop" style={{ textDecoration: "none" }}>
+                <div className="omega-loop-badge">View Full Loop →</div>
+              </Link>
+            </div>
           </div>
-          <div className="omega-loop-visual">
-            {LOOP_STAGES.map((stage, idx) => (
-              <div
-                key={stage.id}
-                className={`omega-loop-node ${idx < loopStageActive ? "completed" : ""} ${idx === loopStageActive ? "current" : ""}`}
-              >
-                <div className="omega-loop-node-icon">{stage.icon}</div>
-                <span className="omega-loop-node-label">{stage.label}</span>
+          <div style={{ display: "flex", gap: 32, alignItems: "center", flexWrap: "wrap" }}>
+            <AgenticLoopVisualiser
+              currentStage={loopState?.stage ?? analysis?.currentStage ?? "community"}
+              completedStages={loopState?.completedStages ?? []}
+              loopCount={loopState?.loopCount ?? 0}
+              size={260}
+              onStageClick={(stage) => {
+                const paths: Record<string, string> = { community: "/community", academy: "/academy", work: "/work", market: "/market", intelligence: "/intelligence" };
+                if (paths[stage]) navigate(paths[stage]);
+              }}
+            />
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "'Space Mono', monospace", marginBottom: 8 }}>
+                Active stage: <span style={{ color: "var(--gold)", textTransform: "capitalize" }}>
+                  {loopState?.stage ?? analysis?.currentStage ?? "community"}
+                </span>
               </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "'Space Mono', monospace" }}>
-              Active stage: <span style={{ color: "var(--gold)", textTransform: "capitalize" }}>
-                {analysisLoading ? "—" : (analysis?.currentStage ?? "community")}
-              </span>
-            </span>
-            {analysis && (
-              <span style={{
-                fontFamily: "'Space Mono', monospace", fontSize: 9, padding: "3px 10px",
-                borderRadius: 3, border: "1px solid",
-                color: HEALTH_COLOR[analysis.insights.ecosystemHealth] ?? "var(--text-dim)",
-                borderColor: HEALTH_COLOR[analysis.insights.ecosystemHealth] ?? "var(--border)",
-                background: "rgba(0,0,0,0.2)", textTransform: "uppercase", letterSpacing: "0.1em",
-              }}>
-                {analysis.insights.ecosystemHealth.replace("_", " ")} health
-              </span>
-            )}
-            {analysis && (
-              <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: "var(--text-dim)" }}>
-                Trust Score: <span style={{ color: "var(--gold)" }}>{analysis.trustScore}/100</span>
-              </span>
-            )}
+              {analysis && (
+                <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: "var(--text-dim)", marginBottom: 12 }}>
+                  Trust Score: <span style={{ color: "var(--gold)" }}>{analysis.trustScore}/100</span>
+                </div>
+              )}
+              {analysis?.insights.nextBestAction && (
+                <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.6, padding: "10px 14px", background: "rgba(155,111,255,0.05)", border: "1px solid rgba(155,111,255,0.15)", borderRadius: 6 }}>
+                  <span style={{ color: "var(--purple)", fontFamily: "'Space Mono', monospace", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em", display: "block", marginBottom: 4 }}>🧠 OMEGA Recommends</span>
+                  {analysis.insights.nextBestAction}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -601,6 +649,17 @@ export default function OmegaDashboard() {
 
           <div className="omega-actions">
             <div className="omega-actions-title">OMEGA Priority Queue</div>
+            {pendingActions.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                {pendingActions.map((action) => (
+                  <AutoActionCard
+                    key={action.id}
+                    action={action}
+                    onActioned={() => setPendingActions((prev) => prev.filter((a) => a.id !== action.id))}
+                  />
+                ))}
+              </div>
+            )}
             {ACTION_ITEMS.map((item, idx) => (
               <div key={idx} className="omega-action-item">
                 <div className="omega-action-text">{item.text}</div>
@@ -619,10 +678,10 @@ export default function OmegaDashboard() {
             { icon: "🎓",   label: "Academy",       path: "/academy"         },
             { icon: "💼",   label: "Work Board",    path: "/work"            },
             { icon: "🤖",   label: "ARIA Chat",     path: "/intelligence/aria" },
-            { icon: "🛒",   label: "Market",        path: "/market"          },
-            { icon: "📊",   label: "Analytics",     path: "/analytics"       },
-            { icon: "👤",   label: "Profile",       path: "/profile"         },
-            { icon: "⚙️",   label: "AI Platform",   path: "/intelligence/platform" },
+            { icon: "🔁",   label: "Loop Tracker",  path: "/intelligence/loop" },
+            { icon: "🧠",   label: "Memory",        path: "/intelligence/memory" },
+            { icon: "⚡",   label: "Credits",       path: "/intelligence/credits" },
+            { icon: "📊",   label: "Reports",       path: "/intelligence/reports" },
           ].map((link) => (
             <Link key={link.path} to={link.path} className="omega-link-card">
               <div className="omega-link-icon">{link.icon}</div>
