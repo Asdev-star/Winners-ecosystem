@@ -618,7 +618,8 @@ export default function CloudAgentsPage() {
 
       <AssistantPanel
         assistant="nexus"
-        context="Winners Cloud AI Agents builder. Help the developer design autonomous agent goals, select appropriate tools, configure safety controls (human approval, credit limits), choose the right base assistant (OMEGA for orchestration, NEXUS for APIs, CIRCUIT for work tasks, ATLAS for commerce), and set up event triggers from the Winners Agentic Loop."
+        page="cloud/agents"
+        context={{ layer: "cloud", view: "agents", description: "AI Agents builder — goal-driven autonomous agents with human-in-the-loop controls" }}
       />
     </div>
   );

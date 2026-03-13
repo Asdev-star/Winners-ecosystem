@@ -543,7 +543,8 @@ export default function CloudAutomationsPage() {
 
       <AssistantPanel
         assistant="nexus"
-        context="Winners Cloud automation builder. Help the developer configure triggers (webhooks, schedules, ecosystem events, Agentic Loop milestones), add action steps (WhatsApp messages, M-Pesa payments, email, Slack, AI analysis, CRM updates), and understand workflow execution, retry logic, and credit costs."
+        page="cloud/automations"
+        context={{ layer: "cloud", view: "automations", description: "Visual iPaaS workflow builder — triggers, actions, conditions, runs" }}
       />
     </div>
   );

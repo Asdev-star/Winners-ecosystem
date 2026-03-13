@@ -145,7 +145,7 @@ router.post("/:id/upload", async (req: Request, res: Response): Promise<void> =>
     } catch {
       // Ignore update error
     }
-    
+
     res.status(500).json({ error: "Failed to upload video" });
   }
 });

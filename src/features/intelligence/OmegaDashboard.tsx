@@ -283,14 +283,15 @@ const css = `
 `;
 
 const LAYERS = [
-  { id: "core",         icon: "⬡",   name: "Core Engine",    title: "Core Engine",         path: "/dashboard",    progress: 90, status: "live",     className: "core" },
-  { id: "community",   icon: "🧑‍🤝‍🧑",  name: "Community",      title: "Winners Community",   path: "/community",   progress: 65, status: "live",     className: "community" },
-  { id: "academy",     icon: "🎓",  name: "Academy",         title: "Winners Academy",     path: "/academy",      progress: 45, status: "live",     className: "academy" },
-  { id: "market",      icon: "🛒",  name: "Market",          title: "Winners Market",      path: "/market",       progress: 20, status: "building", className: "market" },
-  { id: "intelligence",icon: "🤖",  name: "Intelligence",    title: "Winners Intelligence",path: "/intelligence", progress: 35, status: "live",     className: "intelligence" },
-  { id: "work",        icon: "💼",  name: "Work",            title: "Winners Work",        path: "/work",         progress: 35, status: "building", className: "work" },
-  { id: "mobile",      icon: "📱",  name: "Mobile",          title: "Mobile App",          path: null,            progress: 15, status: "planned",  className: "mobile" },
-  { id: "cloud",       icon: "☁️",  name: "Cloud",           title: "Winners Cloud",       path: null,            progress:  0, status: "planned",  className: "cloud" },
+  { id: "core",         icon: "⬡",   name: "Core Engine",    title: "Core Engine",         path: "/dashboard",            progress: 92, status: "live",     className: "core" },
+  { id: "community",   icon: "🧑‍🤝‍🧑",  name: "Community",      title: "Winners Community",   path: "/community",            progress: 80, status: "live",     className: "community" },
+  { id: "academy",     icon: "🎓",  name: "Academy",         title: "Winners Academy",     path: "/academy",              progress: 72, status: "live",     className: "academy" },
+  { id: "market",      icon: "🛒",  name: "Market",          title: "Winners Market",      path: "/market",               progress: 55, status: "building", className: "market" },
+  { id: "intelligence",icon: "🤖",  name: "Intelligence",    title: "Winners Intelligence",path: "/intelligence",         progress: 75, status: "live",     className: "intelligence" },
+  { id: "work",        icon: "💼",  name: "Work",            title: "Winners Work",        path: "/work",                 progress: 35, status: "building", className: "work" },
+  { id: "mobile",      icon: "📱",  name: "Mobile",          title: "Mobile App",          path: null,                    progress: 25, status: "building", className: "mobile" },
+  { id: "cloud",       icon: "☁️",  name: "Cloud",           title: "Winners Cloud",       path: "/cloud",                progress: 40, status: "building", className: "cloud" },
+  { id: "aiplatform",  icon: "🧬",  name: "AI Platform",     title: "Universal AI Platform",path: "/intelligence/platform",progress: 60, status: "building", className: "cloud" },
 ];
 
 const LOOP_STAGES = [
@@ -304,10 +305,12 @@ const LOOP_STAGES = [
 ];
 
 const ACTION_ITEMS = [
-  { text: "Activate mobile push notifications via Firebase FCM", supervisor: "FORGE", path: "/settings" },
-  { text: "Write first Vitest test suite — auth + API mounts", supervisor: "ARIA", path: "/ops" },
-  { text: "Deploy HERALD FastAPI local AI model service", supervisor: "HERALD", path: "/intelligence/platform" },
-  { text: "Expand CIRCUIT — add escrow contract milestone tracking", supervisor: "CIRCUIT", path: "/work" },
+  { text: "Wire Market multi-vendor checkout with Stripe webhook inventory decrement", supervisor: "ATLAS",   path: "/market/checkout" },
+  { text: "Build CIRCUIT AI escrow + contract milestone tracking in Work", supervisor: "CIRCUIT", path: "/work" },
+  { text: "Wire Ollama / Whisper / ComfyUI to HERALD AI Platform FastAPI", supervisor: "HERALD",  path: "/intelligence/platform" },
+  { text: "Activate Firebase FCM push notifications for mobile PWA", supervisor: "FORGE",   path: "/settings" },
+  { text: "Wire Cloud connector OAuth auth flow with Nango credential lifecycle", supervisor: "NEXUS",  path: "/cloud/connectors" },
+  { text: "Run PostgreSQL RLS application-layer verification across all tenants", supervisor: "ARIA",   path: "/ops" },
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {

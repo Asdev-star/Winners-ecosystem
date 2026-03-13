@@ -55,7 +55,7 @@ const CLOUD_FEATURES = [
     icon: "🪝",
     title: "Webhooks",
     desc: "Subscribe to 15+ ecosystem events with HMAC-signed payloads",
-    path: "/cloud/keys",
+    path: "/cloud/webhooks",
     color: "var(--blue)",
     badge: "Events",
   },
@@ -63,7 +63,7 @@ const CLOUD_FEATURES = [
     icon: "📊",
     title: "Usage & Billing",
     desc: "Credit consumption, API call volumes, cost breakdown by feature",
-    path: "/cloud/keys",
+    path: "/cloud/usage",
     color: "var(--gold)",
     badge: "Metering",
   },
@@ -313,7 +313,8 @@ export default function CloudPage() {
 
       <AssistantPanel
         assistant="nexus"
-        context="Winners Cloud developer portal — Phase 8. Help the developer understand the platform architecture, API usage, connector marketplace, automation builder, AI agents, webhook events, and African payment integrations including M-Pesa, MTN MoMo, and Flutterwave."
+        page="cloud"
+        context={{ layer: "cloud", view: "portal", description: "Developer portal — API keys, connectors, automations, AI agents, webhooks, usage metering" }}
       />
     </div>
   );

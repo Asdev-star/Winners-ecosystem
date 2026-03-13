@@ -294,6 +294,78 @@ router.post("/:id/images", authMiddleware, async (req: Request, res: Response) =
   }
 });
 
+// POST /products/:id/reviews - Submit a product review
+router.post("/:id/reviews", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
+    const productId = getParam(req.params.id);
+    const { rating, title, content } = req.body;
+
+    if (!rating || Number(rating) < 1 || Number(rating) > 5) {
+      return res.status(400).json({ error: "Rating must be between 1 and 5" });
+    }
+
+    const existing = await db.productReview.findFirst({
+      where: { productId, userId }
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "You have already reviewed this product" });
+    }
+
+    const product = await db.product.findFirst({ where: { id: productId, tenantId } });
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    const review = await db.productReview.create({
+      data: {
+        tenantId,
+        productId,
+        userId,
+        rating: Number(rating),
+        title: title || "",
+        content: content || "",
+        isApproved: true
+      },
+      include: {
+        user: { select: { name: true } }
+      }
+    });
+
+    res.status(201).json(review);
+  } catch (error) {
+    console.error("[productRoutes] Error creating review:", error);
+    res.status(500).json({ error: "Failed to submit review" });
+  }
+});
+
+// GET /products/:id/reviews - Get product reviews
+router.get("/:id/reviews", async (req: Request, res: Response) => {
+  try {
+    const tenantId = req.headers["x-tenant-id"] as string || req.user?.tenantId;
+    const productId = getParam(req.params.id);
+    const page = parseInt(getParam(req.query.page as string)) || 1;
+    const limit = parseInt(getParam(req.query.limit as string)) || 10;
+    const skip = (page - 1) * limit;
+
+    const [reviews, total] = await Promise.all([
+      db.productReview.findMany({
+        where: { productId, tenantId, isApproved: true },
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit
+      }),
+      db.productReview.count({ where: { productId, tenantId, isApproved: true } })
+    ]);
+
+    res.json({ reviews, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+  } catch (error) {
+    console.error("[productRoutes] Error fetching reviews:", error);
+    res.status(500).json({ error: "Failed to fetch reviews" });
+  }
+});
+
 // POST /products/generate-description - AI-powered product description generator (ATLAS)
 router.post("/generate-description", authMiddleware, async (req: Request, res: Response) => {
   try {

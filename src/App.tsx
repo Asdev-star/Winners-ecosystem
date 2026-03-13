@@ -72,9 +72,19 @@ import WinnersDropshipping from "./features/market/dropshipping/WinnersDropshipp
 import CartPage from "./features/market/CartPage";
 import OrdersPage from "./features/market/OrdersPage";
 import CheckoutPage from "./features/market/CheckoutPage";
+import BusinessLauncherPage from "./features/market/BusinessLauncherPage";
+import CVToolsPage from "./features/market/CVToolsPage";
+import DigitalMarketingPage from "./features/market/DigitalMarketingPage";
 import WorkPage from "./features/work/WorkPage";
 import FreelancerProfilePage from "./features/work/FreelancerProfilePage";
 import CreatorProfilePage from "./features/community/CreatorProfilePage";
+import CloudPage from "./features/cloud/CloudPage";
+import CloudConnectorsPage from "./features/cloud/CloudConnectorsPage";
+import CloudAutomationsPage from "./features/cloud/CloudAutomationsPage";
+import CloudAgentsPage from "./features/cloud/CloudAgentsPage";
+import CloudAPIKeysPage from "./features/cloud/CloudAPIKeysPage";
+import CloudWebhooksPage from "./features/cloud/CloudWebhooksPage";
+import CloudUsagePage from "./features/cloud/CloudUsagePage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -220,11 +230,21 @@ function App() {
             <Route path="market/cart" element={<CartPage />} />
             <Route path="market/orders" element={<OrdersPage />} />
             <Route path="market/checkout" element={<CheckoutPage />} />
+            <Route path="market/business-launcher" element={<BusinessLauncherPage />} />
+            <Route path="market/cv-tools" element={<CVToolsPage />} />
+            <Route path="market/digital-marketing" element={<DigitalMarketingPage />} />
             <Route path="work" element={<WorkPage />} />
             <Route path="work/freelancers" element={<WorkPage />} />
             <Route path="work/contracts" element={<WorkPage />} />
             <Route path="work/profile" element={<FreelancerProfilePage />} />
             <Route path="market/:vertical" element={<MarketPage />} />
+            <Route path="cloud" element={<CloudPage />} />
+            <Route path="cloud/connectors" element={<CloudConnectorsPage />} />
+            <Route path="cloud/automations" element={<CloudAutomationsPage />} />
+            <Route path="cloud/agents" element={<CloudAgentsPage />} />
+            <Route path="cloud/keys" element={<CloudAPIKeysPage />} />
+            <Route path="cloud/webhooks" element={<CloudWebhooksPage />} />
+            <Route path="cloud/usage" element={<CloudUsagePage />} />
           </Route>
 
           <Route

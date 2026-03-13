@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
+import AssistantPanel from "../../components/ui/AssistantPanel";
 import "./CheckoutPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
@@ -468,6 +469,7 @@ export default function CheckoutPage() {
           </div>
         </form>
       </div>
+      <AssistantPanel assistant="atlas" page="checkout" userId={user?.id} />
     </div>
   );
 }

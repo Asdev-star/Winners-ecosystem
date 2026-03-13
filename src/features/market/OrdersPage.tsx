@@ -9,6 +9,7 @@ import EmptyState from "../../components/ui/EmptyState";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import ContextBar from "../../components/ui/ContextBar";
 import SkeletonLoader from "../../components/ui/SkeletonLoader";
+import AssistantPanel from "../../components/ui/AssistantPanel";
 import "./OrdersPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
@@ -275,6 +276,7 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+      <AssistantPanel assistant="atlas" page="orders" userId={user?.id} />
     </div>
   );
 }

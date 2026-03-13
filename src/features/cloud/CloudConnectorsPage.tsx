@@ -324,7 +324,8 @@ export default function CloudConnectorsPage() {
 
       <AssistantPanel
         assistant="nexus"
-        context="Winners Cloud connector marketplace. Help developer understand which connectors to use for African payments (M-Pesa, Flutterwave, MTN MoMo), communication (WhatsApp Business), CRM, e-commerce (Shopify), and AI integrations. Explain authentication types and installation process."
+        page="cloud/connectors"
+        context={{ layer: "cloud", view: "connectors", description: "Connector marketplace — M-Pesa, Flutterwave, MTN MoMo, WhatsApp, Shopify, HubSpot, Anthropic" }}
       />
     </div>
   );

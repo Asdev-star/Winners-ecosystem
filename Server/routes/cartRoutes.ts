@@ -65,9 +65,25 @@ async function getCart(tenantId: string, userId?: string, sessionId?: string) {
 // GET /cart - Get current cart
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const tenantId = req.headers["x-tenant-id"] as string;
-    const userId = req.headers["x-user-id"] as string;
+    // Try to get from headers first, then from JWT token
+    let tenantId = req.headers["x-tenant-id"] as string;
+    let userId = req.headers["x-user-id"] as string;
     const sessionId = req.headers["x-session-id"] as string;
+    
+    // If no tenantId in headers, try to extract from JWT
+    if (!tenantId || !userId) {
+      const authHeader = req.headers["authorization"];
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.substring(7);
+          const decoded = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
+          if (!tenantId && decoded.tenantId) tenantId = decoded.tenantId;
+          if (!userId && decoded.userId) userId = decoded.userId;
+        } catch (e) {
+          // Invalid token, continue with header values
+        }
+      }
+    }
     
     if (!tenantId) {
       return res.status(400).json({ error: "Tenant ID required" });
@@ -84,10 +100,26 @@ router.get("/", async (req: Request, res: Response) => {
 // POST /cart/items - Add item to cart
 router.post("/items", async (req: Request, res: Response) => {
   try {
-    const tenantId = req.headers["x-tenant-id"] as string;
-    const userId = req.headers["x-user-id"] as string;
+    // Try to get from headers first, then from JWT token
+    let tenantId = req.headers["x-tenant-id"] as string;
+    let userId = req.headers["x-user-id"] as string;
     const sessionId = req.headers["x-session-id"] as string;
     const { productId, variantId, quantity = 1 } = req.body;
+    
+    // If no tenantId in headers, try to extract from JWT
+    if (!tenantId || !userId) {
+      const authHeader = req.headers["authorization"];
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.substring(7);
+          const decoded = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
+          if (!tenantId && decoded.tenantId) tenantId = decoded.tenantId;
+          if (!userId && decoded.userId) userId = decoded.userId;
+        } catch (e) {
+          // Invalid token, continue with header values
+        }
+      }
+    }
     
     if (!tenantId) {
       return res.status(400).json({ error: "Tenant ID required" });
@@ -150,12 +182,28 @@ router.post("/items", async (req: Request, res: Response) => {
 // PUT /cart/items/:id - Update cart item quantity
 router.put("/items/:id", async (req: Request, res: Response) => {
   try {
-    const tenantId = req.headers["x-tenant-id"] as string;
-    const userId = req.headers["x-user-id"] as string;
+    // Try to get from headers first, then from JWT token
+    let tenantId = req.headers["x-tenant-id"] as string;
+    let userId = req.headers["x-user-id"] as string;
     const sessionId = req.headers["x-session-id"] as string;
     const { id } = req.params;
     const itemId = Array.isArray(id) ? id[0] : id;
     const { quantity } = req.body;
+    
+    // If no tenantId in headers, try to extract from JWT
+    if (!tenantId || !userId) {
+      const authHeader = req.headers["authorization"];
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.substring(7);
+          const decoded = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
+          if (!tenantId && decoded.tenantId) tenantId = decoded.tenantId;
+          if (!userId && decoded.userId) userId = decoded.userId;
+        } catch (e) {
+          // Invalid token, continue with header values
+        }
+      }
+    }
     
     if (!tenantId) {
       return res.status(400).json({ error: "Tenant ID required" });
@@ -183,11 +231,27 @@ router.put("/items/:id", async (req: Request, res: Response) => {
 // DELETE /cart/items/:id - Remove item from cart
 router.delete("/items/:id", async (req: Request, res: Response) => {
   try {
-    const tenantId = req.headers["x-tenant-id"] as string;
-    const userId = req.headers["x-user-id"] as string;
+    // Try to get from headers first, then from JWT token
+    let tenantId = req.headers["x-tenant-id"] as string;
+    let userId = req.headers["x-user-id"] as string;
     const sessionId = req.headers["x-session-id"] as string;
     const { id } = req.params;
     const itemId = Array.isArray(id) ? id[0] : id;
+    
+    // If no tenantId in headers, try to extract from JWT
+    if (!tenantId || !userId) {
+      const authHeader = req.headers["authorization"];
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.substring(7);
+          const decoded = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
+          if (!tenantId && decoded.tenantId) tenantId = decoded.tenantId;
+          if (!userId && decoded.userId) userId = decoded.userId;
+        } catch (e) {
+          // Invalid token, continue with header values
+        }
+      }
+    }
     
     if (!tenantId) {
       return res.status(400).json({ error: "Tenant ID required" });
@@ -206,9 +270,25 @@ router.delete("/items/:id", async (req: Request, res: Response) => {
 // DELETE /cart - Clear cart
 router.delete("/", async (req: Request, res: Response) => {
   try {
-    const tenantId = req.headers["x-tenant-id"] as string;
-    const userId = req.headers["x-user-id"] as string;
+    // Try to get from headers first, then from JWT token
+    let tenantId = req.headers["x-tenant-id"] as string;
+    let userId = req.headers["x-user-id"] as string;
     const sessionId = req.headers["x-session-id"] as string;
+    
+    // If no tenantId in headers, try to extract from JWT
+    if (!tenantId || !userId) {
+      const authHeader = req.headers["authorization"];
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.substring(7);
+          const decoded = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString());
+          if (!tenantId && decoded.tenantId) tenantId = decoded.tenantId;
+          if (!userId && decoded.userId) userId = decoded.userId;
+        } catch (e) {
+          // Invalid token, continue with header values
+        }
+      }
+    }
     
     if (!tenantId) {
       return res.status(400).json({ error: "Tenant ID required" });

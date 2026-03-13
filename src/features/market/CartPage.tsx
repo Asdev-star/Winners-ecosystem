@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import EmptyState from "../../components/ui/EmptyState";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
+import AssistantPanel from "../../components/ui/AssistantPanel";
 import "./CartPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
@@ -306,6 +307,7 @@ export default function CartPage() {
           </div>
         )}
       </div>
+      <AssistantPanel assistant="atlas" page="cart" userId={user?.id} />
     </div>
   );
 }

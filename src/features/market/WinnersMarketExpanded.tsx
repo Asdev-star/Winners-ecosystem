@@ -2,8 +2,9 @@
 // Complete Market Hub with 10 Verticals + AI Tools
 // Build sequence: 4A → 4B → 4C → 4E → 4F → 4D → 4G → 4H → 4I → 4J
 
-import { useState, useCallback } from "react";
-
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../auth/authStore";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 
@@ -188,44 +189,52 @@ function useStream() {
   const [output, setOutput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [done, setDone] = useState(false);
+  const { token } = useAuthStore();
 
   const run = useCallback(async (prompt: string, systemPrompt: string) => {
     setOutput(""); setDone(false); setStreaming(true);
+    const apiBase = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || "http://localhost:3001/api/v1";
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:1500,
-          stream:true,
-          system: systemPrompt,
-          messages:[{role:"user", content:prompt}],
+      const res = await fetch(`${apiBase}/chat/message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          message: `${systemPrompt}\n\nUser request:\n${prompt}`,
+          assistant: "atlas",
+          history: [],
         }),
       });
-      if (!res.body) {
-        throw new Error("Missing response stream body");
-      }
+      if (!res.body) throw new Error("Missing response stream body");
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
       while (true) {
-        const {done: d, value} = await reader.read();
+        const { done: d, value } = await reader.read();
         if (d) break;
-        buf += dec.decode(value, {stream:true});
-        const lines = buf.split("\n"); buf = lines.pop()||"";
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n"); buf = lines.pop() || "";
         for (const ln of lines) {
           if (!ln.startsWith("data: ")) continue;
           const raw = ln.slice(6).trim();
-          if (raw==="[DONE]") continue;
-          try { const p=JSON.parse(raw); if(p?.delta?.text) setOutput(o=>o+p.delta.text); } catch {}
+          if (raw === "[DONE]") continue;
+          try {
+            const p = JSON.parse(raw);
+            if (p?.type === "text" && p.text) setOutput(o => o + p.text);
+          } catch {}
         }
       }
-    } catch(e) { setOutput("⚠ API connection failed. Check your Anthropic API key."); }
-    finally { setStreaming(false); setDone(true); }
-  }, []);
+    } catch (e) {
+      setOutput("⚠ Generation failed. Please sign in and try again.");
+    } finally {
+      setStreaming(false);
+      setDone(true);
+    }
+  }, [token]);
 
-  return {output, streaming, done, run, reset:()=>{setOutput("");setDone(false);}};
+  return { output, streaming, done, run, reset: () => { setOutput(""); setDone(false); } };
 }
 
 // ─── Section label component ────────────────────────────────────────────────
@@ -273,12 +282,59 @@ function VerticalCard({v, isActive, onClick}: VerticalCardProps) {
   );
 }
 
+// ─── Product interface for catalog ──────────────────────────────────────────
+interface CatalogProduct {
+  id: string;
+  name: string;
+  price: number;
+  comparePrice?: number;
+  images?: Array<{ url: string; alt?: string }>;
+  category?: string;
+  vendor?: { storeName?: string; isVerified?: boolean };
+  stock?: number;
+}
+
 // ─── Main App ───────────────────────────────────────────────────────────────
 export default function WinnersMarketExpanded() {
+  const navigate = useNavigate();
+  const { token } = useAuthStore();
   const [activeVertical, setActiveVertical] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<AiToolKey | null>(null);
   const [formData, setFormData] = useState<MarketFormData>({});
   const {output, streaming, done, run, reset} = useStream();
+
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productSearch, setProductSearch] = useState("");
+  const [productCategory, setProductCategory] = useState("all");
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setProductsLoading(true);
+      try {
+        const res = await fetch("/api/v1/products?limit=12", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data.products || data || []);
+        }
+      } catch {
+        // no products from API — show empty state
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [token]);
+
+  const filteredProducts = products.filter(p => {
+    const matchSearch = !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase());
+    const matchCat = productCategory === "all" || p.category?.toLowerCase() === productCategory.toLowerCase();
+    return matchSearch && matchCat;
+  });
+
+  const categories = ["all", ...Array.from(new Set(products.map(p => p.category || "").filter(Boolean)))];
 
   const v = VERTICALS.find(x=>x.id===activeVertical);
 
@@ -498,10 +554,34 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
                       </div>
                     </div>
                   </div>
-                  <div style={{display:"flex",gap:8}}>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                     <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 12px",borderRadius:3,background:`${v.color}14`,border:`1px solid ${v.color}33`,color:v.color}}>
                       {v.badge}
                     </span>
+                    {v.id==="bizplan" && (
+                      <button onClick={()=>navigate("/market/business-launcher")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(201,168,76,0.12)",border:`1px solid ${T.gold}55`,color:T.gold,cursor:"pointer"}}>
+                        Open Business Launcher →
+                      </button>
+                    )}
+                    {v.id==="cv" && (
+                      <button onClick={()=>navigate("/market/cv-tools")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(45,212,160,0.1)",border:`1px solid rgba(45,212,160,0.3)`,color:T.green,cursor:"pointer"}}>
+                        Open CV Tools →
+                      </button>
+                    )}
+                    {v.id==="digitalmarketing" && (
+                      <button onClick={()=>navigate("/market/digital-marketing")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(155,111,255,0.1)",border:`1px solid rgba(155,111,255,0.3)`,color:T.purple,cursor:"pointer"}}>
+                        Open Marketing Hub →
+                      </button>
+                    )}
+                    {v.id==="commerce" && (
+                      <button onClick={()=>navigate("/market/dropshipping")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(45,212,160,0.1)",border:`1px solid rgba(45,212,160,0.3)`,color:T.green,cursor:"pointer"}}>
+                        Dropshipping Hub →
+                      </button>
+                    )}
                     <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 12px",borderRadius:3,background:"rgba(90,122,150,0.1)",border:`1px solid ${T.border}`,color:T.dim}}>
                       ◌ Planned
                     </span>
@@ -571,6 +651,123 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
               </div>
             </div>
           )}
+
+          {/* ── COMMERCE HUB — PRODUCT CATALOG ───────────────────────────── */}
+          <div>
+            <SectionLabel text="Commerce Hub — Product Catalog (4A Live)"/>
+
+            {/* Search + filter bar */}
+            <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+              <input value={productSearch} onChange={e=>setProductSearch(e.target.value)}
+                placeholder="Search products..."
+                style={{flex:1,minWidth:200,background:T.surface,border:`1px solid ${T.border}`,borderRadius:5,padding:"9px 14px",color:T.text,fontFamily:"'Syne',sans-serif",fontSize:13}}/>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {categories.slice(0,6).map(cat=>(
+                  <button key={cat} onClick={()=>setProductCategory(cat)}
+                    style={{background:productCategory===cat?"rgba(45,212,160,0.1)":T.surface,
+                      border:`1px solid ${productCategory===cat?"rgba(45,212,160,0.35)":T.border}`,
+                      borderRadius:4,padding:"7px 14px",color:productCategory===cat?T.green:T.dim,
+                      fontFamily:"'Space Mono',monospace",fontSize:9,letterSpacing:"0.08em",cursor:"pointer",
+                      textTransform:"capitalize" as const}}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              <button onClick={()=>navigate("/market/vendor")}
+                style={{background:T.goldDim,border:`1px solid ${T.gold}44`,borderRadius:5,padding:"9px 18px",color:T.gold,fontFamily:"'Space Mono',monospace",fontSize:9,letterSpacing:"0.1em",cursor:"pointer",whiteSpace:"nowrap" as const}}>
+                + List Product
+              </button>
+            </div>
+
+            {productsLoading ? (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+                {Array.from({length:6}).map((_,i)=>(
+                  <div key={i} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:6,overflow:"hidden",height:280}}>
+                    <div style={{width:"100%",height:160,background:T.surface2,animation:"shimmer 1.5s infinite"}}/>
+                    <div style={{padding:14}}>
+                      <div style={{height:12,background:T.surface2,borderRadius:3,marginBottom:8,width:"80%"}}/>
+                      <div style={{height:10,background:T.surface2,borderRadius:3,width:"50%"}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+                {filteredProducts.map(p=>{
+                  const discount = p.comparePrice ? Math.round(((p.comparePrice-p.price)/p.comparePrice)*100) : 0;
+                  return (
+                    <div key={p.id} onClick={()=>navigate(`/market/product/${p.id}`)}
+                      style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:6,overflow:"hidden",cursor:"pointer",position:"relative",transition:"all 0.2s"}}
+                      onMouseEnter={e=>{(e.currentTarget as HTMLDivElement).style.borderColor=T.gold+"66"; (e.currentTarget as HTMLDivElement).style.transform="translateY(-2px)";}}
+                      onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.borderColor=T.border; (e.currentTarget as HTMLDivElement).style.transform="none";}}>
+                      <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${T.green},transparent)`,opacity:0.6}}/>
+                      <div style={{width:"100%",height:160,background:T.surface2,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40}}>
+                        {p.images?.[0]?.url ? (
+                          <img src={p.images[0].url} alt={p.images[0].alt||p.name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                        ) : "📦"}
+                      </div>
+                      <div style={{padding:14}}>
+                        {p.category && (
+                          <div style={{fontFamily:"'Space Mono',monospace",fontSize:8,color:T.dim,letterSpacing:"0.1em",textTransform:"uppercase" as const,marginBottom:5}}>
+                            {p.category}
+                          </div>
+                        )}
+                        <div style={{fontSize:13,fontWeight:700,color:T.text,lineHeight:1.4,marginBottom:6,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical" as const}}>
+                          {p.name}
+                        </div>
+                        {p.vendor?.storeName && (
+                          <div style={{fontSize:11,color:T.dim,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>
+                            {p.vendor.isVerified && <span style={{color:T.green,fontSize:9}}>✓</span>}
+                            {p.vendor.storeName}
+                          </div>
+                        )}
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontFamily:"'Space Mono',monospace",fontSize:14,fontWeight:700,color:T.gold}}>
+                            ${(p.price/100).toFixed(2)}
+                          </span>
+                          {p.comparePrice && (
+                            <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,color:T.dim,textDecoration:"line-through"}}>
+                              ${(p.comparePrice/100).toFixed(2)}
+                            </span>
+                          )}
+                          {discount > 0 && (
+                            <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,background:"rgba(45,212,160,0.1)",border:"1px solid rgba(45,212,160,0.25)",color:T.green,padding:"2px 6px",borderRadius:3}}>
+                              -{discount}%
+                            </span>
+                          )}
+                        </div>
+                        {p.stock !== undefined && p.stock <= 5 && p.stock > 0 && (
+                          <div style={{fontFamily:"'Space Mono',monospace",fontSize:8,color:T.orange,marginTop:6}}>Only {p.stock} left</div>
+                        )}
+                        {p.stock === 0 && (
+                          <div style={{fontFamily:"'Space Mono',monospace",fontSize:8,color:T.red,marginTop:6}}>Out of stock</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:8,padding:"40px 32px",textAlign:"center"}}>
+                <div style={{fontSize:40,marginBottom:12}}>🛒</div>
+                <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>No products yet</div>
+                <div style={{fontSize:13,color:T.dim,marginBottom:20}}>Be the first vendor to list products in Winners Market.</div>
+                <button onClick={()=>navigate("/market/vendor")}
+                  style={{background:T.gold,color:T.bg,border:"none",borderRadius:5,padding:"10px 24px",fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,letterSpacing:"0.12em",cursor:"pointer"}}>
+                  Become a Vendor →
+                </button>
+              </div>
+            )}
+
+            {products.length > 0 && (
+              <div style={{marginTop:14,display:"flex",justifyContent:"center"}}>
+                <button onClick={()=>navigate("/market/dropshipping")}
+                  style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:5,padding:"9px 22px",color:T.dim,fontFamily:"'Space Mono',monospace",fontSize:9,letterSpacing:"0.1em",cursor:"pointer"}}>
+                  Explore Dropshipping Catalog →
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* ── AI TOOLS SECTION ──────────────────────────────────────────── */}
           <div>

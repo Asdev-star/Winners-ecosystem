@@ -49,56 +49,78 @@ const PLATFORMS = [
   {
     icon: "⬡",
     name: "Core Engine",
-    desc: "Auth · Billing · Analytics · RBAC",
+    desc: "Auth · Billing · Analytics · 52 Routes",
     status: "live",
     path: "/dashboard",
   },
   {
     icon: "🧑‍🤝‍🧑",
     name: "Winners Community",
-    desc: "Feed · Groups · DMs · NOVA AI",
+    desc: "Feed · Groups · DMs · Studio · NOVA AI",
     status: "live",
     path: "/community",
   },
   {
     icon: "🎓",
     name: "Winners Academy",
-    desc: "Courses · Certs · SAGE AI Tutor",
+    desc: "Courses · Paths · Live Sessions · SAGE AI",
     status: "live",
     path: "/academy",
   },
   {
     icon: "🛒",
     name: "Winners Market",
-    desc: "10 Verticals · Vendors · Cart",
-    status: "soon",
+    desc: "10 Verticals · Vendors · Cart · Orders",
+    status: "building",
     path: "/market",
   },
   {
     icon: "🤖",
     name: "Winners Intelligence",
-    desc: "9 Supervisors · OMEGA · Streaming",
+    desc: "9 Supervisors · OMEGA · SSE Streaming",
     status: "live",
     path: "/intelligence",
   },
   {
     icon: "💼",
     name: "Winners Work",
-    desc: "Jobs · Freelancers · CIRCUIT AI",
-    status: "soon",
+    desc: "Jobs · Freelancers · Contracts · CIRCUIT AI",
+    status: "building",
     path: "/work",
+  },
+  {
+    icon: "☁️",
+    name: "Winners Cloud",
+    desc: "API Keys · Connectors · Webhooks · Agents",
+    status: "building",
+    path: "/cloud",
+  },
+  {
+    icon: "🧬",
+    name: "AI Platform",
+    desc: "Ollama · Whisper · ComfyUI · HERALD",
+    status: "building",
+    path: "/intelligence/platform",
+  },
+  {
+    icon: "📱",
+    name: "Mobile App",
+    desc: "PWA Ready · React Native · Push Notifs",
+    status: "building",
+    path: null,
   },
 ];
 
 const PHASES = [
-  { n: 1, label: "Core", state: "done" },
-  { n: 2, label: "Community", state: "done" },
-  { n: 3, label: "Academy", state: "done" },
-  { n: 4, label: "Market", state: "active" },
-  { n: 5, label: "AI", state: "done" },
-  { n: 6, label: "Work", state: "active" },
-  { n: 7, label: "Mobile", state: "pending" },
-  { n: 8, label: "Cloud", state: "pending" },
+  { n: 1, label: "Core",       state: "done"   },
+  { n: 2, label: "Community",  state: "done"   },
+  { n: 3, label: "Academy",    state: "done"   },
+  { n: 4, label: "Market",     state: "active" },
+  { n: 5, label: "AI",         state: "done"   },
+  { n: 6, label: "Work",       state: "active" },
+  { n: 7, label: "Mobile",     state: "active" },
+  { n: 8, label: "Cloud",      state: "active" },
+  { n: 9, label: "AI Platform",state: "active" },
 ];
 
 const NAV_LINKS = [
@@ -291,9 +313,10 @@ export default function DashboardPage() {
         .db-plat-desc { font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); }
         .db-plat-right { margin-left:auto; flex-shrink:0; }
         .db-badge { font-family:'Space Mono',monospace; font-size:9px; padding:3px 8px; border-radius:2px; }
-        .db-badge.live    { background:rgba(45,212,160,.1); color:var(--green); border:1px solid rgba(45,212,160,.2); }
-        .db-badge.soon    { background:rgba(201,168,76,.08); color:var(--gold); border:1px solid rgba(201,168,76,.2); }
-        .db-badge.planned { background:rgba(90,122,150,.08); color:var(--text-dim); border:1px solid var(--border); }
+        .db-badge.live     { background:rgba(45,212,160,.1);  color:var(--green);    border:1px solid rgba(45,212,160,.2); }
+        .db-badge.building { background:rgba(201,168,76,.08); color:var(--gold);     border:1px solid rgba(201,168,76,.2); }
+        .db-badge.soon     { background:rgba(201,168,76,.08); color:var(--gold);     border:1px solid rgba(201,168,76,.2); }
+        .db-badge.planned  { background:rgba(90,122,150,.08); color:var(--text-dim); border:1px solid var(--border); }
 
         /* Bottom grid */
         .db-bottom { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -384,7 +407,7 @@ export default function DashboardPage() {
         {/* ── Context Bar ── */}
         <ContextBar
           activeLayer="core"
-          statusOverrides={{ core: "live", community: "live", academy: "active", intelligence: "active" }}
+          statusOverrides={{ core: "live", community: "live", academy: "live", market: "building", intelligence: "live", work: "building", cloud: "building" }}
           showLabels={true}
         />
 
@@ -441,7 +464,7 @@ export default function DashboardPage() {
             <div className="db-ai-txt">
               <strong>Phases 4 &amp; 6 active.</strong>{" "}
               {stats?.topInsight ||
-                "Market and Work are building. Community, Academy, and Intelligence are live. The Agentic Loop is running — post in Community to start your journey."}
+                "5 layers live (Core 92% · Community 80% · Academy 72% · Intelligence 75%). Market 55% · Work 35% · Cloud 40% · AI Platform 60% building. Post in Community to activate the Agentic Loop."}
             </div>
           </div>
           <div className="db-ai-acts">
@@ -775,8 +798,8 @@ export default function DashboardPage() {
                 <span className={`db-badge ${p.status}`}>
                   {p.status === "live"
                     ? "● Live"
-                    : p.status === "soon"
-                      ? "◎ Soon"
+                    : p.status === "building" || p.status === "soon"
+                      ? "◎ Building"
                       : "○ Planned"}
                 </span>
               </div>

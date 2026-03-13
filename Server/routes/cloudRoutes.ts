@@ -84,7 +84,7 @@ router.post("/keys", async (req: Request, res: Response) => {
 // DELETE /cloud/keys/:keyId — revoke an API key
 router.delete("/keys/:keyId", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
-  const { keyId } = req.params;
+  const { keyId } = req.params as Record<string, string>;
   try {
     await db.apiKey.update({
       where: { id: keyId, tenantId },
@@ -139,7 +139,7 @@ router.get("/connectors/installed", async (req: Request, res: Response) => {
 router.post("/connectors/:connectorId/install", async (req: Request, res: Response) => {
   const tenantId    = req.user!.tenantId;
   const userId      = req.user!.userId;
-  const { connectorId } = req.params;
+  const { connectorId } = req.params as Record<string, string>;
 
   try {
     const connector = await db.connector.findUnique({ where: { id: connectorId } });
@@ -171,7 +171,7 @@ router.post("/connectors/:connectorId/install", async (req: Request, res: Respon
 // DELETE /cloud/connectors/installed/:installId — uninstall a connector
 router.delete("/connectors/installed/:installId", async (req: Request, res: Response) => {
   const tenantId     = req.user!.tenantId;
-  const { installId } = req.params;
+  const { installId } = req.params as Record<string, string>;
   try {
     await db.connectorInstall.update({
       where: { id: installId, tenantId },
@@ -231,7 +231,7 @@ router.post("/webhooks", async (req: Request, res: Response) => {
 // DELETE /cloud/webhooks/:webhookId — delete webhook
 router.delete("/webhooks/:webhookId", async (req: Request, res: Response) => {
   const tenantId     = req.user!.tenantId;
-  const { webhookId } = req.params;
+  const { webhookId } = req.params as Record<string, string>;
   try {
     await db.webhookSubscription.delete({ where: { id: webhookId, tenantId } });
     res.json({ success: true });
@@ -243,7 +243,7 @@ router.delete("/webhooks/:webhookId", async (req: Request, res: Response) => {
 // GET /cloud/webhooks/:webhookId/deliveries — delivery history
 router.get("/webhooks/:webhookId/deliveries", async (req: Request, res: Response) => {
   const tenantId     = req.user!.tenantId;
-  const { webhookId } = req.params;
+  const { webhookId } = req.params as Record<string, string>;
   try {
     const sub = await db.webhookSubscription.findUnique({ where: { id: webhookId, tenantId } });
     if (!sub) return res.status(404).json({ error: "Webhook not found" });
@@ -301,7 +301,7 @@ router.post("/automations", async (req: Request, res: Response) => {
 // PATCH /cloud/automations/:automationId — update automation
 router.patch("/automations/:automationId", async (req: Request, res: Response) => {
   const tenantId         = req.user!.tenantId;
-  const { automationId } = req.params;
+  const { automationId } = req.params as Record<string, string>;
   const { name, description, trigger, steps, active } = req.body;
 
   try {
@@ -325,7 +325,7 @@ router.patch("/automations/:automationId", async (req: Request, res: Response) =
 // DELETE /cloud/automations/:automationId — delete automation
 router.delete("/automations/:automationId", async (req: Request, res: Response) => {
   const tenantId         = req.user!.tenantId;
-  const { automationId } = req.params;
+  const { automationId } = req.params as Record<string, string>;
   try {
     await db.automation.delete({ where: { id: automationId, tenantId } });
     res.json({ success: true });
@@ -337,7 +337,7 @@ router.delete("/automations/:automationId", async (req: Request, res: Response) 
 // GET /cloud/automations/:automationId/runs — run history
 router.get("/automations/:automationId/runs", async (req: Request, res: Response) => {
   const tenantId         = req.user!.tenantId;
-  const { automationId } = req.params;
+  const { automationId } = req.params as Record<string, string>;
   try {
     const auto = await db.automation.findUnique({ where: { id: automationId, tenantId } });
     if (!auto) return res.status(404).json({ error: "Automation not found" });
@@ -410,7 +410,7 @@ router.post("/agents", async (req: Request, res: Response) => {
 // PATCH /cloud/agents/:agentId — update agent
 router.patch("/agents/:agentId", async (req: Request, res: Response) => {
   const tenantId    = req.user!.tenantId;
-  const { agentId } = req.params;
+  const { agentId } = req.params as Record<string, string>;
   const { name, description, goal, tools, active, humanApprovalRequired, maxCreditsPerRun } = req.body;
 
   try {
@@ -436,7 +436,7 @@ router.patch("/agents/:agentId", async (req: Request, res: Response) => {
 // DELETE /cloud/agents/:agentId — delete agent
 router.delete("/agents/:agentId", async (req: Request, res: Response) => {
   const tenantId    = req.user!.tenantId;
-  const { agentId } = req.params;
+  const { agentId } = req.params as Record<string, string>;
   try {
     await db.aIAgent.delete({ where: { id: agentId, tenantId } });
     res.json({ success: true });
@@ -448,7 +448,7 @@ router.delete("/agents/:agentId", async (req: Request, res: Response) => {
 // GET /cloud/agents/:agentId/runs — agent run history
 router.get("/agents/:agentId/runs", async (req: Request, res: Response) => {
   const tenantId    = req.user!.tenantId;
-  const { agentId } = req.params;
+  const { agentId } = req.params as Record<string, string>;
   try {
     const agent = await db.aIAgent.findUnique({ where: { id: agentId, tenantId } });
     if (!agent) return res.status(404).json({ error: "Agent not found" });
@@ -552,7 +552,7 @@ router.post("/dns", async (req: Request, res: Response) => {
 // POST /cloud/dns/:zoneId/records — add DNS record
 router.post("/dns/:zoneId/records", async (req: Request, res: Response) => {
   const tenantId  = req.user!.tenantId;
-  const { zoneId } = req.params;
+  const { zoneId } = req.params as Record<string, string>;
   const { type, name, value, ttl = 3600, priority } = req.body;
 
   if (!type || !name || !value) return res.status(400).json({ error: "type, name, and value are required" });

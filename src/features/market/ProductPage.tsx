@@ -2,11 +2,12 @@
 // Product Detail Page - Individual product with reviews
 // Commerce Hub (4A) - Core marketplace functionality
 
-import { useState, useEffect, type CSSProperties } from 'react';
+import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../auth/authStore';
 import AIInsightBanner from '../../components/ui/AIInsightBanner';
 import ContextBar from '../../components/ui/ContextBar';
+import AssistantPanel from '../../components/ui/AssistantPanel';
 
 // CSS Variables from design system
 const styles: Record<string, CSSProperties> = {
@@ -366,6 +367,16 @@ interface Product {
   features: string[];
 }
 
+interface ReviewFromAPI {
+  id: string;
+  rating: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  isVerified?: boolean;
+  user?: { name?: string };
+}
+
 export default function ProductPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
@@ -379,9 +390,38 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
 
+  const [reviews, setReviews] = useState<ReviewFromAPI[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", content: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+
+  const fetchReviews = useCallback(async () => {
+    if (!productId) return;
+    setReviewsLoading(true);
+    try {
+      const res = await fetch(`/api/v1/products/${productId}/reviews?limit=20`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data.reviews || []);
+      }
+    } catch {
+      // silently fail — demo reviews already shown
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [productId, token]);
+
   useEffect(() => {
     fetchProduct();
   }, [productId]);
+
+  useEffect(() => {
+    if (productId) fetchReviews();
+  }, [productId, fetchReviews]);
 
   const fetchProduct = async () => {
     if (!productId) {
@@ -476,6 +516,28 @@ export default function ProductPage() {
       navigate('/cart');
     } finally {
       setAddingToCart(false);
+    }
+  };
+
+  const submitReview = async () => {
+    if (!token) { setReviewError("Please sign in to leave a review."); return; }
+    if (!reviewForm.content.trim()) { setReviewError("Please write a review."); return; }
+    setSubmittingReview(true); setReviewError("");
+    try {
+      const res = await fetch(`/api/v1/products/${productId}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(reviewForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit review");
+      setReviewSuccess(true);
+      setReviewForm({ rating: 5, title: "", content: "" });
+      fetchReviews();
+    } catch (e: unknown) {
+      setReviewError(e instanceof Error ? e.message : "Failed to submit review");
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -668,42 +730,78 @@ export default function ProductPage() {
       {/* Reviews Section */}
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>Customer Reviews</h2>
-        
-        {/* Demo reviews for display */}
-        <div style={styles.reviewCard}>
-          <div style={styles.reviewHeader}>
-            <div style={styles.reviewAuthor}>
-              <div style={styles.reviewAvatar}>JD</div>
-              <div>
-                <div style={styles.reviewName}>John D.</div>
-                <div style={styles.reviewDate}>Verified Purchase • 2 weeks ago</div>
-              </div>
-            </div>
-            <div style={styles.stars}>{renderStars(5)}</div>
-          </div>
-          <p style={styles.reviewContent}>
-            Absolutely beautiful shirt! The quality is outstanding and the patterns are even more stunning in person. 
-            Fits perfectly and the fabric is very comfortable. Will definitely be ordering more from this vendor.
-          </p>
-        </div>
 
-        <div style={styles.reviewCard}>
-          <div style={styles.reviewHeader}>
-            <div style={styles.reviewAuthor}>
-              <div style={styles.reviewAvatar}>SM</div>
-              <div>
-                <div style={styles.reviewName}>Sarah M.</div>
-                <div style={styles.reviewDate}>Verified Purchase • 1 month ago</div>
+        {/* Write a Review */}
+        {!reviewSuccess ? (
+          <div style={{ ...styles.reviewCard, marginBottom: 28, borderColor: 'rgba(201,168,76,0.2)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.12em', color: 'var(--gold)', marginBottom: 16 }}>WRITE A REVIEW</div>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-dim)', marginBottom: 8, letterSpacing: '0.08em' }}>RATING</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[1,2,3,4,5].map(n => (
+                  <button key={n} onClick={() => setReviewForm(f => ({ ...f, rating: n }))}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 24, color: n <= reviewForm.rating ? 'var(--gold)' : 'var(--border)', padding: 0, transition: 'color 150ms ease' }}>
+                    ★
+                  </button>
+                ))}
               </div>
             </div>
-            <div style={styles.stars}>{renderStars(4)}</div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-dim)', marginBottom: 8, letterSpacing: '0.08em' }}>TITLE (OPTIONAL)</div>
+              <input value={reviewForm.title} onChange={e => setReviewForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="Summarise your experience"
+                style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 5, padding: '9px 12px', color: 'var(--text)', fontSize: 13, fontFamily: "'Syne', sans-serif", boxSizing: 'border-box' as const }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-dim)', marginBottom: 8, letterSpacing: '0.08em' }}>YOUR REVIEW</div>
+              <textarea value={reviewForm.content} onChange={e => setReviewForm(f => ({ ...f, content: e.target.value }))}
+                rows={4} placeholder="Share your experience with this product..."
+                style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 5, padding: '9px 12px', color: 'var(--text)', fontSize: 13, fontFamily: "'Syne', sans-serif", resize: 'none' as const, boxSizing: 'border-box' as const }} />
+            </div>
+            {reviewError && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 12 }}>{reviewError}</div>}
+            <button onClick={submitReview} disabled={submittingReview}
+              style={{ background: 'var(--gold)', color: 'var(--bg)', border: 'none', borderRadius: 5, padding: '10px 24px', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: submittingReview ? 'not-allowed' : 'pointer', opacity: submittingReview ? 0.7 : 1 }}>
+              {submittingReview ? 'Submitting...' : 'Submit Review'}
+            </button>
           </div>
-          <p style={styles.reviewContent}>
-            Great quality and authentic African craftsmanship. Shipping took a bit longer than expected 
-            but the product was worth the wait. Would recommend!
-          </p>
-        </div>
+        ) : (
+          <div style={{ background: 'rgba(45,212,160,0.06)', border: '1px solid rgba(45,212,160,0.25)', borderRadius: 6, padding: '16px 20px', marginBottom: 24, color: 'var(--green)', fontSize: 13 }}>
+            ✓ Thank you for your review! It will appear shortly.
+          </div>
+        )}
+
+        {/* Reviews list */}
+        {reviewsLoading ? (
+          <div style={{ color: 'var(--text-dim)', fontSize: 13, padding: 20 }}>Loading reviews...</div>
+        ) : reviews.length > 0 ? (
+          reviews.map(r => (
+            <div key={r.id} style={styles.reviewCard}>
+              <div style={styles.reviewHeader}>
+                <div style={styles.reviewAuthor}>
+                  <div style={styles.reviewAvatar}>
+                    {(r.user?.name || "U").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={styles.reviewName}>{r.user?.name || "Anonymous"}</div>
+                    <div style={styles.reviewDate}>
+                      {r.isVerified ? "Verified Purchase · " : ""}
+                      {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    </div>
+                  </div>
+                </div>
+                <div style={styles.stars}>{renderStars(r.rating)}</div>
+              </div>
+              {r.title && <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)', marginBottom: 6 }}>{r.title}</div>}
+              <p style={styles.reviewContent}>{r.content}</p>
+            </div>
+          ))
+        ) : (
+          <div style={{ color: 'var(--text-dim)', fontSize: 13, padding: '20px 0' }}>
+            No reviews yet. Be the first to share your experience!
+          </div>
+        )}
       </div>
+      <AssistantPanel assistant="atlas" page="product" userId={user?.id} />
     </div>
   );
 }

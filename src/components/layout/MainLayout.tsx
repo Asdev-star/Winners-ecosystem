@@ -311,6 +311,23 @@ const PLATFORMS = [
       { path: "/work/profile",     label: "My Profile",    icon: "⚙️" },
     ],
   },
+  {
+    path:   "/cloud",
+    icon:   "☁️",
+    name:   "Winners Cloud",
+    desc:   "APIs · Connectors · Automations · Agents",
+    status: "building",
+    tag:    "new",
+    sub:    [
+      { path: "/cloud",             label: "Developer Portal", icon: "☁️" },
+      { path: "/cloud/keys",        label: "API Keys",         icon: "🔑" },
+      { path: "/cloud/connectors",  label: "Connectors",       icon: "🔌" },
+      { path: "/cloud/automations", label: "Automations",      icon: "⚡" },
+      { path: "/cloud/agents",      label: "AI Agents",        icon: "🤖" },
+      { path: "/cloud/webhooks",    label: "Webhooks",         icon: "🪝" },
+      { path: "/cloud/usage",       label: "Usage",            icon: "📊" },
+    ],
+  },
 ];
 
 // ── TOOLS & MONETIZATION ─────────────────────────────────────────────────────

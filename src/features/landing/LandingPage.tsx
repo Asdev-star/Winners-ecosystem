@@ -812,34 +812,49 @@ const css = `
 
 const PLATFORMS = [
   {
-    icon: "⬡", name: "Core Engine", phase: "Phase 1", status: "live", pct: 90,
-    desc: "The control tower. Multi-tenant auth, billing, analytics, RBAC, and the API gateway powering every platform layer.",
-    tags: ["Auth & 2FA", "Billing", "Analytics", "API Gateway"],
+    icon: "⬡", name: "Core Engine", phase: "Phase 1", status: "live", pct: 92,
+    desc: "The control tower. Multi-tenant auth, billing, analytics, 2FA, RBAC, SSO, and the 52-route API gateway powering every platform layer.",
+    tags: ["Auth & 2FA", "Billing", "Analytics", "52 API Routes"],
   },
   {
-    icon: "🧑‍🤝‍🧑", name: "Winners Community", phase: "Phase 2", status: "live", pct: 65,
-    desc: "A full social platform. Posts, groups, DMs, live spaces, creator economy, and NOVA AI skill detection powering the Agentic Loop.",
+    icon: "🧑‍🤝‍🧑", name: "Winners Community", phase: "Phase 2", status: "live", pct: 80,
+    desc: "Full social platform. Posts, groups, DMs, live spaces, studio, creator economy, skill endorsements, and NOVA AI skill detection powering the Agentic Loop.",
     tags: ["Social Feed", "Live Spaces", "Creator Economy", "NOVA AI"],
   },
   {
-    icon: "🎓", name: "Winners Academy", phase: "Phase 3", status: "live", pct: 45,
-    desc: "Complete learning platform. Courses, learning paths, study groups, certificates, and SAGE AI tutor with PDF analysis.",
-    tags: ["Courses", "Certificates", "SAGE AI Tutor", "Paths"],
+    icon: "🎓", name: "Winners Academy", phase: "Phase 3", status: "live", pct: 72,
+    desc: "Complete learning platform. Courses, instructor dashboard, learning paths, study groups, live sessions, certificates, and SAGE AI tutor.",
+    tags: ["Courses", "Certificates", "SAGE AI Tutor", "Live Sessions"],
   },
   {
-    icon: "🛒", name: "Winners Market", phase: "Phase 4", status: "soon", pct: 20,
-    desc: "10-vertical commerce engine. Dropshipping, digital marketing, streaming, trading, events, property, health, and finance.",
+    icon: "🛒", name: "Winners Market", phase: "Phase 4", status: "soon", pct: 55,
+    desc: "10-vertical commerce engine. Vendor stores, cart, orders, dropshipping, digital marketing, CV tools, and business launcher — with ATLAS AI.",
     tags: ["10 Verticals", "Dropshipping", "Vendor Stores", "ATLAS AI"],
   },
   {
-    icon: "🤖", name: "Winners Intelligence", phase: "Phase 5", status: "live", pct: 35,
-    desc: "9 AI supervisors. OMEGA orchestrates the Agentic Loop. ARIA, NOVA, SAGE, ATLAS, FORGE, CIRCUIT, NEXUS, HERALD — all live.",
-    tags: ["9 Supervisors", "OMEGA", "Streaming AI", "Agentic Loop"],
+    icon: "🤖", name: "Winners Intelligence", phase: "Phase 5", status: "live", pct: 75,
+    desc: "9 AI supervisors live. OMEGA orchestrates the Agentic Loop. Token-by-token streaming, multi-turn memory, SSE — all 9 assistants active.",
+    tags: ["9 Supervisors", "OMEGA Dashboard", "Streaming AI", "Agentic Loop"],
   },
   {
     icon: "💼", name: "Winners Work", phase: "Phase 6", status: "soon", pct: 35,
-    desc: "Freelance marketplace. Job board, freelancer profiles, AI-powered CIRCUIT matching, contracts, and milestone escrow.",
-    tags: ["Job Board", "Freelancers", "CIRCUIT AI", "Escrow"],
+    desc: "Freelance marketplace. Job board, freelancer profiles, applications, contracts, and AI-powered CIRCUIT matching — escrow integration building.",
+    tags: ["Job Board", "Freelancers", "CIRCUIT AI", "Contracts"],
+  },
+  {
+    icon: "☁️", name: "Winners Cloud", phase: "Phase 8", status: "soon", pct: 40,
+    desc: "Developer infrastructure. API keys, connector marketplace, webhook subscriptions, automations, AI agents builder, and DNS management.",
+    tags: ["API Keys", "Connectors", "Webhooks", "NEXUS AI"],
+  },
+  {
+    icon: "🧬", name: "AI Platform", phase: "Phase 9", status: "soon", pct: 60,
+    desc: "Universal multimodal AI service. FastAPI + Ollama (Llama 3.1, DeepSeek, Qwen), faster-whisper offline STT, and ComfyUI image generation.",
+    tags: ["Ollama Local", "Whisper STT", "ComfyUI", "HERALD AI"],
+  },
+  {
+    icon: "📱", name: "Mobile App", phase: "Phase 7", status: "soon", pct: 25,
+    desc: "PWA ready today. React Native super app in progress — community, learning, commerce, and all 9 AI supervisors in one mobile experience.",
+    tags: ["PWA Ready", "React Native", "Push Notifications", "Offline AI"],
   },
 ];
 
@@ -916,7 +931,7 @@ const FAQS = [
   },
   {
     q: "What is live right now?",
-    a: "Core Engine (90%) — auth, billing, analytics, 2FA, RBAC live in production. Community (65%) — social feed, groups, DMs, live spaces, creator economy, and NOVA AI skill detection live. Academy (45%) — courses, certificates, learning paths, study groups, and SAGE AI tutor live. Intelligence (35%) — all 9 AI supervisors (OMEGA, ARIA, NOVA, SAGE, ATLAS, FORGE, CIRCUIT, NEXUS, HERALD) live with streaming. Work (35%) — job board, freelancer profiles, applications, and contracts live. Market (20%) — vendor stores, cart, and orders built."
+    a: "Core Engine (92%) — auth, billing, analytics, 2FA, RBAC, 52 API routes live. Community (80%) — social feed, groups, DMs, live spaces, creator studio, skill endorsements, NOVA AI live. Academy (72%) — courses, instructor dashboard, learning paths, study groups, live sessions, certificates, SAGE AI tutor live. Intelligence (75%) — all 9 AI supervisors (OMEGA, ARIA, NOVA, SAGE, ATLAS, FORGE, CIRCUIT, NEXUS, HERALD) streaming live, OMEGA Dashboard wired. Market (55%) — vendor stores, cart, orders, dropshipping, business launcher, CV tools, digital marketing built. Work (35%) — job board, freelancer profiles, applications, and contracts built. Cloud (40%) — API keys, connectors, webhooks, automations, agents pages built. AI Platform (60%) — FastAPI multimodal service containerised."
   },
   {
     q: "Can I use just one platform layer?",
@@ -933,7 +948,7 @@ const FAQS = [
 ];
 
 const STATUS_MAP: Record<string, string> = {
-  live: "live", soon: "building", planned: "planned"
+  live: "live", soon: "building", building: "building", planned: "planned"
 };
 
 // ─── COMPONENT ───────────────────────────────────────────────────────────────

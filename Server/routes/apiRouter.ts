@@ -42,6 +42,11 @@ import liveSessionRoutes from "./liveSessionRoutes.js";
 import quizRoutes from "./quizRoutes.js";
 import lectureUploadRoutes from "./lectureUploadRoutes.js";
 import cloudRoutes from "./cloudRoutes.js";
+import studioRoutes from "./studioRoutes.js";
+import omegaRoutes from "./omegaRoutes.js";
+import supervisorRoutes from "./supervisorRoutes.js";
+import communityExtrasRoutes from "./communityExtrasRoutes.js";
+import autonomousRoutes from "./autonomousRoutes.js";
 
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
@@ -87,6 +92,11 @@ const gatewayRoutes = [
   "/quizzes",
   "/lecture-uploads",
   "/cloud",
+  "/studio",
+  "/omega",
+  "/supervisors",
+  "/community-extras",
+  "/insights",
 ];
 
 router.get("/", (_req, res) => {
@@ -145,5 +155,10 @@ router.use("/work", workRoutes);
 router.use("/quizzes", quizRoutes);
 router.use("/lecture-uploads", lectureUploadRoutes);
 router.use("/cloud", cloudRoutes);
+router.use("/studio", studioRoutes);
+router.use("/omega", omegaRoutes);
+router.use("/supervisors", supervisorRoutes);
+router.use("/community-extras", communityExtrasRoutes);
+router.use("/insights", autonomousRoutes);
 
 export default router;

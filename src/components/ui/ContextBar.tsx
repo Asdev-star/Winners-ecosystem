@@ -2,7 +2,7 @@ import { Fragment } from "react";
 import { Link } from "react-router-dom";
 
 type LayerStatus = "live" | "active" | "building" | "planned";
-type LayerKey = "core" | "community" | "academy" | "market" | "intelligence" | "work";
+type LayerKey = "core" | "community" | "academy" | "market" | "intelligence" | "work" | "cloud";
 
 interface LayerConfig {
   key: LayerKey;
@@ -20,12 +20,13 @@ interface ContextBarProps {
 }
 
 const LAYERS: LayerConfig[] = [
-  { key: "core", label: "Core Engine", shortLabel: "CORE", href: "/dashboard", status: "live" },
-  { key: "community", label: "Community", shortLabel: "COMM", href: "/community", status: "active" },
-  { key: "academy", label: "Academy", shortLabel: "ACAD", href: "/academy", status: "active" },
-  { key: "market", label: "Market", shortLabel: "MKT", href: "/market", status: "planned" },
-  { key: "intelligence", label: "Intelligence", shortLabel: "INTEL", href: "/intelligence", status: "active" },
-  { key: "work", label: "Work", shortLabel: "WORK", href: "/work", status: "planned" },
+  { key: "core",         label: "Core Engine",   shortLabel: "CORE",  href: "/dashboard",           status: "live"     },
+  { key: "community",   label: "Community",      shortLabel: "COMM",  href: "/community",           status: "live"     },
+  { key: "academy",     label: "Academy",        shortLabel: "ACAD",  href: "/academy",             status: "live"     },
+  { key: "market",      label: "Market",         shortLabel: "MKT",   href: "/market",              status: "building" },
+  { key: "intelligence",label: "Intelligence",   shortLabel: "INTEL", href: "/intelligence",        status: "live"     },
+  { key: "work",        label: "Work",           shortLabel: "WORK",  href: "/work",                status: "building" },
+  { key: "cloud",       label: "Cloud",          shortLabel: "CLOUD", href: "/cloud",               status: "building" },
 ];
 
 export default function ContextBar({
