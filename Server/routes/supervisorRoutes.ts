@@ -9,6 +9,7 @@ import Anthropic from "@anthropic-ai/sdk";
 const router = Router();
 const prisma = db;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const AI_PLATFORM_URL = process.env.AI_PLATFORM_URL || 'http://localhost:8001';
 
 // Middleware to require authentication
 const requireAuth = (req: Request, res: Response, next: Function) => {
@@ -115,7 +116,7 @@ const getSupervisorContext = async (supervisor: string, userId: string) => {
 router.post("/:name/chat", requireAuth, async (req: Request, res: Response) => {
   try {
     const supervisorName = (req.params.name as string).toUpperCase();
-    const { message, context } = req.body;
+    const { message, context, provider = 'claude', history } = req.body;
     const userId = req.user!.userId;
 
     // Validate supervisor
@@ -190,6 +191,41 @@ Current context: ${JSON.stringify(mergedContext)}`,
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
+    if (provider === 'ollama' || provider === 'deepseek' || provider === 'llama') {
+      const ollamaModel = provider === 'deepseek' ? 'deepseek-coder' : 'llama3.1';
+      try {
+        const ollamaRes = await fetch(`${AI_PLATFORM_URL}/chat/ollama`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: ollamaModel,
+            system: systemPrompts[supervisorName] || systemPrompts.ARIA,
+            messages: [
+              ...(history || []).slice(-10),
+              { role: 'user', content: message },
+            ],
+            stream: true,
+          }),
+        });
+        if (ollamaRes.ok && ollamaRes.body) {
+          const reader = (ollamaRes.body as any).getReader();
+          const decoder = new TextDecoder();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const text = decoder.decode(value);
+            for (const line of text.split('\n').filter((l: string) => l.startsWith('data: '))) {
+              res.write(line + '\n\n');
+            }
+          }
+          res.write('data: [DONE]\n\n');
+          res.end();
+          return;
+        }
+      } catch (ollamaErr) {
+        console.warn('[supervisor] Ollama unavailable, falling back to Claude');
+      }
+    }
     const stream = await anthropic.messages.stream({
       model: "claude-sonnet-4-6",
       max_tokens: 1500,

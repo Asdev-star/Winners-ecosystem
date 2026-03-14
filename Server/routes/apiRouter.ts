@@ -49,6 +49,11 @@ import communityExtrasRoutes from "./communityExtrasRoutes.js";
 import autonomousRoutes from "./autonomousRoutes.js";
 import agenticLoopRoutes from "./agenticLoopRoutes.js";
 import creditRoutes from "./creditRoutes.js";
+import escrowRoutes from "./escrowRoutes.js";
+import circuitRoutes from "./circuitRoutes.js";
+import atlasRoutes from "./atlasRoutes.js";
+import connectorRoutes from "./connectorRoutes.js";
+import notificationTokenRoutes from "./notificationTokenRoutes.js";
 
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
 
@@ -101,6 +106,11 @@ const gatewayRoutes = [
   "/insights",
   "/agentic",
   "/credits",
+  "/escrow",
+  "/circuit",
+  "/atlas",
+  "/connectors",
+  "/push-tokens",
 ];
 
 router.get("/", (_req, res) => {
@@ -166,5 +176,10 @@ router.use("/community-extras", communityExtrasRoutes);
 router.use("/insights", autonomousRoutes);
 router.use("/agentic", agenticLoopRoutes);
 router.use("/credits", creditRoutes);
+router.use("/escrow", escrowRoutes);
+router.use("/circuit", circuitRoutes);
+router.use("/atlas", atlasRoutes);
+router.use("/connectors", connectorRoutes);
+router.use("/push-tokens", notificationTokenRoutes);
 
 export default router;

@@ -61,6 +61,7 @@ import LoopTrackerPage from "./features/intelligence/LoopTrackerPage";
 import MemoryManagerPage from "./features/intelligence/MemoryManagerPage";
 import CreditsPage from "./features/intelligence/CreditsPage";
 import ReportsPage from "./features/intelligence/ReportsPage";
+import IntelligenceAnalytics from "./features/intelligence/IntelligenceAnalytics";
 import InstructorDashboard from "./features/academy/InstructorDashboard";
 import CourseCreatePage from "./features/academy/CourseCreatePage";
 import LearningPathsPage from "./features/academy/LearningPathsPage";
@@ -82,6 +83,7 @@ import CVToolsPage from "./features/market/CVToolsPage";
 import DigitalMarketingPage from "./features/market/DigitalMarketingPage";
 import WorkPage from "./features/work/WorkPage";
 import FreelancerProfilePage from "./features/work/FreelancerProfilePage";
+import EscrowPage from "./features/work/EscrowPage";
 import CreatorProfilePage from "./features/community/CreatorProfilePage";
 import CloudPage from "./features/cloud/CloudPage";
 import CloudConnectorsPage from "./features/cloud/CloudConnectorsPage";
@@ -209,6 +211,7 @@ function App() {
             <Route path="intelligence/memory" element={<MemoryManagerPage />} />
             <Route path="intelligence/credits" element={<CreditsPage />} />
             <Route path="intelligence/reports" element={<ReportsPage />} />
+            <Route path="intelligence/analytics" element={<IntelligenceAnalytics />} />
             <Route
               path="academy/instructor"
               element={<InstructorDashboard />}
@@ -246,6 +249,7 @@ function App() {
             <Route path="work" element={<WorkPage />} />
             <Route path="work/freelancers" element={<WorkPage />} />
             <Route path="work/contracts" element={<WorkPage />} />
+            <Route path="work/escrow" element={<EscrowPage />} />
             <Route path="work/profile" element={<FreelancerProfilePage />} />
             <Route path="market/:vertical" element={<MarketPage />} />
             <Route path="cloud" element={<CloudPage />} />

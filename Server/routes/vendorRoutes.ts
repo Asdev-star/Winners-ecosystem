@@ -4,6 +4,8 @@
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
+import Stripe from 'stripe';
+function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!); }
 
 const router = Router();
 
@@ -153,6 +155,48 @@ router.get("/:id", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("[vendorRoutes] Error fetching vendor:", error);
     res.status(500).json({ error: "Failed to fetch vendor" });
+  }
+});
+
+router.post('/onboard', authMiddleware, async (req: Request, res: Response) => {
+  const { businessName, country } = req.body;
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  try {
+    const stripe = getStripe();
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country: country || 'KE',
+      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+    });
+    await db.vendor.updateMany({ where: { userId, tenantId }, data: { stripeAccountId: account.id } as any });
+    const link = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: (process.env.APP_URL || '') + '/market/vendor/onboard',
+      return_url: (process.env.APP_URL || '') + '/market/vendor/dashboard',
+      type: 'account_onboarding',
+    });
+    return res.json({ onboardingUrl: link.url });
+  } catch (error) {
+    console.error('[vendor] Onboard error:', error);
+    return res.status(500).json({ error: 'Failed to create Stripe account' });
+  }
+});
+
+router.get('/onboard/status', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  try {
+    const vendor = await db.vendor.findFirst({ where: { userId, tenantId } });
+    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+    const stripeAccountId = (vendor as any).stripeAccountId;
+    if (!stripeAccountId) return res.json({ status: 'not_started' });
+    const stripe = getStripe();
+    const account = await stripe.accounts.retrieve(stripeAccountId);
+    return res.json({ status: account.details_submitted ? 'complete' : 'pending', chargesEnabled: account.charges_enabled, payoutsEnabled: account.payouts_enabled });
+  } catch (error) {
+    console.error('[vendor] Status error:', error);
+    return res.status(500).json({ error: 'Failed to get onboarding status' });
   }
 });
 

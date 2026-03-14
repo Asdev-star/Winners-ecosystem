@@ -552,6 +552,7 @@ export default function WinnersIntelligencePage() {
             { label: "Memory Manager", emoji: "🧠", path: "/intelligence/memory", desc: "What supervisors know" },
             { label: "AI Credits", emoji: "⚡", path: "/intelligence/credits", desc: "Balance & history" },
             { label: "Weekly Reports", emoji: "📊", path: "/intelligence/reports", desc: "OMEGA intelligence" },
+            { label: "AI Analytics", emoji: "📈", path: "/intelligence/analytics", desc: "Usage & loop funnel" },
           ].map((item) => (
             <div
               key={item.path}
