@@ -26,3 +26,20 @@ dist-ssr
 /src/generated/prisma
 
 /src/generated/prisma
+ 
+# Utility / debug scripts - not source code 
+gen_files.py 
+up.py 
+write_*.py 
+temp_*.py 
+execute_migration.py 
+script.py 
+seed_runner.py 
+seed_connectors.cjs 
+test_db.cjs 
+test_*.cjs 
+*.cjs 
+ 
+# Scratch / test artifacts 
+fix_test.txt 
+tmpclaude-*
