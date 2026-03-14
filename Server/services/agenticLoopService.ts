@@ -15,17 +15,16 @@ export interface AgenticTrigger {
 export async function triggerAgenticLoop(trigger: AgenticTrigger): Promise<void> {
   try {
     await db.agenticLoopProgress.upsert({
-      where: { userId_tenantId: { userId: trigger.userId, tenantId: trigger.tenantId } },
+      where: { userId: trigger.userId },
       create: {
         userId: trigger.userId,
         tenantId: trigger.tenantId,
-        stage: trigger.triggerType,
-        stagesCompleted: [trigger.triggerType],
+        stage: 1,
+        stageName: trigger.triggerType,
         lastActivity: new Date(),
-        loopCount: 1,
       },
       update: {
-        stage: trigger.triggerType,
+        stageName: trigger.triggerType,
         lastActivity: new Date(),
       },
     });
@@ -49,11 +48,10 @@ export async function triggerAgenticLoop(trigger: AgenticTrigger): Promise<void>
 
 export async function onCertificateEarned(userId: string, courseId: string, tenantId: string): Promise<void> {
   try {
-    const cert = await db.certificate.findFirst({ where: { userId, courseId, tenantId } });
+    const cert = await db.certificate.findFirst({ where: { userId, courseId, tenantId }, include: { course: { select: { title: true, category: true } } } });
     if (!cert) return;
 
-    const certSkills = (cert as any).skills as string[] | undefined;
-    const skill = certSkills?.[0] || cert.title;
+    const skill = cert.course?.category ?? cert.course?.title ?? 'General';
 
     const jobs = await db.jobListing.findMany({
       where: {
@@ -64,7 +62,7 @@ export async function onCertificateEarned(userId: string, courseId: string, tena
           { title: { contains: skill, mode: 'insensitive' } },
         ],
       },
-      orderBy: { budget: 'desc' },
+      orderBy: { budgetMax: 'desc' },
       take: 5,
     });
 
@@ -76,16 +74,17 @@ export async function onCertificateEarned(userId: string, courseId: string, tena
       data: {
         tenantId,
         userId,
-        type: 'circuit_job_match',
+        type: 'OPPORTUNITY_MATCH',
         title: 'CIRCUIT: New Job Match',
-        message: `Your new "${cert.title}" certificate matches a $${bestJob.budget} job opportunity. CIRCUIT has a draft proposal ready.`,
-        data: { jobId: bestJob.id, certId: cert.id, matchCount: jobs.length },
+        body: `Your new "${cert.course?.title ?? 'course'}" certificate matches a $${bestJob.budgetMax ?? bestJob.budgetMin ?? 0} job opportunity. CIRCUIT has a draft proposal ready.`,
+        entityId: bestJob.id,
+        entityType: 'job',
       },
     });
 
     await sendPushNotification(userId, {
       title: 'CIRCUIT: Job Match Found',
-      body: `Your ${cert.title} cert matches a $${bestJob.budget} contract. Tap to view.`,
+      body: `Your ${cert.course?.title ?? 'certificate'} matches a $${bestJob.budgetMax ?? bestJob.budgetMin ?? 0} contract. Tap to view.`,
       url: `/work/jobs/${bestJob.id}`,
       data: { type: 'job_match', jobId: bestJob.id },
     });

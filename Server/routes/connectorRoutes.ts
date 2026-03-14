@@ -85,19 +85,19 @@ const CONNECTORS: Record<string, any> = {
   },
 };
 
-function encryptToken(text: string): { encrypted: Buffer; iv: string } {
+function encryptToken(text: string): { encrypted: Uint8Array<ArrayBuffer>; iv: string } {
   const key = Buffer.from((process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'fallback-key-32chars-padded-here').slice(0, 32).padEnd(32, '0'), 'utf8');
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
-  return { encrypted, iv: iv.toString('hex') };
+  const encBuf = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+  return { encrypted: encBuf as unknown as Uint8Array<ArrayBuffer>, iv: iv.toString('hex') };
 }
 
-function decryptToken(encrypted: Buffer, ivHex: string): string {
+function decryptToken(encrypted: Uint8Array<ArrayBuffer> | Buffer, ivHex: string): string {
   const key = Buffer.from((process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'fallback-key-32chars-padded-here').slice(0, 32).padEnd(32, '0'), 'utf8');
   const iv = Buffer.from(ivHex, 'hex');
   const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  return Buffer.concat([decipher.update(Buffer.from(encrypted as Uint8Array)), decipher.final()]).toString('utf8');
 }
 
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
@@ -124,7 +124,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 router.get('/connect/:connectorName', authMiddleware, async (req: Request, res: Response) => {
-  const { connectorName } = req.params;
+  const connectorName = req.params.connectorName as string;
   const connector = CONNECTORS[connectorName];
   if (!connector) return res.status(404).json({ error: 'Connector not found' });
   if (connector.authType !== 'oauth2') {
@@ -137,7 +137,7 @@ router.get('/connect/:connectorName', authMiddleware, async (req: Request, res: 
     { expiresIn: '10m' }
   );
 
-  const clientIdKey = `${connectorName.toUpperCase()}_CLIENT_ID`;
+  const clientIdKey = `${(connectorName as string).toUpperCase()}_CLIENT_ID`;
   const clientId = process.env[clientIdKey];
   if (!clientId) return res.status(500).json({ error: `${clientIdKey} env var not set` });
 
@@ -161,7 +161,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     const connector = CONNECTORS[connectorName];
     if (!connector) throw new Error('Unknown connector');
 
-    const clientIdKey = `${connectorName.toUpperCase()}_CLIENT_ID`;
+    const clientIdKey = `${(connectorName as string).toUpperCase()}_CLIENT_ID`;
     const clientSecretKey = `${connectorName.toUpperCase()}_CLIENT_SECRET`;
 
     const tokenRes = await fetch(connector.tokenUrl, {
@@ -204,7 +204,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 });
 
 router.post('/api-key/:connectorName', authMiddleware, async (req: Request, res: Response) => {
-  const { connectorName } = req.params;
+  const connectorName = req.params.connectorName as string;
   const { apiKey, additionalConfig } = req.body;
   const tenantId = req.user!.tenantId;
   const userId = req.user!.userId;
@@ -240,7 +240,7 @@ router.post('/api-key/:connectorName', authMiddleware, async (req: Request, res:
 });
 
 router.delete('/:connectorName', authMiddleware, async (req: Request, res: Response) => {
-  const { connectorName } = req.params;
+  const connectorName = req.params.connectorName as string;
   const tenantId = req.user!.tenantId;
   try {
     const dbConnector = await db.connector.findUnique({ where: { slug: connectorName } });
@@ -258,7 +258,7 @@ router.delete('/:connectorName', authMiddleware, async (req: Request, res: Respo
 });
 
 router.post('/test/:connectorName', authMiddleware, async (req: Request, res: Response) => {
-  const { connectorName } = req.params;
+  const connectorName = req.params.connectorName as string;
   const tenantId = req.user!.tenantId;
   try {
     const dbConnector = await db.connector.findUnique({ where: { slug: connectorName } });

@@ -80,7 +80,7 @@ router.get('/:contractId', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   try {
     const escrow = await db.escrowPayment.findFirst({
-      where: { contractId: req.params.contractId, tenantId },
+      where: { contractId: req.params.contractId as string, tenantId },
       include: {
         contract: {
           select: { title: true, amount: true, currency: true, clientId: true, freelancerId: true, milestones: true },
@@ -102,7 +102,7 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
-    const escrow = await db.escrowPayment.findFirst({ where: { id: req.params.escrowId, tenantId } });
+    const escrow = await db.escrowPayment.findFirst({ where: { id: req.params.escrowId as string, tenantId } });
     if (!escrow) return res.status(404).json({ error: 'Escrow not found' });
     if (escrow.clientId !== userId) return res.status(403).json({ error: 'Only the client can release funds' });
     if (escrow.status === 'DISPUTED') return res.status(400).json({ error: 'Escrow is under dispute' });
@@ -129,9 +129,10 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
     await db.notification.create({
       data: {
         tenantId, userId: escrow.freelancerId,
-        type: 'escrow_released', title: 'Payment Released',
-        message: `$${freelancerPayout.toFixed(2)} has been released to your account.`,
-        data: { escrowId: escrow.id, amount: freelancerPayout, transferId },
+        type: 'SYSTEM', title: 'Payment Released',
+        body: `$${freelancerPayout.toFixed(2)} has been released to your account.`,
+        entityId: escrow.id,
+        entityType: 'escrow',
       },
     });
     return res.json({ success: true, payout: freelancerPayout, platformFee, transferId });
@@ -146,7 +147,7 @@ router.post('/dispute/:escrowId', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
-    const escrow = await db.escrowPayment.findFirst({ where: { id: req.params.escrowId, tenantId } });
+    const escrow = await db.escrowPayment.findFirst({ where: { id: req.params.escrowId as string, tenantId } });
     if (!escrow) return res.status(404).json({ error: 'Escrow not found' });
     const isParticipant = escrow.clientId === userId || escrow.freelancerId === userId;
     if (!isParticipant) return res.status(403).json({ error: 'Not authorised' });
@@ -158,9 +159,10 @@ router.post('/dispute/:escrowId', async (req: Request, res: Response) => {
     await db.notification.create({
       data: {
         tenantId, userId: otherPartyId,
-        type: 'escrow_dispute', title: 'Escrow Dispute Opened',
-        message: 'A dispute has been opened. Our team will review within 48 hours.',
-        data: { escrowId: escrow.id, reason, evidence },
+        type: 'SYSTEM', title: 'Escrow Dispute Opened',
+        body: 'A dispute has been opened. Our team will review within 48 hours.',
+        entityId: escrow.id,
+        entityType: 'escrow',
       },
     });
     return res.json({ success: true, message: 'Dispute opened - our team will review within 48 hours' });
@@ -174,7 +176,7 @@ router.post('/refund/:escrowId', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
-    const escrow = await db.escrowPayment.findFirst({ where: { id: req.params.escrowId, tenantId } });
+    const escrow = await db.escrowPayment.findFirst({ where: { id: req.params.escrowId as string, tenantId } });
     if (!escrow) return res.status(404).json({ error: 'Escrow not found' });
     if (escrow.clientId !== userId) return res.status(403).json({ error: 'Not authorised' });
     if (escrow.status === 'RELEASED') return res.status(400).json({ error: 'Cannot refund a released escrow' });

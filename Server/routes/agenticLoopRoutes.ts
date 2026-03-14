@@ -87,7 +87,7 @@ router.post("/trigger", async (req: Request, res: Response) => {
       loop = await prisma.agenticLoop.update({
         where: { id: loop.id },
         data: {
-          steps: [...steps, newStep],
+          steps: [...(steps as any[]), newStep] as any,
           currentStep: nextStageIndex,
           updatedAt: new Date(),
         },
@@ -141,7 +141,7 @@ router.post("/trigger", async (req: Request, res: Response) => {
 // GET /agentic/loop/:userId — current loop state
 router.get("/loop/:userId", requireAuth, async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
     const loop = await prisma.agenticLoop.findFirst({
       where: { userId, status: "active" },
       orderBy: { createdAt: "desc" },
@@ -188,7 +188,7 @@ router.get("/loop/:userId", requireAuth, async (req: Request, res: Response) => 
 // GET /agentic/history/:userId — all loops, paginated
 router.get("/history/:userId", requireAuth, async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
     const page = parseInt(req.query.page as string) || 1;
     const limit = 10;
 
@@ -258,7 +258,7 @@ router.post("/loop/complete", requireAuth, async (req: Request, res: Response) =
 // GET /agentic/actions/:userId — pending autonomous actions
 router.get("/actions/:userId", requireAuth, async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
     const tenantId = req.user!.tenantId;
 
     const actions = await prisma.assistantAction.findMany({
@@ -277,7 +277,7 @@ router.get("/actions/:userId", requireAuth, async (req: Request, res: Response) 
 // PATCH /agentic/actions/:id/approve
 router.patch("/actions/:id/approve", requireAuth, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const action = await prisma.assistantAction.update({
       where: { id },
       data: { status: "approved", approved: true, executedAt: new Date() },
@@ -292,7 +292,7 @@ router.patch("/actions/:id/approve", requireAuth, async (req: Request, res: Resp
 // PATCH /agentic/actions/:id/reject
 router.patch("/actions/:id/reject", requireAuth, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const action = await prisma.assistantAction.update({
       where: { id },
       data: { status: "rejected" },

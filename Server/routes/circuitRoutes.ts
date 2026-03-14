@@ -13,12 +13,12 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 router.get('/match/:jobId', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
-  const { jobId } = req.params;
+  const jobId = req.params.jobId as string;
   try {
     const [job, freelancer, certs, skills] = await Promise.all([
       db.jobListing.findFirst({ where: { id: jobId, tenantId } }),
       db.freelancerProfile.findFirst({ where: { userId, tenantId } }),
-      db.certificate.findMany({ where: { userId, tenantId }, take: 10 }),
+      db.certificate.findMany({ where: { userId, tenantId }, take: 10, include: { course: { select: { title: true, category: true } } } }),
       db.novaSkillDetection.findMany({ where: { userId, tenantId, confidence: { gte: 0.7 } }, take: 20 }),
     ]);
     if (!job) return res.status(404).json({ error: 'Job not found' });
@@ -43,15 +43,15 @@ router.get('/match/:jobId', async (req: Request, res: Response) => {
 }`,
       messages: [{
         role: 'user',
-        content: `Job: ${JSON.stringify({ title: job.title, description: job.description, skills: job.skills, budget: job.budget, experienceLevel: job.experienceLevel })}
+        content: `Job: ${JSON.stringify({ title: job.title, description: job.description, skills: job.skills, budgetMin: job.budgetMin, budgetMax: job.budgetMax, experienceLevel: job.experienceLevel })}
 Freelancer: ${JSON.stringify({ skills: freelancer.skills, hourlyRate: freelancer.hourlyRate, bio: freelancer.bio })}
-Certificates: ${JSON.stringify(certs.map(c => ({ title: c.title, skills: c.skills })))}
+Certificates: ${JSON.stringify(certs.map(c => ({ title: c.course?.title ?? '', skills: [c.course?.category ?? ''].filter(Boolean) })))}
 Detected skills: ${JSON.stringify(skills.map(s => ({ skill: s.skill, confidence: s.confidence })))}`,
       }],
     });
 
     const score = JSON.parse(response.content[0].type === 'text' ? response.content[0].text : '{}');
-    return res.json({ jobId, score, jobTitle: job.title });
+    return res.json({ jobId, score, jobTitle: job.title, jobBudget: job.budgetMax ?? job.budgetMin });
   } catch (error) {
     console.error('[circuit] Match error:', error);
     return res.status(500).json({ error: 'Failed to score match' });
@@ -66,7 +66,7 @@ router.post('/propose', async (req: Request, res: Response) => {
     const [job, freelancer, certs] = await Promise.all([
       db.jobListing.findFirst({ where: { id: jobId, tenantId } }),
       db.freelancerProfile.findFirst({ where: { userId, tenantId } }),
-      db.certificate.findMany({ where: { userId, tenantId }, take: 3 }),
+      db.certificate.findMany({ where: { userId, tenantId }, take: 3, include: { course: { select: { title: true, category: true } } } }),
     ]);
     if (!job) return res.status(404).json({ error: 'Job not found' });
     if (!freelancer) return res.status(404).json({ error: 'Freelancer profile not found — create one first' });
@@ -88,9 +88,9 @@ Rules:
       messages: [{
         role: 'user',
         content: `Job: ${job.title} — ${job.description?.slice(0, 300)}
-Budget: $${job.budget}
+Budget: $${job.budgetMin ?? 0} - $${job.budgetMax ?? 0}
 Freelancer bio: ${freelancer.bio?.slice(0, 200)}
-Top certificates: ${certs.map(c => c.title).join(', ') || 'none'}`,
+Top certificates: ${certs.map(c => c.course?.title ?? '').filter(Boolean).join(', ') || 'none'}`,
       }],
     });
 
@@ -113,14 +113,14 @@ router.get('/top-jobs', async (req: Request, res: Response) => {
   try {
     const [freelancer, certs, skills] = await Promise.all([
       db.freelancerProfile.findFirst({ where: { userId, tenantId } }),
-      db.certificate.findMany({ where: { userId, tenantId }, take: 5 }),
+      db.certificate.findMany({ where: { userId, tenantId }, take: 5, include: { course: { select: { title: true, category: true } } } }),
       db.novaSkillDetection.findMany({ where: { userId, tenantId }, orderBy: { confidence: 'desc' }, take: 10 }),
     ]);
     if (!freelancer) return res.json({ jobs: [], message: 'Create a freelancer profile to get matched jobs' });
 
     const freelancerSkills = [
       ...(freelancer.skills || []),
-      ...certs.map(c => c.skills || []).flat(),
+      ...certs.map(c => [c.course?.category ?? ""].filter(Boolean) as string[]).flat(),
       ...skills.map(s => s.skill),
     ];
     const uniqueSkills = [...new Set(freelancerSkills)].slice(0, 15);
@@ -131,7 +131,7 @@ router.get('/top-jobs', async (req: Request, res: Response) => {
         status: 'OPEN',
         OR: uniqueSkills.length > 0 ? [{ skills: { hasSome: uniqueSkills } }] : undefined,
       },
-      orderBy: { budget: 'desc' },
+      orderBy: { budgetMax: 'desc' },
       take: 10,
       include: { client: { select: { id: true, name: true } }, _count: { select: { applications: true } } },
     });
@@ -150,13 +150,13 @@ router.post('/skill-gap', async (req: Request, res: Response) => {
   try {
     const [job, certs, skills] = await Promise.all([
       db.jobListing.findFirst({ where: { id: jobId, tenantId } }),
-      db.certificate.findMany({ where: { userId, tenantId } }),
+      db.certificate.findMany({ where: { userId, tenantId }, include: { course: { select: { title: true, category: true } } } }),
       db.novaSkillDetection.findMany({ where: { userId, tenantId } }),
     ]);
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
     const userSkills = [...new Set([
-      ...certs.map(c => c.skills || []).flat(),
+      ...certs.map(c => [c.course?.category ?? ""].filter(Boolean) as string[]).flat(),
       ...skills.map(s => s.skill),
     ])];
     const jobSkills = job.skills || [];
@@ -164,7 +164,7 @@ router.post('/skill-gap', async (req: Request, res: Response) => {
 
     const courses = gaps.length > 0
       ? await db.course.findMany({
-          where: { tenantId, isPublished: true, OR: gaps.map(g => ({ title: { contains: g, mode: 'insensitive' as const } })) },
+          where: { tenantId, published: true, OR: gaps.map(g => ({ title: { contains: g, mode: 'insensitive' as const } })) },
           take: 3,
           select: { id: true, title: true, slug: true },
         })
