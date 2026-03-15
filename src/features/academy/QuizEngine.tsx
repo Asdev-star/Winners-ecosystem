@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import ContextBar from '../../components/ui/ContextBar';
 
 interface QuizQuestion {
   id: string;
@@ -215,6 +216,7 @@ const QuizEngine = () => {
 
   return (
     <div className="quiz-engine">
+      <ContextBar activeLayer="academy" />
       <div className="quiz-header">
         <div className="quiz-title">
           <h2>{quiz.title}</h2>

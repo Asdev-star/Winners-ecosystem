@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import ContextBar from '../../components/ui/ContextBar';
 
 interface StudyGroup {
   id: string;
@@ -136,6 +137,7 @@ const StudyGroupPage = ({ courseId }: StudyGroupPageProps) => {
 
   return (
     <div className="study-groups-page">
+      <ContextBar activeLayer="academy" />
       <div className="page-header">
         <div className="header-content">
           <h1>Study Groups</h1>

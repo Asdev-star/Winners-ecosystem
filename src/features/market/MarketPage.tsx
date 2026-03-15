@@ -282,7 +282,8 @@ Make it professional, engaging, and tailored to stand out to recruiters.`;
         }
 
         .ctx-badge.live { border-color: var(--green); color: var(--green); }
-        .ctx-badge.building { border-color: var(--gold); color: var(--gold); }
+        .ctx-badge.active { background: rgba(201,168,76,0.15); border-color: var(--gold); color: var(--gold); font-weight: 700; }
+        .ctx-badge.building { border-color: rgba(201,168,76,0.4); color: var(--gold); }
         .ctx-badge.planned { border-color: var(--text-dim); color: var(--text-dim); }
 
         /* Vertical Grid */
@@ -533,11 +534,17 @@ Make it professional, engaging, and tailored to stand out to recruiters.`;
         <span className="ctx-sep">›</span>
         <span className="ctx-badge live">🎓 Academy</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge building">🛒 Market</span>
+        <span className="ctx-badge active">🛒 Market</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge planned">🤖 Intelligence</span>
+        <span className="ctx-badge live">🤖 Intelligence</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge planned">💼 Work</span>
+        <span className="ctx-badge building">💼 Work</span>
+        <span className="ctx-sep">›</span>
+        <span className="ctx-badge building">📱 Mobile</span>
+        <span className="ctx-sep">›</span>
+        <span className="ctx-badge building">☁️ Cloud</span>
+        <span className="ctx-sep">›</span>
+        <span className="ctx-badge building">🧬 AI Platform</span>
       </div>
 
       {/* Header */}

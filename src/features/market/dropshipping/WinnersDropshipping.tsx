@@ -2,6 +2,7 @@
 // Complete dropshipping module with supplier integration, niches, calculator, and AI tools
 
 import { useState, useCallback, useRef, type CSSProperties, type ReactNode } from "react";
+import ContextBar from "../../../components/ui/ContextBar";
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 // Using CSS variables from global design system
@@ -468,6 +469,9 @@ Make the copy culturally authentic. Include local phrases where appropriate.`,
       `}</style>
 
       <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: "'Syne',sans-serif" }}>
+        <div style={{ padding: "16px 28px 0" }}>
+          <ContextBar activeLayer="market" statusOverrides={{ market: "active" }} />
+        </div>
 
         {/* ── HEADER ── */}
         <div style={{ position: "relative", overflow: "hidden", borderBottom: `1px solid ${T.border}` }}>

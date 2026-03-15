@@ -174,7 +174,7 @@ export default function CartPage() {
         <div className="ctx-bar">
           <span className="ctx-badge live">⬡ Core Engine</span>
           <span className="ctx-sep">›</span>
-          <span className="ctx-badge live">🛒 Winners Market</span>
+          <span className="ctx-badge building">🛒 Winners Market</span>
           <span className="ctx-sep">›</span>
           <span className="ctx-badge active">🛍️ Cart</span>
         </div>

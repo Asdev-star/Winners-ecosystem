@@ -194,7 +194,11 @@ export default function CloudPage() {
         <span className="ctx-sep">›</span>
         <span className="ctx-badge building">💼 Work</span>
         <span className="ctx-sep">›</span>
+        <span className="ctx-badge building">📱 Mobile</span>
+        <span className="ctx-sep">›</span>
         <span className="ctx-badge active">☁️ Cloud</span>
+        <span className="ctx-sep">›</span>
+        <span className="ctx-badge building">🧬 AI Platform</span>
       </div>
 
       {/* NEXUS Welcome Panel */}

@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import ContextBar from '../../components/ui/ContextBar';
 
 interface LearningPath {
   id: string;
@@ -96,6 +97,7 @@ const LearningPathsPage = () => {
 
   return (
     <div className="learning-paths-page">
+      <ContextBar activeLayer="academy" />
       <div className="page-header">
         <div className="header-content">
           <h1>Learning Paths</h1>

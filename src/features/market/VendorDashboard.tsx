@@ -345,13 +345,20 @@ export default function VendorDashboard() {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        .ctx-badge { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.08em; padding:4px 10px; border-radius:3px; border:1px solid var(--border); background:var(--surface); color:var(--text-dim); text-transform:uppercase; }
+        .ctx-badge.live { background:rgba(45,212,160,0.08); border-color:rgba(45,212,160,0.3); color:var(--green); }
+        .ctx-badge.active { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold); font-weight:700; }
+        .ctx-badge.building { background:rgba(201,168,76,0.08); border-color:rgba(201,168,76,0.25); color:var(--gold); }
+        .ctx-sep { color:var(--border); font-size:11px; }
+      `}</style>
       {/* Context Bar */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' as const }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' as const, alignItems: 'center' }}>
         <span className="ctx-badge live">⬡ Core Engine</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge">🧑‍🤝‍🧑 Community</span>
+        <span className="ctx-badge live">🧑‍🤝‍🧑 Community</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge">🎓 Academy</span>
+        <span className="ctx-badge live">🎓 Academy</span>
         <span className="ctx-sep">›</span>
         <span className="ctx-badge active">🛒 Market</span>
       </div>

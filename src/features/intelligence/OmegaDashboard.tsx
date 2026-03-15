@@ -9,6 +9,7 @@ import OMEGABriefingCard from "./components/OMEGABriefingCard";
 import AgenticLoopVisualiser from "./components/AgenticLoopVisualiser";
 import CreditMeter from "./components/CreditMeter";
 import AutoActionCard from "./components/AutoActionCard";
+import ContextBar from "../../components/ui/ContextBar";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 
@@ -440,6 +441,8 @@ export default function OmegaDashboard() {
     <>
       <style>{css}</style>
       <div className="omega-root">
+
+        <ContextBar activeLayer="intelligence" statusOverrides={{ intelligence: "active" }} />
 
         {/* Header */}
         <div className="omega-header">

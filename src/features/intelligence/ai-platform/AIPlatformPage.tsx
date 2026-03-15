@@ -72,6 +72,8 @@ const css = `
   }
 
   .ctx-badge.live { border-color: var(--green); color: var(--green); }
+  .ctx-badge.active { background: var(--purple); color: var(--bg); border-color: var(--purple); }
+  .ctx-badge.building { border-color: rgba(201,168,76,0.4); color: var(--gold); }
   .ctx-badge.planned { opacity: 0.5; }
   .ctx-sep { color: var(--text-dim); align-self: center; }
 
@@ -508,15 +510,21 @@ export default function AIPlatformPage() {
         <div className="context-bar">
           <span className="ctx-badge live">⬡ Core Engine</span>
           <span className="ctx-sep">›</span>
-          <span className="ctx-badge planned">🧑‍🤝‍🧑 Community</span>
+          <span className="ctx-badge live">🧑‍🤝‍🧑 Community</span>
           <span className="ctx-sep">›</span>
-          <span className="ctx-badge planned">🎓 Academy</span>
+          <span className="ctx-badge live">🎓 Academy</span>
           <span className="ctx-sep">›</span>
-          <span className="ctx-badge planned">🛒 Market</span>
+          <span className="ctx-badge building">🛒 Market</span>
           <span className="ctx-sep">›</span>
           <span className="ctx-badge live">🤖 Intelligence</span>
           <span className="ctx-sep">›</span>
-          <span className="ctx-badge planned">💼 Work</span>
+          <span className="ctx-badge building">💼 Work</span>
+          <span className="ctx-sep">›</span>
+          <span className="ctx-badge building">📱 Mobile</span>
+          <span className="ctx-sep">›</span>
+          <span className="ctx-badge building">☁️ Cloud</span>
+          <span className="ctx-sep">›</span>
+          <span className="ctx-badge active">🧬 AI Platform</span>
         </div>
 
         {/* Header */}

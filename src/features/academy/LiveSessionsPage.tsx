@@ -95,25 +95,33 @@ export default function LiveSessionsPage() {
 
   return (
     <div className="live-sessions-page">
+      <style>{`
+        .ctx-badge { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.08em; padding:4px 10px; border-radius:3px; border:1px solid var(--border); background:var(--surface); color:var(--text-dim); text-transform:uppercase; }
+        .ctx-badge.live { background:rgba(45,212,160,0.08); border-color:rgba(45,212,160,0.3); color:var(--green); }
+        .ctx-badge.active { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold); }
+        .ctx-badge.building { background:rgba(201,168,76,0.08); border-color:rgba(201,168,76,0.25); color:var(--gold); }
+        .ctx-badge.planned { background:rgba(43,95,142,0.08); border-color:rgba(43,95,142,0.25); color:var(--text-dim); }
+        .ctx-sep { color:var(--border); font-size:11px; }
+      `}</style>
       {/* Context Bar */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap', alignItems: 'center' }}>
         <span className="ctx-badge live">⬡ Core Engine</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge active">🧑‍🤝‍🧑 Community</span>
+        <span className="ctx-badge live">🧑‍🤝‍🧑 Community</span>
         <span className="ctx-sep">›</span>
         <span className="ctx-badge active">🎓 Academy</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge planned">🛒 Market</span>
+        <span className="ctx-badge building">🛒 Market</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge building">🤖 Intelligence</span>
+        <span className="ctx-badge live">🤖 Intelligence</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge planned">💼 Work</span>
+        <span className="ctx-badge building">💼 Work</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge planned">📱 Mobile</span>
+        <span className="ctx-badge building">📱 Mobile</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge planned">☁️ Cloud</span>
+        <span className="ctx-badge building">☁️ Cloud</span>
         <span className="ctx-sep">›</span>
-        <span className="ctx-badge new">🧬 AI Platform</span>
+        <span className="ctx-badge building">🧬 AI Platform</span>
       </div>
 
       {/* Header */}

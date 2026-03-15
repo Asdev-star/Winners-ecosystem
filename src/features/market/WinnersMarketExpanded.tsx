@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
+import ContextBar from "../../components/ui/ContextBar";
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────
 // Using CSS variables from global design system
@@ -500,9 +501,9 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
             <span style={{color:T.faint}}>·</span>
             <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,letterSpacing:"0.18em",color:T.green}}>● CORE LIVE</span>
             <span style={{color:T.faint}}>·</span>
-            <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,letterSpacing:"0.18em",color:T.gold}}>⟳ COMMUNITY BUILDING</span>
+            <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,letterSpacing:"0.18em",color:T.green}}>● COMMUNITY LIVE</span>
             <span style={{color:T.faint}}>·</span>
-            <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,letterSpacing:"0.18em",color:T.ice}}>MARKET PLANNED</span>
+            <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,letterSpacing:"0.18em",color:T.gold}}>⟳ MARKET BUILDING</span>
           </div>
 
           <div style={{fontFamily:"'Space Mono',monospace",fontSize:9,letterSpacing:"0.3em",textTransform:"uppercase",color:T.gold,marginBottom:16}}>
@@ -524,6 +525,8 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
         </div>
 
         <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 24px",display:"flex",flexDirection:"column",gap:40}}>
+
+          <ContextBar activeLayer="market" statusOverrides={{ market: "active" }} />
 
           {/* ── 10 VERTICALS GRID ─────────────────────────────────────────── */}
           <div>

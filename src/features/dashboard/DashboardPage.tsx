@@ -611,7 +611,7 @@ export default function DashboardPage() {
         {/* ── Roadmap Progress ── */}
         <div className="db-road">
           <div className="db-road-ttl">
-            Ecosystem Build Progress · Phases 4 &amp; 6 Active — Market + Work Building
+            Ecosystem Build Progress · Phases 4, 6, 7, 8 &amp; 9 Active — Market · Work · Mobile · Cloud · AI Platform Building
           </div>
           <div className="db-phases">
             {PHASES.map((ph) => (
@@ -687,6 +687,18 @@ export default function DashboardPage() {
             <div className="db-journey-step active">
               <div className="db-journey-dot active">💼</div>
               <div className="db-journey-lbl">Work</div>
+            </div>
+            <div className="db-journey-step active">
+              <div className="db-journey-dot active">📱</div>
+              <div className="db-journey-lbl">Mobile</div>
+            </div>
+            <div className="db-journey-step active">
+              <div className="db-journey-dot active">☁️</div>
+              <div className="db-journey-lbl">Cloud</div>
+            </div>
+            <div className="db-journey-step active">
+              <div className="db-journey-dot active">🧬</div>
+              <div className="db-journey-lbl">AI Platform</div>
             </div>
           </div>
         </div>
