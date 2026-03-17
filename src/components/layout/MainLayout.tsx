@@ -11,6 +11,19 @@ import GlobalSearch from "../../features/search/GlobalSearch";
 import LayerSubNav from "../navigation/LayerSubNav";
 import { getLayerSubNavForPath } from "../navigation/layerSubNavConfigs";
 import CommandPalette from "../ui/CommandPalette";
+import AssistantPanel from "../ui/AssistantPanel";
+
+type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
+
+function getAssistantForPath(pathname: string): AssistantKey {
+  if (pathname.startsWith("/community"))    return "nova";
+  if (pathname.startsWith("/academy"))      return "sage";
+  if (pathname.startsWith("/market"))       return "atlas";
+  if (pathname.startsWith("/work"))         return "circuit";
+  if (pathname.startsWith("/intelligence")) return "forge";
+  if (pathname.startsWith("/cloud"))        return "nexus";
+  return "aria";
+}
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
@@ -574,6 +587,12 @@ export default function MainLayout() {
       <CommandPalette
         isOpen={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}
+      />
+
+      <AssistantPanel
+        assistant={getAssistantForPath(location.pathname)}
+        page={location.pathname}
+        context={{ pathname: location.pathname }}
       />
     </div>
   );

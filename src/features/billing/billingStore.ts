@@ -136,25 +136,9 @@ export const useBillingStore = create<BillingState>((set, get) => ({
       const usage:        UsageSummary | null  = usageRes.ok ? await usageRes.json() : null;
 
       set({ subscription, usage, isLoading: false });
-    } catch {
-      // Dev fallback — remove before production
-      set({
-        subscription: {
-          id:                "sub_mock",
-          planId:            "pro",
-          status:            "active",
-          currentPeriodEnd:  "2026-04-19",
-          cancelAtPeriodEnd: false,
-          seats:             10,
-          portalUrl:         undefined,
-        },
-        usage: {
-          seats:   { used: 4,   limit: 10   },
-          exports: { used: 12,  limit: 100  },
-          storage: { used: 240, limit: 5000 },
-        },
-        isLoading: false,
-      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to load billing data";
+      set({ isLoading: false, error: message });
     }
   },
 

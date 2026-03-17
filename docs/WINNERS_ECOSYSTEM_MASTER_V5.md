@@ -6,7 +6,7 @@
 > **Stack:** React 18 + TypeScript (Vite) · Node/Express · PostgreSQL (Prisma) · Railway
 > **AI Core:** Anthropic Claude API · `claude-opus-4-6` · Multi-provider: Claude + GPT-4o + Gemini + Ollama (local) · faster-whisper · ComfyUI
 > **Vision:** Digital Sovereign Infrastructure — one account, one identity, one ecosystem
-> **Overall Progress: ~40% Complete**
+> **Overall Progress: ~50% Complete**
 > **This document supersedes all previous versions. Replace all prior project knowledge files with this one.**
 
 ---
@@ -76,11 +76,11 @@ Ecosystem compounds. Loop repeats.
 
 | # | Platform | Domain | Status | Progress | AI Supervisor | Blocking |
 |---|---|---|---|---|---|---|
-| ⬡ | Core Engine | winnersempire.io | ✅ Live | **90%** | ARIA | RLS + SSO pending |
-| 🧑‍🤝‍🧑 | Winners Community | community.winnersempire.io | 🔄 Building | **55%** | NOVA | Not wired; Groups/DMs missing |
-| 🎓 | Winners Academy | learn.winnersempire.io | 🔄 Building | **30%** | SAGE | Not wired; Instructor UI missing |
+| ⬡ | Core Engine | winnersempire.io | ✅ Live | **92%** | ARIA | RLS + SSO pending |
+| 🧑‍🤝‍🧑 | Winners Community | community.winnersempire.io | ✅ Wired | **75%** ⬆️ | NOVA | Groups + DMs complete |
+| 🎓 | Winners Academy | learn.winnersempire.io | ✅ Wired | **55%** ⬆️ | SAGE | Quiz + Certificates pending |
 | 🛒 | Winners Market | shop.winnersempire.io | 📋 Planned | **0%** | ATLAS | Awaiting Academy stable |
-| 🤖 | Winners Intelligence | ai.winnersempire.io | 🔄 Building | **35%** ⬆️ | FORGE | Aria built + not wired; Universal AI Platform spec complete |
+| 🤖 | Winners Intelligence | ai.winnersempire.io | ✅ Wired | **55%** ⬆️ | FORGE | AI Platform spec complete |
 | 💼 | Winners Work | work.winnersempire.io | 📋 Planned | **0%** | CIRCUIT | Awaiting Market |
 | 📱 | Mobile App | — | 📋 Planned | **0%** | — | Awaiting web stability |
 | ☁️ | Winners Cloud | cloud.winnersempire.io | 📋 Planned | **0%** | NEXUS | Awaiting all platforms |

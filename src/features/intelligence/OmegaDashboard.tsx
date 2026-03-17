@@ -451,7 +451,7 @@ export default function OmegaDashboard() {
             <div className="omega-subtitle">Master Orchestrator · Cross-Layer Intelligence · Agentic Loop Monitor</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <CreditMeter compact onClick={() => navigate("/intelligence/credits")} />
+            <CreditMeter compact />
             <div className="omega-badge">
               <span className="omega-badge-dot" />
               Master Orchestrator Active

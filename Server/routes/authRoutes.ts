@@ -14,10 +14,12 @@ const router = Router();
 const JWT_SECRET           = process.env.JWT_SECRET           ?? "winners_dev_secret_change_in_prod";
 const JWT_EXPIRES_IN       = process.env.JWT_EXPIRES_IN       ?? "8h";
 const JWT_REFRESH_EXPIRES  = process.env.JWT_REFRESH_EXPIRES  ?? "7d";
-const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     ?? "";
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
-const APP_URL              = process.env.APP_URL              ?? "http://localhost:5173";
-const SERVER_URL           = process.env.SERVER_URL           ?? "http://localhost:3001";
+const GOOGLE_CLIENT_ID      = process.env.GOOGLE_CLIENT_ID      ?? "";
+const GOOGLE_CLIENT_SECRET  = process.env.GOOGLE_CLIENT_SECRET  ?? "";
+const FACEBOOK_APP_ID       = process.env.FACEBOOK_APP_ID       ?? "";
+const FACEBOOK_APP_SECRET   = process.env.FACEBOOK_APP_SECRET   ?? "";
+const APP_URL               = process.env.APP_URL               ?? "http://localhost:5173";
+const SERVER_URL            = process.env.SERVER_URL            ?? "http://localhost:3001";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -293,6 +295,71 @@ router.get("/google/callback", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("Google OAuth error:", err);
     return res.redirect(`${APP_URL}/login?error=oauth_failed`);
+  }
+});
+
+// ─── Facebook OAuth ───────────────────────────────────────────────────────────
+
+router.post("/facebook/exchange", async (req: Request, res: Response) => {
+  const { code, redirectUri } = req.body as { code?: string; redirectUri?: string };
+  if (!code || !redirectUri) return res.status(400).json({ message: "code and redirectUri are required" });
+  if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET) return res.status(503).json({ message: "Facebook OAuth not configured" });
+
+  try {
+    const tokenUrl = new URL("https://graph.facebook.com/v19.0/oauth/access_token");
+    tokenUrl.searchParams.set("client_id",     FACEBOOK_APP_ID);
+    tokenUrl.searchParams.set("client_secret", FACEBOOK_APP_SECRET);
+    tokenUrl.searchParams.set("redirect_uri",  redirectUri);
+    tokenUrl.searchParams.set("code",          code);
+
+    const tokenRes  = await fetch(tokenUrl.toString());
+    const tokenData = await tokenRes.json() as { access_token?: string; error?: { message: string } };
+
+    if (!tokenRes.ok || !tokenData.access_token) {
+      return res.status(400).json({ message: tokenData.error?.message ?? "Facebook token exchange failed" });
+    }
+
+    const profileUrl = new URL("https://graph.facebook.com/me");
+    profileUrl.searchParams.set("fields",       "id,name,email");
+    profileUrl.searchParams.set("access_token", tokenData.access_token);
+
+    const profileRes  = await fetch(profileUrl.toString());
+    const profile     = await profileRes.json() as { id?: string; name?: string; email?: string; error?: { message: string } };
+
+    if (!profile.email) {
+      return res.status(400).json({ message: "Facebook account has no email address. Please ensure your Facebook account has a verified email." });
+    }
+
+    let user = await db.user.findFirst({
+      where:   { email: profile.email.toLowerCase(), deletedAt: null },
+      include: { tenant: true },
+    });
+
+    const isNewUser = !user;
+    if (!user) {
+      const tenant = await db.tenant.create({ data: { name: `${profile.name ?? profile.email}'s Workspace` } });
+      user = await db.user.create({
+        data:    { tenantId: tenant.id, email: profile.email.toLowerCase(), name: profile.name ?? profile.email.split("@")[0], password: await bcrypt.hash(profile.id ?? "", 10), role: "OWNER" },
+        include: { tenant: true },
+      });
+    }
+
+    await logActivity({
+      tenantId: user.tenantId, userId: user.id, userEmail: user.email,
+      userName: user.name, action: isNewUser ? "New account created via Facebook" : "Login via Facebook",
+      category: "auth", ip: req.ip,
+    });
+
+    const jwtPayload = buildPayload(user);
+    const token      = signToken(jwtPayload, JWT_EXPIRES_IN);
+
+    return res.json({
+      token, isNewUser,
+      user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
+    });
+  } catch (err) {
+    console.error("Facebook exchange error:", err);
+    return res.status(500).json({ message: errorMessage(err) });
   }
 });
 

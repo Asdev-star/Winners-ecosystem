@@ -53,7 +53,7 @@ export function useProactiveMessages(options?: {
         ...(assistant && { assistant })
       });
 
-      const response = await fetch(`/api/v1/ai/proactive-messages?${params}`, {
+      const response = await fetch(`/api/v1/insights/proactive`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -64,22 +64,27 @@ export function useProactiveMessages(options?: {
         throw new Error(`Failed to fetch messages: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      setState({
-        messages: data.messages || [],
-        loading: false,
-        error: null
-      });
+      const data = await response.json() as { messages: Array<{
+        id: string; supervisor: string; trigger: string;
+        title: string; message: string; cta?: string; ctaUrl?: string;
+        priority: "high" | "medium" | "low"; createdAt: string;
+      }> };
+
+      const mapped: ProactiveMessage[] = (data.messages || []).slice(0, maxMessages).map((m) => ({
+        id: m.id,
+        type: "insight" as const,
+        title: m.title,
+        message: m.message,
+        assistant: (m.supervisor?.toLowerCase() ?? "aria") as ProactiveMessage["assistant"],
+        action: m.cta && m.ctaUrl ? { label: m.cta, href: m.ctaUrl } : undefined,
+        priority: m.priority,
+        createdAt: m.createdAt,
+      }));
+
+      setState({ messages: mapped, loading: false, error: null });
     } catch (err) {
       console.error("[useProactiveMessages] Error:", err);
-      
-      // Use mock messages for demo
-      setState({
-        messages: getMockMessages(),
-        loading: false,
-        error: err instanceof Error ? err.message : "Unknown error"
-      });
+      setState({ messages: [], loading: false, error: err instanceof Error ? err.message : "Unknown error" });
     }
   }, [enabled, userId, token, maxMessages, assistant]);
 

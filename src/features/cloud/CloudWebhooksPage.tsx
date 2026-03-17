@@ -394,7 +394,7 @@ export default function CloudWebhooksPage() {
                     selectedWebhook.events.map((e) => {
                       const ev = ALL_EVENTS.find((ae) => ae.id === e);
                       return (
-                        <span key={e} className="wh-event-tag" style={{ color: LAYER_COLOR[ev?.layer ?? "Core"] ?? "var(--text-dim)", borderColor: `${LAYER_COLOR[ev?.layer ?? "Core"]}44` ?? "var(--border)", background: `${LAYER_COLOR[ev?.layer ?? "Core"]}11` ?? "transparent" }}>
+                        <span key={e} className="wh-event-tag" style={{ color: LAYER_COLOR[ev?.layer ?? "Core"], borderColor: `${LAYER_COLOR[ev?.layer ?? "Core"]}44`, background: `${LAYER_COLOR[ev?.layer ?? "Core"]}11` }}>
                           {ev?.icon} {e}
                         </span>
                       );

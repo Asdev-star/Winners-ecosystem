@@ -8,4 +8,4 @@ RUN npx prisma generate
 RUN npm run build:client
 RUN npx tsc -p tsconfig.server.json
 EXPOSE 8080
-CMD ["node", "dist/Server/index.js"]
+CMD ["node", "dist/server/index.js"]

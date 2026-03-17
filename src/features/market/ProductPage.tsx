@@ -381,6 +381,7 @@ export default function ProductPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((s) => s.user);
   
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);

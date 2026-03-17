@@ -33,7 +33,7 @@ export function usePresence() {
   useEffect(() => {
     if (!user) return;
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("we_token");
     if (!token) return;
 
     const wsUrl = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws?token=${token}`;

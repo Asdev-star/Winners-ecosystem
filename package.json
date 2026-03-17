@@ -104,8 +104,8 @@
     },
     "files": [
       "dist/**/*",
-      "dist-server/**/*",
-      "electron/**/*"
+      "electron/**/*",
+      "dist/server/**/*"
     ],
     "extraResources": [
       {

@@ -1,6 +1,6 @@
 // src/features/analytics/components/AnalyticsPage.tsx
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { ReactNode } from "react";
 import {
   ComposedChart,
@@ -15,8 +15,6 @@ import {
   ReferenceDot,
 } from "recharts";
 import {
-  getMockData,
-  getPreviousPeriodData,
   generateForecast,
   generateInsights,
   calcTotal,
@@ -24,8 +22,8 @@ import {
   calcAverage,
   detectAnomalies,
 } from "../../lib/analyticsEngine";
-import type { Period, ForecastPoint } from "../../lib/analyticsEngine";
-import { useAuthStore } from "../auth/authStore";
+import type { Period, DataPoint, ForecastPoint } from "../../lib/analyticsEngine";
+import { getAuthHeaders, useAuthStore } from "../auth/authStore";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 import ContextBar from "../../components/ui/ContextBar";
@@ -290,19 +288,17 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>("30d");
   const [showForecast, setForecast] = useState(false);
   const [showComparison, setComp] = useState(false);
+  const [currentData, setCurrentData] = useState<DataPoint[]>([]);
+  const [previousData, setPreviousData] = useState<DataPoint[]>([]);
+  const [apiLoading, setApiLoading] = useState(true);
   const user = useAuthStore((s) => s.user);
 
-  // AI Assistant hook - ARIA for analytics intelligence
   const { isLoading: aiLoading } = useAssistant({
     supervisor: "ARIA",
-    context: {
-      page: "analytics",
-      period,
-      userId: user?.id
-    }
+    context: { page: "analytics", period, userId: user?.id },
   });
 
-  useState(() => {
+  useEffect(() => {
     const id = "an-styles";
     if (!document.getElementById(id)) {
       const tag = document.createElement("style");
@@ -310,14 +306,21 @@ export default function AnalyticsPage() {
       tag.textContent = css;
       document.head.appendChild(tag);
     }
-  });
+  }, []);
 
-  const currentData = useMemo(() => getMockData(period), [period]);
-  const previousData = useMemo(() => getPreviousPeriodData(period), [period]);
-  const forecastData = useMemo(
-    () => generateForecast(currentData, 7),
-    [currentData],
-  );
+  useEffect(() => {
+    setApiLoading(true);
+    fetch(`/api/v1/analytics/revenue?period=${period}`, { headers: getAuthHeaders() })
+      .then((r) => r.json())
+      .then((body) => {
+        if (body.data) setCurrentData(body.data as DataPoint[]);
+        if (body.previous) setPreviousData(body.previous as DataPoint[]);
+      })
+      .catch(() => {})
+      .finally(() => setApiLoading(false));
+  }, [period]);
+
+  const forecastData = useMemo(() => generateForecast(currentData, 7), [currentData]);
   const insights = useMemo(
     () => generateInsights(currentData, previousData, period),
     [currentData, previousData, period],

@@ -58,27 +58,27 @@ interface UseEcosystemHealthReturn {
 }
 
 export function useEcosystemHealth(): UseEcosystemHealthReturn {
-  // In production, import from store:
-  // const store = useEcosystemStore();
-  // For now, use mock data with loading state simulation
   const [health, setHealth] = useState<Record<LayerKey, LayerHealth>>(getMockHealth());
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulated refresh - in production would call API
   const refresh = useCallback(async () => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setHealth(getMockHealth());
-    setIsLoading(false);
+    try {
+      const res = await fetch("/api/v1/health/layers");
+      if (res.ok) {
+        const body = await res.json() as { layers: Record<LayerKey, LayerHealth> };
+        if (body.layers) setHealth(body.layers);
+      }
+    } catch {
+      // keep last known state on error
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  // Set up polling every 60 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      refresh();
-    }, 60000);
-
+    refresh();
+    const interval = setInterval(refresh, 60000);
     return () => clearInterval(interval);
   }, [refresh]);
 

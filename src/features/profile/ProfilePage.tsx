@@ -139,21 +139,21 @@ export default function ProfilePage() {
   };
 
   const platformAccess = [
-    { name: "Core Engine",          icon: "⬡", status: "live",    desc: "Dashboard, Analytics, Billing, Team" },
-    { name: "Winners Community",    icon: "🧑‍🤝‍🧑", status: "live",    desc: "Feed, Posts, Groups, Chat" },
-    { name: "Winners Academy",      icon: "🎓", status: "soon",    desc: "Courses, Certificates, AI Tutor" },
-    { name: "Winners Market",       icon: "🛒", status: "soon",    desc: "Products, Vendors, Commerce" },
-    { name: "Winners Intelligence", icon: "🤖", status: "planned", desc: "AI Agents, Smart Automation" },
-    { name: "Winners Work",         icon: "💼", status: "planned", desc: "Jobs, Freelance, Escrow" },
+    { name: "Core Engine",          icon: "⬡", status: "live", desc: "Dashboard, Analytics, Billing, Team" },
+    { name: "Winners Community",    icon: "🧑‍🤝‍🧑", status: "live", desc: "Feed, Posts, Groups, Chat" },
+    { name: "Winners Academy",      icon: "🎓", status: "live", desc: "Courses, Certificates, AI Tutor" },
+    { name: "Winners Market",       icon: "🛒", status: "live", desc: "Products, Vendors, Commerce" },
+    { name: "Winners Intelligence", icon: "🤖", status: "live", desc: "AI Agents, Smart Automation" },
+    { name: "Winners Work",         icon: "💼", status: "live", desc: "Jobs, Freelance, Escrow" },
   ];
 
   const platformLayers = [
-    { name: "Core", status: "live" },
-    { name: "Community", status: "live" },
-    { name: "Academy", status: "soon" },
-    { name: "Market", status: "soon" },
-    { name: "Intelligence", status: "planned" },
-    { name: "Work", status: "planned" },
+    { name: "Core",         status: "live" },
+    { name: "Community",    status: "live" },
+    { name: "Academy",      status: "live" },
+    { name: "Market",       status: "live" },
+    { name: "Intelligence", status: "live" },
+    { name: "Work",         status: "live" },
   ];
 
   if (!profile) {

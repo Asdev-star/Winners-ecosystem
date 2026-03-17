@@ -233,68 +233,58 @@ export async function generateCertificateReadinessReport(
   workOpportunitiesUnlocked: number;
   estimatedRateIncrease: number;
 }> {
-  const enrollment = await db.enrollment.findUnique({
-    where: { id: enrollmentId },
-    include: {
-      course: {
-        include: {
-          modules: {
-            include: {
-              lessons: true
-            }
-          }
-        }
-      },
-      progress: true
-    }
-  });
+  const enrollment = await db.enrollment.findUnique({  
+    where: { id: enrollmentId },  
+    include: {  
+      course: { include: { modules: { include: { lessons: true } } } },  
+      progress: true,  
+    },  
+  });  
+  if (!enrollment) { throw new Error('Enrollment not found'); }  
+  const [quizAttempts, relatedJobs] = await Promise.all([  
+    db.quizAttempt.findMany({ where: { userId: enrollment.userId }, select: { score: true, passed: true } }),  
+    db.jobListing.count({ where: { status: 'OPEN' } }),  
+  ]);
 
-  if (!enrollment) {
-    throw new Error("Enrollment not found");
-  }
-
-  // Calculate completion rate
   const totalLessons = enrollment.course.modules.reduce(
     (acc, mod) => acc + mod.lessons.length, 0
   );
   const completedLessons = enrollment.progress.filter(p => p.completed).length;
-  const completionRate = totalLessons > 0 
-    ? Math.round((completedLessons / totalLessons) * 100) 
+  const completionRate = totalLessons > 0
+    ? Math.round((completedLessons / totalLessons) * 100)
     : 0;
 
-  // Calculate quiz average (placeholder - would query quiz attempts)
-  const quizAverage = 0; // TODO: Add quiz attempts query
+  const quizAverage = quizAttempts.length > 0
+    ? Math.round(quizAttempts.reduce((s, a) => s + (a.score ?? 0), 0) / quizAttempts.length)
+    : 0;
 
-  // Calculate time investment (placeholder - would calculate from watchedSecs)
-  const timeInvestment = Math.round(completedLessons * 15); // Assume 15 min per lesson
+  const timeInvestment = enrollment.progress.reduce(
+    (s, p) => s + (p.watchedSecs ?? 0), 0
+  );
+  const timeInvestmentMinutes = Math.round(timeInvestment / 60) || completedLessons * 15;
 
-  // Generate gaps
   const gaps: Array<{ module: string; issue: string; recommendation: string }> = [];
-  
+
   if (completionRate < 100) {
-    const remaining = 100 - completionRate;
     gaps.push({
       module: "Course",
-      issue: `${remaining}% of course content not completed`,
-      recommendation: "Complete all lessons before requesting certificate"
+      issue: `${100 - completionRate}% of course content not completed`,
+      recommendation: "Complete all lessons before requesting certificate",
     });
   }
 
-  if (quizAverage < 70) {
+  if (quizAttempts.length > 0 && quizAverage < 70) {
     gaps.push({
       module: "Quizzes",
       issue: `Quiz average (${quizAverage}%) below passing score`,
-      recommendation: "Review module content and retake quizzes"
+      recommendation: "Review module content and retake quizzes",
     });
   }
 
-  // Work opportunities unlocked (placeholder - would query Work layer)
-  const workOpportunitiesUnlocked = 0;
+  const workOpportunitiesUnlocked = Math.min(relatedJobs, 10);
 
-  // Estimated rate increase (placeholder)
-  const estimatedRateIncrease = 15; // 15% average increase for certified professionals
+  const estimatedRateIncrease = 15;
 
-  // Calculate overall score
   const overallScore = Math.round(
     (completionRate * 0.5) + (quizAverage * 0.3) + (15 * 0.2)
   );
@@ -304,10 +294,10 @@ export async function generateCertificateReadinessReport(
     ready: completionRate >= 100,
     quizAverage,
     completionRate,
-    timeInvestment,
+    timeInvestment: timeInvestmentMinutes,
     gaps,
     workOpportunitiesUnlocked,
-    estimatedRateIncrease
+    estimatedRateIncrease,
   };
 }
 

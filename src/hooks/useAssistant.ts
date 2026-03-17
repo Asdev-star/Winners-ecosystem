@@ -47,11 +47,25 @@ export interface UseAssistantReturn {
   supervisorConfig: SupervisorPromptConfig;
 }
 
-// Get user context for prompt injection
+// Derive the current layer/page from the browser URL path
+function getCurrentLayerFromPath(): { currentLayer: string; currentPage: string } {
+  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  if (path.startsWith("/academy"))     return { currentLayer: "Academy",      currentPage: "academy" };
+  if (path.startsWith("/market"))      return { currentLayer: "Market",       currentPage: "market" };
+  if (path.startsWith("/work"))        return { currentLayer: "Work",         currentPage: "work" };
+  if (path.startsWith("/intelligence")) return { currentLayer: "Intelligence", currentPage: "intelligence" };
+  if (path.startsWith("/cloud"))       return { currentLayer: "Cloud",        currentPage: "cloud" };
+  if (path.startsWith("/community"))   return { currentLayer: "Community",    currentPage: "community" };
+  if (path.startsWith("/analytics"))   return { currentLayer: "Core Engine",  currentPage: "analytics" };
+  if (path.startsWith("/billing"))     return { currentLayer: "Core Engine",  currentPage: "billing" };
+  if (path.startsWith("/dashboard"))   return { currentLayer: "Core Engine",  currentPage: "dashboard" };
+  return { currentLayer: "Core Engine", currentPage: "dashboard" };
+}
+
 function getUserContext() {
   const authUser = useAuthStore.getState().user;
   const loopState = useAgenticLoopStore.getState();
-  
+
   const trustScoreRaw =
     authUser && typeof authUser === "object" && "trustScore" in authUser
       ? (authUser as { trustScore?: unknown }).trustScore
@@ -61,16 +75,18 @@ function getUserContext() {
   if (trustScore >= 85) trustTier = "Platinum";
   else if (trustScore >= 65) trustTier = "Gold";
   else if (trustScore >= 40) trustTier = "Silver";
-  
+
+  const { currentLayer, currentPage } = getCurrentLayerFromPath();
+
   return {
     userName: authUser?.name ?? "User",
-    currentLayer: "Community", // TODO: Get from router
+    currentLayer,
     loopStage: loopState.currentStage ?? "community",
     trustScore,
     trustTier,
-    recentActions: [], // TODO: Get from activity store
-    pendingItems: [], // TODO: Get from pending items
-    currentPage: "community" // TODO: Get from router
+    recentActions: [],
+    pendingItems: [],
+    currentPage,
   };
 }
 

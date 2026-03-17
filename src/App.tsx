@@ -92,6 +92,8 @@ import CloudAgentsPage from "./features/cloud/CloudAgentsPage";
 import CloudAPIKeysPage from "./features/cloud/CloudAPIKeysPage";
 import CloudWebhooksPage from "./features/cloud/CloudWebhooksPage";
 import CloudUsagePage from "./features/cloud/CloudUsagePage";
+import APIMarketplacePage from "./features/cloud/APIMarketplacePage";
+import AIRevenueProductsPage from "./features/intelligence/AIRevenueProductsPage";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -259,6 +261,8 @@ function App() {
             <Route path="cloud/keys" element={<CloudAPIKeysPage />} />
             <Route path="cloud/webhooks" element={<CloudWebhooksPage />} />
             <Route path="cloud/usage" element={<CloudUsagePage />} />
+            <Route path="cloud/marketplace" element={<APIMarketplacePage />} />
+            <Route path="intelligence/revenue" element={<AIRevenueProductsPage />} />
           </Route>
 
           <Route

@@ -51,20 +51,6 @@ interface InviteState {
   updateTenant:  (data: Partial<Tenant>) => Promise<void>;
 }
 
-// ─── Mock fallback data ───────────────────────────────────────────────────────
-
-const MOCK_MEMBERS: TeamMember[] = [
-  { id: "user_001", name: "Demo User",   email: "demo@winners.io",  role: "owner",  createdAt: "2025-01-01" },
-  { id: "user_002", name: "Alice Smith", email: "alice@winners.io", role: "admin",  createdAt: "2025-01-15" },
-  { id: "user_003", name: "Bob Jones",   email: "bob@winners.io",   role: "member", createdAt: "2025-02-01" },
-  { id: "user_004", name: "Carol Wu",    email: "carol@winners.io", role: "viewer", createdAt: "2025-02-10" },
-];
-
-const MOCK_TENANT: Tenant = {
-  id: "tenant_001", name: "Winners Corp", plan: "pro", memberCount: 4,
-  settings: { timezone: "UTC", currency: "USD", fiscalMonth: 1 },
-};
-
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useInviteStore = create<InviteState>((set) => ({
@@ -82,8 +68,7 @@ export const useInviteStore = create<InviteState>((set) => ({
       const data = await res.json();
       set({ members: data.members, isLoading: false });
     } catch {
-      // Fallback to mock data during development
-      set({ members: MOCK_MEMBERS, isLoading: false });
+      set({ members: [], isLoading: false, error: "Failed to load team members" });
     }
   },
 
@@ -104,16 +89,9 @@ export const useInviteStore = create<InviteState>((set) => ({
         pendingInvites: [...s.pendingInvites, invite],
         isLoading: false,
       }));
-    } catch (err: any) {
-      // Mock success during development
-      const mockInvite: PendingInvite = {
-        id:        `invite_${Date.now()}`,
-        email,
-        role,
-        status:    "pending",
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      };
-      set((s) => ({ pendingInvites: [...s.pendingInvites, mockInvite], isLoading: false }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Invite failed";
+      set({ isLoading: false, error: message });
     }
   },
 
@@ -143,7 +121,7 @@ export const useInviteStore = create<InviteState>((set) => ({
       const tenant = await res.json();
       set({ tenant, isLoading: false });
     } catch {
-      set({ tenant: MOCK_TENANT, isLoading: false });
+      set({ tenant: null, isLoading: false });
     }
   },
 

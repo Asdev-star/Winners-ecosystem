@@ -2,7 +2,7 @@
 // Component: AssistantPanel
 // THE core component - embeds any assistant in any page with one line of JSX
 
-import { useState, useRef, useEffect, type FormEvent } from "react";
+import { useState, useRef, useEffect, useCallback, type FormEvent } from "react";
 import { useAuthStore } from "../../features/auth/authStore";
 import FollowUpChips from "../ai/FollowUpChips";
 import StreamingText from "../ai/StreamingText";
@@ -113,8 +113,15 @@ export default function AssistantPanel({
   const [isStreaming, setIsStreaming] = useState(false);
   const [hasProactiveMessage, setHasProactiveMessage] = useState(false);
   const [greeting, setGreeting] = useState<string>("");
+  const [attachedFile, setAttachedFile] = useState<{
+    name: string;
+    type: "image" | "pdf" | "audio";
+    mimeType: string;
+    data: string;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const config = ASSISTANT_CONFIGS[assistant];
 
@@ -194,19 +201,53 @@ export default function AssistantPanel({
     return () => clearTimeout(timer);
   }, []);
 
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+      const imageExts = ["jpg", "jpeg", "png", "gif", "webp"];
+      const audioExts = ["mp3", "wav", "m4a", "ogg", "webm"];
+      const pdfExts = ["pdf"];
+
+      let fileType: "image" | "pdf" | "audio" = "pdf";
+      if (imageExts.includes(ext)) fileType = "image";
+      else if (audioExts.includes(ext)) fileType = "audio";
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        setAttachedFile({
+          name: file.name,
+          type: fileType,
+          mimeType: file.type,
+          data: result,
+        });
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
+    },
+    []
+  );
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming) return;
+    if ((!input.trim() && !attachedFile) || isStreaming) return;
 
+    const fileLabel = attachedFile ? ` [${attachedFile.type.toUpperCase()}: ${attachedFile.name}]` : "";
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: (input.trim() || "Analyse this file") + fileLabel,
       timestamp: new Date(),
     };
 
+    const filePayload = attachedFile ? [{ type: attachedFile.type, data: attachedFile.data, name: attachedFile.name }] : [];
+
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setAttachedFile(null);
     setIsStreaming(true);
 
     const assistantId = (Date.now() + 1).toString();
@@ -230,9 +271,10 @@ export default function AssistantPanel({
         },
         body: JSON.stringify({
           assistant,
-          message: userMessage.content,
+          message: input.trim() || "Analyse this file",
           history,
           context: { ...context, page },
+          files: filePayload,
         }),
       });
 
@@ -420,24 +462,62 @@ export default function AssistantPanel({
           )}
 
           {/* Input */}
-          <form className="assistant-input" onSubmit={handleSubmit}>
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={`Ask ${config.name}...`}
-              rows={1}
-              disabled={isStreaming}
-            />
-            <button
-              type="submit"
-              disabled={!input.trim() || isStreaming}
-              className="send-button"
-            >
-              ➤
-            </button>
-          </form>
+          <div className="assistant-input-wrapper">
+            {/* File attachment preview */}
+            {attachedFile && (
+              <div className="attachment-preview">
+                <span className="attachment-icon">
+                  {attachedFile.type === "image" ? "🖼️" : attachedFile.type === "audio" ? "🎤" : "📄"}
+                </span>
+                <span className="attachment-name">{attachedFile.name}</span>
+                <button
+                  type="button"
+                  className="attachment-remove"
+                  onClick={() => setAttachedFile(null)}
+                  aria-label="Remove attachment"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            <form className="assistant-input" onSubmit={handleSubmit}>
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,audio/*"
+                style={{ display: "none" }}
+                onChange={handleFileSelect}
+              />
+              {/* Attach button */}
+              <button
+                type="button"
+                className="attach-button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isStreaming}
+                title="Attach image, PDF, or audio"
+                aria-label="Attach file"
+              >
+                📎
+              </button>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={attachedFile ? `Ask about ${attachedFile.name}...` : `Ask ${config.name}...`}
+                rows={1}
+                disabled={isStreaming}
+              />
+              <button
+                type="submit"
+                disabled={(!input.trim() && !attachedFile) || isStreaming}
+                className="send-button"
+              >
+                ➤
+              </button>
+            </form>
+          </div>
 
           <style>{`
             .assistant-fab {
@@ -636,11 +716,71 @@ export default function AssistantPanel({
               border-radius: 12px 12px 4px 12px;
             }
 
+            .assistant-input-wrapper {
+              border-top: 1px solid var(--border);
+              background: var(--surface2);
+            }
+
+            .attachment-preview {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              padding: 6px 16px;
+              background: rgba(155, 111, 255, 0.08);
+              border-bottom: 1px solid var(--border);
+              font-size: 11px;
+            }
+
+            .attachment-icon { font-size: 14px; }
+
+            .attachment-name {
+              flex: 1;
+              color: var(--purple);
+              font-family: 'Space Mono', monospace;
+              font-size: 10px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+
+            .attachment-remove {
+              background: none;
+              border: none;
+              color: var(--text-dim);
+              font-size: 16px;
+              cursor: pointer;
+              padding: 0 4px;
+              line-height: 1;
+              opacity: 0.7;
+              transition: opacity 0.15s;
+            }
+            .attachment-remove:hover { opacity: 1; }
+
+            .attach-button {
+              width: 34px;
+              height: 34px;
+              border-radius: 6px;
+              background: var(--surface3);
+              border: 1px solid var(--border);
+              color: var(--text-dim);
+              font-size: 14px;
+              cursor: pointer;
+              transition: all 0.2s;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            }
+            .attach-button:hover:not(:disabled) {
+              border-color: var(--purple);
+              color: var(--purple);
+            }
+            .attach-button:disabled { opacity: 0.4; cursor: not-allowed; }
+
             .assistant-input {
               display: flex;
               gap: 8px;
-              padding: 12px 16px;
-              border-top: 1px solid var(--border);
+              padding: 10px 12px;
               background: var(--surface2);
             }
 

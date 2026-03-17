@@ -289,4 +289,107 @@ Content: "${content.substring(0, 2000)}"`;
   },
 );
 
+// ─── GET /insights/proactive — Proactive messages for the current user ─────────
+// Checks real user data signals and returns actionable supervisor messages.
+
+router.get("/proactive", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+    const [recentPosts, certificates, enrollments, completedLessons, contracts, skills] =
+      await Promise.all([
+        prisma.post.findMany({
+          where: { authorId: userId, createdAt: { gte: fortyEightHoursAgo } },
+          select: { _count: { select: { likes: true, comments: true } } },
+        }),
+        prisma.certificate.count({ where: { userId } }),
+        prisma.enrollment.findMany({
+          where: { userId },
+          include: {
+            course: { select: { title: true, _count: { select: { modules: true } } } },
+            progress: { where: { completed: true }, select: { id: true } },
+          },
+          take: 3,
+          orderBy: { updatedAt: "desc" },
+        }),
+        prisma.lessonProgress.count({ where: { userId, completed: true } }),
+        prisma.contract.count({ where: { OR: [{ clientId: userId }, { freelancerId: userId }], status: "COMPLETED" } }),
+        prisma.novaSkillDetection.findMany({ where: { userId }, orderBy: { confidence: "desc" }, take: 3 }),
+      ]);
+
+    const messages: Array<{
+      id: string; supervisor: string; trigger: string;
+      title: string; message: string; cta?: string; ctaUrl?: string;
+      priority: "high" | "medium" | "low"; createdAt: string;
+    }> = [];
+
+    const now = new Date().toISOString();
+
+    if (recentPosts.length === 0) {
+      messages.push({
+        id: `idle_${userId}`, supervisor: "NOVA", trigger: "idle_48h",
+        title: "Your community misses you",
+        message: "You haven't posted in 48 hours. Share what you're working on — your network is listening.",
+        cta: "Create a post", ctaUrl: "/community",
+        priority: "medium", createdAt: now,
+      });
+    }
+
+    const highPerformingPosts = recentPosts.filter(
+      (p) => p._count.likes + p._count.comments > 10,
+    );
+    if (highPerformingPosts.length > 0) {
+      messages.push({
+        id: `post_perf_${userId}`, supervisor: "NOVA", trigger: "post_performed_well",
+        title: "Your recent post is gaining traction",
+        message: `You have ${highPerformingPosts.length} post(s) getting strong engagement. Engage with your commenters to amplify reach.`,
+        cta: "View community", ctaUrl: "/community",
+        priority: "high", createdAt: now,
+      });
+    }
+
+    for (const enrollment of enrollments) {
+      const totalLessons = enrollment.course._count.modules * 3;
+      const completedCount = enrollment.progress.length;
+      const pct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+      if (pct < 50 && completedCount > 0) {
+        messages.push({
+          id: `course_slow_${enrollment.id}`, supervisor: "SAGE", trigger: "course_progress_slow",
+          title: "Keep your learning streak going",
+          message: `You're ${pct}% through "${enrollment.course.title}". Just 15 minutes a day will get you to your certificate.`,
+          cta: "Continue learning", ctaUrl: "/academy",
+          priority: "medium", createdAt: now,
+        });
+        break;
+      }
+    }
+
+    if (skills.length > 0 && certificates === 0) {
+      messages.push({
+        id: `cert_ready_${userId}`, supervisor: "SAGE", trigger: "certificate_ready",
+        title: "You're showing strong skills — earn a certificate",
+        message: `NOVA detected ${skills[0].skill} expertise from your activity. Enroll in a course to formalize it with a certificate.`,
+        cta: "Browse Academy", ctaUrl: "/academy",
+        priority: "medium", createdAt: now,
+      });
+    }
+
+    if (contracts === 0 && completedLessons >= 5) {
+      messages.push({
+        id: `work_opp_${userId}`, supervisor: "CIRCUIT", trigger: "job_match_high",
+        title: "Your skills are in demand on Winners Work",
+        message: "Based on your Academy progress, you qualify for freelance opportunities on the platform.",
+        cta: "View opportunities", ctaUrl: "/work",
+        priority: "low", createdAt: now,
+      });
+    }
+
+    res.json({ messages });
+  } catch (error) {
+    console.error("Proactive messages error:", error);
+    res.status(500).json({ error: "Failed to fetch proactive messages" });
+  }
+});
+
 export default router;

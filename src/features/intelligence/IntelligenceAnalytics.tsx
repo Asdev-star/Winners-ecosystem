@@ -182,7 +182,7 @@ export default function IntelligenceAnalytics() {
       `}</style>
 
       <div className="ia-root">
-        <ContextBar active="intelligence" />
+        <ContextBar activeLayer="intelligence" />
 
         <div className="ia-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div>
@@ -190,7 +190,7 @@ export default function IntelligenceAnalytics() {
             <div className="ia-subtitle">AI Usage · Credit Consumption · Agentic Loop Funnel</div>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <CreditMeter compact onClick={() => navigate("/intelligence/credits")} />
+            <CreditMeter compact />
             <button
               onClick={() => navigate("/intelligence")}
               style={{ fontFamily: "'Space Mono', monospace", fontSize: 9, padding: "7px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-dim)", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.08em" }}
@@ -328,7 +328,7 @@ export default function IntelligenceAnalytics() {
               </div>
             );
           })}
-          {!loopStats?.active && (
+          {!loopStats?.loopCount && (
             <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(155,111,255,0.06)", border: "1px solid rgba(155,111,255,0.2)", borderRadius: 6, fontFamily: "'Space Mono', monospace", fontSize: 10, color: "var(--text-dim)", lineHeight: 1.6 }}>
               🔁 Your loop hasn't started yet. Post in{" "}
               <span

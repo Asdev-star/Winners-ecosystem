@@ -806,6 +806,160 @@ router.get("/nova/weekly-briefing", authMiddleware, async (req: Request, res: Re
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Social Graph — User Connections & Suggestions
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /social/connections — list current user's followers as connections
+router.get("/connections", authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  try {
+    const following = await db.follow.findMany({
+      where: { followerId: userId },
+      include: {
+        following: {
+          select: {
+            id: true, name: true, bio: true, skills: true,
+            _count: { select: { followers: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const connections = following.map((f) => ({
+      id: f.id,
+      userId,
+      connectedUserId: f.followingId,
+      connectedUserName: f.following.name,
+      connectedUserSkills: f.following.skills ?? [],
+      connectedUserTrustScore: 0,
+      mutualConnections: 0,
+      connectedAt: f.createdAt.toISOString(),
+    }));
+
+    res.json({ connections });
+  } catch (error) {
+    console.error("Connections error:", error);
+    res.status(500).json({ error: "Failed to fetch connections" });
+  }
+});
+
+// DELETE /social/connections/:id — unfollow (remove connection)
+router.delete("/connections/:id", authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { id } = req.params as Record<string, string>;
+  try {
+    const follow = await db.follow.findFirst({ where: { id, followerId: userId } });
+    if (!follow) return res.status(404).json({ error: "Connection not found" });
+
+    await db.follow.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Disconnect error:", error);
+    res.status(500).json({ error: "Failed to remove connection" });
+  }
+});
+
+// POST /social/connect — follow a user (create connection)
+router.post("/connect", authMiddleware, async (req: Request, res: Response) => {
+  const followerId = req.user!.userId;
+  const { userId: followingId } = req.body as { userId?: string };
+  if (!followingId) return res.status(400).json({ error: "userId is required" });
+  if (followingId === followerId) return res.status(400).json({ error: "Cannot connect with yourself" });
+
+  try {
+    const existing = await db.follow.findFirst({ where: { followerId, followingId } });
+    if (existing) return res.status(409).json({ error: "Already connected" });
+
+    const follow = await db.follow.create({
+      data: { followerId, followingId, tenantId: req.user!.tenantId },
+      include: { following: { select: { id: true, name: true, skills: true } } },
+    });
+
+    res.status(201).json({
+      connection: {
+        id: follow.id,
+        userId: followerId,
+        connectedUserId: followingId,
+        connectedUserName: follow.following.name,
+        connectedUserSkills: follow.following.skills ?? [],
+        connectedUserTrustScore: 0,
+        mutualConnections: 0,
+        connectedAt: follow.createdAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("Connect error:", error);
+    res.status(500).json({ error: "Failed to connect" });
+  }
+});
+
+// GET /social/suggestions — users you follow who others also follow (simplified graph)
+router.get("/suggestions", authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  try {
+    const alreadyFollowing = await db.follow.findMany({
+      where: { followerId: userId },
+      select: { followingId: true },
+    });
+    const followingIds = alreadyFollowing.map((f) => f.followingId);
+    const excludeIds = [...followingIds, userId];
+
+    const secondDegree = await db.follow.findMany({
+      where: { followerId: { in: followingIds }, followingId: { notIn: excludeIds } },
+      select: { followingId: true },
+      take: 50,
+    });
+
+    const candidateIds = [...new Set(secondDegree.map((f) => f.followingId))].slice(0, 10);
+
+    if (candidateIds.length === 0) {
+      const fresh = await db.user.findMany({
+        where: { id: { notIn: excludeIds }, deletedAt: null },
+        select: { id: true, name: true, skills: true, bio: true },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      });
+      return res.json({
+        suggestions: fresh.map((u) => ({
+          id: u.id, userId: u.id, userName: u.name,
+          skills: u.skills ?? [], matchReason: "New member", overlapScore: 0, trustScore: 0,
+        })),
+      });
+    }
+
+    const candidates = await db.user.findMany({
+      where: { id: { in: candidateIds } },
+      select: { id: true, name: true, skills: true },
+    });
+
+    const me = await db.user.findFirst({ where: { id: userId }, select: { skills: true } });
+    const mySkills = new Set(me?.skills ?? []);
+
+    const suggestions = candidates.map((u) => {
+      const theirSkills = u.skills ?? [];
+      const overlap = theirSkills.filter((s) => mySkills.has(s)).length;
+      const overlapScore = mySkills.size > 0 ? Math.round((overlap / mySkills.size) * 100) : 0;
+      return {
+        id: u.id, userId: u.id, userName: u.name,
+        skills: theirSkills, matchReason: overlap > 0 ? "Shared skills" : "People you may know",
+        overlapScore, trustScore: 0,
+      };
+    }).sort((a, b) => b.overlapScore - a.overlapScore);
+
+    res.json({ suggestions });
+  } catch (error) {
+    console.error("Suggestions error:", error);
+    res.status(500).json({ error: "Failed to fetch suggestions" });
+  }
+});
+
+// PATCH /social/collab/:id — respond to collaboration opportunity (stub)
+router.patch("/collab/:id", authMiddleware, async (_req: Request, res: Response) => {
+  res.json({ success: true });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Export
 // ─────────────────────────────────────────────────────────────────────────────
 

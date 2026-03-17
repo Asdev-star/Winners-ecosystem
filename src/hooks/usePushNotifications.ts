@@ -93,7 +93,7 @@ export function usePushNotifications() {
 
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          ...(applicationServerKey ? { applicationServerKey } : {}),
+          ...(applicationServerKey ? { applicationServerKey: applicationServerKey as Uint8Array<ArrayBuffer> } : {}),
         });
       }
 

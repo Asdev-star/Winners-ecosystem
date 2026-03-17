@@ -276,4 +276,122 @@ router.delete("/:id", requirePermission("manageUsers"), async (req: Request, res
   }
 });
 
+// ─── GET /users/:id/trust-score ───────────────────────────────────────────────
+
+router.get("/:id/trust-score", requireMinRole("member"), async (req: Request, res: Response) => {
+  const userId = String(req.params.id);
+  try {
+    const [
+      certificates,
+      completedContracts,
+      disputedContracts,
+      followers,
+      posts,
+      quizAttempts,
+      verifiedUser,
+      escrowPayments,
+    ] = await Promise.all([
+      db.certificate.count({ where: { userId } }),
+      db.contract.count({ where: { clientId: userId, status: "COMPLETED" } }),
+      db.contract.count({ where: { clientId: userId, status: "DISPUTED" } }),
+      db.follow.count({ where: { followingId: userId } }),
+      db.post.findMany({
+        where: { authorId: userId },
+        select: { _count: { select: { likes: true, comments: true } } },
+        take: 50,
+      }),
+      db.quizAttempt.findMany({ where: { userId }, select: { score: true, passed: true } }),
+      db.user.findFirst({ where: { id: userId }, select: { twoFactorEnabled: true, country: true } }),
+      db.escrowPayment.count({ where: { freelancerId: userId, status: "RELEASED" } }),
+    ]);
+
+    const quizPassed = quizAttempts.filter((a) => a.passed).length;
+    const quizTotal = quizAttempts.length;
+    const quizBonus = quizTotal > 0 ? Math.round((quizPassed / quizTotal) * 10) : 0;
+    const academyScore = Math.min(30, certificates * 5 + quizBonus);
+
+    const workRaw = completedContracts * 4 + escrowPayments * 2 - disputedContracts * 5;
+    const workScore = Math.min(25, Math.max(0, workRaw));
+
+    const totalEngagement = posts.reduce((s, p) => s + p._count.likes + p._count.comments, 0);
+    const communityScore = Math.min(20, Math.round(followers * 0.5 + totalEngagement * 0.2));
+
+    const identityScore = Math.min(15, (verifiedUser?.twoFactorEnabled ? 10 : 0) + (verifiedUser?.country ? 5 : 0));
+
+    const paymentsScore = disputedContracts === 0
+      ? Math.min(10, escrowPayments * 2)
+      : Math.max(0, 5 - disputedContracts * 2);
+
+    const score = academyScore + workScore + communityScore + identityScore + paymentsScore;
+
+    return res.json({
+      score,
+      breakdown: { academy: academyScore, work: workScore, community: communityScore, identity: identityScore, payments: paymentsScore },
+    });
+  } catch (error) {
+    console.error("Trust score error:", errorMessage(error));
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ─── GET /users/:id/score — Winners Score Card ────────────────────────────────
+
+router.get("/:id/score", requireMinRole("member"), async (req: Request, res: Response) => {
+  const userId = String(req.params.id);
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [posts, followers, certificates, enrollments, lessonProgress, contracts, jobApplications, aiInteractions] =
+      await Promise.all([
+        db.post.findMany({
+          where: { authorId: userId, createdAt: { gte: sevenDaysAgo } },
+          select: { _count: { select: { likes: true, comments: true } } },
+        }),
+        db.follow.count({ where: { followingId: userId } }),
+        db.certificate.count({ where: { userId } }),
+        db.enrollment.count({ where: { userId } }),
+        db.lessonProgress.count({ where: { userId, completed: true } }),
+        db.contract.count({ where: { OR: [{ clientId: userId }, { freelancerId: userId }], status: "COMPLETED" } }),
+        db.jobApplication.count({ where: { freelancer: { userId } } }),
+        db.assistantAction.count({ where: { targetUserId: userId, createdAt: { gte: sevenDaysAgo } } }),
+      ]);
+
+    const totalEngagement = posts.reduce((s, p) => s + p._count.likes + p._count.comments, 0);
+    const communityScore    = Math.min(100, Math.round(followers * 2 + totalEngagement * 3 + posts.length * 5));
+    const academyScore      = Math.min(100, certificates * 20 + Math.min(40, enrollments * 5) + Math.min(20, lessonProgress));
+    const workScore         = Math.min(100, contracts * 25 + jobApplications * 5);
+    const marketScore       = 0;
+    const intelligenceScore = Math.min(100, aiInteractions * 10);
+    const engagementScore   = Math.min(100, Math.round((communityScore + academyScore + workScore + intelligenceScore) / 4));
+
+    const score = Math.round(
+      communityScore * 0.25 + academyScore * 0.25 + workScore * 0.20 +
+      marketScore * 0.10 + intelligenceScore * 0.10 + engagementScore * 0.10,
+    );
+
+    return res.json({
+      score,
+      breakdown: {
+        community:    { score: communityScore,    percentage: communityScore,    color: "var(--ice)" },
+        academy:      { score: academyScore,      percentage: academyScore,      color: "var(--gold)" },
+        market:       { score: marketScore,       percentage: marketScore,       color: "var(--green)" },
+        work:         { score: workScore,         percentage: workScore,         color: "var(--purple)" },
+        intelligence: { score: intelligenceScore, percentage: intelligenceScore, color: "var(--blue)" },
+        engagement:   { score: engagementScore,   percentage: engagementScore,   color: "var(--red)" },
+      },
+      trend: null,
+      lastUpdated: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Winners score error:", errorMessage(error));
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ─── POST /users/:id/score/generate — alias for initial score generation ──────
+
+router.post("/:id/score/generate", requireMinRole("member"), async (req: Request, res: Response) => {
+  return res.redirect(307, `/api/v1/users/${req.params.id}/score`);
+});
+
 export default router;
