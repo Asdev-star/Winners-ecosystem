@@ -195,10 +195,11 @@ export default function AIPageAssistant() {
   );
 
   useEffect(() => {
-    if (!target) return;
+    if (!target || !target.recommendations?.length) return;
     setIdx(0);
     const t = setInterval(() => {
-      setIdx((p) => (p + 1) % target.recommendations.length);
+      const recs = target?.recommendations ?? [];
+      setIdx((p) => (p + 1) % recs.length);
     }, 3200);
     return () => clearInterval(t);
   }, [target]);

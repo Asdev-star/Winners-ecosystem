@@ -195,7 +195,8 @@ export default function AgenticLoopWidget({ compact = false }: AgenticLoopWidget
   }
 
   const totalStages = 5;
-  const pct = Math.round((completedStages.length / totalStages) * 100);
+  const completedStagesList = completedStages ?? [];
+  const pct = Math.round((completedStagesList.length / totalStages) * 100);
 
   return (
     <>
