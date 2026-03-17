@@ -237,7 +237,7 @@ AppRegistry.register({
   id: "cloud",
   name: "Winners Cloud",
   phase: 8,
-  status: "planned",
+  status: "in_progress",
   version: "0.5.0",
   description: "Developer platform — public API, SDK, plugin marketplace",
   apiPrefix: "/api/v1/developer",

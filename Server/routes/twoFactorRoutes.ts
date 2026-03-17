@@ -9,7 +9,7 @@ import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = Router();
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const APP_NAME = "Winners Ecosystem";
 
 function errorMessage(error: unknown): string {
@@ -100,18 +100,21 @@ router.post("/email/send", async (req: Request, res: Response) => {
 
     await db.twoFactorOTP.create({ data: { userId, code, expiresAt } });
 
-    await resend.emails.send({
-      from: process.env.EMAIL_FROM ?? "Winners Ecosystem <onboarding@resend.dev>",
-      to: user.email,
-      subject: `${code} - Your Winners Ecosystem login code`,
-      html: `<div style="font-family:Arial,sans-serif;background:#080B10;color:#E8EDF2;padding:24px;max-width:480px;margin:0 auto;border-radius:8px;">
-        <div style="font-family:monospace;font-size:10px;letter-spacing:3px;color:#C9A84C;margin-bottom:18px;">WINNERS ECOSYSTEM</div>
-        <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Your login code</h2>
-        <p style="color:#5A6878;font-size:13px;margin-bottom:18px;">Use this code to complete sign-in. It expires in 10 minutes.</p>
-        <div style="font-size:42px;font-weight:700;letter-spacing:10px;color:#C9A84C;font-family:monospace;margin-bottom:18px;">${code}</div>
-        <p style="color:#5A6878;font-size:11px;font-family:monospace;">If you did not request this, ignore this email.</p>
-      </div>`,
-    });
+    // Send email (skip if Resend is not configured)
+    if (resend) {
+      await resend.emails.send({
+        from: process.env.EMAIL_FROM ?? "Winners Ecosystem <onboarding@resend.dev>",
+        to: user.email,
+        subject: `${code} - Your Winners Ecosystem login code`,
+        html: `<div style="font-family:Arial,sans-serif;background:#080B10;color:#E8EDF2;padding:24px;max-width:480px;margin:0 auto;border-radius:8px;">
+          <div style="font-family:monospace;font-size:10px;letter-spacing:3px;color:#C9A84C;margin-bottom:18px;">WINNERS ECOSYSTEM</div>
+          <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Your login code</h2>
+          <p style="color:#5A6878;font-size:13px;margin-bottom:18px;">Use this code to complete sign-in. It expires in 10 minutes.</p>
+          <div style="font-size:42px;font-weight:700;letter-spacing:10px;color:#C9A84C;font-family:monospace;margin-bottom:18px;">${code}</div>
+          <p style="color:#5A6878;font-size:11px;font-family:monospace;">If you did not request this, ignore this email.</p>
+        </div>`,
+      });
+    }
 
     return res.json({ message: "Code sent" });
   } catch (error) {

@@ -4,7 +4,7 @@ import db from "../db.js";
 import { Resend } from "resend";
 import crypto from "crypto";
 
-const resend  = new Resend(process.env.RESEND_API_KEY);
+const resend  = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const APP_URL = process.env.APP_URL ?? "https://winners-empire-eco.up.railway.app";
 const CREDIT_AMOUNT = 25; // $25 credit per successful referral
 
@@ -108,24 +108,26 @@ export async function processReferral(code: string, newUserId: string, newUserEm
     data: { referrerId: referrer.id, code: generateReferralCode(referrer.id + Date.now()), status: "PENDING" },
   });
 
-  // Send email notification to referrer
-  await resend.emails.send({
-    from:    process.env.EMAIL_FROM ?? "Winners Ecosystem <onboarding@resend.dev>",
-    to:      referrer.email,
-    subject: `🎉 You earned $${CREDIT_AMOUNT} — ${newUserName} joined via your referral!`,
-    html: `
-      <div style="font-family: 'Syne', sans-serif; background: #080B10; color: #E8EDF2; padding: 40px; max-width: 520px; margin: 0 auto; border-radius: 8px;">
-        <div style="font-family: monospace; font-size: 10px; letter-spacing: 3px; color: #F5C842; margin-bottom: 24px;">● WINNERS ECOSYSTEM</div>
-        <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">You earned <span style="color: #F5C842;">$${CREDIT_AMOUNT} credit!</span></h2>
-        <p style="color: #5A6878; font-size: 13px; margin-bottom: 24px;">
-          <strong style="color: #E8EDF2;">${newUserName}</strong> (${newUserEmail}) just signed up using your referral link.
-          We've added <strong style="color: #F5C842;">$${CREDIT_AMOUNT}</strong> to your account credit.
-        </p>
-        <a href="${APP_URL}/referral" style="display: inline-block; background: #F5C842; color: #080B10; padding: 13px 28px; border-radius: 4px; font-weight: 700; font-size: 14px; text-decoration: none;">
-          View Your Credits →
-        </a>
-        <p style="color: #5A6878; font-size: 11px; font-family: monospace; margin-top: 24px;">Keep sharing your referral link to earn more credits.</p>
-      </div>
-    `,
-  }).catch(() => {});
+  // Send email notification to referrer (skip if Resend is not configured)
+  if (resend) {
+    await resend.emails.send({
+      from:    process.env.EMAIL_FROM ?? "Winners Ecosystem <onboarding@resend.dev>",
+      to:      referrer.email,
+      subject: `🎉 You earned ${CREDIT_AMOUNT} — ${newUserName} joined via your referral!`,
+      html: `
+        <div style="font-family: 'Syne', sans-serif; background: #080B10; color: #E8EDF2; padding: 40px; max-width: 520px; margin: 0 auto; border-radius: 8px;">
+          <div style="font-family: monospace; font-size: 10px; letter-spacing: 3px; color: #F5C842; margin-bottom: 24px;">● WINNERS ECOSYSTEM</div>
+          <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">You earned <span style="color: #F5C842;">${CREDIT_AMOUNT} credit!</span></h2>
+          <p style="color: #5A6878; font-size: 13px; margin-bottom: 24px;">
+            <strong style="color: #E8EDF2;">${newUserName}</strong> (${newUserEmail}) just signed up using your referral link.
+            We've added <strong style="color: #F5C842;">${CREDIT_AMOUNT}</strong> to your account credit.
+          </p>
+          <a href="${APP_URL}/referral" style="display: inline-block; background: #F5C842; color: #080B10; padding: 13px 28px; border-radius: 4px; font-weight: 700; font-size: 14px; text-decoration: none;">
+            View Your Credits →
+          </a>
+          <p style="color: #5A6878; font-size: 11px; font-family: monospace; margin-top: 24px;">Keep sharing your referral link to earn more credits.</p>
+        </div>
+      `,
+    }).catch(() => {});
+  }
 }

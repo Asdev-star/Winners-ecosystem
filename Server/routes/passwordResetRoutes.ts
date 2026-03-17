@@ -7,7 +7,7 @@ import { Resend } from "resend";
 import db from "../db.js";
 
 const router  = Router();
-const resend  = new Resend(process.env.RESEND_API_KEY);
+const resend  = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 
 // POST /auth/forgot-password
@@ -41,22 +41,24 @@ router.post("/forgot-password", async (req: Request, res: Response) => {
 
     const resetUrl = `${APP_URL}/reset-password?token=${token}`;
 
-    // Send email
-    await resend.emails.send({
-      from:    process.env.EMAIL_FROM ?? "Winners Ecosystem <onboarding@resend.dev>",
-      to:      user.email,
-      subject: "Reset your Winners Ecosystem password",
-      html: `
-        <div style="font-family: 'Syne', sans-serif; background: #080B10; color: #E8EDF2; padding: 40px; max-width: 520px; margin: 0 auto; border-radius: 8px;">
-          <div style="font-family: monospace; font-size: 10px; letter-spacing: 3px; color: #F5C842; margin-bottom: 24px;">● WINNERS ECOSYSTEM</div>
-          <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">Reset Your <span style="color: #F5C842;">Password</span></h2>
-          <p style="color: #5A6878; font-size: 13px; margin-bottom: 24px;">Click the button below to reset your password. This link expires in 1 hour.</p>
-          <a href="${resetUrl}" style="display: inline-block; background: #F5C842; color: #080B10; padding: 13px 28px; border-radius: 4px; font-weight: 700; font-size: 14px; text-decoration: none; margin-bottom: 24px;">Reset Password →</a>
-          <p style="color: #5A6878; font-size: 11px; font-family: monospace;">If you didn't request this, you can safely ignore this email.</p>
-          <p style="color: #5A6878; font-size: 11px; font-family: monospace; margin-top: 8px;">Or copy this link: ${resetUrl}</p>
-        </div>
-      `,
-    });
+    // Send email (skip if Resend is not configured)
+    if (resend) {
+      await resend.emails.send({
+        from:    process.env.EMAIL_FROM ?? "Winners Ecosystem <onboarding@resend.dev>",
+        to:      user.email,
+        subject: "Reset your Winners Ecosystem password",
+        html: `
+          <div style="font-family: 'Syne', sans-serif; background: #080B10; color: #E8EDF2; padding: 40px; max-width: 520px; margin: 0 auto; border-radius: 8px;">
+            <div style="font-family: monospace; font-size: 10px; letter-spacing: 3px; color: #F5C842; margin-bottom: 24px;">● WINNERS ECOSYSTEM</div>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">Reset Your <span style="color: #F5C842;">Password</span></h2>
+            <p style="color: #5A6878; font-size: 13px; margin-bottom: 24px;">Click the button below to reset your password. This link expires in 1 hour.</p>
+            <a href="${resetUrl}" style="display: inline-block; background: #F5C842; color: #080B10; padding: 13px 28px; border-radius: 4px; font-weight: 700; font-size: 14px; text-decoration: none; margin-bottom: 24px;">Reset Password →</a>
+            <p style="color: #5A6878; font-size: 11px; font-family: monospace;">If you didn't request this, you can safely ignore this email.</p>
+            <p style="color: #5A6878; font-size: 11px; font-family: monospace; margin-top: 8px;">Or copy this link: ${resetUrl}</p>
+          </div>
+        `,
+      });
+    }
 
     return res.json({ message: "If that email exists, a reset link has been sent." });
   } catch (err) {

@@ -280,8 +280,19 @@ Each file entry follows this format:
 📄 **adminRoutes.ts**
 - Path: `Server/routes/adminRoutes.ts`
 - Status: ✅
-- Utility: Super-admin dashboard: tenant management, user management, platform-wide revenue overview, manual plan overrides, account suspension.
-- Expert: Add `GET /admin/ecosystem-health` — a single endpoint that returns the real-time status of all 9 platform layers (API response times, error rates, active users per layer, WebSocket connection count). This becomes the OMEGA health monitoring endpoint used by the AdminPage to display the ecosystem status bar.
+- Utility: Super-admin dashboard: tenant management, user management, platform-wide revenue. Mounts specialized admin routers like `platformLaunchRoutes`.
+- Expert: This file should act as a gateway for all `/admin` routes. To keep it clean, complex functionalities like platform launch control should be modularized into their own route files (e.g., `platformLaunchRoutes.ts`) and mounted here under a specific path, like `router.use('/platform', platformLaunchRoutes)`. This keeps the main admin router focused on core admin tasks.
+
+---
+
+📄 **platformLaunchRoutes.ts** 🔨 BUILD NOW
+- Path: `Server/routes/platformLaunchRoutes.ts`
+- Layer: Core Engine — Backend
+- Phase: 1
+- Status: 🔨
+- AI: ARIA (for health checks)
+- Utility: Contains all endpoints for managing the platform's progressive launch sequence, as defined in the Launch Control Spec. Handles launching, suspending, and monitoring platform layers.
+- Expert: The `POST /:layerId/launch` endpoint is a high-stakes operation. It must be idempotent, heavily logged to the `AdminAction` model, and trigger a cascade of events (e.g., `platform:status:changed` on WebSocket, broadcast notifications). This endpoint is the gatekeeper for the entire user-facing ecosystem expansion.
 
 ---
 
@@ -315,7 +326,7 @@ Each file entry follows this format:
 - Path: `Server/services/[name].ts`
 - Status: ✅
 - Utility: **referralService** — business logic for referral code generation, credit calculation, and leaderboard ranking. Extracted from route handlers for testability. **appRegistry** — maintains the registry of all 9 platform applications, their status, their routes, and their AI supervisor assignments.
-- Expert: **appRegistry.ts** is a sleeper file — it is the registry that the SSO system, the ContextBar, and the Unified Notification system all need to query. Evolve it into a full `LayerRegistry` service with real-time health status, per-layer feature flags, and maintenance mode flags. If Academy needs emergency maintenance, flipping `academy.maintenanceMode = true` in the registry should cascade to: graying out Academy in the ContextBar, redirecting Academy routes to a maintenance page, and pausing Academy email notifications.
+- Expert: **appRegistry.ts** is the gatekeeper for the entire ecosystem's progressive launch. It must be backed by the `PlatformLayerStatus` database table to persist state across deployments. Its `checkDependencies()` method is critical for preventing premature layer launches. The frontend's `ecosystemStore` should hydrate its initial state from an API endpoint that reads directly from this registry's state.
 
 ---
 
@@ -396,7 +407,18 @@ Each file entry follows this format:
 - Path: `src/features/[name]/[Page].tsx`
 - Status: ✅
 - Utility: **Admin** — super-admin controls for tenant and user management, platform-wide revenue. **Activity** — audit log with filters by category, pagination, and per-category stat cards. **Changelog** — What's New feed with admin create/edit for feature announcements.
-- Expert: Evolve `AdminPage.tsx` into the OMEGA command centre. Add a live ecosystem health panel (9 layer status indicators with real API response times), an Agentic Loop analytics panel (how many loops fired today, completion rate, average revenue per completed loop), and a FORGE cost dashboard (daily AI API spend by provider, cost per user, cost trend). This makes the admin panel genuinely useful for business intelligence, not just user management.
+- Expert: Evolve `AdminPage.tsx` into a layout that contains sub-pages for different admin functions. Create a new `PlatformLaunchPage.tsx` at `/admin/platform` to house the launch control grid. This keeps the main admin page clean and dedicates a specific, secure view to the high-stakes action of launching new platform layers. The launch page should visualize the dependency graph and run pre-launch checklists via API calls.
+
+---
+
+📄 **PlatformLaunchPage.tsx** 🔨 BUILD NOW
+- Path: `src/features/admin/PlatformLaunchPage.tsx`
+- Layer: Core Engine — Frontend
+- Phase: 1
+- Status: 🔨
+- AI: ARIA
+- Utility: The admin's control tower for the entire ecosystem. Provides a grid view of all platform layers, their status (live, locked, suspended), and allows the admin to trigger the launch sequence for the next available layer.
+- Expert: This page must be protected by a `SUPERADMIN` role check. The "Launch" button for a layer should only be enabled if its dependencies are met, as verified by `AppRegistry.checkDependencies()`. The launch action should trigger a confirmation modal that requires typing the layer's name to prevent accidental launches. This page is the most powerful and dangerous in the entire admin realm; its UX must prioritize safety and clarity.
 
 ---
 
@@ -404,7 +426,7 @@ Each file entry follows this format:
 - Path: `src/components/layout/MainLayout.tsx`
 - Status: ✅
 - Utility: The shell that wraps all authenticated pages. Provides the sidebar navigation, bottom mobile nav, ecosystem context bar, notification bell, user avatar menu, and ⌘K command palette trigger. Every authenticated page is a child of this component.
-- Expert: Add three missing nav items: `{ path: '/intelligence', icon: '🤖', label: 'Aria · AI' }`, `{ path: '/market', icon: '🛒', label: 'Market' }`, and `{ path: '/work', icon: '💼', label: 'Work' }`. Also add the live ecosystem health dot to each nav item — a small coloured dot (green/gold/red) next to each layer icon showing its current status from `ecosystemStore`. This makes the navigation itself a real-time dashboard.
+- Expert: The nav items for Market, Work, etc., must not be hardcoded as visible. Their visibility must be controlled by the `ecosystemStore`, which reflects the live/locked/suspended status of each platform layer fetched from the backend. A new layer launch by an admin should automatically make its nav item appear for all users without requiring a code change or redeployment.
 
 ---
 
@@ -500,8 +522,8 @@ Each file entry follows this format:
 - Path: `src/stores/ecosystemStore.ts`
 - Layer: Cross-platform state
 - Status: 🔨
-- Utility: The master ecosystem Zustand store. Tracks: layer health status for all 9 platforms (live/building/degraded), active user counts per layer, recent OMEGA events, and the current Agentic Loop state (which stage is the logged-in user in). ContextBar reads from this store to show live statuses.
-- Expert: `ecosystemStore` is the nervous system of the frontend. Every layer's status update, every OMEGA event, and every cross-layer notification routes through it. Implement it as a Zustand store with a Socket.io subscription — the store opens a WebSocket connection on mount and listens for `ecosystem:status` events from the server. When OMEGA fires a cross-layer event (e.g., `academy:certificate:earned`), it emits on the WebSocket, `ecosystemStore` receives it, and any component subscribed to that event (the Work layer's job recommendation panel) re-renders automatically.
+- Utility: The master ecosystem Zustand store. Fetches initial state from `/api/v1/platform/status`. Tracks: layer launch status for all 9 platforms (live/locked/suspended), active user counts per layer, recent OMEGA events, and the current Agentic Loop state. The ContextBar and MainLayout navigation read from this store to dynamically show/hide UI elements.
+- Expert: The initial state of this store MUST be fetched from a backend endpoint that reads from the `PlatformLayerStatus` table. This ensures that the UI correctly reflects the admin's launch decisions across deployments. The store should also subscribe to a `platform:status:changed` WebSocket event to update layer visibility in real-time if an admin launches or suspends a layer while users are active.
 
 ---
 
@@ -1001,6 +1023,10 @@ Each file entry follows this format:
 
 **Models still needed (add before building each phase):**
 
+```prisma
+// Phase 1 — Admin & Launch Control
+PlatformLayerStatus, AdminAction, PlatformAnnouncement
+```
 ```prisma
 // Phase 4 — Market
 Product, ProductVariant, ProductImage, Cart, CartItem
