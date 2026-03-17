@@ -2,7 +2,8 @@
 // Routes: omegaRoutes
 // OMEGA AI Supervisor routes - analysis, briefing, health, forecast
 
-import { NextFunction, Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import Anthropic from "@anthropic-ai/sdk";
 import { callAnthropicAndParseJson } from "../services/aiService.js";
@@ -11,18 +12,10 @@ const router = Router();
 const prisma = db;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Middleware to require authentication
-const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-};
-
 // GET /omega/analyze - Get comprehensive user analysis
 router.get(
   "/analyze",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const userId = req.user!.userId;
@@ -140,7 +133,7 @@ Provide a JSON response with:
 // GET /omega/briefing - Get personalized daily briefing
 router.get(
   "/briefing",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const userId = req.user!.userId;
@@ -237,7 +230,7 @@ Generate a JSON response:
 // GET /omega/health - Get ecosystem health metrics
 router.get(
   "/health",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const tenantId = req.user!.tenantId;
@@ -297,7 +290,7 @@ router.get(
 // GET /omega/forecast - Get revenue/growth predictions
 router.get(
   "/forecast",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const userId = req.user!.userId;

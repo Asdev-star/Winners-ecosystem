@@ -5,6 +5,7 @@ import "./App.css";
 
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./app/ProtectedRoute";
+import SuperAdminRoute from "./app/SuperAdminRoute";
 import LayerThemeBridge from "./app/LayerThemeBridge";
 import AIBackdrop from "./components/ui/AIBackdrop";
 
@@ -143,8 +144,8 @@ function App() {
             <Route path="stripe" element={<StripeDashboard />} />
             <Route path="activity" element={<ActivityPage />} />
             <Route path="referral" element={<ReferralPage />} />
-            <Route path="admin" element={<AdminPage />} />
-            <Route path="ops" element={<CoreOpsPage />} />
+            <Route path="admin" element={<SuperAdminRoute><AdminPage /></SuperAdminRoute>} />
+            <Route path="ops" element={<SuperAdminRoute><CoreOpsPage /></SuperAdminRoute>} />
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="community" element={<CommunityPage />} />
             <Route path="community/groups" element={<GroupsPage />} />

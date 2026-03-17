@@ -3,6 +3,7 @@
 
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import { uploadVideo, deleteFile } from "../services/cloudinaryService.js";
 import prisma from "../db.js";
 
@@ -28,7 +29,7 @@ const extractPublicId = (url: string): string | null => {
 };
 
 // POST /lecture-uploads - Create a new lecture upload record
-router.post("/", async (req: Request, res: Response): Promise<void> => {
+router.post("/", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user;
     if (!user) {
@@ -80,7 +81,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /lecture-uploads/:id/upload - Upload video file to Cloudinary
-router.post("/:id/upload", async (req: Request, res: Response): Promise<void> => {
+router.post("/:id/upload", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user;
     if (!user) {
@@ -151,7 +152,7 @@ router.post("/:id/upload", async (req: Request, res: Response): Promise<void> =>
 });
 
 // GET /lecture-uploads - List lecture uploads for user/tenant
-router.get("/", async (req: Request, res: Response): Promise<void> => {
+router.get("/", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user;
     if (!user) {
@@ -202,8 +203,37 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// GET /lecture-uploads/signature - Get Cloudinary upload signature
+router.get("/signature", authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const timestamp = Math.round(Date.now() / 1000);
+    const signature = crypto
+      .createHash("sha256")
+      .update(process.env.CLOUDINARY_API_SECRET + `timestamp=${timestamp}`)
+      .digest("hex");
+
+    res.json({
+      timestamp,
+      signature,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      folder: `winners-academy/${user.tenantId}`,
+      resourceType: "video"
+    });
+  } catch (error) {
+    console.error("Error generating signature:", error);
+    res.status(500).json({ error: "Failed to generate upload signature" });
+  }
+});
+
 // GET /lecture-uploads/:id - Get single lecture upload
-router.get("/:id", async (req: Request, res: Response): Promise<void> => {
+router.get("/:id", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user;
     if (!user) {
@@ -248,7 +278,7 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
 });
 
 // DELETE /lecture-uploads/:id - Delete lecture upload
-router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
+router.delete("/:id", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user;
     if (!user) {
@@ -291,35 +321,6 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error("Error deleting lecture upload:", error);
     res.status(500).json({ error: "Failed to delete lecture upload" });
-  }
-});
-
-// GET /lecture-uploads/signature - Get Cloudinary upload signature
-router.get("/signature", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const user = req.user;
-    if (!user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
-    const timestamp = Math.round(Date.now() / 1000);
-    const signature = crypto
-      .createHash("sha256")
-      .update(process.env.CLOUDINARY_API_SECRET + `timestamp=${timestamp}`)
-      .digest("hex");
-
-    res.json({
-      timestamp,
-      signature,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY,
-      folder: `winners-academy/${user.tenantId}`,
-      resourceType: "video"
-    });
-  } catch (error) {
-    console.error("Error generating signature:", error);
-    res.status(500).json({ error: "Failed to generate upload signature" });
   }
 });
 

@@ -66,7 +66,7 @@ export const useInviteStore = create<InviteState>((set) => ({
       const res = await fetch(`${API_BASE}/tenants/me/members`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      set({ members: data.members, isLoading: false });
+      set({ members: data.members ?? [], isLoading: false });
     } catch {
       set({ members: [], isLoading: false, error: "Failed to load team members" });
     }

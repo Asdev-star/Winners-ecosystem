@@ -1,16 +1,12 @@
 // Phase 5 — Winners Intelligence — creditRoutes.ts
 // AI Credit management — balance, history, spend, top-up, award
 
-import { NextFunction, Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 
 const router = Router();
 const prisma = db;
-
-const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  next();
-};
 
 const CREDIT_COSTS: Record<string, number> = {
   "omega_briefing": 0,
@@ -45,7 +41,7 @@ async function getOrCreateBalance(userId: string, tenantId: string) {
 }
 
 // GET /credits/balance — current balance + tier
-router.get("/balance", requireAuth, async (req: Request, res: Response) => {
+router.get("/balance", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
@@ -62,7 +58,7 @@ router.get("/balance", requireAuth, async (req: Request, res: Response) => {
 });
 
 // GET /credits/history — transaction log
-router.get("/history", requireAuth, async (req: Request, res: Response) => {
+router.get("/history", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const page = parseInt(req.query.page as string) || 1;
@@ -86,7 +82,7 @@ router.get("/history", requireAuth, async (req: Request, res: Response) => {
 });
 
 // POST /credits/spend — deduct credits (internal use + supervisor calls)
-router.post("/spend", requireAuth, async (req: Request, res: Response) => {
+router.post("/spend", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
@@ -136,7 +132,7 @@ router.post("/spend", requireAuth, async (req: Request, res: Response) => {
 });
 
 // POST /credits/award — admin: award free credits
-router.post("/award", requireAuth, async (req: Request, res: Response) => {
+router.post("/award", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { targetUserId, amount, reason } = req.body;
     const tenantId = req.user!.tenantId;

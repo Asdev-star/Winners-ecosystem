@@ -338,6 +338,48 @@ export default function DashboardPage() {
         .db-skel { background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%); background-size:200% 100%; border-radius:4px; animation:db-shim 1.4s infinite; }
         @keyframes db-shim { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
+        /* ── Intelligence Layer Banner ── */
+        .db-intel-banner {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+          padding: 10px 18px; margin-bottom: 18px;
+          background: linear-gradient(135deg, rgba(155,111,255,0.06), rgba(137,196,225,0.04));
+          border: 1px solid rgba(155,111,255,0.15); border-radius: 8px;
+          position: relative; overflow: hidden;
+        }
+        .db-intel-banner::before {
+          content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(155,111,255,0.4), rgba(137,196,225,0.4), transparent);
+        }
+        .db-intel-label {
+          font-family: 'Space Mono', monospace; font-size: 8px;
+          letter-spacing: 2px; text-transform: uppercase; color: var(--purple);
+          flex-shrink: 0; margin-right: 4px;
+        }
+        .db-intel-chip {
+          font-family: 'Space Mono', monospace; font-size: 8px;
+          padding: 2px 10px; border-radius: 10px;
+          border: 1px solid rgba(155,111,255,0.2); color: var(--text-dim);
+          display: flex; align-items: center; gap: 5px;
+        }
+        .db-intel-chip.on  { border-color: rgba(45,212,160,0.3); color: var(--green); background: rgba(45,212,160,0.05); }
+        .db-intel-chip.ai  { border-color: rgba(155,111,255,0.3); color: var(--purple); background: rgba(155,111,255,0.05); }
+        .db-intel-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: db-pulse 2s infinite; }
+        .db-intel-spacer { flex: 1; }
+        .db-intel-score {
+          font-family: 'Space Mono', monospace; font-size: 9px; color: var(--gold);
+          display: flex; align-items: center; gap: 6px;
+        }
+        .db-intel-score-val { font-size: 14px; font-weight: 700; }
+
+        /* ── Neural Pulse Ring on AI Bar ── */
+        .db-ai { position: relative; }
+        .db-ai::after {
+          content: ''; position: absolute; top: -1px; left: -1px; right: -1px; bottom: -1px;
+          border-radius: 7px; border: 1px solid rgba(155,111,255,0);
+          pointer-events: none; transition: border-color 0.3s;
+        }
+        .db-ai:hover::after { border-color: rgba(155,111,255,0.2); }
+
         /* Responsive */
         @media(max-width:1100px){ .db-platforms{grid-template-columns:1fr 1fr;} }
         @media(max-width:900px) { .db-kpis{grid-template-columns:1fr 1fr;} .db-bottom{grid-template-columns:1fr;} }
@@ -455,6 +497,29 @@ export default function DashboardPage() {
             </button>
           </div>
         )}
+
+        {/* ── Intelligence Layer Banner ── */}
+        <div className="db-intel-banner">
+          <div className="db-intel-label">Intelligence Layer</div>
+          {[
+            { label: "ARIA · Active",    cls: "on" },
+            { label: "NOVA · Active",    cls: "on" },
+            { label: "SAGE · Active",    cls: "on" },
+            { label: "OMEGA · Standby",  cls: "ai" },
+            { label: "ATLAS · Active",   cls: "on" },
+            { label: "HERALD · Active",  cls: "on" },
+          ].map((c) => (
+            <div key={c.label} className={`db-intel-chip ${c.cls}`}>
+              <span className="db-intel-dot" />
+              {c.label}
+            </div>
+          ))}
+          <div className="db-intel-spacer" />
+          <div className="db-intel-score">
+            Ecosystem Health
+            <span className="db-intel-score-val">76%</span>
+          </div>
+        </div>
 
         {/* ── AI Bar ── */}
         <div className="db-ai">

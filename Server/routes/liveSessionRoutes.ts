@@ -2,6 +2,7 @@
 // Live session routes for Academy live cohorts
 
 import { Router, Request, Response } from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 const prisma = db;
 
@@ -44,7 +45,7 @@ router.get("/", async (_req: Request, res: Response): Promise<void> => {
 });
 
 // GET /live-sessions/my-sessions - Get user's enrolled sessions
-router.get("/my-sessions", async (req: Request, res: Response): Promise<void> => {
+router.get("/my-sessions", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
@@ -86,7 +87,7 @@ router.get("/my-sessions", async (req: Request, res: Response): Promise<void> =>
 });
 
 // GET /live-sessions/:id - Get single session details
-router.get("/:id", async (req: Request, res: Response): Promise<void> => {
+router.get("/:id", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
     const userId = req.user!.userId;
@@ -144,7 +145,7 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /live-sessions - Create a new live session (instructors only)
-router.post("/", async (req: Request, res: Response): Promise<void> => {
+router.post("/", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
@@ -208,7 +209,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 // PUT /live-sessions/:id - Update session (host only)
-router.put("/:id", async (req: Request, res: Response): Promise<void> => {
+router.put("/:id", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
     const userId = req.user!.userId;
@@ -261,7 +262,7 @@ router.put("/:id", async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /live-sessions/:id/join - Join a live session
-router.post("/:id/join", async (req: Request, res: Response): Promise<void> => {
+router.post("/:id/join", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
     const userId = req.user!.userId;
@@ -325,7 +326,7 @@ router.post("/:id/join", async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /live-sessions/:id/leave - Leave a live session
-router.post("/:id/leave", async (req: Request, res: Response): Promise<void> => {
+router.post("/:id/leave", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
     const userId = req.user!.userId;
@@ -354,7 +355,7 @@ router.post("/:id/leave", async (req: Request, res: Response): Promise<void> => 
 });
 
 // DELETE /live-sessions/:id - Delete session (host only)
-router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
+router.delete("/:id", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
     const userId = req.user!.userId;

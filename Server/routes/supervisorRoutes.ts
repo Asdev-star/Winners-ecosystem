@@ -3,6 +3,7 @@
 // Individual supervisor endpoints with context injection
 
 import { Router, Request, Response } from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -10,14 +11,6 @@ const router = Router();
 const prisma = db;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const AI_PLATFORM_URL = process.env.AI_PLATFORM_URL || 'http://localhost:8001';
-
-// Middleware to require authentication
-const requireAuth = (req: Request, res: Response, next: Function) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-};
 
 // Get context for a specific supervisor
 const getSupervisorContext = async (supervisor: string, userId: string) => {
@@ -113,7 +106,7 @@ const getSupervisorContext = async (supervisor: string, userId: string) => {
 };
 
 // POST /supervisors/:name/chat - Chat with a specific supervisor
-router.post("/:name/chat", requireAuth, async (req: Request, res: Response) => {
+router.post("/:name/chat", authMiddleware, async (req: Request, res: Response) => {
   try {
     const supervisorName = (req.params.name as string).toUpperCase();
     const { message, context, provider = 'claude', history } = req.body;
@@ -253,7 +246,7 @@ Current context: ${JSON.stringify(mergedContext)}`,
 // GET /supervisors/:name/context - Get current context for a supervisor
 router.get(
   "/:name/context",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const supervisorName = (req.params.name as string).toUpperCase();

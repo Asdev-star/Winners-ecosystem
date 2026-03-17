@@ -806,6 +806,79 @@ const css = `
     .lp-loop-steps { gap: 0; }
     .lp-loop-arrow { display: none; }
   }
+
+  /* ═══════════════════════════════════════════
+     AI INTELLIGENCE TICKER
+  ═══════════════════════════════════════════ */
+  @keyframes lp-ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  @keyframes lp-neural-pulse { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+  @keyframes lp-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+
+  .lp-ai-ticker {
+    background: rgba(8,14,26,0.8); border-top: 1px solid rgba(155,111,255,0.15);
+    border-bottom: 1px solid rgba(155,111,255,0.15); overflow: hidden;
+    height: 36px; display: flex; align-items: center;
+    position: relative;
+  }
+  .lp-ai-ticker::before,
+  .lp-ai-ticker::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2; pointer-events: none;
+  }
+  .lp-ai-ticker::before { left: 0; background: linear-gradient(90deg, rgba(8,14,26,1), transparent); }
+  .lp-ai-ticker::after  { right: 0; background: linear-gradient(-90deg, rgba(8,14,26,1), transparent); }
+  .lp-ai-ticker-label {
+    position: absolute; left: 16px; z-index: 3;
+    font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--purple); white-space: nowrap;
+    background: rgba(8,14,26,0.9); padding: 0 8px;
+  }
+  .lp-ai-ticker-track { display: flex; width: max-content; animation: lp-ticker 30s linear infinite; }
+  .lp-ai-ticker-item {
+    display: flex; align-items: center; gap: 6px; padding: 0 24px;
+    font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); white-space: nowrap;
+  }
+  .lp-ai-ticker-item .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+  .lp-ai-ticker-item .dot.ai { background: var(--purple); }
+  .lp-ai-ticker-item .dot.gold { background: var(--gold); }
+
+  /* ═══════════════════════════════════════════
+     NEURAL NETWORK NODES (Hero Background)
+  ═══════════════════════════════════════════ */
+  .lp-neural-bg {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+  }
+  .lp-neural-node {
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle, rgba(155,111,255,0.3) 0%, transparent 70%);
+    animation: lp-neural-pulse 3s ease-in-out infinite;
+  }
+  .lp-neural-line {
+    position: absolute; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(155,111,255,0.08), transparent);
+    transform-origin: left center;
+  }
+
+  /* ═══════════════════════════════════════════
+     INTELLIGENCE PROOF STRIP
+  ═══════════════════════════════════════════ */
+  .lp-intel-strip {
+    display: flex; align-items: center; justify-content: center; gap: 32px; flex-wrap: wrap;
+    padding: 20px 48px; margin-bottom: 0;
+    border-top: 1px solid var(--border);
+  }
+  .lp-intel-stat {
+    display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;
+  }
+  .lp-intel-stat-val {
+    font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--gold);
+    letter-spacing: -0.5px;
+  }
+  .lp-intel-stat-lbl {
+    font-family: 'Space Mono', monospace; font-size: 8px; color: var(--text-dim);
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .lp-intel-divider { width: 1px; height: 40px; background: var(--border); }
+  @media (max-width: 768px) { .lp-intel-strip { gap: 20px; padding: 16px 24px; } .lp-intel-divider { display: none; } }
 `;
 
 // ─── DATA ────────────────────────────────────────────────────────────────────

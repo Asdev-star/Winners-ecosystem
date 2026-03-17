@@ -1,18 +1,14 @@
 // Phase 5 — Winners Intelligence — agenticLoopRoutes.ts
 // Agentic Loop event trigger + status + history system
 
-import { NextFunction, Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { callAnthropicAndParseJson } from "../services/aiService.js";
 import { notifyUser } from "../services/wsService.js";
 
 const router = Router();
 const prisma = db;
-
-const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-  next();
-};
 
 const STAGE_ORDER = ["community", "academy", "work", "market", "intelligence"];
 
@@ -139,7 +135,7 @@ router.post("/trigger", async (req: Request, res: Response) => {
 });
 
 // GET /agentic/loop/:userId — current loop state
-router.get("/loop/:userId", requireAuth, async (req: Request, res: Response) => {
+router.get("/loop/:userId", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId as string;
     const loop = await prisma.agenticLoop.findFirst({
@@ -186,7 +182,7 @@ router.get("/loop/:userId", requireAuth, async (req: Request, res: Response) => 
 });
 
 // GET /agentic/history/:userId — all loops, paginated
-router.get("/history/:userId", requireAuth, async (req: Request, res: Response) => {
+router.get("/history/:userId", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId as string;
     const page = parseInt(req.query.page as string) || 1;
@@ -219,7 +215,7 @@ router.get("/history/:userId", requireAuth, async (req: Request, res: Response) 
 });
 
 // POST /agentic/loop/complete — mark active loop complete
-router.post("/loop/complete", requireAuth, async (req: Request, res: Response) => {
+router.post("/loop/complete", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const { revenueImpact } = req.body;
@@ -256,7 +252,7 @@ router.post("/loop/complete", requireAuth, async (req: Request, res: Response) =
 });
 
 // GET /agentic/actions/:userId — pending autonomous actions
-router.get("/actions/:userId", requireAuth, async (req: Request, res: Response) => {
+router.get("/actions/:userId", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId as string;
     const tenantId = req.user!.tenantId;
@@ -275,7 +271,7 @@ router.get("/actions/:userId", requireAuth, async (req: Request, res: Response) 
 });
 
 // PATCH /agentic/actions/:id/approve
-router.patch("/actions/:id/approve", requireAuth, async (req: Request, res: Response) => {
+router.patch("/actions/:id/approve", authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const action = await prisma.assistantAction.update({
@@ -290,7 +286,7 @@ router.patch("/actions/:id/approve", requireAuth, async (req: Request, res: Resp
 });
 
 // PATCH /agentic/actions/:id/reject
-router.patch("/actions/:id/reject", requireAuth, async (req: Request, res: Response) => {
+router.patch("/actions/:id/reject", authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const action = await prisma.assistantAction.update({
@@ -305,7 +301,7 @@ router.patch("/actions/:id/reject", requireAuth, async (req: Request, res: Respo
 });
 
 // POST /agentic/propose — OMEGA proposes an autonomous action
-router.post("/propose", requireAuth, async (req: Request, res: Response) => {
+router.post("/propose", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { targetUserId, actionType, description, payload, targetLayer } = req.body;
     const tenantId = req.user!.tenantId;

@@ -2,7 +2,8 @@
 // Routes: autonomousRoutes
 // Autonomous actions, weekly reports, proposal scoring, credit management
 
-import { NextFunction, Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { callAnthropicAndParseJson } from "../services/aiService.js";
 
@@ -12,18 +13,10 @@ const prisma = db;
 const SEVEN_DAYS_IN_MS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-// Middleware to require authentication
-const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-};
-
 // GET /autonomous/weekly-report - Get or generate weekly intelligence report
 router.get(
   "/weekly-report",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const userId = req.user!.userId;
@@ -141,7 +134,7 @@ Generate a JSON response:
 // POST /circuit/proposal-score - Get win probability for a proposal
 router.post(
   "/circuit/proposal-score",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const userId = req.user!.userId;
@@ -208,7 +201,7 @@ Calculate a JSON response:
 // GET /insights/trending - Get trending skills/topics in the ecosystem
 router.get(
   "/insights/trending",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       // Get trending skills from recent posts
@@ -245,7 +238,7 @@ router.get(
 // POST /insights/analyze-content - Analyze content for skill detection
 router.post(
   "/insights/analyze-content",
-  requireAuth,
+  authMiddleware,
   async (req: Request, res: Response) => {
     try {
       const { content } = req.body;
@@ -292,7 +285,7 @@ Content: "${content.substring(0, 2000)}"`;
 // ─── GET /insights/proactive — Proactive messages for the current user ─────────
 // Checks real user data signals and returns actionable supervisor messages.
 
-router.get("/proactive", requireAuth, async (req: Request, res: Response) => {
+router.get("/proactive", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);

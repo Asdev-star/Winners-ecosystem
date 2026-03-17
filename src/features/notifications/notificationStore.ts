@@ -40,9 +40,10 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       const res = await fetch(`${API_BASE}/notifications`, { headers: getAuthHeaders() });
       if (!res.ok) throw new Error();
       const data = await res.json();
+      const notifs = data.notifications ?? [];
       set({
-        notifications: data.notifications,
-        unreadCount:   data.notifications.filter((n: Notification) => !n.read).length,
+        notifications: notifs,
+        unreadCount:   notifs.filter((n: Notification) => !n.read).length,
         isLoading:     false,
       });
     } catch {
