@@ -12,10 +12,12 @@ import LayerSubNav from "../navigation/LayerSubNav";
 import { getLayerSubNavForPath } from "../navigation/layerSubNavConfigs";
 import CommandPalette from "../ui/CommandPalette";
 import AssistantPanel from "../ui/AssistantPanel";
+import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
 function getAssistantForPath(pathname: string): AssistantKey {
+  if (pathname.startsWith("/admin") || pathname.startsWith("/ops")) return "omega";
   if (pathname.startsWith("/community"))    return "nova";
   if (pathname.startsWith("/academy"))      return "sage";
   if (pathname.startsWith("/market"))       return "atlas";
@@ -122,15 +124,33 @@ const css = `
   }
   .ml-platform-card:hover { border-color: var(--border); background: var(--surface2); color: var(--text); }
   .ml-platform-card.active { border-color: rgba(201,168,76,0.3); background: rgba(201,168,76,0.06); color: var(--gold); }
+  .ml-platform-card.sovereign {
+    border-color: rgba(201,168,76,0.22);
+    background: linear-gradient(135deg, rgba(201,168,76,0.14), rgba(13,24,38,0.92));
+    color: var(--gold);
+  }
+  .ml-platform-card.sovereign:hover,
+  .ml-platform-card.sovereign.active {
+    border-color: rgba(201,168,76,0.4);
+    background: linear-gradient(135deg, rgba(201,168,76,0.18), rgba(13,24,38,0.96));
+    color: var(--gold);
+  }
   .ml-platform-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
   .ml-platform-info { flex: 1; min-width: 0; }
   .ml-platform-name { font-size: 12px; font-weight: 700; }
   .ml-platform-desc { font-family: 'Space Mono', monospace; font-size: 8px; color: var(--text-dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ml-platform-card.sovereign .ml-platform-name { color: var(--gold); }
+  .ml-platform-card.sovereign .ml-platform-desc { color: rgba(201,168,76,0.82); }
   .ml-platform-status { font-family: 'Space Mono', monospace; font-size: 7px; padding: 1px 5px; border-radius: 2px; flex-shrink: 0; }
   .ml-platform-status.live     { background: rgba(45,212,160,0.12);  color: var(--green);  }
   .ml-platform-status.building { background: rgba(201,168,76,0.10);  color: var(--gold);   }
   .ml-platform-status.soon     { background: rgba(137,196,225,0.1);  color: var(--ice);    }
   .ml-platform-status.planned  { background: rgba(155,111,255,0.1);  color: var(--purple); }
+  .ml-platform-status.sovereign {
+    background: rgba(201,168,76,0.14);
+    border: 1px solid rgba(201,168,76,0.24);
+    color: var(--gold);
+  }
 
   /* Divider */
   .ml-divider { height: 1px; background: var(--border); margin: 6px 8px; }
@@ -234,8 +254,28 @@ const CORE_NAV = [
   { path: "/analytics",     icon: "📊", label: "Analytics",      tag: null },
   { path: "/search",        icon: "🔍", label: "Smart Search",   tag: null },
   { path: "/activity",      icon: "📋", label: "Activity Log",   tag: null },
-  { path: "/ops",           icon: "OPS",  label: "Core Ops",       tag: "new" },
 ];
+
+const ADMIN_PLATFORM = {
+  path:   "/admin",
+  icon:   "⬡",
+  name:   "Admin Control Tower",
+  desc:   "Overview · Platform · Security · OMEGA",
+  status: "sovereign",
+  tag:    "root",
+  sub:    [
+    { path: "/admin/overview", label: "Overview" },
+    { path: "/admin/platform", label: "Platform" },
+    { path: "/admin/tenants", label: "Tenants" },
+    { path: "/admin/users", label: "Users" },
+    { path: "/admin/revenue", label: "Revenue" },
+    { path: "/admin/forge", label: "FORGE" },
+    { path: "/admin/health", label: "System Health" },
+    { path: "/admin/broadcast", label: "OMEGA Broadcast" },
+    { path: "/admin/security", label: "Security" },
+    { path: "/admin/settings", label: "Settings" },
+  ],
+};
 
 // ── ECOSYSTEM PLATFORMS (each will become its own app/site) ──────────────────
 const PLATFORMS = [
@@ -297,20 +337,6 @@ const PLATFORMS = [
     ],
   },
   {
-    path:   "/intelligence",
-    icon:   "🤖",
-    name:   "Winners Intelligence",
-    desc:   "9 AI Supervisors · OMEGA · Streaming",
-    status: "live",
-    tag:    "v1.0",
-    sub:    [
-      { path: "/intelligence",         label: "AI Hub",           icon: "🤖" },
-      { path: "/intelligence/aria",    label: "ARIA — Chat",      icon: "⬡"  },
-      { path: "/intelligence/omega",   label: "OMEGA — Orchestrator", icon: "🧠" },
-      { path: "/intelligence/platform", label: "AI Platform",    icon: "🧬" },
-    ],
-  },
-  {
     path:   "/work",
     icon:   "💼",
     name:   "Winners Work",
@@ -341,6 +367,20 @@ const PLATFORMS = [
       { path: "/cloud/usage",       label: "Usage",            icon: "📊" },
     ],
   },
+  {
+    path:   "/intelligence",
+    icon:   "🤖",
+    name:   "Winners Intelligence",
+    desc:   "9 AI Supervisors · OMEGA · Streaming",
+    status: "live",
+    tag:    "v1.0",
+    sub:    [
+      { path: "/intelligence",         label: "AI Hub",           icon: "🤖" },
+      { path: "/intelligence/aria",    label: "ARIA — Chat",      icon: "⬡"  },
+      { path: "/intelligence/omega",   label: "OMEGA — Orchestrator", icon: "🧠" },
+      { path: "/intelligence/platform", label: "AI Platform",    icon: "🧬" },
+    ],
+  },
 ];
 
 // ── TOOLS & MONETIZATION ─────────────────────────────────────────────────────
@@ -361,7 +401,6 @@ const WORKSPACE_NAV = [
   { path: "/settings",      icon: "⚙️", label: "Settings",       tag: null  },
   { path: "/2fa",           icon: "🔐", label: "Security",       tag: null  },
   { path: "/profile",       icon: "👤", label: "Profile",        tag: null  },
-  { path: "/admin",         icon: "🛡️", label: "Admin",          tag: null  },
 ];
 
 // Mobile bottom — most used
@@ -373,9 +412,6 @@ const BOTTOM_NAV = [
   { path: "/intelligence", icon: "🤖",  label: "AI",        notif: false },
   { path: "/notifications",icon: "🔔",  label: "Alerts",    notif: true  },
 ];
-
-const ALL_NAV = [...CORE_NAV, ...TOOLS_NAV, ...WORKSPACE_NAV,
-  ...PLATFORMS.map((p) => ({ path: p.path, label: p.name }))];
 
 type NavEntry = {
   path: string;
@@ -393,13 +429,43 @@ export default function MainLayout() {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const { hasAccess: hasSuperAdminAccess } = useSuperAdminAccess();
 
+  const coreNavItems = CORE_NAV;
+  const platformItems = hasSuperAdminAccess ? [ADMIN_PLATFORM, ...PLATFORMS] : PLATFORMS;
+  const adminNavItems = hasSuperAdminAccess
+    ? [
+        { path: "/admin/overview", label: "Overview" },
+        { path: "/admin/platform", label: "Platform" },
+        { path: "/admin/tenants", label: "Tenants" },
+        { path: "/admin/users", label: "Users" },
+        { path: "/admin/revenue", label: "Revenue" },
+        { path: "/admin/forge", label: "FORGE" },
+        { path: "/admin/health", label: "System Health" },
+        { path: "/admin/broadcast", label: "OMEGA Broadcast" },
+        { path: "/admin/security", label: "Security" },
+        { path: "/admin/settings", label: "Settings" },
+        { path: "/ops", label: "System Health" },
+        { path: "/admin", label: "Admin Control Tower" },
+      ]
+    : [];
+  const concealedAdminPath = !hasSuperAdminAccess && (location.pathname.startsWith("/admin") || location.pathname.startsWith("/ops"));
+  const shellPath = concealedAdminPath ? "/dashboard" : location.pathname;
+  const allNav = [
+    ...adminNavItems,
+    ...coreNavItems,
+    ...TOOLS_NAV,
+    ...WORKSPACE_NAV,
+    ...platformItems.map((p) => ({ path: p.path, label: p.name })),
+  ];
   const initialsSource = `${user?.name ?? user?.email ?? ""}`.trim();
   const initials = initialsSource
     ? initialsSource.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
     : "??";
-  const pageName = ALL_NAV.find((n) => location.pathname.startsWith(n.path))?.label ?? "Dashboard";
-  const layerSubNav = getLayerSubNavForPath(location.pathname);
+  const pageName = [...allNav]
+    .sort((a, b) => b.path.length - a.path.length)
+    .find((n) => shellPath.startsWith(n.path))?.label ?? "Dashboard";
+  const layerSubNav = getLayerSubNavForPath(shellPath);
   const closeSidebar = () => setSidebarOpen(false);
 
   useEffect(() => {
@@ -462,7 +528,7 @@ export default function MainLayout() {
               <span className="ml-nav-section-label">Core Platform</span>
               <span className="ml-nav-section-badge live">Live</span>
             </div>
-            {CORE_NAV.map((item) => <NavItem key={item.path} item={item} />)}
+            {coreNavItems.map((item) => <NavItem key={item.path} item={item} />)}
           </div>
 
           <div className="ml-divider" />
@@ -472,14 +538,14 @@ export default function MainLayout() {
             <div className="ml-nav-section-header">
               <span className="ml-nav-section-label">Ecosystem Platforms</span>
             </div>
-            {PLATFORMS.map((p) => {
+            {platformItems.map((p) => {
               const navigable = p.status !== "planned";
               return (
                 <NavLink
                   key={p.path}
                   to={navigable ? p.path : "#"}
                   className={({ isActive }) =>
-                    `ml-platform-card${isActive && navigable ? " active" : ""}${!navigable ? " disabled" : ""}`
+                    `ml-platform-card${p.status === "sovereign" ? " sovereign" : ""}${isActive && navigable ? " active" : ""}${!navigable ? " disabled" : ""}`
                   }
                   onClick={navigable ? closeSidebar : (e) => e.preventDefault()}
                   style={{ pointerEvents: !navigable ? "none" : "auto", opacity: !navigable ? 0.4 : 1 }}
@@ -490,7 +556,7 @@ export default function MainLayout() {
                     <div className="ml-platform-desc">{p.desc}</div>
                   </div>
                   <span className={`ml-platform-status ${p.status}`}>
-                    {p.status === "live" ? "● Live" : p.status === "building" ? "● Build" : "Planned"}
+                    {p.status === "sovereign" ? "Root" : p.status === "live" ? "● Live" : p.status === "building" ? "● Build" : "Planned"}
                   </span>
                 </NavLink>
               );
@@ -590,9 +656,9 @@ export default function MainLayout() {
       />
 
       <AssistantPanel
-        assistant={getAssistantForPath(location.pathname)}
-        page={location.pathname}
-        context={{ pathname: location.pathname }}
+        assistant={getAssistantForPath(shellPath)}
+        page={shellPath}
+        context={{ pathname: shellPath }}
       />
     </div>
   );

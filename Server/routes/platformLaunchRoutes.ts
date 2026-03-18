@@ -1,6 +1,8 @@
 // Phase 1 — Core Engine — platformLaunchRoutes.ts
+import { NotificationType } from "@prisma/client";
 import { Router } from 'express';
-import { superAdminMiddleware } from '../middleware/authMiddleware';
+import { authMiddleware } from '../middleware/authMiddleware.js';
+import { superAdminMiddleware } from '../middleware/superAdminMiddleware.js';
 import { AppRegistry } from '../services/appRegistry';
 import prisma from '../db';
 
@@ -18,14 +20,14 @@ const sendBroadcastNotification = async (notification: {title: string, body: str
 const router = Router();
 
 // All routes in this file are protected by superAdminMiddleware
-router.use(superAdminMiddleware);
+router.use(authMiddleware, superAdminMiddleware);
 
 /**
  * GET /api/v1/admin/platform/status
  * Retrieves the status and health of all platform layers.
  */
 router.get('/status', async (req, res) => {
-    const layers = AppRegistry.getAll();
+    const layers = AppRegistry.list();
     // In a real implementation, you'd fetch health data from a monitoring service
     const healthData = { api: '✅', db: '✅', aiPlatform: '✅', redis: '✅', email: '✅' };
     res.json({ layers, health: healthData });
@@ -40,7 +42,8 @@ router.post('/:layerId/checklist', async (req, res) => {
     const layer = AppRegistry.get(layerId);
     if (!layer) return res.status(404).json({ error: 'Layer not found' });
 
-    // This is a mock of the checklist: '✅', required: true },
+    // Pre-launch checklist for Market layer
+    const checklist = [
         { item: 'Stripe Connect — configured', status: '✅', required: true },
         { item: 'CheckoutPage vendor resolution bug — not yet fixed', status: '⚠️', required: true },
         { item: 'Multi-vendor payout flow — incomplete', status: '❌', required: true },
@@ -80,23 +83,12 @@ router.post('/:layerId/launch', async (req, res) => {
     });
   }
 
-  // Update AppRegistry (in-memory) and persist to DB
+  // Update AppRegistry in-memory. The current schema does not yet persist layer launch state.
   AppRegistry.update(layerId, { status: 'live' });
-  await prisma.platformLayerStatus.upsert({
-    where:  { layerId },
-    update: { status: 'live', launchedAt: new Date(), launchedBy: req.user!.userId },
-    create: {
-      layerId,
-      status: 'live',
-      launchedAt: new Date(),
-      launchedBy: req.user!.userId,
-      tenantId: req.user!.tenantId
-    }
-  });
 
-  // Send welcome notification to all active users
+  // Send welcome notification to all active users.
   const activeUsers = await prisma.user.findMany({
-    where: { lastActiveAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }
+    where: { deletedAt: null }
   });
 
   await Promise.all(activeUsers.map(user =>
@@ -104,24 +96,16 @@ router.post('/:layerId/launch', async (req, res) => {
       data: {
         userId: user.id,
         tenantId: user.tenantId,
-        type: 'platform_launch',
+        type: NotificationType.SYSTEM,
         title: `${layer.name} is now live`,
         body: LAUNCH_MESSAGES[layerId] || `${layer.name} is now available in your ecosystem.`,
-        url: layer.frontendPath,
+        link: layer.frontendPath,
       }
     })
   ));
 
-  // Notify admin Slack channel and log the action
+  // Notify the operator channel. Persistent audit storage is not available in the current schema.
   await notifySlack(`🚀 ${layer.name} launched by ${req.user!.email} — ${activeUsers.length} users notified`);
-  await prisma.adminAction.create({
-    data: {
-      adminId: req.user!.userId,
-      action: 'platform_launch',
-      target: layerId,
-      metadata: { userCount: activeUsers.length, timestamp: new Date(), override: !!override }
-    }
-  });
 
   res.json({
     success: true,
@@ -146,24 +130,13 @@ router.post('/:layerId/suspend', async (req, res) => {
   }
 
   AppRegistry.update(layerId, { status: 'suspended' });
-  await prisma.platformLayerStatus.update({
-    where:  { layerId },
-    data:   { status: 'suspended', suspendedAt: new Date(), suspendedBy: req.user!.userId, suspendReason: reason }
-  });
 
   await sendBroadcastNotification({
     title: `${layer.name} temporarily unavailable`,
-    body:  `We're making improvements. ${layer.name} will be back shortly.`,
+    body:  reason?.trim()
+      ? `${layer.name} is temporarily unavailable: ${reason.trim()}`
+      : `We're making improvements. ${layer.name} will be back shortly.`,
     type:  'platform_maintenance'
-  });
-
-  await prisma.adminAction.create({
-    data: {
-      adminId: req.user!.userId,
-      action: 'platform_suspend',
-      target: layerId,
-      metadata: { reason, timestamp: new Date() }
-    }
   });
 
   res.json({ success: true, message: `${layer.name} has been suspended.` });

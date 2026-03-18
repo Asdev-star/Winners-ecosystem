@@ -1,7 +1,8 @@
 // Server/routes/adminRoutes.ts
 
-import { Router, type NextFunction, type Request, type Response } from "express";
+import { Router, type Request, type Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { superAdminMiddleware } from "../middleware/superAdminMiddleware.js";
 import db from "../db.js";
 
 const router = Router();
@@ -12,20 +13,14 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
-function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean);
+// All admin routes use superAdminMiddleware which returns 404 instead of 403
+// This prevents revealing that admin functionality exists to unauthorized users
 
-  if (!req.user || !adminEmails.includes(req.user.email.toLowerCase())) {
-    return res.status(403).json({ message: "Superadmin access required" });
-  }
+router.get("/access", authMiddleware, superAdminMiddleware, async (_req: Request, res: Response) => {
+  return res.json({ ok: true });
+});
 
-  return next();
-}
-
-router.get("/stats", authMiddleware, requireSuperAdmin, async (_req: Request, res: Response) => {
+router.get("/stats", authMiddleware, superAdminMiddleware, async (_req: Request, res: Response) => {
   try {
     const [tenants, users, revenue, plans] = await Promise.all([
       db.tenant.findMany({
@@ -75,7 +70,7 @@ router.get("/stats", authMiddleware, requireSuperAdmin, async (_req: Request, re
   }
 });
 
-router.get("/tenants", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
+router.get("/tenants", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
   try {
     const page = Number.parseInt(String(req.query.page ?? "1"), 10);
     const limit = Number.parseInt(String(req.query.limit ?? "20"), 10);
@@ -114,7 +109,70 @@ router.get("/tenants", authMiddleware, requireSuperAdmin, async (req: Request, r
   }
 });
 
-router.get("/users", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
+router.get("/tenants/:id", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const tenant = await db.tenant.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        users: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
+            twoFactorEnabled: true,
+          },
+        },
+        revenueRecords: {
+          orderBy: { recordedAt: "desc" },
+          take: 12,
+        },
+        _count: {
+          select: {
+            users: true,
+            revenueRecords: true,
+            posts: true,
+            groups: true,
+            orders: true,
+          },
+        },
+      },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ message: "Tenant not found" });
+    }
+
+    const now = new Date();
+    const day30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const [lifetimeRevenue, last30Revenue] = await Promise.all([
+      db.revenueRecord.aggregate({
+        where: { tenantId: tenant.id },
+        _sum: { amount: true },
+      }),
+      db.revenueRecord.aggregate({
+        where: { tenantId: tenant.id, recordedAt: { gte: day30 } },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    return res.json({
+      tenant: {
+        ...tenant,
+        totalRevenue: lifetimeRevenue._sum.amount ?? 0,
+        last30Revenue: last30Revenue._sum.amount ?? 0,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
+  }
+});
+
+router.get("/users", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
   try {
     const page = Number.parseInt(String(req.query.page ?? "1"), 10);
     const limit = Number.parseInt(String(req.query.limit ?? "20"), 10);
@@ -148,7 +206,44 @@ router.get("/users", authMiddleware, requireSuperAdmin, async (req: Request, res
   }
 });
 
-router.patch("/tenants/:id/plan", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
+router.get("/users/:id", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const user = await db.user.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            plan: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            posts: true,
+            messages: true,
+            groupMemberships: true,
+            courseEnrollments: true,
+            hostedBroadcasts: true,
+            hostedLiveSessions: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json({ user });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
+  }
+});
+
+router.patch("/tenants/:id/plan", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
   const plan = String(req.body.plan ?? "");
   if (!["FREE", "PRO", "ENTERPRISE"].includes(plan)) {
     return res.status(400).json({ message: "Invalid plan" });
@@ -166,7 +261,7 @@ router.patch("/tenants/:id/plan", authMiddleware, requireSuperAdmin, async (req:
   }
 });
 
-router.delete("/tenants/:id", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
+router.delete("/tenants/:id", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
     await db.tenant.update({ where: { id }, data: { deletedAt: new Date() } });
@@ -177,4 +272,3 @@ router.delete("/tenants/:id", authMiddleware, requireSuperAdmin, async (req: Req
 });
 
 export default router;
-

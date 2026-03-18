@@ -4,7 +4,7 @@
 // Enables: service discovery, health aggregation, feature flags, phase gating.
 // Roadmap requirement: "App registry system (register new platforms)" (Block 1, Item 2)
 
-export type AppStatus = "live" | "in_progress" | "planned" | "deprecated";
+export type AppStatus = "live" | "in_progress" | "planned" | "deprecated" | "suspended";
 export type AppPhase = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export interface AppRegistration {

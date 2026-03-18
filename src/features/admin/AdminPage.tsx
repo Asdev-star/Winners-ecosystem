@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuthStore } from "../auth/authStore";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { API_BASE } from "../../lib/api";
 
@@ -14,9 +14,9 @@ const ECOSYSTEM_PLATFORMS = [
   { icon: "🧑‍🤝‍🧑", name: "Community", path: "/community",   color: "#89C4E1", status: "live",     desc: "Feed · Groups · DMs · Studio · NOVA AI",        routes: 18 },
   { icon: "🎓", name: "Academy",       path: "/academy",     color: "#9B6FFF", status: "live",     desc: "Courses · Paths · Live Sessions · SAGE AI",     routes: 14 },
   { icon: "🛒", name: "Market",        path: "/market",      color: "#2DD4A0", status: "building", desc: "10 Verticals · Vendors · Cart · Escrow",         routes: 12 },
-  { icon: "🤖", name: "Intelligence",  path: "/intelligence",color: "#9B6FFF", status: "live",     desc: "9 Supervisors · OMEGA · SSE Streaming",          routes: 10 },
-  { icon: "☁️", name: "Cloud",         path: "/cloud",       color: "#89C4E1", status: "live",     desc: "Connectors · Agents · API Keys · Webhooks",      routes: 8  },
   { icon: "💼", name: "Work",          path: "/work",        color: "#F0B429", status: "building", desc: "Freelance · Contracts · Escrow · Profiles",      routes: 5  },
+  { icon: "☁️", name: "Cloud",         path: "/cloud",       color: "#89C4E1", status: "live",     desc: "Connectors · Agents · API Keys · Webhooks",      routes: 8  },
+  { icon: "🤖", name: "Intelligence",  path: "/intelligence",color: "#9B6FFF", status: "live",     desc: "9 Supervisors · OMEGA · SSE Streaming",          routes: 10 },
   { icon: "⚙️", name: "Ops",           path: "/ops",         color: "#E05A4E", status: "live",     desc: "Core Ops · Health · Config · System Control",    routes: 4  },
 ];
 
@@ -306,12 +306,33 @@ const PLAN_COLORS: Record<string, string> = {
 
 type Tab = "overview" | "platforms" | "users" | "tenants" | "ai" | "directives";
 
+const TAB_ROUTE_MAP: Record<Tab, string> = {
+  overview: "/admin/revenue",
+  platforms: "/admin/platform-launch",
+  tenants: "/admin/tenants",
+  users: "/admin/users",
+  ai: "/admin/forge-intelligence",
+  directives: "/admin/omega-broadcast",
+};
+
+function getTabForPath(pathname: string): Tab {
+  if (pathname.startsWith("/admin/platform-launch")) return "platforms";
+  if (pathname.startsWith("/admin/tenants")) return "tenants";
+  if (pathname.startsWith("/admin/users")) return "users";
+  if (pathname.startsWith("/admin/revenue")) return "overview";
+  if (pathname.startsWith("/admin/forge-intelligence")) return "ai";
+  if (pathname.startsWith("/admin/omega-broadcast")) return "directives";
+  return "platforms";
+}
+
 export default function AdminPage() {
   const token = useAuthStore((s) => s.token);
   const user  = useAuthStore((s) => s.user);
+  const location = useLocation();
   const navigate = useNavigate();
+  const launchedUserRealmPlatforms = ECOSYSTEM_PLATFORMS.filter((platform) => !["/admin", "/ops"].includes(platform.path));
 
-  const [tab, setTab]         = useState<Tab>("overview");
+  const [tab, setTab]         = useState<Tab>(() => getTabForPath(location.pathname));
   const [stats, setStats]     = useState<any>(null);
   const [tenants, setTenants] = useState<any>(null);
   const [users, setUsers]     = useState<any>(null);
@@ -334,6 +355,13 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    const nextTab = getTabForPath(location.pathname);
+    setTab((currentTab) => (currentTab === nextTab ? currentTab : nextTab));
+    setPage(1);
+    setSearch("");
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (tab === "overview" && !stats) loadStats();
     if (tab === "tenants") loadTenants();
     if (tab === "users")   loadUsers();
@@ -343,7 +371,10 @@ export default function AdminPage() {
     setLoading(true); setError("");
     try {
       const res = await fetch(`${API}/admin/stats`, { headers });
-      if (res.status === 403) { setError("Superadmin access required. Set ADMIN_EMAILS in your environment."); return; }
+      if ([401, 403, 404].includes(res.status)) {
+        setError("Admin sovereign boundary rejected this identity. Verify ADMIN_EMAILS before entering the Core Engine.");
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setStats(await res.json());
     } catch (e: any) { setError(e.message); }
@@ -400,12 +431,12 @@ export default function AdminPage() {
   const maxCalls = Math.max(...AI_SUPERVISORS.map((a) => a.calls), 1);
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: "overview",   label: "📊 Overview"    },
-    { id: "platforms",  label: "⬡ Platforms"   },
-    { id: "tenants",    label: "🏢 Tenants"     },
-    { id: "users",      label: "👥 Users"       },
-    { id: "ai",         label: "🤖 AI Systems"  },
-    { id: "directives", label: "⚡ Directives"  },
+    { id: "platforms",  label: "🚀 Platform Launch"   },
+    { id: "tenants",    label: "🏢 Tenants"           },
+    { id: "users",      label: "👥 Users"             },
+    { id: "overview",   label: "💰 Revenue"           },
+    { id: "ai",         label: "🤖 FORGE Intelligence" },
+    { id: "directives", label: "📢 OMEGA Broadcast"   },
   ];
 
   return (
@@ -416,12 +447,12 @@ export default function AdminPage() {
         <div className="adm-header-row">
           <div>
             <h1 className="adm-title">
-              ⬡ <span className="adm-title-gold">Core Engine</span>
+              ⬡ <span className="adm-title-gold">Admin Control Tower</span>
               <span className="adm-badge">SUPERADMIN</span>
               <span className="adm-badge-live"><span className="adm-badge-dot" />LIVE</span>
             </h1>
             <p className="adm-subtitle">
-              Winners Ecosystem · Architect Command Center · Platform-wide sovereign control
+              Full sovereign control panel for the sole ecosystem operator. Users never enter this realm.
             </p>
           </div>
           <div className="adm-header-right">
@@ -437,8 +468,8 @@ export default function AdminPage() {
 
       {/* ── Platform Status Bar ── */}
       <div className="adm-status-bar">
-        <div className="adm-status-label">Ecosystem</div>
-        {ECOSYSTEM_PLATFORMS.map((p) => (
+        <div className="adm-status-label">User Realm</div>
+        {launchedUserRealmPlatforms.map((p) => (
           <div key={p.name} className={`adm-status-chip ${p.status}`}>
             <span className="adm-status-dot" />
             {p.icon} {p.name}
@@ -455,7 +486,11 @@ export default function AdminPage() {
           <button
             key={t.id}
             className={`adm-tab${tab === t.id ? " active" : ""}`}
-            onClick={() => { setTab(t.id); setPage(1); setSearch(""); }}
+            onClick={() => {
+              setPage(1);
+              setSearch("");
+              navigate(TAB_ROUTE_MAP[t.id]);
+            }}
           >
             {t.label}
           </button>
@@ -526,7 +561,7 @@ export default function AdminPage() {
       ══════════════════════════════════════════════════════ */}
       {!loading && tab === "platforms" && (
         <div className="adm-platform-grid">
-          {ECOSYSTEM_PLATFORMS.map((p) => (
+          {launchedUserRealmPlatforms.map((p) => (
             <div
               key={p.name}
               className="adm-platform-card"
@@ -705,7 +740,7 @@ export default function AdminPage() {
                 onChange={(e) => setDirectTarget(e.target.value)}
               >
                 <option value="all">All Platforms</option>
-                {ECOSYSTEM_PLATFORMS.map((p) => (
+                {launchedUserRealmPlatforms.map((p) => (
                   <option key={p.name} value={p.name}>{p.icon} {p.name}</option>
                 ))}
               </select>
@@ -743,7 +778,7 @@ export default function AdminPage() {
           <div className="adm-dir-card" style={{ gridColumn: "1 / -1" }}>
             <div className="adm-dir-title">🗂 Platform Navigation</div>
             <div className="adm-platform-grid" style={{ marginBottom: 0 }}>
-              {ECOSYSTEM_PLATFORMS.map((p) => (
+              {launchedUserRealmPlatforms.map((p) => (
                 <button
                   key={p.name}
                   className="adm-qa-btn"

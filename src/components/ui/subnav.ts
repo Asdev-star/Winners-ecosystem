@@ -92,5 +92,4 @@ export const CORE_SUBNAV: SubNavItem[] = [
   { id: "analytics",    label: "Analytics",    href: "/analytics" },
   { id: "integrations", label: "Integrations", href: "/settings/integrations" },
   { id: "security",     label: "Security",     href: "/settings/security" },
-  { id: "admin",        label: "Admin",        href: "/admin" },
 ];

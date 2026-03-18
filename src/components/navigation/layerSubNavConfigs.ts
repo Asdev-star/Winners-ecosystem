@@ -249,7 +249,6 @@ export const CORE_SUBNAV: LayerSubNavConfig = {
     { id: "core-analytics", label: "Analytics", to: "/analytics" },
     { id: "core-search", label: "Search", to: "/search", badge: "K", badgeTone: "info" },
     { id: "core-activity", label: "Activity", to: "/activity" },
-    { id: "core-ops", label: "Core Ops", to: "/ops", badge: "New", badgeTone: "attention" },
   ],
   smartAction: () => ({
     supervisor: "OMEGA",
@@ -259,7 +258,32 @@ export const CORE_SUBNAV: LayerSubNavConfig = {
   }),
 };
 
+export const ADMIN_SUBNAV: LayerSubNavConfig = {
+  key: "admin",
+  layer: "core",
+  accent: "var(--gold)",
+  items: [
+    { id: "admin-overview", label: "Overview", to: "/admin/overview", aliases: ["/admin"] },
+    { id: "admin-launch", label: "Platform", to: "/admin/platform" },
+    { id: "admin-tenants", label: "Tenants", to: "/admin/tenants" },
+    { id: "admin-users", label: "Users", to: "/admin/users" },
+    { id: "admin-revenue", label: "Revenue", to: "/admin/revenue" },
+    { id: "admin-forge", label: "FORGE", to: "/admin/forge", badge: "AI", badgeTone: "info" },
+    { id: "admin-health", label: "System Health", to: "/admin/health", aliases: ["/ops"] },
+    { id: "admin-broadcast", label: "OMEGA Broadcast", to: "/admin/broadcast", badge: "Live", badgeTone: "attention" },
+    { id: "admin-security", label: "Security", to: "/admin/security" },
+    { id: "admin-settings", label: "Settings", to: "/admin/settings" },
+  ],
+  smartAction: () => ({
+    supervisor: "OMEGA",
+    title: "Open sovereign command",
+    hint: "Coordinate launch, health, and cross-layer directives from one surface.",
+    intent: "open-command-palette",
+  }),
+};
+
 export function getLayerSubNavForPath(pathname: string): LayerSubNavConfig {
+  if (pathname.startsWith("/admin") || pathname.startsWith("/ops")) return ADMIN_SUBNAV;
   if (pathname.startsWith("/community") || pathname.startsWith("/messages")) return COMMUNITY_SUBNAV;
   if (pathname.startsWith("/academy")) return ACADEMY_SUBNAV;
   if (pathname.startsWith("/intelligence")) return INTELLIGENCE_SUBNAV;

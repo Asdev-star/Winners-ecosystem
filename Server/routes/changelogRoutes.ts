@@ -2,6 +2,7 @@
 
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { superAdminMiddleware } from "../middleware/superAdminMiddleware.js";
 import db from "../db.js";
 
 const router = Router();
@@ -10,13 +11,8 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Internal server error";
 }
 
-function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase());
-  if (!req.user || !adminEmails.includes(req.user.email.toLowerCase())) {
-    return res.status(403).json({ message: "Superadmin access required" });
-  }
-  return next();
-}
+// All admin routes use superAdminMiddleware which returns 404 instead of 403
+// This prevents revealing that admin functionality exists to unauthorized users
 
 // GET /changelog — public, all published entries
 router.get("/", authMiddleware, async (_req: Request, res: Response) => {
@@ -32,7 +28,7 @@ router.get("/", authMiddleware, async (_req: Request, res: Response) => {
 });
 
 // GET /changelog/all — admin only, includes unpublished
-router.get("/all", authMiddleware, requireSuperAdmin, async (_req: Request, res: Response) => {
+router.get("/all", authMiddleware, superAdminMiddleware, async (_req: Request, res: Response) => {
   try {
     const entries = await db.changelogEntry.findMany({ orderBy: { publishedAt: "desc" } });
     res.json(entries);
@@ -42,7 +38,7 @@ router.get("/all", authMiddleware, requireSuperAdmin, async (_req: Request, res:
 });
 
 // POST /changelog — admin only, create entry
-router.post("/", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
+router.post("/", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
   const { title, description, type, version, published } = req.body;
   if (!title || !description) return res.status(400).json({ message: "title and description required" });
   try {
@@ -56,7 +52,7 @@ router.post("/", authMiddleware, requireSuperAdmin, async (req: Request, res: Re
 });
 
 // PATCH /changelog/:id — admin only, update entry
-router.patch("/:id", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
+router.patch("/:id", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
   const { title, description, type, version, published } = req.body;
   try {
     const entry = await db.changelogEntry.update({
@@ -70,7 +66,7 @@ router.patch("/:id", authMiddleware, requireSuperAdmin, async (req: Request, res
 });
 
 // DELETE /changelog/:id — admin only
-router.delete("/:id", authMiddleware, requireSuperAdmin, async (req: Request, res: Response) => {
+router.delete("/:id", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
   try {
     await db.changelogEntry.delete({ where: { id: String(req.params.id) } });
     res.json({ message: "Deleted" });

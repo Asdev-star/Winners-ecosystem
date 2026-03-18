@@ -32,7 +32,6 @@ import SlackSettingsPage from "./features/slack/SlackSettingsPage";
 import SearchPage from "./features/search/SearchPage";
 import ActivityPage from "./features/activity/ActivityPage";
 import ReferralPage from "./features/referral/ReferralPage";
-import AdminPage from "./features/admin/AdminPage";
 import ChangelogPage from "./features/changelog/ChangelogPage";
 import TwoFactorPage from "./features/security/TwoFactorPage";
 import CommunityPage from "./features/community/CommunityPage";
@@ -95,6 +94,20 @@ import CloudWebhooksPage from "./features/cloud/CloudWebhooksPage";
 import CloudUsagePage from "./features/cloud/CloudUsagePage";
 import APIMarketplacePage from "./features/cloud/APIMarketplacePage";
 import AIRevenueProductsPage from "./features/intelligence/AIRevenueProductsPage";
+import {
+  AdminBroadcastPage,
+  AdminForgePage,
+  AdminOverviewPage,
+  AdminPlatformLayerPage,
+  AdminPlatformPage,
+  AdminRevenuePage,
+  AdminSecurityPage,
+  AdminSettingsPage,
+  AdminTenantDetailPage,
+  AdminTenantsPage,
+  AdminUserDetailPage,
+  AdminUsersPage,
+} from "./features/admin/AdminRoutePages";
 
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
@@ -144,8 +157,25 @@ function App() {
             <Route path="stripe" element={<StripeDashboard />} />
             <Route path="activity" element={<ActivityPage />} />
             <Route path="referral" element={<ReferralPage />} />
-            <Route path="admin" element={<SuperAdminRoute><AdminPage /></SuperAdminRoute>} />
-            <Route path="ops" element={<SuperAdminRoute><CoreOpsPage /></SuperAdminRoute>} />
+            <Route path="admin" element={<SuperAdminRoute><Navigate to="/admin/overview" replace /></SuperAdminRoute>} />
+            <Route path="admin/overview" element={<SuperAdminRoute><AdminOverviewPage /></SuperAdminRoute>} />
+            <Route path="admin/platform" element={<SuperAdminRoute><AdminPlatformPage /></SuperAdminRoute>} />
+            <Route path="admin/platform/:layerId" element={<SuperAdminRoute><AdminPlatformLayerPage /></SuperAdminRoute>} />
+            <Route path="admin/tenants" element={<SuperAdminRoute><AdminTenantsPage /></SuperAdminRoute>} />
+            <Route path="admin/tenants/:id" element={<SuperAdminRoute><AdminTenantDetailPage /></SuperAdminRoute>} />
+            <Route path="admin/users" element={<SuperAdminRoute><AdminUsersPage /></SuperAdminRoute>} />
+            <Route path="admin/users/:id" element={<SuperAdminRoute><AdminUserDetailPage /></SuperAdminRoute>} />
+            <Route path="admin/revenue" element={<SuperAdminRoute><AdminRevenuePage /></SuperAdminRoute>} />
+            <Route path="admin/forge" element={<SuperAdminRoute><AdminForgePage /></SuperAdminRoute>} />
+            <Route path="admin/health" element={<SuperAdminRoute><CoreOpsPage /></SuperAdminRoute>} />
+            <Route path="admin/broadcast" element={<SuperAdminRoute><AdminBroadcastPage /></SuperAdminRoute>} />
+            <Route path="admin/security" element={<SuperAdminRoute><AdminSecurityPage /></SuperAdminRoute>} />
+            <Route path="admin/settings" element={<SuperAdminRoute><AdminSettingsPage /></SuperAdminRoute>} />
+            <Route path="admin/platform-launch" element={<SuperAdminRoute><Navigate to="/admin/platform" replace /></SuperAdminRoute>} />
+            <Route path="admin/forge-intelligence" element={<SuperAdminRoute><Navigate to="/admin/forge" replace /></SuperAdminRoute>} />
+            <Route path="admin/omega-broadcast" element={<SuperAdminRoute><Navigate to="/admin/broadcast" replace /></SuperAdminRoute>} />
+            <Route path="admin/system-health" element={<SuperAdminRoute><Navigate to="/admin/health" replace /></SuperAdminRoute>} />
+            <Route path="ops" element={<SuperAdminRoute><Navigate to="/admin/health" replace /></SuperAdminRoute>} />
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="community" element={<CommunityPage />} />
             <Route path="community/groups" element={<GroupsPage />} />
