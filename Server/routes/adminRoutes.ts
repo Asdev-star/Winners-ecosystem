@@ -1,6 +1,7 @@
 // Server/routes/adminRoutes.ts
 
 import { Router, type Request, type Response } from "express";
+import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { superAdminMiddleware } from "../middleware/superAdminMiddleware.js";
 import db from "../db.js";
@@ -11,6 +12,9 @@ import { recordAdminAction } from "../services/adminAuditService.js";
 const router = Router();
 
 type PlanTier = "FREE" | "PRO" | "ENTERPRISE";
+type InviteRole = "ADMIN" | "MEMBER" | "VIEWER";
+
+const JWT_SECRET = process.env.JWT_SECRET ?? "winners_dev_secret_change_in_prod";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown error";
@@ -343,7 +347,27 @@ router.get("/tenants/:id", authMiddleware, superAdminMiddleware, async (req: Req
 
     const now = new Date();
     const day30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const [lifetimeRevenue, last30Revenue] = await Promise.all([
+    const day60 = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const userIds = tenant.users.map((user) => user.id);
+    const owner = [...tenant.users].sort((a, b) => (a.role === "OWNER" ? -1 : b.role === "OWNER" ? 1 : 0))[0] ?? null;
+
+    const [
+      lifetimeRevenue,
+      last30Revenue,
+      previous30Revenue,
+      userActivityGroups,
+      activeLoops,
+      loops,
+      postCountsByUser,
+      enrollmentCountsByUser,
+      aiCountsByUser,
+      aiCreditsSpent,
+      communityPosts,
+      academyCertificates,
+      intelligenceQueries,
+      workApplications,
+      topMonthlyTenant,
+    ] = await Promise.all([
       db.revenueRecord.aggregate({
         where: { tenantId: tenant.id },
         _sum: { amount: true },
@@ -352,13 +376,341 @@ router.get("/tenants/:id", authMiddleware, superAdminMiddleware, async (req: Req
         where: { tenantId: tenant.id, recordedAt: { gte: day30 } },
         _sum: { amount: true },
       }),
+      db.revenueRecord.aggregate({
+        where: { tenantId: tenant.id, recordedAt: { gte: day60, lt: day30 } },
+        _sum: { amount: true },
+      }),
+      db.activityLog.groupBy({
+        by: ["userId"],
+        where: { tenantId: tenant.id, userId: { not: null } },
+        _max: { createdAt: true },
+      }),
+      db.agenticLoop.count({
+        where: { tenantId: tenant.id, status: "active" },
+      }),
+      db.agenticLoop.findMany({
+        where: { tenantId: tenant.id, userId: { in: userIds } },
+        orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
+        select: {
+          userId: true,
+          currentStep: true,
+          status: true,
+          steps: true,
+          updatedAt: true,
+        },
+      }),
+      db.post.groupBy({
+        by: ["authorId"],
+        where: { tenantId: tenant.id, deletedAt: null, authorId: { in: userIds } },
+        _count: { id: true },
+      }),
+      db.enrollment.groupBy({
+        by: ["userId"],
+        where: { tenantId: tenant.id, userId: { in: userIds } },
+        _count: { id: true },
+      }),
+      db.aIInteraction.groupBy({
+        by: ["userId"],
+        where: { tenantId: tenant.id, userId: { in: userIds } },
+        _count: { id: true },
+      }),
+      db.aICredit.aggregate({
+        where: { tenantId: tenant.id, action: "spent" },
+        _sum: { amount: true },
+      }),
+      db.post.count({
+        where: { tenantId: tenant.id, deletedAt: null },
+      }),
+      db.certificate.count({
+        where: { tenantId: tenant.id },
+      }),
+      db.aIInteraction.count({
+        where: { tenantId: tenant.id },
+      }),
+      db.jobApplication.count({
+        where: { tenantId: tenant.id },
+      }),
+      db.revenueRecord.groupBy({
+        by: ["tenantId"],
+        where: { recordedAt: { gte: day30 } },
+        _sum: { amount: true },
+        orderBy: {
+          _sum: {
+            amount: "desc",
+          },
+        },
+        take: 1,
+      }),
     ]);
+
+    const activityByUser = new Map(userActivityGroups.map((entry) => [entry.userId ?? "", entry._max.createdAt?.toISOString() ?? null]));
+    const postCountMap = new Map(postCountsByUser.map((entry) => [entry.authorId, entry._count.id]));
+    const academyCountMap = new Map(enrollmentCountsByUser.map((entry) => [entry.userId, entry._count.id]));
+    const aiCountMap = new Map(aiCountsByUser.map((entry) => [entry.userId, entry._count.id]));
+
+    const loopByUser = new Map<
+      string,
+      {
+        currentStep: number;
+        status: string;
+        steps: unknown;
+        updatedAt: Date;
+      }
+    >();
+
+    for (const loop of loops) {
+      if (!loopByUser.has(loop.userId)) {
+        loopByUser.set(loop.userId, loop);
+      }
+    }
+
+    const activeUserCount = tenant.users.filter((user) => {
+      const lastActivity = activityByUser.get(user.id);
+      return lastActivity ? new Date(lastActivity) >= day30 : false;
+    }).length;
+
+    const previous30Amount = previous30Revenue._sum.amount ?? 0;
+    const current30Amount = last30Revenue._sum.amount ?? 0;
+    const revenueDeltaPct = previous30Amount > 0
+      ? Math.round(((current30Amount - previous30Amount) / previous30Amount) * 100)
+      : current30Amount > 0
+        ? 100
+        : 0;
+
+    const isTopTenant = topMonthlyTenant[0]?.tenantId === tenant.id;
+    const aiCreditsUsed = Math.abs(aiCreditsSpent._sum.amount ?? 0);
+
+    const usage = {
+      community: { label: "posts", value: communityPosts, status: communityPosts > 0 ? "active" : "quiet" },
+      academy: { label: "certs", value: academyCertificates, status: academyCertificates > 0 ? "active" : "quiet" },
+      intelligence: { label: "queries", value: intelligenceQueries, status: intelligenceQueries > 0 ? "active" : "quiet" },
+      work: { label: workApplications > 0 ? "applications" : "awaiting launch", value: workApplications, status: workApplications > 0 ? "active" : "awaiting_launch" },
+    };
+
+    const forgeProfile = `${tenant.name} is ${isTopTenant ? "currently your highest-revenue tenant" : activeUserCount >= 8 ? "one of your most engaged tenants" : "an active workspace"}.
+${activeUserCount} active users in the last 30 days. Revenue trend is ${revenueDeltaPct >= 0 ? "up" : "down"} ${Math.abs(revenueDeltaPct)}% month-over-month.
+${activeLoops} users are in active agentic loops.
+Recommendation: ${current30Amount >= 1000 || intelligenceQueries >= 250 ? "offer a custom Enterprise+ tier and proactive success support." : "keep monitoring usage and nudge the workspace toward a higher-touch plan."}`;
 
     return res.json({
       tenant: {
         ...tenant,
         totalRevenue: lifetimeRevenue._sum.amount ?? 0,
         last30Revenue: last30Revenue._sum.amount ?? 0,
+        previous30Revenue: previous30Amount,
+        revenueDeltaPct,
+        activeUserCount,
+        activeLoopCount: activeLoops,
+        aiCreditsUsed,
+        owner: owner ? { id: owner.id, name: owner.name, email: owner.email } : null,
+        forgeProfile,
+        usage,
+        users: tenant.users.map((user) => {
+          const layersUsed = [
+            postCountMap.get(user.id) ? "Community" : null,
+            academyCountMap.get(user.id) ? "Academy" : null,
+            aiCountMap.get(user.id) ? "Intelligence" : null,
+          ].filter(Boolean) as string[];
+
+          const loop = loopByUser.get(user.id);
+          const steps = Array.isArray(loop?.steps) ? loop.steps : [];
+          const latestStep = steps.length ? (steps[steps.length - 1] as { layer?: string; assistant?: string }) : null;
+          const loopStage = loop
+            ? loop.status === "active"
+              ? latestStep?.layer ? `${String(latestStep.layer)} live` : `Step ${loop.currentStep + 1}`
+              : "Completed"
+            : "No active loop";
+
+          return {
+            ...user,
+            lastActivityAt: activityByUser.get(user.id) ?? null,
+            layersUsed,
+            loopStage,
+          };
+        }),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
+  }
+});
+
+router.post("/tenants/:id/invite", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  const email = String(req.body.email ?? "").trim().toLowerCase();
+  const role = String(req.body.role ?? "MEMBER").trim().toUpperCase() as InviteRole;
+
+  if (!email || !["ADMIN", "MEMBER", "VIEWER"].includes(role)) {
+    return res.status(400).json({ message: "email and a valid role are required" });
+  }
+
+  try {
+    const tenant = await db.tenant.findFirst({
+      where: { id },
+      select: { id: true, name: true },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ message: "Tenant not found" });
+    }
+
+    const existingUser = await db.user.findFirst({
+      where: { email, tenantId: id, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists in this workspace" });
+    }
+
+    await db.invite.deleteMany({
+      where: { email, tenantId: id, accepted: false },
+    });
+
+    const invite = await db.invite.create({
+      data: {
+        tenantId: id,
+        email,
+        role,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    await recordAdminAction({
+      actor: {
+        userId: req.user!.userId,
+        tenantId: req.user!.tenantId,
+        email: req.user!.email,
+      },
+      action: "ADMIN_TENANT_INVITE_CREATED",
+      summary: `Invited ${email} to ${tenant.name} as ${role}`,
+      metadata: {
+        tenantId: tenant.id,
+        inviteId: invite.id,
+        inviteRole: role,
+      },
+    });
+
+    return res.status(201).json({
+      message: "Invite created",
+      invite: { ...invite, role: invite.role.toLowerCase() },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
+  }
+});
+
+router.post("/tenants/:id/forge-message", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  const message = String(req.body.message ?? "").trim();
+
+  if (!message) {
+    return res.status(400).json({ message: "message is required" });
+  }
+
+  try {
+    const tenant = await db.tenant.findFirst({
+      where: { id },
+      select: { id: true, name: true },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ message: "Tenant not found" });
+    }
+
+    await recordAdminAction({
+      actor: {
+        userId: req.user!.userId,
+        tenantId: req.user!.tenantId,
+        email: req.user!.email,
+      },
+      action: "ADMIN_FORGE_MESSAGE_SENT",
+      summary: `Sent FORGE message to ${tenant.name}`,
+      metadata: {
+        tenantId: tenant.id,
+        message,
+      },
+    });
+
+    return res.json({
+      message: "FORGE message queued",
+      preview: `FORGE → ${tenant.name}: ${message}`,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: errorMessage(error) });
+  }
+});
+
+router.post("/tenants/:id/impersonate", authMiddleware, superAdminMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  const reason = String(req.body.reason ?? "").trim();
+
+  try {
+    const tenant = await db.tenant.findFirst({
+      where: { id },
+      select: { id: true, name: true },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ message: "Tenant not found" });
+    }
+
+    const owner = await db.user.findFirst({
+      where: { tenantId: id, deletedAt: null, role: "OWNER" },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        tenantId: true,
+      },
+    });
+
+    if (!owner) {
+      return res.status(404).json({ message: "No owner account found for this tenant" });
+    }
+
+    const impersonationToken = jwt.sign(
+      {
+        userId: owner.id,
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        email: owner.email,
+        role: owner.role.toLowerCase(),
+        isImpersonation: true,
+        adminId: req.user!.userId,
+      },
+      JWT_SECRET,
+      { expiresIn: "30m" },
+    );
+
+    await recordAdminAction({
+      actor: {
+        userId: req.user!.userId,
+        tenantId: req.user!.tenantId,
+        email: req.user!.email,
+      },
+      action: "ADMIN_TENANT_IMPERSONATED",
+      summary: `Impersonated ${tenant.name} as ${owner.email}`,
+      metadata: {
+        tenantId: tenant.id,
+        targetUserId: owner.id,
+        reason,
+      },
+    });
+
+    return res.json({
+      impersonationToken,
+      expiresIn: 1800,
+      user: {
+        id: owner.id,
+        email: owner.email,
+        name: owner.name,
+        role: owner.role.toLowerCase(),
+        tenantId: owner.tenantId,
+        tenantName: tenant.name,
+        isImpersonation: true,
+        impersonatedByAdminId: req.user!.userId,
       },
     });
   } catch (error) {

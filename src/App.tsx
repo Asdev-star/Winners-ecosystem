@@ -95,6 +95,8 @@ import CloudUsagePage from "./features/cloud/CloudUsagePage";
 import APIMarketplacePage from "./features/cloud/APIMarketplacePage";
 import AIRevenueProductsPage from "./features/intelligence/AIRevenueProductsPage";
 import AdminOverviewPage from "./features/admin/AdminOverviewPage";
+import AdminTenantDeepDivePage from "./features/admin/AdminTenantDeepDivePage";
+import AdminTenantsManagementPage from "./features/admin/AdminTenantsManagementPage";
 import AdminPlatformPage from "./features/admin/AdminPlatformPage";
 import {
   AdminBroadcastPage,
@@ -103,8 +105,6 @@ import {
   AdminRevenuePage,
   AdminSecurityPage,
   AdminSettingsPage,
-  AdminTenantDetailPage,
-  AdminTenantsPage,
   AdminUserDetailPage,
   AdminUsersPage,
 } from "./features/admin/AdminRoutePages";
@@ -161,8 +161,8 @@ function App() {
             <Route path="admin/overview" element={<SuperAdminRoute><AdminOverviewPage /></SuperAdminRoute>} />
             <Route path="admin/platform" element={<SuperAdminRoute><AdminPlatformPage /></SuperAdminRoute>} />
             <Route path="admin/platform/:layerId" element={<SuperAdminRoute><AdminPlatformLayerPage /></SuperAdminRoute>} />
-            <Route path="admin/tenants" element={<SuperAdminRoute><AdminTenantsPage /></SuperAdminRoute>} />
-            <Route path="admin/tenants/:id" element={<SuperAdminRoute><AdminTenantDetailPage /></SuperAdminRoute>} />
+            <Route path="admin/tenants" element={<SuperAdminRoute><AdminTenantsManagementPage /></SuperAdminRoute>} />
+            <Route path="admin/tenants/:id" element={<SuperAdminRoute><AdminTenantDeepDivePage /></SuperAdminRoute>} />
             <Route path="admin/users" element={<SuperAdminRoute><AdminUsersPage /></SuperAdminRoute>} />
             <Route path="admin/users/:id" element={<SuperAdminRoute><AdminUserDetailPage /></SuperAdminRoute>} />
             <Route path="admin/revenue" element={<SuperAdminRoute><AdminRevenuePage /></SuperAdminRoute>} />

@@ -11,6 +11,8 @@ export interface JwtPayload {
   tenantName: string;
   email:      string;
   role:       "owner" | "admin" | "member" | "viewer";
+  isImpersonation?: boolean;
+  adminId?: string;
   iat?:       number;
   exp?:       number;
 }

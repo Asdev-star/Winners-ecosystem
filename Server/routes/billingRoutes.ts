@@ -124,8 +124,11 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
 
   try {
     const user = await db.user.findFirst({
-      where:   { id: req.user!.userId },
-      include: { tenant: true },
+      where: { id: req.user!.userId },
+      select: {
+        email: true,
+        name: true,
+      },
     });
 
     const payload = {

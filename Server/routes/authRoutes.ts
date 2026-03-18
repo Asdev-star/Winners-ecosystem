@@ -51,6 +51,20 @@ function errorMessage(err: unknown) {
   return err instanceof Error ? err.message : "Internal server error";
 }
 
+const authUserSelect = {
+  id: true,
+  email: true,
+  name: true,
+  password: true,
+  role: true,
+  tenantId: true,
+  tenant: {
+    select: {
+      name: true,
+    },
+  },
+} as const;
+
 // ─── POST /auth/register ──────────────────────────────────────────────────────
 
 router.post("/register", async (req: Request, res: Response) => {
@@ -58,7 +72,10 @@ router.post("/register", async (req: Request, res: Response) => {
   if (!email || !password || !name) return res.status(400).json({ message: "Email, password and name are required" });
 
   try {
-    const existing = await db.user.findFirst({ where: { email: email.toLowerCase().trim() } });
+    const existing = await db.user.findFirst({
+      where: { email: email.toLowerCase().trim() },
+      select: { id: true },
+    });
     if (existing) return res.status(409).json({ message: "Email already in use" });
 
     const tenant = await db.tenant.create({ data: { name: `${name}'s Workspace` } });
@@ -99,7 +116,7 @@ router.post("/login", async (req: Request, res: Response) => {
   try {
     const user = await db.user.findFirst({
       where:   { email: email.toLowerCase().trim(), deletedAt: null },
-      include: { tenant: true },
+      select: authUserSelect,
     });
 
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
@@ -133,7 +150,14 @@ router.post("/refresh", (req: Request, res: Response) => {
 
   try {
     const decoded  = jwt.verify(refreshToken, JWT_SECRET) as JwtPayload;
-    const payload  = { userId: decoded.userId, email: decoded.email, tenantId: decoded.tenantId, tenantName: decoded.tenantName, role: decoded.role };
+    const payload  = {
+      userId: decoded.userId,
+      email: decoded.email,
+      tenantId: decoded.tenantId,
+      tenantName: decoded.tenantName,
+      role: decoded.role,
+      ...(decoded.isImpersonation ? { isImpersonation: true, adminId: decoded.adminId } : {}),
+    };
     const newToken = signToken(payload, JWT_EXPIRES_IN);
     return res.json({ token: newToken });
   } catch {
@@ -145,9 +169,32 @@ router.post("/refresh", (req: Request, res: Response) => {
 
 router.get("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const user = await db.user.findFirst({ where: { id: req.user!.userId, deletedAt: null }, include: { tenant: true } });
+    const user = await db.user.findFirst({
+      where: { id: req.user!.userId, deletedAt: null },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        tenantId: true,
+        tenant: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
     if (!user) return res.status(404).json({ message: "User not found" });
-    return res.json({ id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name });
+    return res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role.toLowerCase(),
+      tenantId: user.tenantId,
+      tenantName: user.tenant.name,
+      isImpersonation: Boolean(req.user?.isImpersonation),
+      impersonatedByAdminId: req.user?.adminId,
+    });
   } catch (err) {
     console.error("Me error:", err);
     return res.status(500).json({ message: "Internal server error" });
@@ -221,7 +268,10 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
     if (!payload?.email) return res.status(400).json({ message: "No email from Google" });
 
     const { email, name, sub: googleId } = payload;
-    let user = await db.user.findFirst({ where: { email: email.toLowerCase(), deletedAt: null }, include: { tenant: true } });
+    let user = await db.user.findFirst({
+      where: { email: email.toLowerCase(), deletedAt: null },
+      select: authUserSelect,
+    });
 
     const isNewUser = !user;
     if (!user) {
@@ -268,7 +318,10 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     if (!googlePayload?.email) return res.redirect(`${APP_URL}/login?error=no_email`);
 
     const { email, name, sub: googleId } = googlePayload;
-    let user = await db.user.findFirst({ where: { email: email.toLowerCase(), deletedAt: null }, include: { tenant: true } });
+    let user = await db.user.findFirst({
+      where: { email: email.toLowerCase(), deletedAt: null },
+      select: authUserSelect,
+    });
 
     if (!user) {
       const tenant = await db.tenant.create({ data: { name: name ? `${name}'s Workspace` : "My Workspace" } });
@@ -332,7 +385,7 @@ router.post("/facebook/exchange", async (req: Request, res: Response) => {
 
     let user = await db.user.findFirst({
       where:   { email: profile.email.toLowerCase(), deletedAt: null },
-      include: { tenant: true },
+      select: authUserSelect,
     });
 
     const isNewUser = !user;
@@ -364,4 +417,3 @@ router.post("/facebook/exchange", async (req: Request, res: Response) => {
 });
 
 export default router;
-

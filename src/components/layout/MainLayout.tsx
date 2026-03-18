@@ -13,6 +13,7 @@ import { getLayerSubNavForPath } from "../navigation/layerSubNavConfigs";
 import CommandPalette from "../ui/CommandPalette";
 import AssistantPanel from "../ui/AssistantPanel";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
+import ImpersonationBanner from "./ImpersonationBanner";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
@@ -624,6 +625,8 @@ export default function MainLayout() {
             <NotificationBell />
           </div>
         </header>
+
+        <ImpersonationBanner />
 
         <main className="ml-content">
           <LayerSubNav config={layerSubNav} />

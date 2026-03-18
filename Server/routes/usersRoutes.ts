@@ -58,7 +58,10 @@ router.get("/analytics", async (req: Request, res: Response) => {
     if (period === "30d") dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     if (period === "90d") dateFilter = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-    const user = await db.user.findFirst({ where: { id: userId } });
+    const user = await db.user.findFirst({
+      where: { id: userId },
+      select: { profileViews: true },
+    });
     const profileViews = user?.profileViews ?? 0;
     const followersCount = await db.follow.count({ where: { followingId: userId } });
 
