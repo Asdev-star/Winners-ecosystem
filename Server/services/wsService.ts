@@ -10,6 +10,8 @@ interface Client {
   userId: string;
   tenantId: string;
   userName: string;
+  email?: string;
+  isSuperAdmin: boolean;
   ws: WebSocket;
   joinedAt: number;
 }
@@ -22,6 +24,10 @@ interface WsTokenPayload {
 }
 
 const clients: Map<string, Client> = new Map();
+const SUPER_ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 export const WS_EVENTS = {
   NEW_LIKE: "NEW_LIKE",
@@ -78,6 +84,8 @@ export function initWebSocketServer(server: HttpServer) {
       userId: payload.userId,
       tenantId: payload.tenantId,
       userName: payload.name ?? payload.email ?? "User",
+      email: payload.email,
+      isSuperAdmin: payload.email ? SUPER_ADMIN_EMAILS.includes(payload.email.toLowerCase()) : false,
       ws,
       joinedAt: Date.now(),
     };
@@ -155,5 +163,11 @@ export function notifyUser(userId: string, payload: object) {
 export function broadcastToTenant(tenantId: string, payload: object) {
   for (const client of clients.values()) {
     if (client.tenantId === tenantId) safeSend(client.ws, payload);
+  }
+}
+
+export function broadcastToAdmins(payload: object) {
+  for (const client of clients.values()) {
+    if (client.isSuperAdmin) safeSend(client.ws, payload);
   }
 }

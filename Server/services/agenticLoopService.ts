@@ -3,6 +3,7 @@
 
 import db from '../db.js';
 import { sendPushNotification } from './fcmService.js';
+import { recordAdminSignal } from "./adminSignalService.js";
 
 export interface AgenticTrigger {
   userId: string;
@@ -87,6 +88,28 @@ export async function onCertificateEarned(userId: string, courseId: string, tena
       body: `Your ${cert.course?.title ?? 'certificate'} matches a $${bestJob.budgetMax ?? bestJob.budgetMin ?? 0} contract. Tap to view.`,
       url: `/work/jobs/${bestJob.id}`,
       data: { type: 'job_match', jobId: bestJob.id },
+    });
+
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+
+    recordAdminSignal({
+      kind: "circuit:match_fired",
+      supervisor: "CIRCUIT",
+      supervisorEmoji: "SAGE -> CIRCUIT",
+      layerId: "work",
+      layerName: "Work",
+      adminPath: "/admin/platform/work",
+      title: `${user?.name ?? user?.email ?? "A learner"} matched to ${bestJob.title}`,
+      message: `${user?.name ?? user?.email ?? "A learner"} earned ${cert.course?.title ?? "a certificate"}. CIRCUIT is matching contracts now.`,
+      metadata: {
+        jobId: bestJob.id,
+        jobTitle: bestJob.title,
+        courseTitle: cert.course?.title ?? null,
+        budget: bestJob.budgetMax ?? bestJob.budgetMin ?? 0,
+      },
     });
   } catch (error) {
     console.error('[agenticLoop] onCertificateEarned error:', error);

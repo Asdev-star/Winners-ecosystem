@@ -3,6 +3,7 @@ import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { createCourseCheckoutSession } from "../services/stripeService.js";
 import { triggerAgenticLoop } from "../services/agenticLoopService.js";
+import { recordAdminSignal } from "../services/adminSignalService.js";
 
 const router = Router();
 
@@ -571,6 +572,33 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
     });
 
     res.status(201).json(certificate);
+
+    const [user, course] = await Promise.all([
+      db.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true },
+      }),
+      db.course.findUnique({
+        where: { id: courseId },
+        select: { title: true },
+      }),
+    ]);
+
+    recordAdminSignal({
+      kind: "sage:cert_issued",
+      supervisor: "SAGE",
+      supervisorEmoji: "SAGE -> CIRCUIT",
+      layerId: "academy",
+      layerName: "Academy",
+      adminPath: "/admin/platform/academy",
+      title: `${user?.name ?? user?.email ?? "A learner"} earned a certificate`,
+      message: `${user?.name ?? user?.email ?? "A learner"} earned ${course?.title ?? "a certificate"}. CIRCUIT is preparing the next match.`,
+      metadata: {
+        certificateId: certificate.id,
+        courseId,
+        courseTitle: course?.title ?? null,
+      },
+    });
 
     triggerAgenticLoop({
       userId,

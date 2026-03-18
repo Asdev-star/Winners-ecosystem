@@ -5,6 +5,7 @@ import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import Stripe from 'stripe';
+import { recordAdminSignal } from "../services/adminSignalService.js";
 function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!); }
 
 const router = Router();
@@ -86,6 +87,27 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
     });
 
     res.status(201).json(vendor);
+
+    const owner = await db.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+
+    recordAdminSignal({
+      kind: "atlas:vendor_applied",
+      supervisor: "ATLAS",
+      supervisorEmoji: "ATLAS -> OMEGA",
+      layerId: "market",
+      layerName: "Market",
+      adminPath: "/admin/platform/market",
+      title: `${vendor.storeName} applied for Market launch`,
+      message: `${owner?.name ?? owner?.email ?? "A vendor"} submitted ${vendor.storeName}. Awaiting Market launch clearance.`,
+      metadata: {
+        vendorId: vendor.id,
+        storeName: vendor.storeName,
+        storeSlug: vendor.storeSlug,
+      },
+    });
   } catch (error) {
     console.error("[vendorRoutes] Error creating vendor:", error);
     res.status(500).json({ error: "Failed to create vendor" });

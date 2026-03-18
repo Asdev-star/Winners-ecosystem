@@ -5,6 +5,7 @@
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
+import { Plan } from "@prisma/client";
 
 const router = Router();
 
@@ -64,11 +65,11 @@ router.put("/", authMiddleware, async (req: Request, res: Response) => {
         select: { plan: true },
       });
 
-      if (tenant?.plan !== "enterprise") {
+      if (tenant?.plan !== Plan.ENTERPRISE) {
         return res.status(403).json({ 
           message: "White-label requires Enterprise plan",
           currentPlan: tenant?.plan,
-          requiredPlan: "enterprise",
+          requiredPlan: "ENTERPRISE",
         });
       }
     }

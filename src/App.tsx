@@ -94,12 +94,12 @@ import CloudWebhooksPage from "./features/cloud/CloudWebhooksPage";
 import CloudUsagePage from "./features/cloud/CloudUsagePage";
 import APIMarketplacePage from "./features/cloud/APIMarketplacePage";
 import AIRevenueProductsPage from "./features/intelligence/AIRevenueProductsPage";
+import AdminOverviewPage from "./features/admin/AdminOverviewPage";
+import AdminPlatformPage from "./features/admin/AdminPlatformPage";
 import {
   AdminBroadcastPage,
   AdminForgePage,
-  AdminOverviewPage,
   AdminPlatformLayerPage,
-  AdminPlatformPage,
   AdminRevenuePage,
   AdminSecurityPage,
   AdminSettingsPage,

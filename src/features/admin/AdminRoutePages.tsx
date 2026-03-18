@@ -37,18 +37,49 @@ type PlatformStatusResponse = {
   health: Record<string, string>;
 };
 
+type AdminTenantStatus = "active" | "suspended";
+
+type TenantListItem = {
+  id: string;
+  name: string;
+  plan: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  status: AdminTenantStatus;
+  statusLabel: string;
+  totalRevenue: number;
+  monthlyRevenue: number;
+  lastActivityAt?: string | null;
+  owner?: { name: string; email: string } | null;
+  userCount?: number;
+  _count?: { users?: number };
+};
+
 type TenantListResponse = {
-  tenants: Array<{
-    id: string;
-    name: string;
-    plan: string;
-    createdAt: string;
-    totalRevenue: number;
-    _count?: { users?: number };
-  }>;
+  tenants: TenantListItem[];
   total: number;
   page: number;
   pages: number;
+  summary: {
+    planCounts: {
+      FREE: number;
+      PRO: number;
+      ENTERPRISE: number;
+    };
+    statusCounts: {
+      active: number;
+      suspended: number;
+    };
+    staleFreeCount: number;
+    topTenant: {
+      id: string;
+      name: string;
+      plan: string;
+      monthlyRevenue: number;
+    } | null;
+    upgradeSignalsThisWeek: number;
+  };
 };
 
 type TenantDetailResponse = {
@@ -57,6 +88,7 @@ type TenantDetailResponse = {
     name: string;
     plan: string;
     createdAt: string;
+    deletedAt?: string | null;
     timezone?: string;
     currency?: string;
     fiscalMonth?: number;
@@ -565,6 +597,192 @@ const css = `
   .act-muted {
     color: var(--text-dim);
   }
+  .atm-signal {
+    margin-bottom: 18px;
+    padding: 18px 20px;
+    border-radius: 14px;
+    border: 1px solid rgba(201, 168, 76, 0.22);
+    background:
+      radial-gradient(circle at top right, rgba(137, 196, 225, 0.12), transparent 34%),
+      linear-gradient(135deg, rgba(17, 29, 46, 0.94), rgba(13, 24, 38, 0.92));
+  }
+  .atm-kicker {
+    margin-bottom: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .atm-signal-copy {
+    margin: 0;
+    color: #f4f0df;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .atm-signal-copy strong {
+    color: var(--gold);
+  }
+  .atm-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .atm-stat {
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(17, 29, 46, 0.88), rgba(13, 24, 38, 0.86));
+  }
+  .atm-stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .atm-stat-value {
+    margin-top: 10px;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: var(--gold);
+  }
+  .atm-stat-sub {
+    margin-top: 8px;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+  .atm-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .atm-filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1 1 720px;
+  }
+  .atm-select {
+    min-width: 160px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(13, 24, 38, 0.86);
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: inherit;
+  }
+  .atm-table-wrap {
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(17, 29, 46, 0.74), rgba(13, 24, 38, 0.78));
+  }
+  .atm-table-name {
+    font-weight: 700;
+    color: var(--text);
+  }
+  .atm-subcopy {
+    margin-top: 4px;
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .atm-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 96px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .atm-badge.free {
+    color: var(--ice);
+    border-color: rgba(137, 196, 225, 0.26);
+    background: rgba(137, 196, 225, 0.08);
+  }
+  .atm-badge.pro {
+    color: var(--gold);
+    border-color: rgba(201, 168, 76, 0.24);
+    background: rgba(201, 168, 76, 0.08);
+  }
+  .atm-badge.enterprise {
+    color: #d7c6ff;
+    border-color: rgba(155, 111, 255, 0.28);
+    background: rgba(155, 111, 255, 0.12);
+  }
+  .atm-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .atm-status::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 0 0 10px currentColor;
+  }
+  .atm-status.active {
+    color: var(--green);
+  }
+  .atm-status.suspended {
+    color: var(--red);
+  }
+  .atm-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .atm-actions .act-button {
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+  .atm-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(3, 8, 15, 0.72);
+    backdrop-filter: blur(8px);
+  }
+  .atm-modal {
+    width: min(420px, 100%);
+    padding: 22px;
+    border-radius: 16px;
+    border: 1px solid rgba(201, 168, 76, 0.22);
+    background: linear-gradient(180deg, rgba(17, 29, 46, 0.98), rgba(11, 19, 31, 0.98));
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+  }
+  .atm-modal-title {
+    margin: 0 0 8px;
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .atm-modal-copy {
+    margin: 0 0 16px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    font-size: 13px;
+  }
   .act-empty {
     padding: 18px;
     border: 1px dashed var(--border);
@@ -573,6 +791,9 @@ const css = `
     background: rgba(13, 24, 38, 0.38);
   }
   @media (max-width: 1024px) {
+    .atm-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .act-card,
     .act-card.wide,
     .act-layer-card,
@@ -586,6 +807,9 @@ const css = `
     }
   }
   @media (max-width: 720px) {
+    .atm-stats {
+      grid-template-columns: 1fr;
+    }
     .act-grid {
       grid-template-columns: 1fr;
     }
@@ -625,6 +849,29 @@ function fmtMoney(value: number, currency = "USD") {
 function fmtDate(value?: string | null) {
   if (!value) return "—";
   return new Date(value).toLocaleString();
+}
+
+function fmtRelativeDay(value?: string | null) {
+  if (!value) return "No activity";
+  const date = new Date(value);
+  const diff = Date.now() - date.getTime();
+  const days = Math.floor(diff / (24 * 60 * 60 * 1000));
+  if (days <= 0) return "Today";
+  if (days === 1) return "1d ago";
+  if (days < 30) return `${days}d ago`;
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function downloadFile(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 }
 
 async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {

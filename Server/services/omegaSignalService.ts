@@ -6,6 +6,7 @@
 import db from "../db.js";
 import { NotificationType } from "@prisma/client";
 import { notifyUser } from "./wsService.js";
+import { recordAdminSignal } from "./adminSignalService.js";
 
 // Skill keywords for detection (expandable)
 const SKILL_KEYWORDS: Record<string, string[]> = {
@@ -85,6 +86,28 @@ export async function processPostSignal(postId: string): Promise<SkillSignal | n
 
     // Emit real-time signal to user's OMEGA channel
     await emitSkillSignal(signal);
+
+    if (signal.skills.length > 0) {
+      const topSkill = signal.skills[0]?.skillName ?? "a new skill";
+      const authorName = post.author.name || post.author.email || "A user";
+
+      recordAdminSignal({
+        kind: "nova:skill_detected",
+        supervisor: "NOVA",
+        supervisorEmoji: "NOVA -> SAGE",
+        layerId: "community",
+        layerName: "Community",
+        adminPath: "/admin/platform/community",
+        title: `${authorName} signalled ${topSkill}`,
+        message: `${authorName} posted about ${topSkill}. SAGE is queuing the next learning route.`,
+        metadata: {
+          userId: signal.userId,
+          postId: signal.postId,
+          topSkill,
+          engagement: signal.engagement,
+        },
+      });
+    }
 
     return signal;
   } catch (error) {

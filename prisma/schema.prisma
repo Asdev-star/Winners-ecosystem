@@ -26,6 +26,12 @@ model Tenant {
   fiscalMonth          Int       @default(1)
   stripeCustomerId     String?
   stripeSubscriptionId String?
+  // White-label fields
+  whiteLabelEnabled    Boolean   @default(false)
+  customDomain        String?
+  brandColor          String?
+  logoUrl             String?
+  faviconUrl          String?
 
   users                         User[]
   invites                       Invite[]

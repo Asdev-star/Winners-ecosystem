@@ -6,6 +6,7 @@ import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requirePermission, enforceTenant } from "../middleware/rbacMiddleware.js";
 import { PLAN_LIMITS } from "../middleware/usageLimits.js";
+import { ACTIONS, logActivity } from "../services/activityService.js";
 import crypto from "crypto";
 
 const router = Router();
@@ -156,6 +157,16 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
       return res.status(500).json({ message: "Failed to create checkout session" });
     }
 
+    await logActivity({
+      tenantId: req.user!.tenantId,
+      userId: req.user!.userId,
+      userEmail: user?.email ?? req.user!.email,
+      userName: user?.name ?? req.user!.email,
+      action: ACTIONS.CHECKOUT_STARTED,
+      category: "billing",
+      metadata: { planId },
+    });
+
     return res.json({ url });
   } catch (err) {
     console.error("[Billing] checkout error:", err);
@@ -170,6 +181,14 @@ router.post("/cancel", authMiddleware, enforceTenant, requirePermission("manageB
     await db.tenant.update({
       where: { id: req.user!.tenantId },
       data:  { plan: "FREE" },
+    });
+    await logActivity({
+      tenantId: req.user!.tenantId,
+      userId: req.user!.userId,
+      userEmail: req.user!.email,
+      userName: req.user!.email,
+      action: ACTIONS.PLAN_CANCELLED,
+      category: "billing",
     });
     return res.json({ message: "Subscription cancelled. You will be downgraded at period end." });
   } catch (err) {
@@ -224,6 +243,13 @@ router.post("/webhook", async (req: Request, res: Response) => {
               : Plan.FREE;
 
         await db.tenant.update({ where: { id: tenantId }, data: { plan } });
+        await logActivity({
+          tenantId,
+          action: ACTIONS.PLAN_UPGRADED,
+          category: "billing",
+          userName: "LemonSqueezy webhook",
+          metadata: { plan },
+        });
         console.log(`✅ [Webhook] tenant ${tenantId} → ${plan}`);
         break;
       }
