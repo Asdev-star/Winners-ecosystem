@@ -3,7 +3,7 @@ import "dotenv/config";
 
 function normalizeDatasourceUrl(rawUrl?: string) {
   if (!rawUrl) {
-    throw new Error("DATABASE_URL is required");
+    return undefined;
   }
 
   try {
@@ -21,8 +21,14 @@ function normalizeDatasourceUrl(rawUrl?: string) {
   }
 }
 
+const datasourceUrl = normalizeDatasourceUrl(process.env.DIRECT_URL ?? process.env.DATABASE_URL);
+
 export default defineConfig({
-  datasource: {
-    url: normalizeDatasourceUrl(process.env.DIRECT_URL ?? process.env.DATABASE_URL),
-  },
+  ...(datasourceUrl
+    ? {
+        datasource: {
+          url: datasourceUrl,
+        },
+      }
+    : {}),
 });
