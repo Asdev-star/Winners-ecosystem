@@ -687,7 +687,7 @@ export default function AdminTenantDeepDivePage() {
                     <button className="tdd-button" onClick={() => setActiveModal("invite")}>Add User</button>
                   </div>
                   <div className="tdd-action">
-                    <h3>Impersonate Owner</h3>
+                    <h3>Impersonation Directive</h3>
                     <p>Switch into the owner session for support and production debugging with a visible warning banner and immutable audit logging.</p>
                     <button className="tdd-button" onClick={() => void impersonateOwner()} disabled={actionBusy === "impersonate"}>{actionBusy === "impersonate" ? "Starting..." : "Impersonate Logged Owner"}</button>
                   </div>
