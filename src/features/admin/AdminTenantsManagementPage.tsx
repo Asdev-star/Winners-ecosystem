@@ -344,7 +344,7 @@ export default function AdminTenantsManagementPage() {
 
   async function handleImpersonate(tenant: TenantListItem) {
     try {
-      const reason = window.prompt(`Why are you impersonating ${tenant.name}?`) ?? "";
+      const reason = window.prompt(`Why are you impersonating ${tenant.name}? This directive is always written to the immutable audit log.`) ?? "";
       const response = await apiRequest<ImpersonationResponse>(`/admin/tenants/${tenant.id}/impersonate`, {
         method: "POST",
         body: JSON.stringify({ reason }),
@@ -503,7 +503,7 @@ export default function AdminTenantsManagementPage() {
                             <div className="tmg-row-actions">
                               <button className="tmg-btn ghost" onClick={() => navigate(`/admin/tenants/${tenant.id}`)}>View</button>
                               <button className="tmg-btn ghost" onClick={() => openPlanModal(tenant)}>Change Plan</button>
-                              <button className="tmg-btn ghost" onClick={() => void handleImpersonate(tenant)}>Impersonate</button>
+                              <button className="tmg-btn ghost" onClick={() => void handleImpersonate(tenant)}>Impersonate Logged</button>
                               <button className="tmg-btn ghost" onClick={() => void toggleTenantStatus(tenant)} disabled={busy}>
                                 {tenant.status === "suspended" ? "Restore" : "Suspend"}
                               </button>

@@ -124,7 +124,7 @@ const LAYER_POLICIES: Record<string, LayerLaunchPolicy> = {
     launchActionLabel: "Fully managed",
     launchSummary: "The sovereign control plane is already live.",
     confirmationText: "CORE ENGINE",
-    forgeDirective: "Core Engine is already sovereign and always admin-operated.",
+    forgeDirective: "Core Engine is already sovereign and always operator-controlled.",
     defaultNote: "Core Engine is always an admin-managed surface.",
     impactPreview: () => [],
     launchEffects: ["Core Engine stays under sovereign admin control."],
@@ -169,11 +169,11 @@ const LAYER_POLICIES: Record<string, LayerLaunchPolicy> = {
     icon: "🛒",
     readyBadge: "READY",
     lockedBadge: "CHECKLIST",
-    launchActionLabel: "Launch Market ->",
-    launchSummary: "Admin launch unlocks Winners Market, activates ATLAS, and starts market-aware OMEGA briefings.",
-    confirmationText: "LAUNCH MARKET",
-    forgeDirective: "Fix CheckoutPage vendor resolution, clear Stripe Connect payout proof, seed launch inventory, then launch.",
-    defaultNote: "No user can open Market until the sovereign launch act is completed from admin.",
+    launchActionLabel: "Activate for users ->",
+    launchSummary: "This directive activates Winners Market for users, activates ATLAS, and starts market-aware OMEGA briefings.",
+    confirmationText: "ACTIVATE MARKET",
+    forgeDirective: "Fix CheckoutPage vendor resolution, clear Stripe Connect payout proof, seed launch inventory, then activate for users.",
+    defaultNote: "No user can enter Market until the sovereign activation directive is completed from admin.",
     impactPreview: (usersNotifiedCount) => [
       {
         icon: "🛒",
@@ -203,10 +203,10 @@ const LAYER_POLICIES: Record<string, LayerLaunchPolicy> = {
     icon: "💼",
     readyBadge: "READY",
     lockedBadge: "LOCKED",
-    launchActionLabel: "Launch Work ->",
-    launchSummary: "Admin launch unlocks Winners Work, activates the Academy-to-Work loop, and flushes CIRCUIT match events.",
-    confirmationText: "LAUNCH WORK",
-    forgeDirective: "Keep Market live first, then prove escrow release and CIRCUIT scoring before launch.",
+    launchActionLabel: "Activate for users ->",
+    launchSummary: "This directive activates Winners Work for users, activates the Academy-to-Work loop, and flushes CIRCUIT match events.",
+    confirmationText: "ACTIVATE WORK",
+    forgeDirective: "Keep Market live first, then prove escrow release and CIRCUIT scoring before activation.",
     defaultNote: "Winners Work stays locked until Market is live and the escrow plus matching chain is proven.",
     impactPreview: (usersNotifiedCount) => [
       {
@@ -237,10 +237,10 @@ const LAYER_POLICIES: Record<string, LayerLaunchPolicy> = {
     icon: "📱",
     readyBadge: "READY",
     lockedBadge: "LOCKED",
-    launchActionLabel: "Launch Mobile ->",
-    launchSummary: "Admin launch unlocks the mobile install surface once PWA, offline caching, and push delivery are proven.",
-    confirmationText: "LAUNCH MOBILE",
-    forgeDirective: "Validate manifest, offline Academy + Community caching, FCM delivery, and install prompts before launch.",
+    launchActionLabel: "Activate for users ->",
+    launchSummary: "This directive activates the mobile install surface once PWA, offline caching, and push delivery are proven.",
+    confirmationText: "ACTIVATE MOBILE",
+    forgeDirective: "Validate manifest, offline Academy + Community caching, FCM delivery, and install prompts before activation.",
     defaultNote: "Mobile stays locked until the core web layers are stable and install behavior is verified.",
     impactPreview: (usersNotifiedCount) => [
       {
@@ -270,10 +270,10 @@ const LAYER_POLICIES: Record<string, LayerLaunchPolicy> = {
     icon: "☁️",
     readyBadge: "READY",
     lockedBadge: "LOCKED",
-    launchActionLabel: "Launch Cloud ->",
-    launchSummary: "Admin launch unlocks Winners Cloud for PRO and ENTERPRISE tenants while FREE remains visible but upgrade-locked.",
-    confirmationText: "LAUNCH CLOUD",
-    forgeDirective: "Keep Market live, hold Intelligence at 75%+, pass the connector/API/webhook gates, then launch Cloud with plan locks in place.",
+    launchActionLabel: "Activate for users ->",
+    launchSummary: "This directive activates Winners Cloud for PRO and ENTERPRISE tenants while FREE remains visible but upgrade-locked.",
+    confirmationText: "ACTIVATE CLOUD",
+    forgeDirective: "Keep Market live, hold Intelligence at 75%+, pass the connector/API/webhook gates, then activate Cloud for users with plan locks in place.",
     defaultNote: "Cloud stays locked until commerce, intelligence readiness, and active-user scale justify opening the developer layer.",
     impactPreview: (usersNotifiedCount) => [
       {
@@ -365,7 +365,7 @@ function dependencyChecks(layerId: string): PreLaunchCheck[] {
       category: "dependency",
       label: `${dependency?.name ?? dependencyId} dependency is live`,
       status: isLive ? "pass" : "fail",
-      detail: isLive ? undefined : `Launch ${dependency?.name ?? dependencyId} before unlocking ${app.name}.`,
+      detail: isLive ? undefined : `Activate ${dependency?.name ?? dependencyId} for users before unlocking ${app.name}.`,
     };
   });
 }
@@ -667,11 +667,11 @@ function getPolicy(layerId: string) {
     icon: "⬡",
     readyBadge: "READY",
     lockedBadge: "LOCKED",
-    launchActionLabel: `Launch ${layerId} ->`,
-    launchSummary: `Launch ${layerId} from the admin panel when the checklist clears.`,
-    confirmationText: `LAUNCH ${layerId.toUpperCase()}`,
-    forgeDirective: "Clear the checklist, then launch.",
-    defaultNote: "Launch remains an admin-only act.",
+    launchActionLabel: `Activate ${layerId} ->`,
+    launchSummary: `Activate ${layerId} for users from the admin panel when the checklist clears.`,
+    confirmationText: `ACTIVATE ${layerId.toUpperCase()}`,
+    forgeDirective: "Clear the checklist, then activate for users.",
+    defaultNote: "Activation remains an admin-only act.",
     impactPreview: () => [],
     launchEffects: ["AppRegistry marks the layer live."],
   };
@@ -808,7 +808,7 @@ export async function getPlatformLaunchControlSnapshot(): Promise<PlatformLaunch
 
   return {
     summary:
-      "Every layer launch is an admin act. No layer goes live automatically, no user can activate a layer, and the sovereign launch checklist must clear before AppRegistry changes state.",
+      "Every layer activation is an admin directive. No layer goes live automatically, no user can activate a layer, and the sovereign checklist must clear before AppRegistry changes state.",
     queue,
     rows,
     impactPreview: queueRow ? getPolicy(queueRow.id).impactPreview(usersNotifiedCount) : [],

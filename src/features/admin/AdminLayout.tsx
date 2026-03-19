@@ -99,6 +99,11 @@ const css = `
     color:var(--gold);
     font-weight:700;
   }
+  .adl-meta-pill.mode{
+    border-color:rgba(201,168,76,.24);
+    background:rgba(201,168,76,.1);
+    color:var(--gold);
+  }
   .adl-actions{
     display:flex;
     align-items:center;
@@ -139,6 +144,21 @@ const css = `
   .adl-page{
     min-height:calc(100vh - 180px);
   }
+  .adl-page .aov-shell,
+  .adl-page .apl-shell,
+  .adl-page .tmg-shell,
+  .adl-page .tdd-shell,
+  .adl-page .umg-shell,
+  .adl-page .uud-shell,
+  .adl-page .arc-shell,
+  .adl-page .forge-shell,
+  .adl-page .ash-shell,
+  .adl-page .aob-shell,
+  .adl-page .asc-shell{
+    box-shadow:
+      inset 3px 0 0 rgba(201,168,76,.72),
+      0 24px 80px rgba(0,0,0,.28);
+  }
   @media (max-width:900px){
     .adl-header{
       padding:16px;
@@ -165,16 +185,16 @@ function pageTitle(pathname: string) {
 }
 
 function pageCopy(pathname: string) {
-  if (pathname.startsWith("/admin/platform")) return "Launch control for the ecosystem layers, release blockers, and operator approval flow.";
-  if (pathname.startsWith("/admin/tenants")) return "Cross-tenant workspace control, impersonation, billing posture, and lifecycle management.";
+  if (pathname.startsWith("/admin/platform")) return "Directive control for ecosystem activation, release blockers, and operator approval flow.";
+  if (pathname.startsWith("/admin/tenants")) return "Cross-tenant workspace control, logged impersonation, billing posture, and lifecycle management.";
   if (pathname.startsWith("/admin/users")) return "Identity, trust, moderation, and intervention tooling across every ecosystem user.";
   if (pathname.startsWith("/admin/revenue")) return "Live financial command with recurring revenue, layer contribution, and export posture.";
-  if (pathname.startsWith("/admin/forge")) return "Supervisor access for the sovereign AI layer, routing posture, and operator collaboration.";
+  if (pathname.startsWith("/admin/forge")) return "FORGE briefs you on the sovereign AI layer, routing posture, and operator directives.";
   if (pathname.startsWith("/admin/health") || pathname.startsWith("/ops")) return "Operational telemetry for services, error surfaces, rate limiting, and database posture.";
-  if (pathname.startsWith("/admin/broadcast")) return "High-priority ecosystem messaging routed through OMEGA and the admin command surface.";
-  if (pathname.startsWith("/admin/security")) return "Security governance around boundary enforcement, compliance posture, and protected control paths.";
+  if (pathname.startsWith("/admin/broadcast")) return "High-priority ecosystem directives routed through OMEGA and the sovereign command surface.";
+  if (pathname.startsWith("/admin/security")) return "Security governance around hidden admin boundaries, immutable audit posture, and protected control paths.";
   if (pathname.startsWith("/admin/settings")) return "Operator-facing platform settings and adjacent control surfaces.";
-  return "Core ecosystem command view spanning launch status, agentic loops, and cross-layer signals.";
+  return "Core ecosystem command view spanning activation status, agentic loops, and cross-layer signals.";
 }
 
 export default function AdminLayout() {
@@ -198,6 +218,7 @@ export default function AdminLayout() {
             <h1 className="adl-title">{title}</h1>
             <p className="adl-copy">{copy}</p>
             <div className="adl-meta">
+              <span className="adl-meta-pill mode">Admin Mode</span>
               <span className="adl-meta-pill">
                 Operator
                 <strong>{user?.email ?? "Unknown"}</strong>
@@ -215,7 +236,7 @@ export default function AdminLayout() {
             Exit Admin
           </button>
           <button className="adl-button" onClick={() => navigate("/admin/forge")}>
-            Open FORGE
+            FORGE Briefing
           </button>
           <ThemeToggle />
           <NotificationBell />

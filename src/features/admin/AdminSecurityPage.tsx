@@ -246,7 +246,7 @@ export default function AdminSecurityPage() {
             <div className="asc-kicker">Admin / Security / Route: /admin/security</div>
             <h1 className="asc-title">SECURITY &amp; COMPLIANCE</h1>
             <p className="asc-subtitle">
-              Sovereign visibility into platform hardening, recorded admin actions, and GDPR posture.
+              Sovereign visibility into hidden admin boundaries, immutable audit actions, and GDPR posture.
             </p>
           </div>
 
@@ -263,6 +263,9 @@ export default function AdminSecurityPage() {
         <div className="asc-body">
           {error ? <div className="asc-error">{error}</div> : null}
           {note ? <div className="asc-note">{note}</div> : null}
+          <div className="asc-note">
+            <strong>Admin posture:</strong> <code>ADMIN_EMAILS</code> is the single source of truth, unauthorized admin access resolves as <code>404</code>, impersonation is always logged, and every admin directive is written to the immutable audit stream.
+          </div>
 
           <section className="asc-panel">
             <div className="asc-panel-head">

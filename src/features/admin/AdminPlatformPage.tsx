@@ -172,7 +172,7 @@ function getLayerIdentifier(row: ControlRow | QueueCard) {
 
 function requestLaunchConfirmation(layerName: string, confirmationText: string, launchSummary: string) {
   return window.prompt(
-    `${launchSummary}\n\nType "${confirmationText}" to launch ${layerName}.`,
+    `${launchSummary}\n\nType "${confirmationText}" to activate ${layerName} for users.`,
     "",
   );
 }
@@ -242,8 +242,8 @@ export default function AdminPlatformPage() {
           isReady: false,
           blockingCount: 1,
           warningCount: 0,
-          confirmationText: `LAUNCH ${row.name.replace("Winners ", "").toUpperCase()}`,
-          launchSummary: `Launch ${row.name} from the admin panel once the checklist clears.`,
+          confirmationText: `ACTIVATE ${row.name.replace("Winners ", "").toUpperCase()}`,
+          launchSummary: `Activate ${row.name} for users from the admin panel once the checklist clears.`,
           launchEffects: [],
           checks: [
             {
@@ -261,7 +261,7 @@ export default function AdminPlatformPage() {
     const row = rows.find((entry) => entry.id === layerId);
     const queueMatch = queue?.layerId === layerId ? queue : null;
     const confirmationText = row?.confirmationText ?? queueMatch?.confirmationText ?? `LAUNCH ${layerName.toUpperCase()}`;
-    const launchSummary = row?.launchSummary ?? queueMatch?.launchSummary ?? `Launch ${layerName} from admin.`;
+    const launchSummary = row?.launchSummary ?? queueMatch?.launchSummary ?? `Activate ${layerName} for users from admin.`;
     const typed = requestLaunchConfirmation(layerName, confirmationText, launchSummary);
     if (typed === null) return;
 
@@ -269,10 +269,10 @@ export default function AdminPlatformPage() {
       setBusyId(layerId);
       await apiPost(`/admin/platform/${layerId}/launch`, { confirmationText: typed });
       await load();
-      setSuccess(`${layerName} launch command issued.`);
+      setSuccess(`${layerName} activation directive issued.`);
       setError("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to launch ${layerName}`);
+      setError(err instanceof Error ? err.message : `Failed to activate ${layerName}`);
     } finally {
       setBusyId(null);
     }
@@ -299,7 +299,7 @@ export default function AdminPlatformPage() {
     return (
       <div className="apl-root">
         <style>{css}</style>
-        <div className="apl-empty">Loading launch control...</div>
+        <div className="apl-empty">Loading activation control...</div>
       </div>
     );
   }
@@ -313,13 +313,13 @@ export default function AdminPlatformPage() {
           <div className="apl-modal" onClick={(event) => event.stopPropagation()}>
             <div className="apl-modal-head">
               <div>
-                <div className="apl-kicker">Pre-Launch Checklist</div>
+                <div className="apl-kicker">Pre-Activation Checklist</div>
                 <h2 className="apl-modal-title">{checklist.layerName}</h2>
                 <div className="apl-modal-sub">
                   {checklist.loading
                     ? "Pulling the latest backend, frontend, payments, AI, and data checks."
                     : checklist.data?.isReady
-                      ? "This layer is clear for launch."
+                    ? "This layer is clear to activate for users."
                       : `${checklist.data?.blockingCount ?? 0} blocking issue(s), ${checklist.data?.warningCount ?? 0} warning(s).`}
                 </div>
               </div>
@@ -332,7 +332,7 @@ export default function AdminPlatformPage() {
                 <div className="apl-checks">
                   {checklist.data?.launchSummary ? (
                     <div className="apl-check">
-                      <div className="apl-check-label">Launch Summary</div>
+                      <div className="apl-check-label">Activation Summary</div>
                       <div className="apl-check-copy">{checklist.data.launchSummary}</div>
                       <div className="apl-check-copy">Confirmation phrase: <span className="apl-code">{checklist.data.confirmationText}</span></div>
                     </div>
@@ -360,7 +360,7 @@ export default function AdminPlatformPage() {
                   ))}
                   {checklist.data?.launchEffects?.length ? (
                     <div className="apl-check">
-                      <div className="apl-check-label">Launch Effects</div>
+                      <div className="apl-check-label">Activation Effects</div>
                       {checklist.data.launchEffects.map((effect) => (
                         <div key={effect} className="apl-check-copy">{effect}</div>
                       ))}
@@ -393,8 +393,8 @@ export default function AdminPlatformPage() {
           {success ? <div className="apl-success">{success}</div> : null}
 
           <section className="apl-hero">
-            <div className="apl-kicker">Platform Launch Control</div>
-            <h1 className="apl-title">Platform Launch Control</h1>
+            <div className="apl-kicker">Platform Activation Control</div>
+            <h1 className="apl-title">Platform Activation Control</h1>
             <div className="apl-copy">{data?.control.summary}</div>
           </section>
 
@@ -402,8 +402,8 @@ export default function AdminPlatformPage() {
             <div className="apl-panel">
               <div className="apl-head">
                 <div>
-                  <div className="apl-kicker">Launch Queue</div>
-                  <h2 className="apl-panel-title">Next to launch</h2>
+                  <div className="apl-kicker">Activation Queue</div>
+                  <h2 className="apl-panel-title">Next to activate for users</h2>
                 </div>
               </div>
 
@@ -425,7 +425,7 @@ export default function AdminPlatformPage() {
                       onClick={() => (queue.isReady ? void launchLayer(queue.layerId, queue.name) : void openChecklist(queue))}
                       disabled={busyId === queue.layerId}
                     >
-                      {busyId === queue.layerId ? "Launching..." : queue.actionLabel}
+                      {busyId === queue.layerId ? "Activating..." : queue.actionLabel}
                     </button>
                   </div>
 
@@ -438,7 +438,7 @@ export default function AdminPlatformPage() {
                   <div className="apl-note">FORGE: "{queue.forgeDirective}"</div>
                 </div>
               ) : (
-                <div className="apl-empty">No launch candidate is available right now.</div>
+                <div className="apl-empty">No activation candidate is available right now.</div>
               )}
             </div>
 
@@ -446,7 +446,7 @@ export default function AdminPlatformPage() {
               <div className="apl-head">
                 <div>
                   <div className="apl-kicker">All Layers</div>
-                  <h2 className="apl-panel-title">Sovereign launch matrix</h2>
+                  <h2 className="apl-panel-title">Sovereign activation matrix</h2>
                 </div>
               </div>
 
@@ -485,7 +485,7 @@ export default function AdminPlatformPage() {
                       ) : null}
                       {row.actionMode === "launch" ? (
                         <button className="apl-btn" onClick={() => (row.blockingCount === 0 ? void launchLayer(row.id, row.name) : void openChecklist(row))} disabled={busyId === row.id}>
-                          {busyId === row.id ? "Launching..." : row.actionLabel}
+                          {busyId === row.id ? "Activating..." : row.actionLabel}
                         </button>
                       ) : null}
                       {row.actionMode === "locked" ? (
@@ -500,8 +500,8 @@ export default function AdminPlatformPage() {
             <div className="apl-panel">
               <div className="apl-head">
                 <div>
-                  <div className="apl-kicker">Launch Impact Preview</div>
-                  <h2 className="apl-panel-title">What happens when Market launches</h2>
+                  <div className="apl-kicker">Activation Impact Preview</div>
+                  <h2 className="apl-panel-title">What happens when Market activates for users</h2>
                 </div>
               </div>
 

@@ -61,37 +61,37 @@ export async function getAdminSubNavSnapshot(): Promise<AdminSubNavSnapshot> {
   const action =
     unresolvedSecurityWarnings > 0
       ? {
-          label: `Resolve ${unresolvedSecurityWarnings} security ${pluralize(unresolvedSecurityWarnings, "warning")} ->`,
-          hint: "Security has the highest operator priority right now.",
+          label: `Issue ${unresolvedSecurityWarnings} security ${pluralize(unresolvedSecurityWarnings, "directive")} ->`,
+          hint: "Security holds the highest operator priority right now.",
           to: "/admin/security",
         }
       : queue && queue.blockingCount > 0
         ? {
-            label: `Clear ${queue.blockingCount} ${queue.name} ${pluralize(queue.blockingCount, "blocker")} ->`,
-            hint: `${queue.name} is still the nearest launch unlock.`,
+            label: `Clear ${queue.blockingCount} ${queue.name} ${pluralize(queue.blockingCount, "activation blocker")} ->`,
+            hint: `${queue.name} is still the nearest user activation unlock.`,
             to: "/admin/platform",
           }
         : flaggedUsersAwaitingReview > 0
           ? {
-              label: `Review ${flaggedUsersAwaitingReview} flagged ${pluralize(flaggedUsersAwaitingReview, "user")} ->`,
+              label: `Review ${flaggedUsersAwaitingReview} flagged ${pluralize(flaggedUsersAwaitingReview, "operator case")} ->`,
               hint: "NOVA moderation signals are waiting on operator review.",
               to: "/admin/users",
             }
           : pendingUpgradeRequests > 0
             ? {
-                label: `Review ${pendingUpgradeRequests} plan upgrade ${pluralize(pendingUpgradeRequests, "request")} ->`,
+                label: `Review ${pendingUpgradeRequests} plan upgrade ${pluralize(pendingUpgradeRequests, "directive")} ->`,
                 hint: "Billing intent signals are active in the tenant layer.",
                 to: "/admin/tenants",
               }
             : overview.kpis.loopsToday > 0
               ? {
-                  label: `Inspect ${overview.kpis.loopsToday} live ${pluralize(overview.kpis.loopsToday, "loop")} ->`,
+                  label: `Inspect ${overview.kpis.loopsToday} live ${pluralize(overview.kpis.loopsToday, "operator loop")} ->`,
                   hint: "Overview is where today's ecosystem momentum is clearest.",
                   to: "/admin/overview",
                 }
               : {
-                  label: "Open FORGE sovereign command ->",
-                  hint: "No urgent admin blocker is ahead of the queue right now.",
+                  label: "Review the current sovereign directive ->",
+                  hint: "FORGE has the latest operator brief ready.",
                   to: "/admin/forge",
                 };
 

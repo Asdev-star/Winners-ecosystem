@@ -152,6 +152,18 @@ const css = `
     border: 1px solid rgba(201,168,76,0.24);
     color: var(--gold);
   }
+  .ml-platform-status.admin-only {
+    background: rgba(201,168,76,0.14);
+    border: 1px solid rgba(201,168,76,0.24);
+    color: var(--gold);
+    font-size: 0;
+  }
+  .ml-platform-status.admin-only::before {
+    content: "ADMIN ONLY";
+    font-size: 7px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
 
   /* Divider */
   .ml-divider { height: 1px; background: var(--border); margin: 6px 8px; }
@@ -233,6 +245,20 @@ const css = `
   .ml-breadcrumb { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); white-space: nowrap; }
   .ml-breadcrumb span { color: var(--gold); }
   .ml-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .ml-mode-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(201,168,76,0.18);
+    background: rgba(201,168,76,0.08);
+    color: var(--gold);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
   .ml-status { display: flex; align-items: center; gap: 6px; }
   .ml-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
   .ml-status-text { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); }
@@ -304,10 +330,10 @@ const CORE_NAV = [
 const ADMIN_PLATFORM = {
   path:   "/admin",
   icon:   "⬡",
-  name:   "Admin Control Tower",
+  name:   "Core Engine",
   desc:   "Overview · Platform · Security · OMEGA",
   status: "sovereign",
-  tag:    "root",
+  tag:    "ADMIN ONLY",
   sub:    [
     { path: "/admin/overview", label: "Overview" },
     { path: "/admin/platform", label: "Platform" },
@@ -599,7 +625,7 @@ export default function MainLayout() {
                     <div className="ml-platform-name">{p.name}</div>
                     <div className="ml-platform-desc">{p.desc}</div>
                   </div>
-                  <span className={`ml-platform-status ${p.status}`}>
+                  <span className={`ml-platform-status ${p.status}${p.status === "sovereign" ? " admin-only" : ""}`}>
                     {p.status === "sovereign" ? "Root" : p.status === "live" ? "● Live" : p.status === "building" ? "● Build" : "Planned"}
                   </span>
                 </NavLink>
@@ -660,6 +686,7 @@ export default function MainLayout() {
             </div>
           </div>
           <div className="ml-header-right">
+            <div className="ml-mode-chip">User Mode</div>
             <div className="ml-status">
               <div className="ml-status-dot" />
               <span className="ml-status-text">All Systems Live</span>

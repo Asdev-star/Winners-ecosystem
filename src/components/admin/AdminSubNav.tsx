@@ -281,8 +281,8 @@ function emptySnapshot(): AdminSubNavSnapshot {
       security: 0,
     },
     action: {
-      label: "Open FORGE sovereign command ->",
-      hint: "Refreshing the current operator priority.",
+      label: "Review the current sovereign directive ->",
+      hint: "FORGE is preparing the latest operator brief.",
       to: "/admin/forge",
     },
   };
@@ -373,7 +373,7 @@ export default function AdminSubNav() {
         >
           <div className="asn-action-top">
             <span className="asn-action-dot" />
-            <span>FORGE: current action</span>
+            <span>FORGE 🔥 current brief</span>
           </div>
           <div className="asn-action-label">{snapshot.action.label}</div>
           <div className="asn-action-hint">{snapshot.action.hint}</div>
@@ -385,7 +385,7 @@ export default function AdminSubNav() {
         className="asn-mobile-action"
         onClick={() => navigate(snapshot.action.to)}
       >
-        <strong>FORGE</strong>
+        <strong>FORGE 🔥</strong>
         {snapshot.action.label}
       </button>
     </div>

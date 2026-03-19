@@ -3,8 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Router, type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
 import db from "../db.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
-import { superAdminMiddleware } from "../middleware/superAdminMiddleware.js";
+import { concealedSuperAdminMiddleware } from "../middleware/superAdminMiddleware.js";
 import {
   getAdminOverviewSnapshot,
   getLoopsLiveFeed,
@@ -75,7 +74,7 @@ const streamTextAsSse = (res: Response, text: string) => {
 };
 
 // --- MIDDLEWARE ---
-router.use(authMiddleware, superAdminMiddleware);
+router.use(concealedSuperAdminMiddleware);
 
 // --- OVERVIEW ---
 router.get("/overview", async (_req, res) => {
@@ -115,7 +114,7 @@ router.post("/platform/:id/launch", async (req, res) => {
 
     const expected = getLayerConfirmationText(id);
     if ((confirmationText ?? "").trim().toUpperCase() !== expected) {
-      return res.status(400).json({ error: `Type "${expected}" to confirm launch.` });
+      return res.status(400).json({ error: `Type "${expected}" to confirm activation.` });
     }
 
     AppRegistry.update(id, { status: "live" });
@@ -133,7 +132,7 @@ router.post("/platform/:id/launch", async (req, res) => {
     await recordAdminAction({
       actor: getAdminActor(req),
       action: "ADMIN_LAYER_LAUNCHED",
-      summary: `Launched platform layer: ${layer.name}`,
+      summary: `Activated platform layer for users: ${layer.name}`,
       metadata: { layerId: id },
     });
 
