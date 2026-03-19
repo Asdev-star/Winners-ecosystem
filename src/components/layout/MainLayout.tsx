@@ -14,9 +14,6 @@ import CommandPalette from "../ui/CommandPalette";
 import AssistantPanel from "../ui/AssistantPanel";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 import ImpersonationBanner from "./ImpersonationBanner";
-import AdminSubNav from "../admin/AdminSubNav";
-import ForgeInsightBar from "../admin/ForgeInsightBar";
-import AdminEventToasts from "../admin/AdminEventToasts";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
@@ -497,8 +494,7 @@ export default function MainLayout() {
         { path: "/admin", label: "Admin Control Tower" },
       ]
     : [];
-  const concealedAdminPath = !hasSuperAdminAccess && (location.pathname.startsWith("/admin") || location.pathname.startsWith("/ops"));
-  const shellPath = concealedAdminPath ? "/dashboard" : location.pathname;
+  const shellPath = location.pathname;
   const allNav = [
     ...adminNavItems,
     ...coreNavItems,
@@ -514,7 +510,6 @@ export default function MainLayout() {
     .sort((a, b) => b.path.length - a.path.length)
     .find((n) => shellPath.startsWith(n.path))?.label ?? "Dashboard";
   const layerSubNav = getLayerSubNavForPath(shellPath);
-  const isAdminShell = shellPath.startsWith("/admin") || shellPath.startsWith("/ops");
   const closeSidebar = () => setSidebarOpen(false);
 
   useEffect(() => {
@@ -545,7 +540,7 @@ export default function MainLayout() {
   );
 
   return (
-    <div className={`ml-root${isAdminShell ? " admin-realm" : ""}`}>
+    <div className="ml-root">
       <style>{css}</style>
       <div className={`ml-overlay${sidebarOpen ? " open" : ""}`} onClick={closeSidebar} />
 
@@ -649,7 +644,7 @@ export default function MainLayout() {
       </aside>
 
       {/* Main content area */}
-      <div className={`ml-main${isAdminShell ? " admin-realm" : ""}`}>
+      <div className="ml-main">
         <header className="ml-header">
           <div className="ml-header-left">
             <button
@@ -677,11 +672,9 @@ export default function MainLayout() {
         <ImpersonationBanner />
 
         <main className="ml-content">
-          {isAdminShell ? <AdminSubNav /> : <LayerSubNav config={layerSubNav} />}
-          <ForgeInsightBar />
+          <LayerSubNav config={layerSubNav} />
           <Outlet />
         </main>
-        <AdminEventToasts />
       </div>
 
       {/* Mobile bottom nav */}

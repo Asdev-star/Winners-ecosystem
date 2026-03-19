@@ -94,17 +94,18 @@ import CloudWebhooksPage from "./features/cloud/CloudWebhooksPage";
 import CloudUsagePage from "./features/cloud/CloudUsagePage";
 import APIMarketplacePage from "./features/cloud/APIMarketplacePage";
 import AIRevenueProductsPage from "./features/intelligence/AIRevenueProductsPage";
+import AdminLayout from "./features/admin/AdminLayout";
 import AdminOverviewPage from "./features/admin/AdminOverviewPage";
-import AdminTenantDeepDivePage from "./features/admin/AdminTenantDeepDivePage";
-import AdminTenantsManagementPage from "./features/admin/AdminTenantsManagementPage";
-import AdminUserDeepDivePage from "./features/admin/AdminUserDeepDivePage";
-import AdminUserManagementPage from "./features/admin/AdminUserManagementPage";
-import AdminForgePage from "./features/admin/AdminForgePage";
-import AdminSystemHealthPage from "./features/admin/AdminSystemHealthPage";
-import AdminPlatformPage from "./features/admin/AdminPlatformPage";
-import AdminRevenuePage from "./features/admin/AdminRevenuePage";
-import AdminBroadcastPage from "./features/admin/AdminBroadcastPage";
-import AdminSecurityPage from "./features/admin/AdminSecurityPage";
+import PlatformLaunchPage from "./features/admin/PlatformLaunchPage";
+import TenantListPage from "./features/admin/TenantListPage";
+import TenantDetailPage from "./features/admin/TenantDetailPage";
+import UserListPage from "./features/admin/UserListPage";
+import UserDetailPage from "./features/admin/UserDetailPage";
+import RevenuePage from "./features/admin/RevenuePage";
+import ForgeIntelligencePage from "./features/admin/ForgeIntelligencePage";
+import SystemHealthPage from "./features/admin/SystemHealthPage";
+import BroadcastPage from "./features/admin/BroadcastPage";
+import SecurityPage from "./features/admin/SecurityPage";
 import {
   AdminPlatformLayerPage,
   AdminSettingsPage,
@@ -137,6 +138,43 @@ function App() {
           <Route path="/verify/:token" element={<CertificateVerificationPage />} />
 
           <Route
+            path="admin"
+            element={
+              <SuperAdminRoute>
+                <AdminLayout />
+              </SuperAdminRoute>
+            }
+          >
+            <Route index element={<Navigate to="overview" replace />} />
+            <Route path="overview" element={<AdminOverviewPage />} />
+            <Route path="platform" element={<PlatformLaunchPage />} />
+            <Route path="platform/:layerId" element={<AdminPlatformLayerPage />} />
+            <Route path="tenants" element={<TenantListPage />} />
+            <Route path="tenants/:id" element={<TenantDetailPage />} />
+            <Route path="users" element={<UserListPage />} />
+            <Route path="users/:id" element={<UserDetailPage />} />
+            <Route path="revenue" element={<RevenuePage />} />
+            <Route path="forge" element={<ForgeIntelligencePage />} />
+            <Route path="health" element={<SystemHealthPage />} />
+            <Route path="broadcast" element={<BroadcastPage />} />
+            <Route path="security" element={<SecurityPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="platform-launch" element={<Navigate to="/admin/platform" replace />} />
+            <Route path="forge-intelligence" element={<Navigate to="/admin/forge" replace />} />
+            <Route path="omega-broadcast" element={<Navigate to="/admin/broadcast" replace />} />
+            <Route path="system-health" element={<Navigate to="/admin/health" replace />} />
+          </Route>
+
+          <Route
+            path="ops"
+            element={
+              <SuperAdminRoute>
+                <Navigate to="/admin/health" replace />
+              </SuperAdminRoute>
+            }
+          />
+
+          <Route
             element={
               <ProtectedRoute>
                 <MainLayout />
@@ -158,25 +196,6 @@ function App() {
             <Route path="stripe" element={<StripeDashboard />} />
             <Route path="activity" element={<ActivityPage />} />
             <Route path="referral" element={<ReferralPage />} />
-            <Route path="admin" element={<SuperAdminRoute><Navigate to="/admin/overview" replace /></SuperAdminRoute>} />
-            <Route path="admin/overview" element={<SuperAdminRoute><AdminOverviewPage /></SuperAdminRoute>} />
-            <Route path="admin/platform" element={<SuperAdminRoute><AdminPlatformPage /></SuperAdminRoute>} />
-            <Route path="admin/platform/:layerId" element={<SuperAdminRoute><AdminPlatformLayerPage /></SuperAdminRoute>} />
-            <Route path="admin/tenants" element={<SuperAdminRoute><AdminTenantsManagementPage /></SuperAdminRoute>} />
-            <Route path="admin/tenants/:id" element={<SuperAdminRoute><AdminTenantDeepDivePage /></SuperAdminRoute>} />
-            <Route path="admin/users" element={<SuperAdminRoute><AdminUserManagementPage /></SuperAdminRoute>} />
-            <Route path="admin/users/:id" element={<SuperAdminRoute><AdminUserDeepDivePage /></SuperAdminRoute>} />
-            <Route path="admin/revenue" element={<SuperAdminRoute><AdminRevenuePage /></SuperAdminRoute>} />
-            <Route path="admin/forge" element={<SuperAdminRoute><AdminForgePage /></SuperAdminRoute>} />
-            <Route path="admin/health" element={<SuperAdminRoute><AdminSystemHealthPage /></SuperAdminRoute>} />
-            <Route path="admin/broadcast" element={<SuperAdminRoute><AdminBroadcastPage /></SuperAdminRoute>} />
-            <Route path="admin/security" element={<SuperAdminRoute><AdminSecurityPage /></SuperAdminRoute>} />
-            <Route path="admin/settings" element={<SuperAdminRoute><AdminSettingsPage /></SuperAdminRoute>} />
-            <Route path="admin/platform-launch" element={<SuperAdminRoute><Navigate to="/admin/platform" replace /></SuperAdminRoute>} />
-            <Route path="admin/forge-intelligence" element={<SuperAdminRoute><Navigate to="/admin/forge" replace /></SuperAdminRoute>} />
-            <Route path="admin/omega-broadcast" element={<SuperAdminRoute><Navigate to="/admin/broadcast" replace /></SuperAdminRoute>} />
-            <Route path="admin/system-health" element={<SuperAdminRoute><Navigate to="/admin/health" replace /></SuperAdminRoute>} />
-            <Route path="ops" element={<SuperAdminRoute><Navigate to="/admin/health" replace /></SuperAdminRoute>} />
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="community" element={<CommunityPage />} />
             <Route path="community/groups" element={<GroupsPage />} />
