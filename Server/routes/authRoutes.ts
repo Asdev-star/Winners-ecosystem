@@ -8,6 +8,7 @@ import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import type { JwtPayload } from "../middleware/authMiddleware.js";
 import { logActivity, ACTIONS } from "../services/activityService.js";
+import { emitAdminEvent } from "../services/adminEventService.js";
 
 const router = Router();
 
@@ -51,6 +52,15 @@ function errorMessage(err: unknown) {
   return err instanceof Error ? err.message : "Internal server error";
 }
 
+function emitSignupAdminEvent(user: { id: string; name: string; email: string; tenant: { name: string } }) {
+  emitAdminEvent({
+    type: "user_signup",
+    urgency: "info",
+    message: `${user.name} signed up in ${user.tenant.name}.`,
+    link: `/admin/users/${user.id}`,
+  });
+}
+
 const authUserSelect = {
   id: true,
   email: true,
@@ -92,6 +102,7 @@ router.post("/register", async (req: Request, res: Response) => {
       tenantId: user.tenantId, userId: user.id, userEmail: user.email,
       userName: user.name, action: "Account registered", category: "auth", ip: req.ip,
     });
+    emitSignupAdminEvent(user);
 
     const payload      = buildPayload(user);
     const token        = signToken(payload, JWT_EXPIRES_IN);
@@ -229,6 +240,7 @@ router.post("/accept-invite", async (req: Request, res: Response) => {
       userName: user.name, action: ACTIONS.MEMBER_INVITED, category: "team",
       metadata: { role: invite.role }, ip: req.ip,
     });
+    emitSignupAdminEvent(user);
 
     const payload      = buildPayload(user);
     const jwtToken     = signToken(payload, JWT_EXPIRES_IN);
@@ -283,6 +295,7 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
 
       // Process referral for new Google users
       await handleReferral(refCode, user.id, user.email, user.name);
+      emitSignupAdminEvent(user);
     }
 
     await logActivity({
@@ -329,6 +342,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
         data:    { tenantId: tenant.id, email: email.toLowerCase(), name: name ?? email.split("@")[0], password: await bcrypt.hash(googleId, 10), role: "OWNER" },
         include: { tenant: true },
       });
+      emitSignupAdminEvent(user);
     }
 
     await logActivity({
@@ -395,6 +409,7 @@ router.post("/facebook/exchange", async (req: Request, res: Response) => {
         data:    { tenantId: tenant.id, email: profile.email.toLowerCase(), name: profile.name ?? profile.email.split("@")[0], password: await bcrypt.hash(profile.id ?? "", 10), role: "OWNER" },
         include: { tenant: true },
       });
+      emitSignupAdminEvent(user);
     }
 
     await logActivity({

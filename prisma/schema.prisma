@@ -3772,3 +3772,19 @@ model VendorPayout {
   @@index([vendorId])
   @@map("vendor_payouts")
 }
+
+model PlatformLayerStatus {
+  id               String   @id @default(cuid())
+  layerId          String
+  layerName        String
+  status           String
+  actorUserId      String?
+  actorEmail       String?
+  confirmationText String?
+  summary          String?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  @@index([layerId, createdAt])
+  @@map("platform_layer_statuses")
+}

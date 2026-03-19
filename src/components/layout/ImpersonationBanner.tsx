@@ -7,52 +7,41 @@ const css = `
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 14px 20px;
-    border-bottom: 1px solid rgba(224, 90, 78, 0.28);
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(224, 90, 78, 0.34);
     background:
-      linear-gradient(135deg, rgba(224, 90, 78, 0.18), rgba(92, 17, 12, 0.92)),
-      radial-gradient(circle at top right, rgba(255, 220, 214, 0.12), transparent 40%);
+      radial-gradient(circle at top right, rgba(255, 220, 214, 0.16), transparent 34%),
+      linear-gradient(135deg, rgba(129, 16, 16, 0.98), rgba(70, 8, 8, 0.96));
     color: #ffe4df;
-  }
-
-  .imp-copy {
-    min-width: 0;
-  }
-
-  .imp-kicker {
-    font-family: "Space Mono", monospace;
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #ffc6bb;
+    box-shadow: inset 0 1px 0 rgba(255, 220, 214, 0.08);
   }
 
   .imp-title {
-    margin-top: 6px;
-    font-size: 14px;
+    min-width: 0;
+    font-size: 13px;
     font-weight: 700;
     line-height: 1.5;
-  }
-
-  .imp-meta {
-    margin-top: 4px;
-    font-size: 12px;
-    color: rgba(255, 228, 223, 0.82);
+    letter-spacing: 0.01em;
   }
 
   .imp-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .imp-separator {
+    color: rgba(255, 228, 223, 0.7);
+    font-size: 15px;
   }
 
   .imp-button {
-    min-height: 38px;
+    min-height: 34px;
     padding: 0 14px;
     border-radius: 999px;
     border: 1px solid rgba(255, 214, 208, 0.3);
-    background: rgba(255, 244, 242, 0.08);
+    background: rgba(255, 244, 242, 0.1);
     color: #fff4f2;
     font-family: "Space Mono", monospace;
     font-size: 10px;
@@ -62,14 +51,24 @@ const css = `
   }
 
   .imp-button.primary {
-    background: rgba(255, 244, 242, 0.16);
+    background: rgba(255, 244, 242, 0.14);
+  }
+
+  .imp-button:hover {
+    border-color: rgba(255, 214, 208, 0.52);
+    background: rgba(255, 244, 242, 0.18);
   }
 
   @media (max-width: 760px) {
     .imp-banner {
-      align-items: flex-start;
+      padding: 12px 16px;
       flex-direction: column;
-      padding: 14px 16px;
+      align-items: flex-start;
+    }
+
+    .imp-actions {
+      width: 100%;
+      justify-content: flex-start;
     }
   }
 `;
@@ -81,27 +80,24 @@ export default function ImpersonationBanner() {
   const endImpersonation = useAuthStore((state) => state.endImpersonation);
 
   if (!user?.isImpersonation || !impersonation) return null;
+  const activeImpersonation = impersonation;
 
   function handleExit() {
-    const returnToPath = impersonation.returnToPath ?? `/admin/tenants/${impersonation.targetTenantId}`;
+    const returnToPath =
+      activeImpersonation.returnToPath ?? `/admin/tenants/${activeImpersonation.targetTenantId}`;
     endImpersonation();
     navigate(returnToPath, { replace: true });
   }
 
   return (
-    <div className="imp-banner">
+    <div className="imp-banner" role="status" aria-live="polite">
       <style>{css}</style>
-      <div className="imp-copy">
-        <div className="imp-kicker">Admin Impersonation</div>
-        <div className="imp-title">Impersonating: {user.tenantName}</div>
-        <div className="imp-meta">
-          Acting as {user.name} ({user.email}). Every action remains attributable to the supervising admin.
-        </div>
-      </div>
+      <div className="imp-title">⚡ IMPERSONATING: {user.name} ({user.tenantName})</div>
 
       <div className="imp-actions">
+        <span className="imp-separator" aria-hidden="true">—</span>
         <button className="imp-button primary" onClick={handleExit}>
-          Exit impersonation
+          Exit Impersonation
         </button>
       </div>
     </div>

@@ -22,6 +22,8 @@ type ControlRow = {
     label: string;
     isLive: boolean;
   }>;
+  confirmationText: string;
+  launchSummary: string;
 };
 
 type QueueCard = {
@@ -39,6 +41,8 @@ type QueueCard = {
   warningCount: number;
   forgeDirective: string;
   isReady: boolean;
+  confirmationText: string;
+  launchSummary: string;
 };
 
 type ImpactItem = {
@@ -72,6 +76,9 @@ type ChecklistResponse = {
   checks: PreLaunchCheck[];
   blockingCount: number;
   warningCount: number;
+  confirmationText: string;
+  launchSummary: string;
+  launchEffects: string[];
 };
 
 const css = `
@@ -163,6 +170,13 @@ function getLayerIdentifier(row: ControlRow | QueueCard) {
   return "layerId" in row ? row.layerId : row.id;
 }
 
+function requestLaunchConfirmation(layerName: string, confirmationText: string, launchSummary: string) {
+  return window.prompt(
+    `${launchSummary}\n\nType "${confirmationText}" to launch ${layerName}.`,
+    "",
+  );
+}
+
 async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { headers: getAuthHeaders() });
   const body = await res.json().catch(() => ({}));
@@ -228,6 +242,9 @@ export default function AdminPlatformPage() {
           isReady: false,
           blockingCount: 1,
           warningCount: 0,
+          confirmationText: `LAUNCH ${row.name.replace("Winners ", "").toUpperCase()}`,
+          launchSummary: `Launch ${row.name} from the admin panel once the checklist clears.`,
+          launchEffects: [],
           checks: [
             {
               category: "backend",
@@ -241,9 +258,16 @@ export default function AdminPlatformPage() {
   }
 
   async function launchLayer(layerId: string, layerName: string) {
+    const row = rows.find((entry) => entry.id === layerId);
+    const queueMatch = queue?.layerId === layerId ? queue : null;
+    const confirmationText = row?.confirmationText ?? queueMatch?.confirmationText ?? `LAUNCH ${layerName.toUpperCase()}`;
+    const launchSummary = row?.launchSummary ?? queueMatch?.launchSummary ?? `Launch ${layerName} from admin.`;
+    const typed = requestLaunchConfirmation(layerName, confirmationText, launchSummary);
+    if (typed === null) return;
+
     try {
       setBusyId(layerId);
-      await apiPost(`/admin/platform/${layerId}/launch`, { override: false });
+      await apiPost(`/admin/platform/${layerId}/launch`, { confirmationText: typed });
       await load();
       setSuccess(`${layerName} launch command issued.`);
       setError("");
@@ -302,10 +326,17 @@ export default function AdminPlatformPage() {
               <button className="apl-close" onClick={() => setChecklist(null)} aria-label="Close checklist">x</button>
             </div>
             <div className="apl-modal-body">
-              {checklist.loading ? (
+                  {checklist.loading ? (
                 <div className="apl-empty">Loading checklist...</div>
               ) : (
                 <div className="apl-checks">
+                  {checklist.data?.launchSummary ? (
+                    <div className="apl-check">
+                      <div className="apl-check-label">Launch Summary</div>
+                      <div className="apl-check-copy">{checklist.data.launchSummary}</div>
+                      <div className="apl-check-copy">Confirmation phrase: <span className="apl-code">{checklist.data.confirmationText}</span></div>
+                    </div>
+                  ) : null}
                   {checklist.data?.checks.map((check) => (
                     <div key={`${check.category}-${check.label}`} className="apl-check">
                       <div className="apl-check-top">
@@ -327,6 +358,14 @@ export default function AdminPlatformPage() {
                       ) : null}
                     </div>
                   ))}
+                  {checklist.data?.launchEffects?.length ? (
+                    <div className="apl-check">
+                      <div className="apl-check-label">Launch Effects</div>
+                      {checklist.data.launchEffects.map((effect) => (
+                        <div key={effect} className="apl-check-copy">{effect}</div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

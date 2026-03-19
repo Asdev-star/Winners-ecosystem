@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Resend } from "resend";
 import db from "../db.js";
+import { logEmailDelivery } from "../services/emailTelemetryService.js";
 
 const router  = Router();
 const resend  = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -57,6 +58,15 @@ router.post("/forgot-password", async (req: Request, res: Response) => {
             <p style="color: #5A6878; font-size: 11px; font-family: monospace; margin-top: 8px;">Or copy this link: ${resetUrl}</p>
           </div>
         `,
+      });
+      await logEmailDelivery({
+        tenantId: user.tenantId,
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+        action: "Password reset email sent",
+        recipients: [user.email],
+        source: "password_reset",
       });
     }
 

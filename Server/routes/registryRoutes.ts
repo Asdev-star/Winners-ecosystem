@@ -4,6 +4,7 @@
 
 import { Router, Request, Response } from "express";
 import { authMiddleware, requireRole } from "../middleware/authMiddleware.js";
+import { getLayerAccessForUser } from "../services/layerAccessService.js";
 import AppRegistry from "../services/appRegistry.js";
 
 const router = Router();
@@ -40,6 +41,17 @@ router.get("/:id/dependencies", (_req: Request, res: Response) => {
 });
 
 // ─── PATCH /registry/:id — Update app status (admin only) ─────────────────────
+
+router.get("/:id/access", authMiddleware, async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  const access = await getLayerAccessForUser(id, req.user);
+
+  if (!access) {
+    return res.status(404).json({ error: "App not registered", id });
+  }
+
+  return res.json(access);
+});
 
 router.patch("/:id", authMiddleware, requireRole("owner", "admin"), (req: Request, res: Response) => {
   const id = String(req.params.id);

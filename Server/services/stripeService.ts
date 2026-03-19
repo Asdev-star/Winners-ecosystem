@@ -3,6 +3,7 @@
 import Stripe from "stripe";
 import db from "../db.js";
 import { notifyNewRevenue, notifyPlanUpgraded } from "./slackService.js";
+import { emitAdminEvent } from "./adminEventService.js";
 
 function getStripe(): Stripe {
   if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY not set");
@@ -41,6 +42,18 @@ function customerIdFromSessionCustomer(
   if (!customer) return null;
   if (typeof customer === "string") return customer;
   return customer.id;
+}
+
+function formatCurrency(amount: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `$${Math.round(amount).toLocaleString("en-US")}`;
+  }
 }
 
 export async function syncStripeRevenue(tenantId: string): Promise<{ synced: number; total: number }> {
@@ -253,6 +266,13 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
           upgradedBy: session.customer_email ?? "Customer",
           tenantName: tenant.name,
         }).catch(() => {});
+
+        emitAdminEvent({
+          type: "plan_upgraded",
+          urgency: plan === "ENTERPRISE" ? "critical" : "info",
+          message: `${tenant.name} upgraded to ${plan}.`,
+          link: `/admin/tenants/${tenant.id}`,
+        });
       }
 
       if (session.metadata?.type === "course_purchase") {
@@ -319,22 +339,32 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
       });
 
       if (tenant && invoice.amount_paid > 0) {
+        const amountPaid = invoice.amount_paid / 100;
         await db.revenueRecord.create({
           data: {
             tenantId: tenant.id,
             recordedAt: new Date(),
-            amount: invoice.amount_paid / 100,
+            amount: amountPaid,
             source: "stripe_subscription",
           },
         });
 
         await notifyNewRevenue({
-          amount: invoice.amount_paid / 100,
+          amount: amountPaid,
           currency: invoice.currency?.toUpperCase() ?? "USD",
           customer: invoice.customer_email ?? undefined,
           source: "Stripe",
           tenantName: tenant.name,
         }).catch(() => {});
+
+        if (amountPaid >= 250) {
+          emitAdminEvent({
+            type: "revenue_spike",
+            urgency: amountPaid >= 1000 ? "critical" : "warning",
+            message: `${tenant.name} just booked ${formatCurrency(amountPaid, invoice.currency ?? "USD")} in Stripe revenue.`,
+            link: "/admin/revenue",
+          });
+        }
       }
       break;
     }

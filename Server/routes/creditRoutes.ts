@@ -4,6 +4,7 @@
 import { Request, Response, Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
+import { emitAdminEvent } from "../services/adminEventService.js";
 
 const router = Router();
 const prisma = db;
@@ -124,6 +125,23 @@ router.post("/spend", authMiddleware, async (req: Request, res: Response) => {
       },
     });
 
+    if (newBalance <= 0) {
+      const user = await prisma.user.findFirst({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          tenant: { select: { name: true } },
+        },
+      });
+      emitAdminEvent({
+        type: "ai_credit_exhausted",
+        urgency: "warning",
+        message: `${user?.name ?? "A user"} exhausted AI credits${user?.tenant?.name ? ` in ${user.tenant.name}` : ""}.`,
+        link: `/admin/users/${userId}`,
+      });
+    }
+
     res.json({ success: true, cost, newBalance });
   } catch (error) {
     console.error("[credits/spend]", error);
@@ -137,7 +155,7 @@ router.post("/award", authMiddleware, async (req: Request, res: Response) => {
     const { targetUserId, amount, reason } = req.body;
     const tenantId = req.user!.tenantId;
 
-    let balance = await prisma.userCreditBalance.findUnique({
+    const balance = await prisma.userCreditBalance.findUnique({
       where: { userId: targetUserId },
     });
 

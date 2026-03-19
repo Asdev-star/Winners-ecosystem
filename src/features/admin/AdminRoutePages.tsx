@@ -173,6 +173,9 @@ type ChecklistResponse = {
   isReady: boolean;
   issues: Array<{ item: string; status: string; required: boolean }>;
   checklist: Array<{ item: string; status: string; required: boolean }>;
+  confirmationText?: string;
+  launchSummary?: string;
+  launchEffects?: string[];
 };
 
 type ConsoleLink = {
@@ -1243,11 +1246,19 @@ export function AdminPlatformLayerPage() {
 
   async function launchLayer() {
     if (!layerId) return;
+    const confirmationText = checklist?.confirmationText ?? `LAUNCH ${layerId.toUpperCase()}`;
+    const launchSummary = checklist?.launchSummary ?? `Launch ${layer?.name ?? layerId} from admin.`;
+    const typed = window.prompt(
+      `${launchSummary}\n\nType "${confirmationText}" to launch ${layer?.name ?? layerId}.`,
+      "",
+    );
+    if (typed === null) return;
+
     try {
       setBusy(true);
       await apiRequest(`/admin/platform/${layerId}/launch`, {
         method: "POST",
-        body: JSON.stringify({ override: false }),
+        body: JSON.stringify({ confirmationText: typed }),
       });
       await refresh();
       setSuccess(`${layerId} launch command issued.`);
@@ -1403,10 +1414,28 @@ export function AdminPlatformLayerPage() {
                 </div>
                 <div className="act-card wide">
                   <div className="act-section-title">Checklist Items</div>
+                  {checklist.launchSummary ? (
+                    <div className="act-mini-row">
+                      <span className="act-mini-label">Launch summary</span>
+                      <span className="act-mini-value">{checklist.launchSummary}</span>
+                    </div>
+                  ) : null}
+                  {checklist.confirmationText ? (
+                    <div className="act-mini-row">
+                      <span className="act-mini-label">Confirmation</span>
+                      <span className="act-mini-value">{checklist.confirmationText}</span>
+                    </div>
+                  ) : null}
                   {checklist.checklist.map((item) => (
                     <div key={item.item} className="act-mini-row">
                       <span className="act-mini-label">{item.item}</span>
                       <span className="act-mini-value">{item.status}</span>
+                    </div>
+                  ))}
+                  {checklist.launchEffects?.map((effect) => (
+                    <div key={effect} className="act-mini-row">
+                      <span className="act-mini-label">Launch effect</span>
+                      <span className="act-mini-value">{effect}</span>
                     </div>
                   ))}
                 </div>

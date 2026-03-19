@@ -6,6 +6,7 @@ import "./App.css";
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./app/ProtectedRoute";
 import SuperAdminRoute from "./app/SuperAdminRoute";
+import LayerRouteGate from "./app/LayerRouteGate";
 import LayerThemeBridge from "./app/LayerThemeBridge";
 import AIBackdrop from "./components/ui/AIBackdrop";
 
@@ -51,7 +52,6 @@ import AcademyPage from "./features/academy/AcademyPage";
 import ExternalCoursesPage from "./features/academy/ExternalCoursesPage";
 import CoursePage from "./features/academy/CoursePage";
 import StudentDashboardPage from "./features/academy/StudentDashboardPage";
-import CoreOpsPage from "./features/ops/CoreOpsPage";
 import WinnersChat from "./features/intelligence/WinnersChat";
 import WinnersIntelligencePage from "./features/intelligence/WinnersIntelligencePage";
 import AIPlatformPage from "./features/intelligence/ai-platform/AIPlatformPage";
@@ -97,16 +97,17 @@ import AIRevenueProductsPage from "./features/intelligence/AIRevenueProductsPage
 import AdminOverviewPage from "./features/admin/AdminOverviewPage";
 import AdminTenantDeepDivePage from "./features/admin/AdminTenantDeepDivePage";
 import AdminTenantsManagementPage from "./features/admin/AdminTenantsManagementPage";
+import AdminUserDeepDivePage from "./features/admin/AdminUserDeepDivePage";
+import AdminUserManagementPage from "./features/admin/AdminUserManagementPage";
+import AdminForgePage from "./features/admin/AdminForgePage";
+import AdminSystemHealthPage from "./features/admin/AdminSystemHealthPage";
 import AdminPlatformPage from "./features/admin/AdminPlatformPage";
+import AdminRevenuePage from "./features/admin/AdminRevenuePage";
+import AdminBroadcastPage from "./features/admin/AdminBroadcastPage";
+import AdminSecurityPage from "./features/admin/AdminSecurityPage";
 import {
-  AdminBroadcastPage,
-  AdminForgePage,
   AdminPlatformLayerPage,
-  AdminRevenuePage,
-  AdminSecurityPage,
   AdminSettingsPage,
-  AdminUserDetailPage,
-  AdminUsersPage,
 } from "./features/admin/AdminRoutePages";
 
 function App() {
@@ -163,11 +164,11 @@ function App() {
             <Route path="admin/platform/:layerId" element={<SuperAdminRoute><AdminPlatformLayerPage /></SuperAdminRoute>} />
             <Route path="admin/tenants" element={<SuperAdminRoute><AdminTenantsManagementPage /></SuperAdminRoute>} />
             <Route path="admin/tenants/:id" element={<SuperAdminRoute><AdminTenantDeepDivePage /></SuperAdminRoute>} />
-            <Route path="admin/users" element={<SuperAdminRoute><AdminUsersPage /></SuperAdminRoute>} />
-            <Route path="admin/users/:id" element={<SuperAdminRoute><AdminUserDetailPage /></SuperAdminRoute>} />
+            <Route path="admin/users" element={<SuperAdminRoute><AdminUserManagementPage /></SuperAdminRoute>} />
+            <Route path="admin/users/:id" element={<SuperAdminRoute><AdminUserDeepDivePage /></SuperAdminRoute>} />
             <Route path="admin/revenue" element={<SuperAdminRoute><AdminRevenuePage /></SuperAdminRoute>} />
             <Route path="admin/forge" element={<SuperAdminRoute><AdminForgePage /></SuperAdminRoute>} />
-            <Route path="admin/health" element={<SuperAdminRoute><CoreOpsPage /></SuperAdminRoute>} />
+            <Route path="admin/health" element={<SuperAdminRoute><AdminSystemHealthPage /></SuperAdminRoute>} />
             <Route path="admin/broadcast" element={<SuperAdminRoute><AdminBroadcastPage /></SuperAdminRoute>} />
             <Route path="admin/security" element={<SuperAdminRoute><AdminSecurityPage /></SuperAdminRoute>} />
             <Route path="admin/settings" element={<SuperAdminRoute><AdminSettingsPage /></SuperAdminRoute>} />
@@ -269,30 +270,30 @@ function App() {
             />
             <Route path="academy/quiz/:quizId" element={<QuizEngine />} />
             <Route path="academy/live-sessions" element={<LiveSessionsPage />} />
-            <Route path="market" element={<WinnersMarketExpanded />} />
-            <Route path="market/dropshipping" element={<WinnersDropshipping />} />
-            <Route path="market/product/:productId" element={<ProductPage />} />
-            <Route path="market/vendor" element={<VendorDashboard />} />
-            <Route path="market/cart" element={<CartPage />} />
-            <Route path="market/orders" element={<OrdersPage />} />
-            <Route path="market/checkout" element={<CheckoutPage />} />
-            <Route path="market/business-launcher" element={<BusinessLauncherPage />} />
-            <Route path="market/cv-tools" element={<CVToolsPage />} />
-            <Route path="market/digital-marketing" element={<DigitalMarketingPage />} />
-            <Route path="work" element={<WorkPage />} />
-            <Route path="work/freelancers" element={<WorkPage />} />
-            <Route path="work/contracts" element={<WorkPage />} />
-            <Route path="work/escrow" element={<EscrowPage />} />
-            <Route path="work/profile" element={<FreelancerProfilePage />} />
-            <Route path="market/:vertical" element={<MarketPage />} />
-            <Route path="cloud" element={<CloudPage />} />
-            <Route path="cloud/connectors" element={<CloudConnectorsPage />} />
-            <Route path="cloud/automations" element={<CloudAutomationsPage />} />
-            <Route path="cloud/agents" element={<CloudAgentsPage />} />
-            <Route path="cloud/keys" element={<CloudAPIKeysPage />} />
-            <Route path="cloud/webhooks" element={<CloudWebhooksPage />} />
-            <Route path="cloud/usage" element={<CloudUsagePage />} />
-            <Route path="cloud/marketplace" element={<APIMarketplacePage />} />
+            <Route path="market" element={<LayerRouteGate layerId="market"><WinnersMarketExpanded /></LayerRouteGate>} />
+            <Route path="market/dropshipping" element={<LayerRouteGate layerId="market"><WinnersDropshipping /></LayerRouteGate>} />
+            <Route path="market/product/:productId" element={<LayerRouteGate layerId="market"><ProductPage /></LayerRouteGate>} />
+            <Route path="market/vendor" element={<LayerRouteGate layerId="market"><VendorDashboard /></LayerRouteGate>} />
+            <Route path="market/cart" element={<LayerRouteGate layerId="market"><CartPage /></LayerRouteGate>} />
+            <Route path="market/orders" element={<LayerRouteGate layerId="market"><OrdersPage /></LayerRouteGate>} />
+            <Route path="market/checkout" element={<LayerRouteGate layerId="market"><CheckoutPage /></LayerRouteGate>} />
+            <Route path="market/business-launcher" element={<LayerRouteGate layerId="market"><BusinessLauncherPage /></LayerRouteGate>} />
+            <Route path="market/cv-tools" element={<LayerRouteGate layerId="market"><CVToolsPage /></LayerRouteGate>} />
+            <Route path="market/digital-marketing" element={<LayerRouteGate layerId="market"><DigitalMarketingPage /></LayerRouteGate>} />
+            <Route path="work" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
+            <Route path="work/freelancers" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
+            <Route path="work/contracts" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
+            <Route path="work/escrow" element={<LayerRouteGate layerId="work"><EscrowPage /></LayerRouteGate>} />
+            <Route path="work/profile" element={<LayerRouteGate layerId="work"><FreelancerProfilePage /></LayerRouteGate>} />
+            <Route path="market/:vertical" element={<LayerRouteGate layerId="market"><MarketPage /></LayerRouteGate>} />
+            <Route path="cloud" element={<LayerRouteGate layerId="cloud"><CloudPage /></LayerRouteGate>} />
+            <Route path="cloud/connectors" element={<LayerRouteGate layerId="cloud"><CloudConnectorsPage /></LayerRouteGate>} />
+            <Route path="cloud/automations" element={<LayerRouteGate layerId="cloud"><CloudAutomationsPage /></LayerRouteGate>} />
+            <Route path="cloud/agents" element={<LayerRouteGate layerId="cloud"><CloudAgentsPage /></LayerRouteGate>} />
+            <Route path="cloud/keys" element={<LayerRouteGate layerId="cloud"><CloudAPIKeysPage /></LayerRouteGate>} />
+            <Route path="cloud/webhooks" element={<LayerRouteGate layerId="cloud"><CloudWebhooksPage /></LayerRouteGate>} />
+            <Route path="cloud/usage" element={<LayerRouteGate layerId="cloud"><CloudUsagePage /></LayerRouteGate>} />
+            <Route path="cloud/marketplace" element={<LayerRouteGate layerId="cloud"><APIMarketplacePage /></LayerRouteGate>} />
             <Route path="intelligence/revenue" element={<AIRevenueProductsPage />} />
           </Route>
 

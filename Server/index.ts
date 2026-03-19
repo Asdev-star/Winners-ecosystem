@@ -61,9 +61,11 @@ import opportunityRoutes from "./routes/opportunityRoutes.js";
 
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 import { startEmailScheduler } from "./services/emailScheduler.js";
+import { syncAppRegistryWithPersistedLayerStatus } from "./services/platformLayerStatusService.js";
 
 // ── WebSocket Server (Phase 2 V1.1 — Real-time) ────────────────────────────────
 import { initWebSocketServer } from "./services/wsService.js";
+import { telemetryRequestMiddleware } from "./services/requestTelemetryService.js";
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
@@ -124,6 +126,9 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // 5. XSS Sanitization — strip dangerous patterns from all string inputs
 app.use(xssSanitizer);
+
+// 5.5. Request telemetry — powers admin health counters and recent error logs
+app.use(telemetryRequestMiddleware);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIVENESS PROBE — Must be outside the rate limiter and auth for container health
@@ -273,6 +278,8 @@ const server = app.listen(Number(PORT), "0.0.0.0", async () => {
   console.log(`   Ready:       http://localhost:${PORT}/api/v1/health/ready\n`);
 
   if (isProd) startEmailScheduler();
+
+  await syncAppRegistryWithPersistedLayerStatus();
 
   // Initialize external course seed data on startup
   await seedExternalCoursesIfNeeded();

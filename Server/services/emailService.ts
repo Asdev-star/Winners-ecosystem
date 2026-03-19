@@ -2,6 +2,7 @@
 
 import { Resend } from "resend";
 import db from "../db.js";
+import { logEmailDelivery } from "./emailTelemetryService.js";
 
 const FROM = process.env.EMAIL_FROM ?? "Winners Ecosystem <reports@yourdomain.com>";
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -9,6 +10,41 @@ const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 function getResend(): Resend {
   if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY not set");
   return new Resend(process.env.RESEND_API_KEY);
+}
+
+async function sendTrackedEmail(params: {
+  tenantId: string;
+  action: string;
+  source: string;
+  to: string[];
+  subject: string;
+  html: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const resend = getResend();
+  const result = await resend.emails.send({
+    from: FROM,
+    to: params.to,
+    subject: params.subject,
+    html: params.html,
+  });
+
+  await logEmailDelivery({
+    tenantId: params.tenantId,
+    action: params.action,
+    recipients: params.to,
+    source: params.source,
+    metadata: {
+      subject: params.subject,
+      resendId:
+        typeof result === "object" && result && "data" in result
+          ? (result as { data?: { id?: string } }).data?.id ?? null
+          : null,
+      ...(params.metadata ?? {}),
+    },
+  });
+
+  return result;
 }
 
 function dateFrom(days: number): Date {
@@ -195,8 +231,10 @@ export async function sendWeeklyRevenueSummary(tenantId: string, to: string[]) {
       </p>
     </div>`;
 
-  return getResend().emails.send({
-    from: FROM,
+  return sendTrackedEmail({
+    tenantId,
+    action: "Weekly revenue summary sent",
+    source: "weekly_report",
     to,
     subject: `Weekly Report - ${tenant?.name ?? "Workspace"} - ${fmt(revenue.currentTotal)}`,
     html: baseTemplate(
@@ -204,6 +242,10 @@ export async function sendWeeklyRevenueSummary(tenantId: string, to: string[]) {
       `Your workspace made ${fmt(revenue.currentTotal)} this week`,
       body
     ),
+    metadata: {
+      revenueTotal: revenue.currentTotal,
+      tenantName: tenant?.name ?? "Workspace",
+    },
   });
 }
 
@@ -249,8 +291,10 @@ export async function sendMonthlyFullReport(tenantId: string, to: string[]) {
       </a>
     </div>`;
 
-  return getResend().emails.send({
-    from: FROM,
+  return sendTrackedEmail({
+    tenantId,
+    action: "Monthly full report sent",
+    source: "monthly_report",
     to,
     subject: `Monthly Report - ${tenant?.name ?? "Workspace"} - ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}`,
     html: baseTemplate(
@@ -258,6 +302,10 @@ export async function sendMonthlyFullReport(tenantId: string, to: string[]) {
       `Your ${new Date().toLocaleDateString("en-US", { month: "long" })} analytics report is ready`,
       body
     ),
+    metadata: {
+      revenueTotal: revenue.currentTotal,
+      tenantName: tenant?.name ?? "Workspace",
+    },
   });
 }
 
@@ -298,8 +346,10 @@ export async function sendAnomalyAlert(tenantId: string, to: string[]) {
       </a>
     </div>`;
 
-  return getResend().emails.send({
-    from: FROM,
+  return sendTrackedEmail({
+    tenantId,
+    action: "Revenue anomaly alert sent",
+    source: "anomaly_alert",
     to,
     subject: `Revenue Anomaly Alert - ${anomalies.length} spike${anomalies.length > 1 ? "s" : ""} detected - ${tenant?.name ?? "Workspace"}`,
     html: baseTemplate(
@@ -307,6 +357,10 @@ export async function sendAnomalyAlert(tenantId: string, to: string[]) {
       `${anomalies.length} unusual revenue days detected in your workspace`,
       body
     ),
+    metadata: {
+      anomalyCount: anomalies.length,
+      tenantName: tenant?.name ?? "Workspace",
+    },
   });
 }
 
@@ -363,8 +417,10 @@ export async function sendTeamActivityDigest(tenantId: string, to: string[]) {
         .join("")}
     </table>`;
 
-  return getResend().emails.send({
-    from: FROM,
+  return sendTrackedEmail({
+    tenantId,
+    action: "Team activity digest sent",
+    source: "team_digest",
     to,
     subject: `Team Digest - ${tenant?.name ?? "Workspace"} - ${team.length} members`,
     html: baseTemplate(
@@ -372,6 +428,10 @@ export async function sendTeamActivityDigest(tenantId: string, to: string[]) {
       `${team.length} members, ${recentJoins.length} new joins this week`,
       body
     ),
+    metadata: {
+      teamCount: team.length,
+      tenantName: tenant?.name ?? "Workspace",
+    },
   });
 }
 
@@ -418,10 +478,18 @@ export async function sendBillingInvoiceEmail(
       </a>
     </div>`;
 
-  return getResend().emails.send({
-    from: FROM,
+  return sendTrackedEmail({
+    tenantId,
+    action: "Billing invoice sent",
+    source: "billing_invoice",
     to,
     subject: `Invoice - ${tenant?.name ?? "Workspace"} - $${amount} - ${period}`,
     html: baseTemplate("Invoice Receipt", `Your invoice for ${period} is ready`, body),
+    metadata: {
+      tenantName: tenant?.name ?? "Workspace",
+      amount,
+      period,
+      invoiceId,
+    },
   });
 }

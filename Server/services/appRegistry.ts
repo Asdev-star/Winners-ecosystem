@@ -195,7 +195,7 @@ AppRegistry.register({
   id: "intelligence",
   name: "Winners Intelligence",
   phase: 5,
-  status: "in_progress",
+  status: "live",
   version: "1.0.0",
   description: "AI orchestration — agents, recommendations, automation",
   apiPrefix: "/api/v1/ai",
@@ -214,7 +214,7 @@ AppRegistry.register({
   description: "Freelance hub — job board, AI skill matching, contracts, escrow",
   apiPrefix: "/api/v1/work",
   frontendPath: "/work",
-  dependencies: ["core", "community", "academy"],
+  dependencies: ["core", "community", "academy", "market"],
   features: ["job-listings", "freelancer-profiles", "contracts", "escrow", "job-applications"],
   meta: {},
 });
@@ -228,7 +228,7 @@ AppRegistry.register({
   description: "React Native mobile application",
   apiPrefix: "/api/v1",
   frontendPath: "native://",
-  dependencies: ["core", "community"],
+  dependencies: ["core", "community", "academy", "market"],
   features: [],
   meta: { principle: "Mobile last — web must be solid first" },
 });
@@ -242,7 +242,7 @@ AppRegistry.register({
   description: "Developer platform — public API, SDK, plugin marketplace",
   apiPrefix: "/api/v1/developer",
   frontendPath: "/cloud",
-  dependencies: ["core", "community", "academy", "market", "work"],
+  dependencies: ["core", "community", "academy", "market", "intelligence"],
   features: ["api-keys", "agents", "automations", "connectors", "webhooks"],
   meta: {},
 });

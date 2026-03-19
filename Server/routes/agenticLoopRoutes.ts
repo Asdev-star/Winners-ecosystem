@@ -5,6 +5,7 @@ import { Request, Response, Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { callAnthropicAndParseJson } from "../services/aiService.js";
+import { emitAdminEvent } from "../services/adminEventService.js";
 import { notifyUser } from "../services/wsService.js";
 
 const router = Router();
@@ -237,11 +238,25 @@ router.post("/loop/complete", authMiddleware, async (req: Request, res: Response
     });
 
     const loopCount = await prisma.agenticLoop.count({ where: { userId, status: "completed" } });
+    const user = await prisma.user.findFirst({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        tenant: { select: { name: true } },
+      },
+    });
 
     notifyUser(userId, {
       event: "loop:completed",
       loopNumber: loopCount,
       revenueImpact: revenueImpact ?? 0,
+    });
+    emitAdminEvent({
+      type: "loop_completed",
+      urgency: "info",
+      message: `${user?.name ?? "A user"} completed agentic loop #${loopCount}${user?.tenant?.name ? ` in ${user.tenant.name}` : ""}.`,
+      link: `/admin/users/${userId}`,
     });
 
     res.json({ success: true, loopNumber: loopCount });
@@ -333,6 +348,18 @@ router.post("/propose", authMiddleware, async (req: Request, res: Response) => {
       description,
       actionType,
     });
+    if (action.actionType === "flag") {
+      const user = await prisma.user.findFirst({
+        where: { id: targetUserId },
+        select: { name: true, tenant: { select: { name: true } } },
+      });
+      emitAdminEvent({
+        type: "user_flagged",
+        urgency: "warning",
+        message: `${user?.name ?? "A user"} was flagged by ${action.assistant.toUpperCase()}${user?.tenant?.name ? ` in ${user.tenant.name}` : ""}.`,
+        link: `/admin/users/${targetUserId}`,
+      });
+    }
 
     res.json({ success: true, action });
   } catch (error) {

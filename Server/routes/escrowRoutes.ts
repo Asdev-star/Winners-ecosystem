@@ -5,6 +5,7 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import db from '../db.js';
+import { emitAdminEvent } from '../services/adminEventService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -164,6 +165,19 @@ router.post('/dispute/:escrowId', async (req: Request, res: Response) => {
         entityId: escrow.id,
         entityType: 'escrow',
       },
+    });
+    const disputeUser = await db.user.findFirst({
+      where: { id: userId },
+      select: {
+        name: true,
+        tenant: { select: { name: true } },
+      },
+    });
+    emitAdminEvent({
+      type: 'escrow_dispute',
+      urgency: 'critical',
+      message: `Escrow dispute opened by ${disputeUser?.name ?? 'a user'}${disputeUser?.tenant?.name ? ` in ${disputeUser.tenant.name}` : ''}.`,
+      link: '/admin/users',
     });
     return res.json({ success: true, message: 'Dispute opened - our team will review within 48 hours' });
   } catch (error) {

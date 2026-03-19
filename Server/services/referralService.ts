@@ -3,6 +3,7 @@
 import db from "../db.js";
 import { Resend } from "resend";
 import crypto from "crypto";
+import { logEmailDelivery } from "./emailTelemetryService.js";
 
 const resend  = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const APP_URL = process.env.APP_URL ?? "https://winners-empire-eco.up.railway.app";
@@ -128,6 +129,22 @@ export async function processReferral(code: string, newUserId: string, newUserEm
           <p style="color: #5A6878; font-size: 11px; font-family: monospace; margin-top: 24px;">Keep sharing your referral link to earn more credits.</p>
         </div>
       `,
-    }).catch(() => {});
+    })
+      .then(() =>
+        logEmailDelivery({
+          tenantId: referrer.tenantId,
+          userId: referrer.id,
+          userEmail: referrer.email,
+          userName: referrer.name,
+          action: "Referral reward email sent",
+          recipients: [referrer.email],
+          source: "referral_reward",
+          metadata: {
+            referredUserId: newUserId,
+            referredUserEmail: newUserEmail,
+          },
+        })
+      )
+      .catch(() => {});
   }
 }

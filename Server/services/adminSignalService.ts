@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { emitAdminEvent } from "./adminEventService.js";
 import { broadcastToAdmins } from "./wsService.js";
 
 export type AdminSignalKind =
@@ -44,10 +45,17 @@ export function recordAdminSignal(
     signal: event,
   });
 
+  emitAdminEvent({
+    type: "forge_alert",
+    urgency: "warning",
+    message: `${event.supervisor} ${event.title}`,
+    link: event.adminPath,
+    timestamp: event.createdAt,
+  });
+
   return event;
 }
 
 export function getRecentAdminSignals(limit = 5): AdminSignalEvent[] {
   return signalHistory.slice(0, Math.max(0, limit));
 }
-

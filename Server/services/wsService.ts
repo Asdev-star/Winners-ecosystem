@@ -37,6 +37,7 @@ export const WS_EVENTS = {
   PRESENCE_UPDATE: "PRESENCE_UPDATE",
   SYSTEM: "SYSTEM",
   CONNECTED: "CONNECTED",
+  ADMIN_EVENT: "ADMIN_EVENT",
 } as const;
 
 function parseTokenPayload(decoded: string | JwtPayload): WsTokenPayload | null {
@@ -170,4 +171,23 @@ export function broadcastToAdmins(payload: object) {
   for (const client of clients.values()) {
     if (client.isSuperAdmin) safeSend(client.ws, payload);
   }
+}
+
+export function getWebSocketStats() {
+  const uniqueUsers = new Set<string>();
+  const uniqueTenants = new Set<string>();
+  let superAdminConnections = 0;
+
+  for (const client of clients.values()) {
+    uniqueUsers.add(client.userId);
+    uniqueTenants.add(client.tenantId);
+    if (client.isSuperAdmin) superAdminConnections += 1;
+  }
+
+  return {
+    activeConnections: clients.size,
+    activeUsers: uniqueUsers.size,
+    activeTenants: uniqueTenants.size,
+    superAdminConnections,
+  };
 }

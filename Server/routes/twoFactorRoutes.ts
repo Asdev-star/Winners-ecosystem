@@ -7,6 +7,7 @@ import qrcode from "qrcode";
 import { Resend } from "resend";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { logEmailDelivery } from "../services/emailTelemetryService.js";
 
 const router = Router();
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -113,6 +114,15 @@ router.post("/email/send", async (req: Request, res: Response) => {
           <div style="font-size:42px;font-weight:700;letter-spacing:10px;color:#C9A84C;font-family:monospace;margin-bottom:18px;">${code}</div>
           <p style="color:#5A6878;font-size:11px;font-family:monospace;">If you did not request this, ignore this email.</p>
         </div>`,
+      });
+      await logEmailDelivery({
+        tenantId: user.tenantId,
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+        action: "Two-factor login code sent",
+        recipients: [user.email],
+        source: "two_factor_email",
       });
     }
 

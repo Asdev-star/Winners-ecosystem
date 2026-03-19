@@ -2,28 +2,26 @@
 
 import { Router, Request, Response } from "express";
 import { Plan } from "@prisma/client";
+import crypto from "crypto";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requirePermission, enforceTenant } from "../middleware/rbacMiddleware.js";
 import { PLAN_LIMITS } from "../middleware/usageLimits.js";
 import { ACTIONS, logActivity } from "../services/activityService.js";
-import crypto from "crypto";
+import { emitAdminEvent } from "../services/adminEventService.js";
 
 const router = Router();
 
-const LS_API_KEY        = process.env.LEMONSQUEEZY_API_KEY       ?? "";
-const LS_STORE_ID       = process.env.LEMONSQUEEZY_STORE_ID      ?? "";
+const LS_API_KEY = process.env.LEMONSQUEEZY_API_KEY ?? "";
+const LS_STORE_ID = process.env.LEMONSQUEEZY_STORE_ID ?? "";
 const LS_WEBHOOK_SECRET = process.env.LEMONSQUEEZY_WEBHOOK_SECRET ?? "";
-const APP_URL           = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:5173";
+const APP_URL = process.env.APP_URL?.replace(/\/$/, "") ?? "http://localhost:5173";
 
-// Plan → LemonSqueezy variant ID mapping
 const VARIANT_IDS: Record<string, string> = {
-  pro:        process.env.LS_PRO_VARIANT_ID        ?? "",
+  pro: process.env.LS_PRO_VARIANT_ID ?? "",
   enterprise: process.env.LS_ENTERPRISE_VARIANT_ID ?? "",
 };
 
-// ─── GET /billing/ ────────────────────────────────────────────────────────────
-// Base billing endpoint summary for route discovery and diagnostics.
 router.get("/", (_req: Request, res: Response) => {
   res.json({
     service: "billing",
@@ -41,22 +39,19 @@ router.get("/", (_req: Request, res: Response) => {
   });
 });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 async function lsRequest(path: string, options: RequestInit = {}) {
   const res = await fetch(`https://api.lemonsqueezy.com/v1${path}`, {
     ...options,
     headers: {
-      Authorization:  `Bearer ${LS_API_KEY}`,
-      Accept:         "application/vnd.api+json",
+      Authorization: `Bearer ${LS_API_KEY}`,
+      Accept: "application/vnd.api+json",
       "Content-Type": "application/vnd.api+json",
       ...options.headers,
     },
   });
+
   return res.json();
 }
-
-// ─── GET /billing/subscription ────────────────────────────────────────────────
 
 router.get("/subscription", authMiddleware, enforceTenant, async (req: Request, res: Response) => {
   try {
@@ -66,13 +61,13 @@ router.get("/subscription", authMiddleware, enforceTenant, async (req: Request, 
     const plan = tenant.plan as keyof typeof PLAN_LIMITS;
 
     return res.json({
-      id:                `sub_${tenant.id}`,
-      planId:            tenant.plan.toLowerCase(),
-      status:            "active",
-      currentPeriodEnd:  new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      id: `sub_${tenant.id}`,
+      planId: tenant.plan.toLowerCase(),
+      status: "active",
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       cancelAtPeriodEnd: false,
-      seats:             PLAN_LIMITS[plan]?.seats ?? 3,
-      stripeCustomerId:  tenant.stripeCustomerId ?? null,
+      seats: PLAN_LIMITS[plan]?.seats ?? 3,
+      stripeCustomerId: tenant.stripeCustomerId ?? null,
     });
   } catch (err) {
     console.error("[Billing] subscription fetch error:", err);
@@ -80,14 +75,12 @@ router.get("/subscription", authMiddleware, enforceTenant, async (req: Request, 
   }
 });
 
-// ─── GET /billing/usage ───────────────────────────────────────────────────────
-
 router.get("/usage", authMiddleware, enforceTenant, async (req: Request, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
-    const tenant   = await db.tenant.findFirst({ where: { id: tenantId } });
-    const plan     = (tenant?.plan ?? "FREE") as keyof typeof PLAN_LIMITS;
-    const limits   = PLAN_LIMITS[plan];
+    const tenant = await db.tenant.findFirst({ where: { id: tenantId } });
+    const plan = (tenant?.plan ?? "FREE") as keyof typeof PLAN_LIMITS;
+    const limits = PLAN_LIMITS[plan];
 
     const [seats, exportCount, recordCount] = await Promise.all([
       db.user.count({ where: { tenantId, deletedAt: null } }),
@@ -96,17 +89,18 @@ router.get("/usage", authMiddleware, enforceTenant, async (req: Request, res: Re
     ]);
 
     return res.json({
-      seats:   { used: seats,       limit: limits.seats           ?? 3    },
-      exports: { used: exportCount, limit: limits.exportPerMonth  ?? 30   },
-      storage: { used: recordCount, limit: plan === "FREE" ? 1000 : plan === "PRO" ? 10000 : 999999 },
+      seats: { used: seats, limit: limits.seats ?? 3 },
+      exports: { used: exportCount, limit: limits.exportPerMonth ?? 30 },
+      storage: {
+        used: recordCount,
+        limit: plan === "FREE" ? 1000 : plan === "PRO" ? 10000 : 999999,
+      },
     });
   } catch (err) {
     console.error("[Billing] usage fetch error:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
-
-// ─── POST /billing/checkout ───────────────────────────────────────────────────
 
 router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manageBilling"), async (req: Request, res: Response) => {
   const { planId } = req.body;
@@ -117,8 +111,7 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
 
   const variantId = VARIANT_IDS[planId];
   if (!variantId) {
-    // ✅ FIXED: was `?upgraded=${planId}` which React Router couldn't match
-    console.warn(`[Billing] No variant ID for plan "${planId}" — using dev mock redirect`);
+    console.warn(`[Billing] No variant ID for plan "${planId}" - using dev mock redirect`);
     return res.json({ url: `${APP_URL}/billing?success=true` });
   }
 
@@ -136,24 +129,24 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
         type: "checkouts",
         attributes: {
           checkout_data: {
-            email:  user?.email,
-            name:   user?.name,
+            email: user?.email,
+            name: user?.name,
             custom: { tenant_id: req.user!.tenantId },
           },
           product_options: {
-            redirect_url:     `${APP_URL}/billing?success=true`,
+            redirect_url: `${APP_URL}/billing?success=true`,
             receipt_link_url: `${APP_URL}/billing`,
           },
         },
         relationships: {
-          store:   { data: { type: "stores",   id: LS_STORE_ID } },
-          variant: { data: { type: "variants", id: variantId   } },
+          store: { data: { type: "stores", id: LS_STORE_ID } },
+          variant: { data: { type: "variants", id: variantId } },
         },
       },
     };
 
     const data = await lsRequest("/checkouts", { method: "POST", body: JSON.stringify(payload) });
-    const url  = data?.data?.attributes?.url;
+    const url = data?.data?.attributes?.url;
 
     if (!url) {
       console.error("[Billing] LemonSqueezy returned no URL:", JSON.stringify(data));
@@ -177,13 +170,11 @@ router.post("/checkout", authMiddleware, enforceTenant, requirePermission("manag
   }
 });
 
-// ─── POST /billing/cancel ─────────────────────────────────────────────────────
-
 router.post("/cancel", authMiddleware, enforceTenant, requirePermission("manageBilling"), async (req: Request, res: Response) => {
   try {
     await db.tenant.update({
       where: { id: req.user!.tenantId },
-      data:  { plan: "FREE" },
+      data: { plan: "FREE" },
     });
     await logActivity({
       tenantId: req.user!.tenantId,
@@ -200,27 +191,20 @@ router.post("/cancel", authMiddleware, enforceTenant, requirePermission("manageB
   }
 });
 
-// ─── POST /billing/resume ─────────────────────────────────────────────────────
-
-router.post("/resume", authMiddleware, enforceTenant, requirePermission("manageBilling"), async (req: Request, res: Response) => {
+router.post("/resume", authMiddleware, enforceTenant, requirePermission("manageBilling"), async (_req: Request, res: Response) => {
   try {
     return res.json({ message: "Subscription resumed." });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ message: "Resume failed" });
   }
 });
 
-// ─── POST /billing/webhook ────────────────────────────────────────────────────
-// Register in LemonSqueezy Dashboard → Webhooks:
-//   URL: https://winners-empire-eco.up.railway.app/billing/webhook
-// Events: subscription_created, subscription_updated, subscription_cancelled, subscription_expired
-
 router.post("/webhook", async (req: Request, res: Response) => {
   const signature = req.headers["x-signature"] as string;
-  const rawBody   = JSON.stringify(req.body);
+  const rawBody = JSON.stringify(req.body);
 
   if (LS_WEBHOOK_SECRET) {
-    const hmac   = crypto.createHmac("sha256", LS_WEBHOOK_SECRET);
+    const hmac = crypto.createHmac("sha256", LS_WEBHOOK_SECRET);
     const digest = hmac.update(rawBody).digest("hex");
     if (signature !== digest) {
       console.warn("[Billing] Webhook signature mismatch");
@@ -228,7 +212,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
     }
   }
 
-  const event    = req.body?.meta?.event_name;
+  const event = req.body?.meta?.event_name;
   const tenantId = req.body?.meta?.custom_data?.tenant_id;
 
   if (!tenantId) return res.status(200).json({ received: true });
@@ -253,14 +237,27 @@ router.post("/webhook", async (req: Request, res: Response) => {
           userName: "LemonSqueezy webhook",
           metadata: { plan },
         });
-        console.log(`✅ [Webhook] tenant ${tenantId} → ${plan}`);
+
+        const tenant = await db.tenant.findFirst({
+          where: { id: tenantId },
+          select: { id: true, name: true },
+        });
+
+        emitAdminEvent({
+          type: "plan_upgraded",
+          urgency: plan === Plan.ENTERPRISE ? "critical" : "info",
+          message: `${tenant?.name ?? "Tenant"} upgraded to ${plan}.`,
+          link: `/admin/tenants/${tenant?.id ?? tenantId}`,
+        });
+
+        console.log(`[Webhook] tenant ${tenantId} -> ${plan}`);
         break;
       }
 
       case "subscription_cancelled":
       case "subscription_expired": {
         await db.tenant.update({ where: { id: tenantId }, data: { plan: "FREE" } });
-        console.log(`⚠️ [Webhook] tenant ${tenantId} → FREE`);
+        console.log(`[Webhook] tenant ${tenantId} -> FREE`);
         break;
       }
 

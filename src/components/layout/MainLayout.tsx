@@ -14,6 +14,9 @@ import CommandPalette from "../ui/CommandPalette";
 import AssistantPanel from "../ui/AssistantPanel";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 import ImpersonationBanner from "./ImpersonationBanner";
+import AdminSubNav from "../admin/AdminSubNav";
+import ForgeInsightBar from "../admin/ForgeInsightBar";
+import AdminEventToasts from "../admin/AdminEventToasts";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
@@ -179,6 +182,50 @@ const css = `
 
   /* ── Main area ── */
   .ml-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .ml-root.admin-realm {
+    --admin-accent: var(--gold);
+  }
+  .ml-root.admin-realm .ml-header {
+    border-bottom-color: rgba(201,168,76,0.18);
+    background:
+      radial-gradient(circle at top right, rgba(201,168,76,0.12), transparent 28%),
+      linear-gradient(135deg, rgba(16,24,37,0.98), rgba(11,18,29,0.96));
+  }
+  .ml-root.admin-realm .ml-content {
+    background:
+      radial-gradient(circle at top right, rgba(201,168,76,0.08), transparent 22%),
+      radial-gradient(circle at left top, rgba(201,168,76,0.05), transparent 20%);
+  }
+  .ml-root.admin-realm .ml-status-text,
+  .ml-root.admin-realm .ml-breadcrumb span {
+    color: var(--gold);
+  }
+  .ml-root.admin-realm .ml-status-dot {
+    background: var(--gold);
+    box-shadow: 0 0 8px rgba(201,168,76,0.7);
+  }
+  .admin-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .admin-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    pointer-events: none;
+  }
+  .admin-badge {
+    background: rgba(201,168,76,0.12);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold);
+  }
+  .admin-nav-item.active {
+    color: var(--gold);
+    border-bottom: 2px solid var(--gold);
+  }
   .ml-header {
     height: 52px; border-bottom: 1px solid var(--border);
     background: var(--surface); display: flex; align-items: center;
@@ -467,6 +514,7 @@ export default function MainLayout() {
     .sort((a, b) => b.path.length - a.path.length)
     .find((n) => shellPath.startsWith(n.path))?.label ?? "Dashboard";
   const layerSubNav = getLayerSubNavForPath(shellPath);
+  const isAdminShell = shellPath.startsWith("/admin") || shellPath.startsWith("/ops");
   const closeSidebar = () => setSidebarOpen(false);
 
   useEffect(() => {
@@ -497,7 +545,7 @@ export default function MainLayout() {
   );
 
   return (
-    <div className="ml-root">
+    <div className={`ml-root${isAdminShell ? " admin-realm" : ""}`}>
       <style>{css}</style>
       <div className={`ml-overlay${sidebarOpen ? " open" : ""}`} onClick={closeSidebar} />
 
@@ -601,7 +649,7 @@ export default function MainLayout() {
       </aside>
 
       {/* Main content area */}
-      <div className="ml-main">
+      <div className={`ml-main${isAdminShell ? " admin-realm" : ""}`}>
         <header className="ml-header">
           <div className="ml-header-left">
             <button
@@ -629,9 +677,11 @@ export default function MainLayout() {
         <ImpersonationBanner />
 
         <main className="ml-content">
-          <LayerSubNav config={layerSubNav} />
+          {isAdminShell ? <AdminSubNav /> : <LayerSubNav config={layerSubNav} />}
+          <ForgeInsightBar />
           <Outlet />
         </main>
+        <AdminEventToasts />
       </div>
 
       {/* Mobile bottom nav */}
