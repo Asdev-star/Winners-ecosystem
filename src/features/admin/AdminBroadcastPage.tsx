@@ -144,7 +144,7 @@ export default function AdminBroadcastPage() {
   const [plan, setPlan] = useState<PlanTier>("PRO");
   const [layerId, setLayerId] = useState<LayerId>("market");
   const [channels, setChannels] = useState<BroadcastChannel[]>(["in_app", "push", "email"]);
-  const [message, setMessage] = useState("Winners Market is launching this Thursday.\nATLAS has been preparing your product intelligence for weeks.\nYour store is ready to be built.\nVisit Market -> winnersempire.io/market");
+  const [message, setMessage] = useState("Winners Market activates for users this Thursday.\nATLAS has already prepared the product intelligence.\nYour store directive is cleared for activation.\nVisit Market -> winnersempire.io/market");
   const [scheduleAt, setScheduleAt] = useState(defaultScheduleValue);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -322,7 +322,7 @@ export default function AdminBroadcastPage() {
           <div>
             <div className="aob-kicker">Admin / OMEGA Broadcast / Route: /admin/broadcast</div>
             <h1 className="aob-title">OMEGA BROADCAST</h1>
-            <p className="aob-subtitle">"Send ecosystem-wide messages as OMEGA. One voice. All users."</p>
+            <p className="aob-subtitle">"Issue ecosystem-wide directives as OMEGA. One sovereign voice across every joined user."</p>
           </div>
           <div className="aob-actions">
             <Link className="aob-link ghost" to="/admin/forge">FORGE</Link>
@@ -339,7 +339,7 @@ export default function AdminBroadcastPage() {
               <section className="aob-panel">
                 <div className="aob-panel-head">
                   <div>
-                    <h2 className="aob-panel-title">Compose Broadcast</h2>
+                    <h2 className="aob-panel-title">Compose Directive</h2>
                     <div className="aob-sub">Supervisor: {snapshot?.supervisor ?? "OMEGA"}.</div>
                   </div>
                 </div>
@@ -389,21 +389,21 @@ export default function AdminBroadcastPage() {
                 <div className="aob-row">
                   <div className="aob-key">Message</div>
                   <div>
-                    <textarea className="aob-textarea" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="FORGE can draft this for you." />
+                    <textarea className="aob-textarea" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="FORGE will brief and draft this for you." />
                     <div className="aob-toolbar">
                       <div className="aob-row-actions">
-                        <button className="aob-btn ghost" type="button" onClick={() => void draftWithForge()} disabled={drafting}>{drafting ? "Drafting" : "Draft with FORGE"}</button>
+                        <button className="aob-btn ghost" type="button" onClick={() => void draftWithForge()} disabled={drafting}>{drafting ? "Briefing" : "Request FORGE Brief"}</button>
                         <button className="aob-btn ghost" type="button" onClick={() => setPreviewOpen((current) => !current)} disabled={!message.trim()}>{previewOpen ? "Hide Preview" : "Preview"}</button>
                       </div>
                       <div className="aob-recipient">Recipients: <strong>{recipientCount.toLocaleString("en-US")}</strong></div>
                     </div>
                     <div className="aob-row-actions" style={{ marginTop: 18 }}>
                       <div className="aob-schedule">
-                        <span className="aob-key" style={{ paddingTop: 0 }}>Schedule</span>
+                        <span className="aob-key" style={{ paddingTop: 0 }}>Directive Window</span>
                         <input type="datetime-local" value={scheduleAt} onChange={(event) => setScheduleAt(event.target.value)} />
-                        <button className="aob-btn ghost" type="button" onClick={() => void scheduleBroadcast()} disabled={scheduling || !message.trim()}>{scheduling ? "Scheduling" : "Queue"}</button>
+                        <button className="aob-btn ghost" type="button" onClick={() => void scheduleBroadcast()} disabled={scheduling || !message.trim()}>{scheduling ? "Queueing" : "Queue Directive"}</button>
                       </div>
-                      <button className="aob-btn" type="button" onClick={() => void sendNow()} disabled={sending || !message.trim()}>{sending ? "Sending" : "Send Now"}</button>
+                      <button className="aob-btn" type="button" onClick={() => void sendNow()} disabled={sending || !message.trim()}>{sending ? "Issuing" : "Issue Now"}</button>
                     </div>
                   </div>
                 </div>
@@ -466,8 +466,8 @@ export default function AdminBroadcastPage() {
           <section className="aob-panel">
             <div className="aob-panel-head">
               <div>
-                <h2 className="aob-panel-title">Sent Broadcasts</h2>
-                <div className="aob-sub">Recent OMEGA dispatch history, including scheduled operator checkpoints.</div>
+                <h2 className="aob-panel-title">Issued Directives</h2>
+                <div className="aob-sub">Recent OMEGA directive history, including scheduled operator checkpoints.</div>
               </div>
             </div>
             {snapshot?.recentBroadcasts.length ? (
@@ -487,7 +487,7 @@ export default function AdminBroadcastPage() {
                 ))}
               </div>
             ) : (
-              <div className="aob-empty">No OMEGA broadcasts have been recorded yet. Your next send or schedule action will appear here.</div>
+              <div className="aob-empty">No OMEGA directives have been recorded yet. Your next issue or schedule action will appear here.</div>
             )}
           </section>
         </div>

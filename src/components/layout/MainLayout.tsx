@@ -331,7 +331,7 @@ const ADMIN_PLATFORM = {
   path:   "/admin",
   icon:   "⬡",
   name:   "Core Engine",
-  desc:   "Overview · Platform · Security · OMEGA",
+  desc:   "Operate · Directives · Security · OMEGA",
   status: "sovereign",
   tag:    "ADMIN ONLY",
   sub:    [

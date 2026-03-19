@@ -48,7 +48,7 @@ type ChatMessage = {
 
 const DEFAULT_COMMANDS = [
   "Which layer needs most attention",
-  "Show me everything blocking Market launch",
+  "Show me everything blocking Market activation",
   "Generate tenant health report",
   "Which tenant is most at risk of churning?",
   "Generate a status report for this week",
@@ -831,7 +831,7 @@ export default function AdminForgePage() {
             <h1 className="forge-title">FORGE INTELLIGENCE</h1>
             <p className="forge-subtitle">
               {snapshot?.description ??
-                "Your personal ecosystem supervisor. FORGE sees what OMEGA sees, but synthesises it specifically for you as operator."}
+                "FORGE briefs you as sovereign operator. It sees what OMEGA sees, then compresses it into the next directive that matters."}
             </p>
           </div>
 
@@ -1001,7 +1001,7 @@ export default function AdminForgePage() {
 
                 <textarea
                   className="forge-input"
-                  placeholder="Ask FORGE anything..."
+                  placeholder="Request a FORGE brief..."
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   onKeyDown={handleKeyDown}
@@ -1014,7 +1014,7 @@ export default function AdminForgePage() {
                 </button>
               </div>
               <div className="forge-note">
-                {note || "FORGE always responds with the single most important operator move right now."}
+                {note || "FORGE always briefs you on the single most important operator move right now."}
               </div>
             </form>
           </section>

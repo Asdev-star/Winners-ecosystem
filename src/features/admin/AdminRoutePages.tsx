@@ -1246,10 +1246,10 @@ export function AdminPlatformLayerPage() {
 
   async function launchLayer() {
     if (!layerId) return;
-    const confirmationText = checklist?.confirmationText ?? `LAUNCH ${layerId.toUpperCase()}`;
-    const launchSummary = checklist?.launchSummary ?? `Launch ${layer?.name ?? layerId} from admin.`;
+    const confirmationText = checklist?.confirmationText ?? `ACTIVATE ${layerId.toUpperCase()}`;
+    const launchSummary = checklist?.launchSummary ?? `Activate ${layer?.name ?? layerId} for users from admin.`;
     const typed = window.prompt(
-      `${launchSummary}\n\nType "${confirmationText}" to launch ${layer?.name ?? layerId}.`,
+      `${launchSummary}\n\nType "${confirmationText}" to activate ${layer?.name ?? layerId} for users.`,
       "",
     );
     if (typed === null) return;
@@ -1261,10 +1261,10 @@ export function AdminPlatformLayerPage() {
         body: JSON.stringify({ confirmationText: typed }),
       });
       await refresh();
-      setSuccess(`${layerId} launch command issued.`);
+      setSuccess(`${layerId} activation directive issued.`);
       setError("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to launch layer");
+      setError(err instanceof Error ? err.message : "Failed to activate layer");
     } finally {
       setBusy(false);
     }
@@ -1272,7 +1272,7 @@ export function AdminPlatformLayerPage() {
 
   async function suspendLayer() {
     if (!layerId) return;
-    const reason = window.prompt("Why are you suspending this layer?") ?? "";
+    const reason = window.prompt("Why are you suspending this layer? This directive is written to the immutable audit log.") ?? "";
     try {
       setBusy(true);
       await apiRequest(`/admin/platform/${layerId}/suspend`, {
@@ -1314,12 +1314,12 @@ export function AdminPlatformLayerPage() {
     <AdminConsoleShell
       eyebrow={`Admin / Platform / ${layerId || "layer"}`}
       title={layer?.name ?? "Layer Deep-Dive"}
-      subtitle={layer?.description ?? "Inspect readiness, dependencies, launch state, and the sovereign actions available for this layer."}
+      subtitle={layer?.description ?? "Inspect readiness, dependencies, activation state, and the sovereign directives available for this layer."}
       actions={
         <>
           <button className="act-button ghost" onClick={() => navigate("/admin/platform")}>Back to layers</button>
-          <button className="act-button ghost" onClick={runChecklist} disabled={busy || !layer}>Run checklist</button>
-          <button className="act-button" onClick={launchLayer} disabled={busy || !layer}>Launch</button>
+          <button className="act-button ghost" onClick={runChecklist} disabled={busy || !layer}>Run activation checklist</button>
+          <button className="act-button" onClick={launchLayer} disabled={busy || !layer}>Activate for users</button>
           <button className="act-button danger" onClick={suspendLayer} disabled={busy || !layer}>Suspend</button>
         </>
       }
@@ -1344,7 +1344,7 @@ export function AdminPlatformLayerPage() {
             <div className="act-card">
               <div className="act-kpi-label">Dependencies</div>
               <div className="act-kpi-value">{layer.dependencies.length}</div>
-              <div className="act-kpi-sub">Must be live before launch</div>
+              <div className="act-kpi-sub">Must be live before activation</div>
             </div>
             <div className="act-card">
               <div className="act-kpi-label">Features</div>
@@ -1413,10 +1413,10 @@ export function AdminPlatformLayerPage() {
                   <div className="act-kpi-sub">{checklist.isReady ? "No required blockers remain." : `${checklist.issues.length} required issue(s) must be resolved.`}</div>
                 </div>
                 <div className="act-card wide">
-                  <div className="act-section-title">Checklist Items</div>
+                  <div className="act-section-title">Activation Checklist</div>
                   {checklist.launchSummary ? (
                     <div className="act-mini-row">
-                      <span className="act-mini-label">Launch summary</span>
+                      <span className="act-mini-label">Activation summary</span>
                       <span className="act-mini-value">{checklist.launchSummary}</span>
                     </div>
                   ) : null}
@@ -1434,14 +1434,14 @@ export function AdminPlatformLayerPage() {
                   ))}
                   {checklist.launchEffects?.map((effect) => (
                     <div key={effect} className="act-mini-row">
-                      <span className="act-mini-label">Launch effect</span>
+                      <span className="act-mini-label">Activation effect</span>
                       <span className="act-mini-value">{effect}</span>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="act-empty">Run the checklist to inspect launch blockers for this layer.</div>
+              <div className="act-empty">Run the activation checklist to inspect blockers for this layer.</div>
             )}
           </div>
         </>

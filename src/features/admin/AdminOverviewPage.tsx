@@ -355,9 +355,9 @@ export default function AdminOverviewPage() {
           <div className="aov-modal" onClick={(e) => e.stopPropagation()}>
             <div className="aov-modal-head">
               <div>
-                <div className="aov-kicker">Pre-Launch Checklist</div>
+                <div className="aov-kicker">Pre-Activation Checklist</div>
                 <h2 className="aov-modal-title">{checklist.layerName}</h2>
-                <div className="aov-modal-sub">{checklist.loading ? "Pulling the latest launch blockers." : checklist.data?.isReady ? "This layer is clear for launch." : "This layer still has required checks to resolve before launch."}</div>
+                <div className="aov-modal-sub">{checklist.loading ? "Pulling the latest activation blockers." : checklist.data?.isReady ? "This layer is clear to activate for users." : "This layer still has required checks to resolve before activation."}</div>
               </div>
               <button className="aov-close" onClick={() => setChecklist(null)} aria-label="Close checklist">x</button>
             </div>
@@ -369,7 +369,7 @@ export default function AdminOverviewPage() {
                   {checklist.data?.checklist.map((item) => (
                     <div key={item.item} className="aov-check">
                       <div className={`aov-state ${item.status}`}>{item.status === "done" ? "OK" : item.status === "attention" ? "!" : "X"}</div>
-                      <div className="aov-check-copy">{item.item}<small>{item.required ? "Required for launch" : "Recommended before launch"}</small></div>
+                      <div className="aov-check-copy">{item.item}<small>{item.required ? "Required for activation" : "Recommended before activation"}</small></div>
                     </div>
                   ))}
                 </div>
@@ -413,7 +413,7 @@ export default function AdminOverviewPage() {
               <section className="aov-kpis">
                 <div className="aov-kpi"><div className="aov-kpi-label">MRR</div><div className="aov-kpi-value">{money(overview.kpis.mrr)}</div><div className={`aov-kpi-sub ${overview.kpis.mrrDeltaPct >= 0 ? "aov-positive" : "aov-attention"}`}>{pct(overview.kpis.mrrDeltaPct)} vs previous 30 days</div></div>
                 <div className="aov-kpi"><div className="aov-kpi-label">Users</div><div className="aov-kpi-value">{overview.kpis.users.toLocaleString()}</div><div className="aov-kpi-sub">{overview.kpis.activeUsers.toLocaleString()} active in the last 30 days</div></div>
-                <div className="aov-kpi"><div className="aov-kpi-label">Layers</div><div className="aov-kpi-value">{overview.kpis.liveLayers} live</div><div className="aov-kpi-sub">{overview.kpis.lockedLayers} locked for launch</div></div>
+                <div className="aov-kpi"><div className="aov-kpi-label">Layers</div><div className="aov-kpi-value">{overview.kpis.liveLayers} live</div><div className="aov-kpi-sub">{overview.kpis.lockedLayers} awaiting activation</div></div>
                 <div className="aov-kpi"><div className="aov-kpi-label">Loops</div><div className="aov-kpi-value">{overview.kpis.loopsToday}</div><div className={`aov-kpi-sub ${overview.kpis.loopsDeltaPct >= 0 ? "aov-positive" : "aov-attention"}`}>{pct(overview.kpis.loopsDeltaPct)} vs yesterday</div></div>
                 <div className="aov-kpi"><div className="aov-kpi-label">Health</div><div className="aov-kpi-value" style={{ fontSize: "30px" }}><span className={`aov-dot ${overview.kpis.healthTone === "attention" ? "attention" : ""}`} />{overview.kpis.healthTone === "ok" ? "All OK" : "Watch"}</div><div className="aov-kpi-sub">{overview.kpis.healthLabel}</div></div>
               </section>
@@ -422,8 +422,8 @@ export default function AdminOverviewPage() {
                 <div className="aov-stack">
                   <div className="aov-panel">
                     <div className="aov-head">
-                      <div><div className="aov-kicker">Layer Status Grid</div><h2 className="aov-title">Eight-layer launch matrix</h2></div>
-                      {nextLocked ? <button className="aov-mini-link" onClick={() => void openChecklist(nextLocked)}>Launch Next Layer</button> : null}
+                      <div><div className="aov-kicker">Layer Status Grid</div><h2 className="aov-title">Eight-layer activation matrix</h2></div>
+                      {nextLocked ? <button className="aov-mini-link" onClick={() => void openChecklist(nextLocked)}>Review Next Activation</button> : null}
                     </div>
                     <div className="aov-layers">
                       {overview.layers.map((layer) => (
@@ -473,8 +473,8 @@ export default function AdminOverviewPage() {
                   </div>
 
                   <div className="aov-panel">
-                    <div className="aov-head"><div><div className="aov-kicker">Recent Admin Actions</div><h2 className="aov-title">Latest sovereign control events</h2></div></div>
-                    {overview.recentActions.length === 0 ? <div className="aov-empty">No admin actions have been recorded yet.</div> : (
+                    <div className="aov-head"><div><div className="aov-kicker">Recent Directives</div><h2 className="aov-title">Latest sovereign control events</h2></div></div>
+                    {overview.recentActions.length === 0 ? <div className="aov-empty">No admin directives have been recorded yet.</div> : (
                       <div className="aov-actions-list">
                         {overview.recentActions.map((item) => (
                           <div key={item.id} className="aov-row"><div className="aov-date">{actionDate(item.createdAt)}</div><div>{item.summary}</div></div>

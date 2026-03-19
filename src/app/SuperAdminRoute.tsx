@@ -1,7 +1,6 @@
 // src/app/SuperAdminRoute.tsx
 // Sovereign admin boundary for the hidden Core Engine realm.
 
-import { Navigate } from "react-router-dom";
 import { useAuthStore } from "../features/auth/authStore";
 import type { ReactNode } from "react";
 import { useSuperAdminAccess } from "./useSuperAdminAccess";
@@ -17,7 +16,7 @@ export default function SuperAdminRoute({ children }: Props) {
   const { hasAccess, isChecking } = useSuperAdminAccess();
 
   if (isRestoring) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <HiddenNotFoundPage />;
   if (isChecking) return null;
 
   // Non-admin identities should never see the sovereign command surface.

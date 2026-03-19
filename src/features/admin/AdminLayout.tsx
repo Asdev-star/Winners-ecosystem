@@ -172,7 +172,7 @@ const css = `
 `;
 
 function pageTitle(pathname: string) {
-  if (pathname.startsWith("/admin/platform")) return "Platform Launch Control";
+  if (pathname.startsWith("/admin/platform")) return "Platform Activation Control";
   if (pathname.startsWith("/admin/tenants")) return "Tenant Command";
   if (pathname.startsWith("/admin/users")) return "User Command";
   if (pathname.startsWith("/admin/revenue")) return "Revenue Command";
@@ -225,7 +225,7 @@ export default function AdminLayout() {
               </span>
               <span className="adl-meta-pill">
                 Status
-                <strong>All Systems Live</strong>
+                <strong>Operate</strong>
               </span>
             </div>
           </div>
