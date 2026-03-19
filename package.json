@@ -6,6 +6,7 @@
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.server.json && vite build",
     "db:push": "prisma db push",
+    "db:migrate:deploy": "prisma migrate deploy",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "test": "vitest run",
