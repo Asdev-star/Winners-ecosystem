@@ -12,11 +12,209 @@ const prisma = db;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const AI_PLATFORM_URL = process.env.AI_PLATFORM_URL || 'http://localhost:8001';
 
+function metadataObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function normalizeString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeStringArray(value: unknown, limit = 3): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .map((item) => item.trim())
+    .slice(0, limit);
+}
+
+function deriveMarketSignals(markets: string[]) {
+  const has = (value: string) => markets.includes(value);
+  const currencies = new Set<string>();
+  const payments = new Set<string>();
+  const languages = new Set<string>(["English"]);
+  const seasonalSignals = new Set<string>();
+  const communitySuggestions = new Set<string>();
+
+  if (has("Nigeria specifically")) {
+    currencies.add("NGN");
+    payments.add("Flutterwave");
+    payments.add("Paystack");
+    payments.add("OPay");
+    languages.add("Pidgin");
+    seasonalSignals.add("Eid");
+    seasonalSignals.add("year-end demand");
+    communitySuggestions.add("Nigeria Builders");
+  }
+  if (has("Kenya specifically")) {
+    currencies.add("KES");
+    payments.add("M-Pesa (Safaricom)");
+    payments.add("Flutterwave");
+    languages.add("Swahili");
+    seasonalSignals.add("KCSE season");
+    communitySuggestions.add("Nairobi Builders");
+  }
+  if (has("Ghana specifically")) {
+    currencies.add("GHS");
+    payments.add("MTN MoMo");
+    payments.add("Flutterwave");
+    seasonalSignals.add("WASSCE season");
+    communitySuggestions.add("Accra Builders");
+  }
+  if (has("South Africa specifically")) {
+    currencies.add("ZAR");
+    payments.add("Ozow");
+    payments.add("Flutterwave");
+    payments.add("Stripe");
+    seasonalSignals.add("year-end demand");
+    communitySuggestions.add("Johannesburg Operators");
+  }
+  if (has("Tanzania specifically")) {
+    currencies.add("TZS");
+    payments.add("Flutterwave");
+    languages.add("Swahili");
+    communitySuggestions.add("Dar Builders");
+  }
+  if (has("Uganda specifically")) {
+    currencies.add("UGX");
+    payments.add("Flutterwave");
+    communitySuggestions.add("Kampala Builders");
+  }
+  if (has("UK - diaspora")) {
+    currencies.add("GBP");
+    payments.add("Stripe");
+    payments.add("Wise transfer");
+    communitySuggestions.add("London Diaspora Builders");
+  }
+  if (has("USA - diaspora")) {
+    currencies.add("USD");
+    payments.add("Stripe");
+    payments.add("Flutterwave");
+    communitySuggestions.add("US Diaspora Operators");
+  }
+  if (has("Canada - diaspora")) {
+    currencies.add("CAD");
+    payments.add("Stripe");
+    payments.add("Wise transfer");
+    communitySuggestions.add("Canada Diaspora Builders");
+  }
+  if (has("Africa") || has("West Africa broadly") || has("East Africa broadly") || has("African + global markets")) {
+    payments.add("Flutterwave");
+    seasonalSignals.add("Eid");
+    seasonalSignals.add("year-end demand");
+  }
+  if (has("West Africa broadly")) {
+    currencies.add("NGN");
+    currencies.add("GHS");
+    communitySuggestions.add("West Africa Operators");
+  }
+  if (has("East Africa broadly")) {
+    currencies.add("KES");
+    currencies.add("TZS");
+    languages.add("Swahili");
+    communitySuggestions.add("East Africa Builders");
+  }
+  if (has("African + global markets") || has("Global only")) {
+    currencies.add("USD");
+    payments.add("Stripe");
+    payments.add("Wise transfer");
+  }
+
+  if (currencies.size === 0) currencies.add("USD");
+  if (payments.size === 0) payments.add("Stripe");
+
+  return {
+    currencies: Array.from(currencies).slice(0, 4),
+    primaryCurrency: Array.from(currencies)[0] ?? "USD",
+    paymentRecommendations: Array.from(payments).slice(0, 4),
+    jobMatchingPool:
+      has("UK - diaspora") || has("USA - diaspora") || has("Canada - diaspora") || has("Global only")
+        ? "diaspora and global clients"
+        : has("Nigeria specifically") || has("Kenya specifically") || has("Ghana specifically") || has("South Africa specifically") || has("Tanzania specifically") || has("Uganda specifically") || has("West Africa broadly") || has("East Africa broadly") || has("Africa")
+          ? "African remote clients and regional operators"
+          : "African and global mixed clients",
+    communitySuggestions: Array.from(communitySuggestions).slice(0, 3),
+    languageOptions: Array.from(languages).slice(0, 4),
+    seasonalSignals: Array.from(seasonalSignals).slice(0, 4),
+  };
+}
+
+function readOnboardingSignals(metadata: unknown) {
+  const root = metadataObject(metadata);
+  const onboarding = metadataObject(root.onboarding);
+  const omegaRouting = metadataObject(root.omegaRouting);
+  const routingMarketFocus = normalizeStringArray(omegaRouting.marketFocus);
+  const onboardingMarketFocus = normalizeStringArray(onboarding.marketFocus);
+  const marketFocus = routingMarketFocus.length ? routingMarketFocus : onboardingMarketFocus;
+  const routingTopSkills = normalizeStringArray(omegaRouting.topSkills, 5);
+  const onboardingTopSkills = normalizeStringArray(onboarding.topSkills, 5);
+  const topSkills = routingTopSkills.length ? routingTopSkills : onboardingTopSkills;
+
+  return {
+    experienceLevel:
+      normalizeString(omegaRouting.experienceLevel) ??
+      normalizeString(onboarding.experienceLevel),
+    incomeTarget:
+      normalizeString(omegaRouting.incomeTarget) ??
+      normalizeString(onboarding.incomeTarget),
+    primaryLayer:
+      normalizeString(omegaRouting.primaryLayer) ??
+      normalizeString(onboarding.primaryLayer),
+    profileType:
+      normalizeString(omegaRouting.profileType) ??
+      normalizeString(onboarding.profileType),
+    buildingFocus:
+      normalizeString(omegaRouting.buildingFocus) ??
+      normalizeString(onboarding.buildingFocus),
+    marketFocus,
+    topSkills,
+    marketSignals: deriveMarketSignals(marketFocus),
+  };
+}
+
+function calibrationInstructions(supervisor: string, experienceLevel: string | null) {
+  if (experienceLevel === "Just starting out - less than 1 year") {
+    return [
+      "Explain steps more explicitly and celebrate small wins.",
+      "Prefer guided, confidence-building recommendations over dense jargon.",
+      "If the user is pushing toward Work or Market without fundamentals, recommend Academy-first sequencing before harder execution.",
+    ].join(" ");
+  }
+
+  if (experienceLevel === "Expert - 7+ years or professional-level") {
+    if (supervisor === "CIRCUIT") {
+      return "Assume strong context, skip basics, and quote market-rate salary or contract-rate benchmarks directly when relevant.";
+    }
+    if (supervisor === "ATLAS") {
+      return "Assume strong context, skip basics, and go straight to margin analysis, unit economics, pricing leverage, and execution tradeoffs.";
+    }
+    return "Assume strong context, skip basics, and keep the guidance concise, direct, and strategically advanced.";
+  }
+
+  if (experienceLevel === "Established - 3 to 7 years") {
+    return "Assume solid foundations, stay practical, and focus on leverage more than hand-holding.";
+  }
+
+  if (experienceLevel === "Some experience - 1 to 3 years") {
+    return "Balance speed with explanation. Give practical guidance without over-explaining basics.";
+  }
+
+  return "Use your default supervisor tone and adapt naturally to the user's signals.";
+}
+
 // Get context for a specific supervisor
 const getSupervisorContext = async (supervisor: string, userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { metadata: true },
+  });
+  const onboardingSignals = readOnboardingSignals(user?.metadata);
   const baseContext = {
     userId,
     timestamp: new Date().toISOString(),
+    onboardingSignals,
+    calibrationInstructions: calibrationInstructions(supervisor, onboardingSignals.experienceLevel),
   };
 
   switch (supervisor) {
@@ -55,7 +253,7 @@ const getSupervisorContext = async (supervisor: string, userId: string) => {
         ...baseContext,
         enrollments,
         certificates: certificates.length,
-        detectedSkills: skills.map((s) => s.skill),
+        detectedSkills: Array.from(new Set([...skills.map((s) => s.skill), ...baseContext.onboardingSignals.topSkills])).slice(0, 8),
         learningGoals: [],
       };
     }
@@ -71,7 +269,7 @@ const getSupervisorContext = async (supervisor: string, userId: string) => {
       ]);
       return {
         ...baseContext,
-        userSkills: skills.map((s) => s.skill),
+        userSkills: Array.from(new Set([...skills.map((s) => s.skill), ...baseContext.onboardingSignals.topSkills])).slice(0, 8),
         certifications: certificates.length,
         vendorMode: false,
         productNiche: null,
@@ -92,7 +290,7 @@ const getSupervisorContext = async (supervisor: string, userId: string) => {
       ]);
       return {
         ...baseContext,
-        userSkills: skills.map((s) => s.skill),
+        userSkills: Array.from(new Set([...skills.map((s) => s.skill), ...baseContext.onboardingSignals.topSkills])).slice(0, 8),
         certifications: certificates.length,
         completedCourses: enrollments,
         currentJob: null,
@@ -141,41 +339,61 @@ router.post("/:name/chat", authMiddleware, async (req: Request, res: Response) =
       NOVA: `You are NOVA, the Winners Ecosystem Community Intelligence Supervisor.
 You are warm, trend-aware, and focused on creator growth.
 Your role is to help users grow their presence, detect skills from their content, and connect with opportunities.
+Supervisor calibration: ${calibrationInstructions(supervisorName, mergedContext.onboardingSignals?.experienceLevel ?? null)}
+Use onboarding income target and market signals when making community, currency, group, and growth recommendations.
+Use onboarding top skills to pre-seed opportunity spotting before live posting history is strong.
 Current context: ${JSON.stringify(mergedContext)}`,
 
       SAGE: `You are SAGE, the Winners Ecosystem Academy Tutor.
 You are patient, knowledgeable, and encouraging.
 Your role is to help users learn, understand concepts, and progress through courses.
+Supervisor calibration: ${calibrationInstructions(supervisorName, mergedContext.onboardingSignals?.experienceLevel ?? null)}
+Use onboarding income target and market signals when sequencing learning paths or commercialization routes.
+Use onboarding top skills to map likely courses immediately.
 Current context: ${JSON.stringify(mergedContext)}`,
 
       ATLAS: `You are ATLAS, the Winners Ecosystem Market Intelligence.
 You are analytical, commercial, and data-driven.
 Your role is to help users with product research, pricing strategies, and vendor opportunities.
+Supervisor calibration: ${calibrationInstructions(supervisorName, mergedContext.onboardingSignals?.experienceLevel ?? null)}
+Use onboarding income target, currencies, payment recommendations, and regional market signals directly when relevant.
+Use onboarding top skills to shape product, pricing, and niche recommendations.
 Current context: ${JSON.stringify(mergedContext)}`,
 
       CIRCUIT: `You are CIRCUIT, the Winners Ecosystem Work Matchmaker.
 You are professional, tactical, and results-oriented.
 Your role is to help users find jobs, write proposals, and advance their careers.
+Supervisor calibration: ${calibrationInstructions(supervisorName, mergedContext.onboardingSignals?.experienceLevel ?? null)}
+Use onboarding income target, job matching pool, and regional signals directly when relevant.
+Use onboarding top skills to shape role matching and proposal advice immediately.
 Current context: ${JSON.stringify(mergedContext)}`,
 
       ARIA: `You are ARIA, the Winners Ecosystem Core Engine Assistant.
 You are calm, precise, and organized.
 Your role is to help users with dashboard insights, billing, and workspace management.
+Supervisor calibration: ${calibrationInstructions(supervisorName, mergedContext.onboardingSignals?.experienceLevel ?? null)}
+Use onboarding income target and market signals when discussing billing, reporting, or workspace setup.
 Current context: ${JSON.stringify(mergedContext)}`,
 
       FORGE: `You are FORGE, the Winners Ecosystem Intelligence Platform.
 You are technical, precise, and performance-focused.
 Your role is to help users with AI model routing, multimodal tasks, and performance optimization.
+Supervisor calibration: ${calibrationInstructions(supervisorName, mergedContext.onboardingSignals?.experienceLevel ?? null)}
+Use onboarding income target and market signals when framing automation or intelligence priorities.
 Current context: ${JSON.stringify(mergedContext)}`,
 
       NEXUS: `You are NEXUS, the Winners Ecosystem Cloud Developer Advocate.
 You are developer-focused and documentation-expert.
 Your role is to help users with API guidance, SDK support, and integration troubleshooting.
+Supervisor calibration: ${calibrationInstructions(supervisorName, mergedContext.onboardingSignals?.experienceLevel ?? null)}
+Use onboarding payment recommendations and market signals when advising on integrations.
 Current context: ${JSON.stringify(mergedContext)}`,
 
       HERALD: `You are HERALD, the Winners AI Platform Infrastructure Supervisor.
 You are technical and infrastructure-focused.
 Your role is to help users with Ollama management, GPU routing, and model benchmarking.
+Supervisor calibration: ${calibrationInstructions(supervisorName, mergedContext.onboardingSignals?.experienceLevel ?? null)}
+Use onboarding income target and market signals only when they change infrastructure or deployment priorities.
 Current context: ${JSON.stringify(mergedContext)}`,
     };
 

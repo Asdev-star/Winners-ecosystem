@@ -6,6 +6,8 @@ import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ContextBar from "../../../components/ui/ContextBar";
 import AIInsightBanner from "../../../components/ui/AIInsightBanner";
+import VoiceInput from "../../../components/ai/VoiceInput";
+import ImageGenPanel from "../../../components/ai/ImageGenPanel";
 
 const PROVIDERS = [
   { id: "claude", name: "Claude 3.5 Sonnet", icon: "🧠", bestFor: "Reasoning, PDFs, Images", color: "var(--gold)" },
@@ -452,6 +454,7 @@ export default function AIPlatformPage() {
   const [message, setMessage] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [messages, setMessages] = useState<Array<{role: string; content: string}>>([
     { role: "assistant", content: "Welcome to Winners AI Platform. Upload any file — images, PDFs, audio, or video — and I'll analyze it using the best AI provider for your needs." }
   ]);
@@ -483,23 +486,52 @@ export default function AIPlatformPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSend = () => {
-    if (!message.trim() && !uploadedFile) return;
+  const handleSend = async () => {
+    if ((!message.trim() && !uploadedFile) || isStreaming) return;
 
-    const newMessages = [...messages, { role: "user", content: message }];
-    if (uploadedFile) {
-      newMessages[newMessages.length - 1].content += ` [Attached: ${uploadedFile.name}]`;
-    }
-    setMessages(newMessages);
-    setMessage("");
+    const userMsgContent = message.trim() || (uploadedFile ? `Analysing ${uploadedFile.name}` : "");
+    const displayContent = userMsgContent + (uploadedFile ? ` [Attached: ${uploadedFile.name}]` : "");
     
-    // Simulate response
-    setTimeout(() => {
+    setMessages(prev => [...prev, { role: "user", content: displayContent }]);
+    const currentMessage = message;
+    setMessage("");
+    setIsStreaming(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("message", userMsgContent);
+      formData.append("model", selectedProvider);
+      if (uploadedFile) {
+        formData.append("file", uploadedFile);
+      }
+
+      const response = await fetch("/api/v1/ai-platform/multimodal", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(prev => [...prev, { 
+          role: "assistant", 
+          content: data.response || "No response received." 
+        }]);
+      } else {
+        throw new Error("Failed to get response");
+      }
+    } catch (err) {
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "I've received your request. Processing with " + PROVIDERS.find(p => p.id === selectedProvider)?.name + "..." 
+        content: "Error: " + (err instanceof Error ? err.message : "Unknown error") 
       }]);
-    }, 1000);
+    } finally {
+      setIsStreaming(false);
+      setUploadedFile(null);
+    }
+  };
+
+  const handleTranscription = (text: string) => {
+    setMessage(prev => (prev ? `${prev} ${text}` : text));
   };
 
   return (
@@ -609,6 +641,7 @@ export default function AIPlatformPage() {
               )}
 
               <div className="input-row">
+                <VoiceInput onTranscription={handleTranscription} disabled={isStreaming} />
                 <textarea
                   className="chat-input"
                   placeholder="Ask anything... (or drop a file above)"
@@ -622,8 +655,12 @@ export default function AIPlatformPage() {
                     }
                   }}
                 />
-                <button className="chat-send" onClick={handleSend}>
-                  Send
+                <button 
+                  className="chat-send" 
+                  onClick={handleSend}
+                  disabled={isStreaming}
+                >
+                  {isStreaming ? "..." : "Send"}
                 </button>
               </div>
             </div>
@@ -631,6 +668,9 @@ export default function AIPlatformPage() {
 
           {/* Sidebar */}
           <div className="platform-sidebar">
+            {/* Image Forge */}
+            <ImageGenPanel />
+
             {/* Credits */}
             <div className="sidebar-section">
               <div className="credits-display">

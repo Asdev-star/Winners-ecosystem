@@ -31,6 +31,69 @@ export const PLAN_LIMITS = {
 
 export type PlanKey = keyof typeof PLAN_LIMITS;
 
+export const FREE_PLAN_LIMITS = {
+  postsPerMonth: 10,
+  novaChatPerMonth: 5,
+  groupsJoined: 3,
+  directMessages: false,
+  sageChatPerMonth: 20,
+  quizAttemptsPerQuiz: 3,
+  paidCourses: false,
+  offlineLessons: 0,
+  vendorProducts: 5,
+  dropshippingStores: 1,
+  atlasQueriesPerMonth: 3,
+  atlasAdCopyPerMonth: 1,
+  businessPlansPerMonth: 1,
+  cvExportsPerMonth: 1,
+  vendorPayouts: false,
+  omegaBriefing: "weekly",
+  ariaChatPerMonth: 10,
+  supervisorChatPerMonth: 5,
+  aiCreditsPerMonth: 100,
+  localAI: "unlimited",
+  voiceMinutesPerMonth: 5,
+  imageGenerations: 0,
+  pdfAnalysisPerMonth: 3,
+  jobApplicationsPerMonth: 3,
+  portfolioItems: 3,
+  activeContracts: 1,
+  circuitChatPerMonth: 5,
+  escrowAsFreelancer: false,
+  apiKeys: 0,
+  apiCallsPerMonth: 0,
+  webhookSubscriptions: 0,
+} as const;
+
+const LIMIT_MESSAGES: Record<string, string> = {
+  postsPerMonth: "You have reached the monthly Free post limit.",
+  jobApplicationsPerMonth: "You have used all Free job applications for this month.",
+  atlasQueriesPerMonth: "You have used all ATLAS research queries on the Free plan.",
+  aiCreditsPerMonth: "You have used this month's Free AI credit allocation.",
+  vendorPayouts: "Vendor payouts are not available on the Free plan.",
+  sageChatPerMonth: "You have used all SAGE tutor messages on the Free plan.",
+};
+
+const OMEGA_UPGRADE_MESSAGES: Record<string, string> = {
+  postsPerMonth: "You've reached your 10 posts for this month. Pro removes the limit entirely.",
+  jobApplicationsPerMonth: "3 applications used. CIRCUIT has more matches waiting. Pro removes the limit.",
+  atlasQueriesPerMonth: "ATLAS has more product ideas. 3 queries per month on Free, 50 on Pro.",
+  aiCreditsPerMonth: "100 AI credits used this month. Local models like Ollama are still always free.",
+  vendorPayouts: "Your first sale is ready to pay out. Pro enables vendor payouts.",
+  sageChatPerMonth: "SAGE has more to tell you. Pro gives unlimited tutor access.",
+};
+
+export function limitHitResponse(feature: string, currentPlan: string) {
+  return {
+    error: "limit_reached",
+    feature,
+    currentPlan,
+    message: LIMIT_MESSAGES[feature] || "This feature requires a Pro plan.",
+    upgradeLink: "/billing",
+    omegaSays: OMEGA_UPGRADE_MESSAGES[feature] || "Upgrade to Pro to continue.",
+  };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function getTenantPlan(tenantId: string): Promise<PlanKey> {
@@ -54,7 +117,9 @@ export function enforceSeatLimit() {
       const limit    = PLAN_LIMITS[plan].seats;
 
       if (seats >= limit) {
+        const payload = limitHitResponse("seats", plan);
         return res.status(403).json({
+          ...payload,
           message:  `Seat limit reached (${seats}/${limit}) for ${plan} plan`,
           code:     "SEAT_LIMIT_REACHED",
           upgrade:  plan === "FREE" ? "pro" : "enterprise",
@@ -73,7 +138,9 @@ export function enforceForecastingAccess() {
     try {
       const plan = await getTenantPlan(req.user!.tenantId);
       if (!PLAN_LIMITS[plan].forecasting) {
+        const payload = limitHitResponse("forecasting", plan);
         return res.status(403).json({
+          ...payload,
           message: "Forecasting is not available on the FREE plan",
           code:    "FEATURE_NOT_AVAILABLE",
           upgrade: "pro",
@@ -96,7 +163,9 @@ export function enforceAnalyticsPeriod() {
       const days    = period === "7d" ? 7 : period === "90d" ? 90 : 30;
 
       if (days > maxDays) {
+        const payload = limitHitResponse("analyticsDays", plan);
         return res.status(403).json({
+          ...payload,
           message: `${period} analytics not available on ${plan} plan (max ${maxDays} days)`,
           code:    "PERIOD_LIMIT_EXCEEDED",
           upgrade: plan === "FREE" ? "pro" : "enterprise",

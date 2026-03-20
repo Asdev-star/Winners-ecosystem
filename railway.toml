@@ -1,36 +1,32 @@
 # railway.toml
 # Winners Ecosystem - Railway Deployment Configuration
 
-[build]
+# This file is configured for a multi-service deployment.
+
+# This service appears to be the primary web application, configured to build from a Dockerfile.
+# A name ("web") has been assigned as it's required in a multi-service setup.
+[[services]]
+name = "web"
 builder = "DOCKERFILE"
 buildCommand = "npm install && npm run build"
-
-[deploy]
 startCommand = "npm run start:prod"
 healthcheckPath = "/health"
-healthcheckTimeout = 60
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
+healthcheckTimeout = 30
 
-# Backup Configuration
-# Railway provides automatic daily backups for PostgreSQL
-# This config ensures backups are enabled via Railway dashboard settings
+[services.env]
+PORT         = "8001"
+OLLAMA_HOST  = "http://localhost:11434"
+WHISPER_MODEL = "medium"
 
-[database]
-# PostgreSQL configuration
-# Backups are managed through Railway's built-in backup system
-# Enable backups in Railway dashboard: Your Project → Databases → PostgreSQL → Backups
+# This is the new FastAPI service for AI tasks.
+[[services]]
+name        = "ai-platform"
+source      = "ai-platform/"
+startCommand = "uvicorn main:app --host 0.0.0.0 --port 8001"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
 
-[backup]
-# Note: Railway Pro plans include automated daily backups
-# For custom backup schedules, use Railway's CLI:
-# railway backup create
-# railway backup list
-# railway backup restore <backup-id>
-
-# Environment variables for backup retention
-# BACKUP_RETENTION_DAYS=30 (default)
-
-[metrics]
-# Enable metrics collection for monitoring
-enabled = true
+[services.env]
+PORT         = "8001"
+OLLAMA_HOST  = "http://localhost:11434"
+WHISPER_MODEL = "medium"

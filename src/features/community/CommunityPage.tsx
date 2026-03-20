@@ -10,6 +10,8 @@ import LayerSubNav from "../../components/ui/LayerSubNav";
 import ContextBar from "../../components/ui/ContextBar";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
+import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
+import VoiceInput from "../../components/ai/VoiceInput";
 import { usePresence } from "./usePresence";
 
 const API = API_BASE;
@@ -2035,6 +2037,8 @@ export default function CommunityPage() {
           {/* Ecosystem Context Bar */}
           <ContextBar activeLayer="community" showLabels={true} />
 
+          <OmegaProfileAssignmentCard layer="community" />
+
           {/* NOVA Insight Banner */}
           {showNovaBanner && (
             <div className="cm-nova-banner">
@@ -2119,7 +2123,12 @@ export default function CommunityPage() {
             </div>
             <div className="cm-compose-footer">
               <div className="cm-compose-tools">
-                <button className="cm-tool-btn" title="Voice post">🎙️</button>
+                {/* NOVA Voice Post - Hold to record, Whisper transcribes, NOVA analyzes for skills */}
+                <VoiceInput 
+                  onTranscript={(transcript) => {
+                    setContent((prev: string) => prev + (prev ? " " : "") + transcript);
+                  }} 
+                />
                 <button className="cm-tool-btn" title="Image">📷</button>
                 <button className="cm-tool-btn" title="Thread">🧵</button>
                 <button className="cm-tool-btn" title="Schedule">📅</button>
@@ -2492,4 +2501,3 @@ export default function CommunityPage() {
     </>
   );
 }
-

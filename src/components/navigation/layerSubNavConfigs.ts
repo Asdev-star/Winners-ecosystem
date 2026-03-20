@@ -32,7 +32,7 @@ export const COMMUNITY_SUBNAV: LayerSubNavConfig = {
   layer: "community",
   accent: "var(--ice)",
   items: [
-    { id: "community-feed", label: "Feed", to: "/community" },
+    { id: "community-feed", label: "Feed", to: "/community", aliases: ["/community/feed"] },
     { id: "community-groups", label: "Groups", to: "/community/groups" },
     { id: "community-spaces", label: "Live Spaces", to: "/community/spaces", badge: "Live", badgeTone: "positive" },
     { 
@@ -144,7 +144,7 @@ export const MARKET_SUBNAV_BUYER: LayerSubNavConfig = {
     { id: "market-dropshipping", label: "Dropshipping",      to: "/market/dropshipping" },
     { id: "market-cart",         label: "Cart",              to: "/market/cart" },
     { id: "market-orders",       label: "Orders",            to: "/market/orders" },
-    { id: "market-digital",      label: "Digital Marketing", to: "/market/digital-marketing" },
+    { id: "market-digital",      label: "Digital Marketing", to: "/market/digital-marketing", aliases: ["/market/marketing"] },
     { id: "market-business",     label: "Business Launcher", to: "/market/business-launcher" },
     { id: "market-stream",       label: "Streaming",         to: "/market/stream" },
     { id: "market-trading",      label: "Trading",           to: "/market/trading" },
@@ -180,7 +180,7 @@ export const WORK_SUBNAV_FREELANCER: LayerSubNavConfig = {
   layer: "work",
   accent: "var(--blue)",
   items: [
-    { id: "work-jobs",        label: "Browse Jobs",   to: "/work",             badge: "Live", badgeTone: "positive" },
+    { id: "work-jobs",        label: "Browse Jobs",   to: "/work",             aliases: ["/work/jobs"], badge: "Live", badgeTone: "positive" },
     { id: "work-freelancers", label: "Find Talent",   to: "/work/freelancers" },
     { id: "work-contracts",   label: "My Contracts",  to: "/work/contracts" },
     { id: "work-profile",     label: "My Profile",    to: "/work/profile" },
@@ -198,7 +198,7 @@ export const WORK_SUBNAV_EMPLOYER: LayerSubNavConfig = {
   layer: "work",
   accent: "var(--blue)",
   items: [
-    { id: "work-jobs",        label: "Job Board",     to: "/work",             badge: "Live", badgeTone: "positive" },
+    { id: "work-jobs",        label: "Job Board",     to: "/work",             aliases: ["/work/jobs"], badge: "Live", badgeTone: "positive" },
     { id: "work-freelancers", label: "Find Talent",   to: "/work/freelancers" },
     { id: "work-contracts",   label: "Contracts",     to: "/work/contracts" },
     { id: "work-profile",     label: "My Profile",    to: "/work/profile" },

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import AssistantPanel from "../../components/ui/AssistantPanel";
+import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 
@@ -105,6 +106,7 @@ export default function CloudPage() {
 
   return (
     <div style={{ padding: "32px 28px", maxWidth: 1200, margin: "0 auto" }}>
+      <OmegaProfileAssignmentCard layer="cloud" />
       <style>{`
         .cloud-ctx-bar { display:flex; gap:8px; marginBottom:22px; flexWrap:wrap; }
         .ctx-badge { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.08em; padding:4px 10px; border-radius:3px; border:1px solid; transition:all 200ms ease; }

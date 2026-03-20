@@ -198,6 +198,7 @@ function App() {
             <Route path="referral" element={<ReferralPage />} />
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="community" element={<CommunityPage />} />
+            <Route path="community/feed" element={<CommunityPage />} />
             <Route path="community/groups" element={<GroupsPage />} />
             <Route path="community/spaces" element={<LiveSpacesPage />} />
             <Route
@@ -299,7 +300,9 @@ function App() {
             <Route path="market/business-launcher" element={<LayerRouteGate layerId="market"><BusinessLauncherPage /></LayerRouteGate>} />
             <Route path="market/cv-tools" element={<LayerRouteGate layerId="market"><CVToolsPage /></LayerRouteGate>} />
             <Route path="market/digital-marketing" element={<LayerRouteGate layerId="market"><DigitalMarketingPage /></LayerRouteGate>} />
+            <Route path="market/marketing" element={<LayerRouteGate layerId="market"><DigitalMarketingPage /></LayerRouteGate>} />
             <Route path="work" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
+            <Route path="work/jobs" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
             <Route path="work/freelancers" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
             <Route path="work/contracts" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
             <Route path="work/escrow" element={<LayerRouteGate layerId="work"><EscrowPage /></LayerRouteGate>} />

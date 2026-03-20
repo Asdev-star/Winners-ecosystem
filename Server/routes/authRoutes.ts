@@ -9,6 +9,7 @@ import { authMiddleware } from "../middleware/authMiddleware.js";
 import type { JwtPayload } from "../middleware/authMiddleware.js";
 import { logActivity, ACTIONS } from "../services/activityService.js";
 import { emitAdminEvent } from "../services/adminEventService.js";
+import { buildReturningOmegaBriefing, extractOnboardingState } from "../services/returningOmegaBriefingService.js";
 
 const router = Router();
 
@@ -68,6 +69,13 @@ const authUserSelect = {
   password: true,
   role: true,
   tenantId: true,
+  metadata: true,
+  onboardingDone: true,
+  profileType: true,
+  firstPlatform: true,
+  omegaMission: true,
+  primarySkills: true,
+  skills: true,
   tenant: {
     select: {
       name: true,
@@ -110,7 +118,15 @@ router.post("/register", async (req: Request, res: Response) => {
 
     return res.status(201).json({
       token, refreshToken, isNewUser: true,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role.toLowerCase(),
+        tenantId: user.tenantId,
+        tenantName: user.tenant.name,
+        ...extractOnboardingState(user),
+      },
     });
   } catch (err) {
     console.error("Register error:", err);
@@ -137,6 +153,8 @@ router.post("/login", async (req: Request, res: Response) => {
     const payload      = buildPayload(user);
     const token        = signToken(payload, JWT_EXPIRES_IN);
     const refreshToken = signToken(payload, JWT_REFRESH_EXPIRES);
+    const onboardingState = extractOnboardingState(user);
+    const omegaWelcome = await buildReturningOmegaBriefing(user);
 
     await logActivity({
       tenantId: user.tenantId, userId: user.id, userEmail: user.email,
@@ -145,7 +163,16 @@ router.post("/login", async (req: Request, res: Response) => {
 
     return res.json({
       token, refreshToken,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role.toLowerCase(),
+        tenantId: user.tenantId,
+        tenantName: user.tenant.name,
+        ...onboardingState,
+      },
+      omegaWelcome,
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -188,6 +215,13 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
         name: true,
         role: true,
         tenantId: true,
+        metadata: true,
+        onboardingDone: true,
+        profileType: true,
+        firstPlatform: true,
+        omegaMission: true,
+        primarySkills: true,
+        skills: true,
         tenant: {
           select: {
             name: true,
@@ -203,6 +237,7 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
       role: user.role.toLowerCase(),
       tenantId: user.tenantId,
       tenantName: user.tenant.name,
+      ...extractOnboardingState(user),
       isImpersonation: Boolean(req.user?.isImpersonation),
       impersonatedByAdminId: req.user?.adminId,
     });
@@ -248,7 +283,15 @@ router.post("/accept-invite", async (req: Request, res: Response) => {
 
     return res.status(201).json({
       token: jwtToken, refreshToken,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role.toLowerCase(),
+        tenantId: user.tenantId,
+        tenantName: user.tenant.name,
+        ...extractOnboardingState(user),
+      },
     });
   } catch (err) {
     console.error("Accept invite error:", err);
@@ -298,6 +341,8 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
       emitSignupAdminEvent(user);
     }
 
+    const onboardingState = extractOnboardingState(user);
+    const omegaWelcome = isNewUser ? null : await buildReturningOmegaBriefing(user);
     await logActivity({
       tenantId: user.tenantId, userId: user.id, userEmail: user.email,
       userName: user.name, action: isNewUser ? "New account created via Google" : ACTIONS.GOOGLE_LOGIN,
@@ -308,7 +353,16 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
     const token      = signToken(jwtPayload, JWT_EXPIRES_IN);
     return res.json({
       token, isNewUser,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role.toLowerCase(),
+        tenantId: user.tenantId,
+        tenantName: user.tenant.name,
+        ...onboardingState,
+      },
+      omegaWelcome,
     });
   } catch (err) {
     console.error("Google exchange error:", err);
@@ -345,6 +399,8 @@ router.get("/google/callback", async (req: Request, res: Response) => {
       emitSignupAdminEvent(user);
     }
 
+    const onboardingState = extractOnboardingState(user);
+    const omegaWelcome = await buildReturningOmegaBriefing(user);
     await logActivity({
       tenantId: user.tenantId, userId: user.id, userEmail: user.email,
       userName: user.name, action: ACTIONS.GOOGLE_LOGIN, category: "auth", ip: req.ip,
@@ -356,9 +412,11 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     const userJson     = encodeURIComponent(JSON.stringify({
       id: user.id, email: user.email, name: user.name,
       role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name,
+      ...onboardingState,
     }));
+    const omegaWelcomeJson = omegaWelcome ? encodeURIComponent(JSON.stringify(omegaWelcome)) : "";
 
-    return res.redirect(`${APP_URL}/login?token=${token}&refreshToken=${refreshToken}&user=${userJson}`);
+    return res.redirect(`${APP_URL}/login?token=${token}&refreshToken=${refreshToken}&user=${userJson}${omegaWelcomeJson ? `&omegaWelcome=${omegaWelcomeJson}` : ""}`);
   } catch (err) {
     console.error("Google OAuth error:", err);
     return res.redirect(`${APP_URL}/login?error=oauth_failed`);
@@ -412,6 +470,8 @@ router.post("/facebook/exchange", async (req: Request, res: Response) => {
       emitSignupAdminEvent(user);
     }
 
+    const onboardingState = extractOnboardingState(user);
+    const omegaWelcome = isNewUser ? null : await buildReturningOmegaBriefing(user);
     await logActivity({
       tenantId: user.tenantId, userId: user.id, userEmail: user.email,
       userName: user.name, action: isNewUser ? "New account created via Facebook" : "Login via Facebook",
@@ -423,7 +483,16 @@ router.post("/facebook/exchange", async (req: Request, res: Response) => {
 
     return res.json({
       token, isNewUser,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role.toLowerCase(),
+        tenantId: user.tenantId,
+        tenantName: user.tenant.name,
+        ...onboardingState,
+      },
+      omegaWelcome,
     });
   } catch (err) {
     console.error("Facebook exchange error:", err);

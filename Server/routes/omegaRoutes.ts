@@ -12,6 +12,190 @@ const router = Router();
 const prisma = db;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+function metadataObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function normalizeString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeStringArray(value: unknown, limit = 3): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .map((item) => item.trim())
+    .slice(0, limit);
+}
+
+function deriveMarketSignals(markets: string[]) {
+  const has = (value: string) => markets.includes(value);
+  const currencies = new Set<string>();
+  const payments = new Set<string>();
+  const languages = new Set<string>(["English"]);
+  const seasonalSignals = new Set<string>();
+  const communitySuggestions = new Set<string>();
+
+  if (has("Nigeria specifically")) {
+    currencies.add("NGN");
+    payments.add("Flutterwave");
+    payments.add("Paystack");
+    payments.add("OPay");
+    languages.add("Pidgin");
+    seasonalSignals.add("Eid");
+    seasonalSignals.add("year-end demand");
+    communitySuggestions.add("Nigeria Builders");
+  }
+  if (has("Kenya specifically")) {
+    currencies.add("KES");
+    payments.add("M-Pesa (Safaricom)");
+    payments.add("Flutterwave");
+    languages.add("Swahili");
+    seasonalSignals.add("KCSE season");
+    communitySuggestions.add("Nairobi Builders");
+  }
+  if (has("Ghana specifically")) {
+    currencies.add("GHS");
+    payments.add("MTN MoMo");
+    payments.add("Flutterwave");
+    seasonalSignals.add("WASSCE season");
+    communitySuggestions.add("Accra Builders");
+  }
+  if (has("South Africa specifically")) {
+    currencies.add("ZAR");
+    payments.add("Ozow");
+    payments.add("Flutterwave");
+    payments.add("Stripe");
+    seasonalSignals.add("year-end demand");
+    communitySuggestions.add("Johannesburg Operators");
+  }
+  if (has("Tanzania specifically")) {
+    currencies.add("TZS");
+    payments.add("Flutterwave");
+    languages.add("Swahili");
+    communitySuggestions.add("Dar Builders");
+  }
+  if (has("Uganda specifically")) {
+    currencies.add("UGX");
+    payments.add("Flutterwave");
+    communitySuggestions.add("Kampala Builders");
+  }
+  if (has("UK - diaspora")) {
+    currencies.add("GBP");
+    payments.add("Stripe");
+    payments.add("Wise transfer");
+    communitySuggestions.add("London Diaspora Builders");
+  }
+  if (has("USA - diaspora")) {
+    currencies.add("USD");
+    payments.add("Stripe");
+    payments.add("Flutterwave");
+    communitySuggestions.add("US Diaspora Operators");
+  }
+  if (has("Canada - diaspora")) {
+    currencies.add("CAD");
+    payments.add("Stripe");
+    payments.add("Wise transfer");
+    communitySuggestions.add("Canada Diaspora Builders");
+  }
+  if (has("Africa") || has("West Africa broadly") || has("East Africa broadly") || has("African + global markets")) {
+    payments.add("Flutterwave");
+    seasonalSignals.add("Eid");
+    seasonalSignals.add("year-end demand");
+  }
+  if (has("West Africa broadly")) {
+    currencies.add("NGN");
+    currencies.add("GHS");
+    communitySuggestions.add("West Africa Operators");
+  }
+  if (has("East Africa broadly")) {
+    currencies.add("KES");
+    currencies.add("TZS");
+    languages.add("Swahili");
+    communitySuggestions.add("East Africa Builders");
+  }
+  if (has("African + global markets") || has("Global only")) {
+    currencies.add("USD");
+    payments.add("Stripe");
+    payments.add("Wise transfer");
+  }
+
+  if (currencies.size === 0) currencies.add("USD");
+  if (payments.size === 0) payments.add("Stripe");
+
+  return {
+    currencies: Array.from(currencies).slice(0, 4),
+    primaryCurrency: Array.from(currencies)[0] ?? "USD",
+    paymentRecommendations: Array.from(payments).slice(0, 4),
+    jobMatchingPool:
+      has("UK - diaspora") || has("USA - diaspora") || has("Canada - diaspora") || has("Global only")
+        ? "diaspora and global clients"
+        : has("Nigeria specifically") || has("Kenya specifically") || has("Ghana specifically") || has("South Africa specifically") || has("Tanzania specifically") || has("Uganda specifically") || has("West Africa broadly") || has("East Africa broadly") || has("Africa")
+          ? "African remote clients and regional operators"
+          : "African and global mixed clients",
+    communitySuggestions: Array.from(communitySuggestions).slice(0, 3),
+    languageOptions: Array.from(languages).slice(0, 4),
+    seasonalSignals: Array.from(seasonalSignals).slice(0, 4),
+  };
+}
+
+function readOnboardingSignals(metadata: unknown) {
+  const root = metadataObject(metadata);
+  const onboarding = metadataObject(root.onboarding);
+  const omegaRouting = metadataObject(root.omegaRouting);
+  const routingMarketFocus = normalizeStringArray(omegaRouting.marketFocus);
+  const onboardingMarketFocus = normalizeStringArray(onboarding.marketFocus);
+  const marketFocus = routingMarketFocus.length ? routingMarketFocus : onboardingMarketFocus;
+  const routingTopSkills = normalizeStringArray(omegaRouting.topSkills, 5);
+  const onboardingTopSkills = normalizeStringArray(onboarding.topSkills, 5);
+  const topSkills = routingTopSkills.length ? routingTopSkills : onboardingTopSkills;
+
+  return {
+    experienceLevel:
+      normalizeString(omegaRouting.experienceLevel) ??
+      normalizeString(onboarding.experienceLevel),
+    incomeTarget:
+      normalizeString(omegaRouting.incomeTarget) ??
+      normalizeString(onboarding.incomeTarget),
+    primaryLayer:
+      normalizeString(omegaRouting.primaryLayer) ??
+      normalizeString(onboarding.primaryLayer),
+    profileType:
+      normalizeString(omegaRouting.profileType) ??
+      normalizeString(onboarding.profileType),
+    buildingFocus:
+      normalizeString(omegaRouting.buildingFocus) ??
+      normalizeString(onboarding.buildingFocus),
+    marketFocus,
+    topSkills,
+    marketSignals: deriveMarketSignals(marketFocus),
+  };
+}
+
+function omegaCalibration(experienceLevel: string | null, incomeTarget: string | null, markets: string[]) {
+  let experienceLine = "Use your default OMEGA tone.";
+  if (experienceLevel === "Just starting out - less than 1 year") {
+    experienceLine = "Explain more, keep the action plan confidence-building, and recommend Academy-first sequencing before harder Work or Market execution when needed.";
+  }
+  if (experienceLevel === "Expert - 7+ years or professional-level") {
+    experienceLine = "Assume context, skip basics, and keep the recommendations concise, commercial, and strategically direct.";
+  }
+  if (experienceLevel === "Established - 3 to 7 years") {
+    experienceLine = "Assume solid foundations and prioritize leverage over hand-holding.";
+  }
+  if (experienceLevel === "Some experience - 1 to 3 years") {
+    experienceLine = "Balance speed with explanation and keep the guidance practical.";
+  }
+  const revenueLine = incomeTarget && incomeTarget !== "Not focused on income right now"
+    ? `Use ${incomeTarget} as the revenue baseline for forecasts and progress framing.`
+    : "Do not force revenue pressure if income is not the current priority.";
+  const marketLine = markets.length
+    ? `Use the selected markets ${markets.join(", ")} to shape currencies, payments, job pools, community suggestions, and seasonal signals.`
+    : "Use broad African and global assumptions for currencies, payments, and market signals.";
+  return `${experienceLine} ${revenueLine} ${marketLine}`;
+}
+
 // GET /omega/analyze - Get comprehensive user analysis
 router.get(
   "/analyze",
@@ -66,6 +250,7 @@ router.get(
         (a, b) => a + b,
         0,
       );
+      const onboardingSignals = readOnboardingSignals(user?.metadata);
 
       // Determine current loop stage
       let currentStage = "community";
@@ -86,6 +271,22 @@ USER PROFILE:
 - Followers: ${followers}
 - Following: ${following}
 - Current Stage: ${currentStage}
+- Onboarding Experience Level: ${onboardingSignals.experienceLevel ?? "unknown"}
+- Onboarding Income Target: ${onboardingSignals.incomeTarget ?? "unknown"}
+- Onboarding Primary Layer: ${onboardingSignals.primaryLayer ?? "unknown"}
+- Onboarding Profile Type: ${onboardingSignals.profileType ?? "unknown"}
+- Building Focus: ${onboardingSignals.buildingFocus ?? "unknown"}
+- Market Focus: ${onboardingSignals.marketFocus.join(", ") || "unknown"}
+- Onboarding Top Skills: ${onboardingSignals.topSkills.join(", ") || "unknown"}
+- Market Currencies: ${onboardingSignals.marketSignals.currencies.join(", ")}
+- Payment Recommendations: ${onboardingSignals.marketSignals.paymentRecommendations.join(", ")}
+- Job Matching Pool: ${onboardingSignals.marketSignals.jobMatchingPool}
+- Community Suggestions: ${onboardingSignals.marketSignals.communitySuggestions.join(", ") || "none"}
+- Language Options: ${onboardingSignals.marketSignals.languageOptions.join(", ")}
+- Seasonal Signals: ${onboardingSignals.marketSignals.seasonalSignals.join(", ") || "none"}
+
+CALIBRATION:
+${omegaCalibration(onboardingSignals.experienceLevel, onboardingSignals.incomeTarget, onboardingSignals.marketFocus)}
 
 Provide a JSON response with:
 {
@@ -120,6 +321,7 @@ Provide a JSON response with:
         posts: posts.length,
         followers,
         following,
+        onboardingSignals,
         insights,
         generatedAt: new Date().toISOString(),
       });
@@ -139,8 +341,9 @@ router.get(
       const userId = req.user!.userId;
 
       // Get recent activity
-      const [recentPosts, recentEnrollments, newFollowers, skills] =
+      const [user, recentPosts, recentEnrollments, newFollowers, skills] =
         await Promise.all([
+          prisma.user.findUnique({ where: { id: userId }, select: { metadata: true } }),
           prisma.post.findMany({
             where: { authorId: userId },
             orderBy: { createdAt: "desc" },
@@ -176,6 +379,7 @@ router.get(
               86400000,
           )
         : 99;
+      const onboardingSignals = readOnboardingSignals(user?.metadata);
 
       // Generate personalized briefing
       const prompt = `You are OMEGA, the Winners Ecosystem Master Orchestrator.
@@ -189,6 +393,22 @@ CURRENT STATUS:
 - Top skills: ${skills.map(s => s.skill).join(", ") || "none"}
 - Active courses: ${recentEnrollments.length}
 - New followers: ${newFollowers.length}
+- Onboarding Experience Level: ${onboardingSignals.experienceLevel ?? "unknown"}
+- Onboarding Income Target: ${onboardingSignals.incomeTarget ?? "unknown"}
+- Onboarding Primary Layer: ${onboardingSignals.primaryLayer ?? "unknown"}
+- Onboarding Profile Type: ${onboardingSignals.profileType ?? "unknown"}
+- Building Focus: ${onboardingSignals.buildingFocus ?? "unknown"}
+- Market Focus: ${onboardingSignals.marketFocus.join(", ") || "unknown"}
+- Onboarding Top Skills: ${onboardingSignals.topSkills.join(", ") || "unknown"}
+- Market Currencies: ${onboardingSignals.marketSignals.currencies.join(", ")}
+- Payment Recommendations: ${onboardingSignals.marketSignals.paymentRecommendations.join(", ")}
+- Job Matching Pool: ${onboardingSignals.marketSignals.jobMatchingPool}
+- Community Suggestions: ${onboardingSignals.marketSignals.communitySuggestions.join(", ") || "none"}
+- Language Options: ${onboardingSignals.marketSignals.languageOptions.join(", ")}
+- Seasonal Signals: ${onboardingSignals.marketSignals.seasonalSignals.join(", ") || "none"}
+
+CALIBRATION:
+${omegaCalibration(onboardingSignals.experienceLevel, onboardingSignals.incomeTarget, onboardingSignals.marketFocus)}
 
 Generate a JSON response:
 {

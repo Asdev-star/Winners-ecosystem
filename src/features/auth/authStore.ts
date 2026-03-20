@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { API_BASE } from "../../lib/api";
+import { getOmegaProfileEntryPath } from "../onboarding/omegaProfileContext";
+import { OMEGA_WELCOME_KEY, type OmegaLaunchWelcome } from "../onboarding/omegaLaunchWelcome";
 
 export interface AuthUser {
   id: string;
@@ -8,6 +10,12 @@ export interface AuthUser {
   role: "owner" | "admin" | "member" | "viewer";
   tenantId: string;
   tenantName: string;
+  onboardingCompleted?: boolean;
+  onboardingPrimaryLayer?: string | null;
+  onboardingPrimaryPath?: string | null;
+  onboardingProfileType?: string | null;
+  onboardingAssignedSupervisor?: string | null;
+  onboardingSelectedPlan?: string | null;
   isImpersonation?: boolean;
   impersonatedByAdminId?: string;
   twoFactorEnabled?: boolean;
@@ -43,6 +51,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   verifyTwoFactor: (code: string) => Promise<void>;
   loginWithGoogle: (googleToken: string) => Promise<void>;
+  updateUser: (patch: Partial<AuthUser>) => void;
   beginImpersonation: (
     token: string,
     user: AuthUser,
@@ -56,6 +65,13 @@ interface AuthState {
 const TOKEN_KEY = "we_token";
 const USER_KEY = "we_user";
 const IMPERSONATION_KEY = "we_impersonation";
+
+function stashOmegaWelcome(value: unknown) {
+  if (typeof window === "undefined" || !value || typeof value !== "object") return;
+  const welcome = value as Partial<OmegaLaunchWelcome>;
+  if (!welcome.pathPrefix || !welcome.title || !welcome.message) return;
+  sessionStorage.setItem(OMEGA_WELCOME_KEY, JSON.stringify(value));
+}
 
 function persist(token: string, user: AuthUser, impersonation?: ImpersonationSession | null) {
   localStorage.setItem(TOKEN_KEY, token);
@@ -101,12 +117,23 @@ function matchesImpersonationSession(user: AuthUser, impersonation: Impersonatio
 
 function applyImpersonationMetadata(user: AuthUser, impersonation: ImpersonationSession | null): AuthUser {
   if (!matchesImpersonationSession(user, impersonation)) return user;
+  const activeImpersonation = impersonation;
+  if (!activeImpersonation) return user;
 
   return {
     ...user,
     isImpersonation: true,
-    impersonatedByAdminId: user.impersonatedByAdminId ?? impersonation.adminId,
+    impersonatedByAdminId: user.impersonatedByAdminId ?? activeImpersonation.adminId,
   };
+}
+
+function persistCurrentState(user: AuthUser | null, token: string | null, impersonation: ImpersonationSession | null) {
+  if (!user || !token) {
+    clearPersisted();
+    return;
+  }
+
+  persist(token, user, impersonation);
 }
 
 async function apiFetch(path: string, options: RequestInit = {}) {
@@ -151,6 +178,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const { token, user }: { token: string; user: AuthUser } = body;
+      stashOmegaWelcome(body.omegaWelcome);
       persist(token, user, null);
       set({ token, user, impersonation: null, isLoading: false, pendingTwoFactor: null });
     } catch (err) {
@@ -171,6 +199,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       const { token, user }: { token: string; user: AuthUser } = body;
+      stashOmegaWelcome(body.omegaWelcome);
       persist(token, user, null);
       set({ token, user, impersonation: null, isLoading: false, pendingTwoFactor: null });
     } catch (err) {
@@ -193,6 +222,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: false });
       throw err;
     }
+  },
+
+  updateUser: (patch) => {
+    const state = get();
+    if (!state.user) return;
+
+    const nextUser = { ...state.user, ...patch };
+    persistCurrentState(nextUser, state.token, state.impersonation);
+    set({ user: nextUser });
   },
 
   beginImpersonation: (token, user, session) => {
@@ -288,4 +326,10 @@ export function hasRole(minimum: AuthUser["role"]): boolean {
   if (!role) return false;
   const hierarchy: AuthUser["role"][] = ["viewer", "member", "admin", "owner"];
   return hierarchy.indexOf(role) >= hierarchy.indexOf(minimum);
+}
+
+export function getPostLoginPath(user: AuthUser | null): string {
+  if (!user) return "/login";
+  if (user.onboardingCompleted === false) return "/onboarding";
+  return getOmegaProfileEntryPath(user.onboardingProfileType, user.onboardingPrimaryPath);
 }

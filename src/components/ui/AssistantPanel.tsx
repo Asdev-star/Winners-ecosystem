@@ -6,6 +6,7 @@ import { useState, useRef, useEffect, useCallback, type FormEvent } from "react"
 import { useAuthStore } from "../../features/auth/authStore";
 import FollowUpChips from "../ai/FollowUpChips";
 import StreamingText from "../ai/StreamingText";
+import VoiceInput from "../ai/VoiceInput";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
@@ -262,50 +263,28 @@ export default function AssistantPanel({
         .slice(-10)
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const response = await fetch("/api/v1/chat/message", {
+      const response = await fetch("/api/v1/ai-platform/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(userId ? { "X-User-ID": userId } : {}),
         },
         body: JSON.stringify({
-          assistant,
+          assistant: assistant.toUpperCase(),
           message: input.trim() || "Analyse this file",
           history,
-          context: { ...context, page },
           files: filePayload,
         }),
       });
 
-      if (response.ok && response.body) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let assistantContent = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split("\n")) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.type === "text") {
-                  assistantContent += data.text;
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId ? { ...m, content: assistantContent } : m
-                    )
-                  );
-                }
-              } catch { /* ignore malformed lines */ }
-            }
-          }
-        }
-
+      if (response.ok) {
+        const data = await response.json();
+        const assistantContent = data.response || "No response received.";
+        
         setMessages((prev) =>
-          prev.map((m) => m.id === assistantId ? { ...m, isStreaming: false } : m)
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, content: assistantContent, isStreaming: false } : m
+          )
         );
       } else {
         setMessages((prev) =>
@@ -377,6 +356,10 @@ export default function AssistantPanel({
     if (!isOpen) {
       setHasProactiveMessage(false);
     }
+  };
+
+  const handleTranscription = (text: string) => {
+    setInput(prev => (prev ? `${prev} ${text}` : text));
   };
 
   return (
@@ -500,6 +483,7 @@ export default function AssistantPanel({
               >
                 📎
               </button>
+              <VoiceInput onTranscription={handleTranscription} disabled={isStreaming} />
               <textarea
                 ref={inputRef}
                 value={input}
@@ -776,6 +760,37 @@ export default function AssistantPanel({
               color: var(--purple);
             }
             .attach-button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+            .voice-input-btn {
+              width: 34px;
+              height: 34px;
+              border-radius: 6px;
+              background: var(--surface3);
+              border: 1px solid var(--border);
+              color: var(--text-dim);
+              font-size: 14px;
+              cursor: pointer;
+              transition: all 0.2s;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            }
+            .voice-input-btn:hover:not(:disabled) {
+              border-color: var(--purple);
+              color: var(--purple);
+            }
+            .voice-input-btn.recording {
+              background: var(--red);
+              color: white;
+              animation: voice-pulse 1.5s infinite;
+              border-color: var(--red);
+            }
+            @keyframes voice-pulse {
+              0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); }
+              70% { box-shadow: 0 0 0 10px rgba(255, 68, 68, 0); }
+              100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+            }
 
             .assistant-input {
               display: flex;

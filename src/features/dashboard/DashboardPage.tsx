@@ -14,6 +14,7 @@ import AssistantPanel from "../../components/ui/AssistantPanel";
 import ProgressRing from "../../components/ui/ProgressRing";
 import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
 import ContextBar from "../../components/ui/ContextBar";
+import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
 import { useAssistant } from "../../hooks/useAssistant";
 
 // AI Components - Level II & III imports
@@ -452,6 +453,8 @@ export default function DashboardPage() {
           statusOverrides={{ core: "live", community: "live", academy: "live", market: "building", intelligence: "live", work: "building", cloud: "building" }}
           showLabels={true}
         />
+
+        <OmegaProfileAssignmentCard layer="core" />
 
         {/* ── Header ── */}
         <div className="db-hdr">
@@ -991,6 +994,5 @@ export default function DashboardPage() {
     </>
   );
 }
-
 
 

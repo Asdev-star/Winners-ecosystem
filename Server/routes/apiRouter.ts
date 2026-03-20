@@ -8,6 +8,7 @@ import exportRoutes from "./exportRoutes.js";
 import billingRoutes from "./billingRoutes.js";
 import aiRoutes from "./aiRoutes.js";
 import profileRoutes from "./profileRoutes.js";
+import onboardingRoutes from "./onboardingRoutes.js";
 import emailRoutes from "./emailRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
 import stripeRoutes from "./stripeRoutes.js";
@@ -73,6 +74,7 @@ const gatewayRoutes = [
   "/billing",
   "/ai",
   "/profile",
+  "/onboarding",
   "/email",
   "/notifications",
   "/stripe",
@@ -139,6 +141,7 @@ router.use("/export", exportRoutes);
 router.use("/billing", billingRoutes);
 router.use("/ai", aiRoutes);
 router.use("/profile", profileRoutes);
+router.use("/onboarding", onboardingRoutes);
 router.use("/email", emailRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/stripe", stripeRoutes);

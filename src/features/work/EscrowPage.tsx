@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../features/auth/authStore";
+import FileDropZone, { AnalysisResult } from "../../components/ai/FileDropZone";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 
@@ -49,6 +50,7 @@ export default function EscrowPage() {
   const [showDispute, setShowDispute] = useState(false);
   const [releaseAmount, setReleaseAmount] = useState("");
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [circuitReview, setCircuitReview] = useState<AnalysisResult | null>(null);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -300,6 +302,59 @@ export default function EscrowPage() {
                 </div>
                 {selected.contract.milestones.map((m) => (
                   <div key={m.id} className="milestone-item">
+
+            {/* CIRCUIT Contract AI Review */}
+            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <div style={{
+                fontFamily: "'Syne', sans-serif",
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'var(--purple)',
+                marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                💼 CIRCUIT AI Contract Review
+              </div>
+              <FileDropZone
+                supervisor="circuit"
+                context={{ contractId: selected.contractId, escrowId: selected.id, amount: String(selected.amount) }}
+                acceptedTypes={['pdf']}
+                label="Drop the contract PDF for CIRCUIT to review"
+                onAnalysis={(result) => setCircuitReview(result)}
+              />
+              {circuitReview && (
+                <div style={{
+                  marginTop: 16,
+                  padding: 16,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  borderLeft: '3px solid var(--purple)'
+                }}>
+                  <div style={{
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: 10,
+                    color: 'var(--purple)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: 8
+                  }}>
+                    CIRCUIT Review
+                  </div>
+                  <div style={{
+                    fontFamily: "'Syne', sans-serif",
+                    fontSize: 13,
+                    color: 'var(--text)',
+                    lineHeight: 1.6,
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {circuitReview.analysis}
+                  </div>
+                </div>
+              )}
+            </div>
                     <div>
                       <div className="milestone-title">{m.title}</div>
                       <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>{m.status}</div>

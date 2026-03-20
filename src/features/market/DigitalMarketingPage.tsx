@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import AssistantPanel from "../../components/ui/AssistantPanel";
+import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
 
 const API_BASE = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL || "http://localhost:3001/api/v1";
 
@@ -189,6 +190,7 @@ export default function DigitalMarketingPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'Syne', sans-serif" }}>
+      <OmegaProfileAssignmentCard layer="market" />
       <style>{`
         .dm-input {
           width: 100%;

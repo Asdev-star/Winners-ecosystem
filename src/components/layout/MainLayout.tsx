@@ -14,6 +14,8 @@ import CommandPalette from "../ui/CommandPalette";
 import AssistantPanel from "../ui/AssistantPanel";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 import ImpersonationBanner from "./ImpersonationBanner";
+import { OMEGA_WELCOME_KEY, type OmegaLaunchWelcome } from "../../features/onboarding/omegaLaunchWelcome";
+import { getOmegaProfileContext, getOmegaSidebarRank } from "../../features/onboarding/omegaProfileContext";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
@@ -263,6 +265,94 @@ const css = `
   .ml-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
   .ml-status-text { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); }
   .ml-content { flex: 1; overflow-y: auto; }
+  .ml-omega-welcome {
+    margin: 14px 20px 0;
+    padding: 16px 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(201,168,76,0.24);
+    background:
+      radial-gradient(circle at top right, rgba(201,168,76,0.18), transparent 36%),
+      linear-gradient(135deg, rgba(23,34,50,0.98), rgba(13,20,33,0.96));
+    box-shadow: 0 16px 44px rgba(0,0,0,0.28);
+    animation: mlWelcomeIn 260ms ease;
+  }
+  .ml-omega-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .ml-omega-kicker::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--gold);
+    box-shadow: 0 0 14px rgba(201,168,76,0.72);
+  }
+  .ml-omega-title {
+    margin: 10px 0 6px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--text);
+  }
+  .ml-omega-copy {
+    margin: 0;
+    max-width: 920px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+  .ml-omega-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .ml-omega-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ml-omega-focus {
+    margin: 12px 0 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .ml-omega-focus li::marker {
+    color: var(--gold);
+  }
+  .ml-omega-dismiss {
+    margin-top: 14px;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(201,168,76,0.22);
+    background: rgba(201,168,76,0.10);
+    color: var(--gold);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
 
   /* ── Hamburger ── */
   .ml-hamburger {
@@ -303,6 +393,10 @@ const css = `
   }
 
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes mlWelcomeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
   /* ── Responsive ── */
   @media (max-width: 768px) {
@@ -500,10 +594,15 @@ export default function MainLayout() {
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [omegaWelcome, setOmegaWelcome] = useState<OmegaLaunchWelcome | null>(null);
   const { hasAccess: hasSuperAdminAccess } = useSuperAdminAccess();
+  const profileContext = getOmegaProfileContext(user?.onboardingProfileType);
 
   const coreNavItems = CORE_NAV;
-  const platformItems = hasSuperAdminAccess ? [ADMIN_PLATFORM, ...PLATFORMS] : PLATFORMS;
+  const orderedPlatforms = [...PLATFORMS].sort(
+    (left, right) => getOmegaSidebarRank(user?.onboardingProfileType, left.path) - getOmegaSidebarRank(user?.onboardingProfileType, right.path),
+  );
+  const platformItems = hasSuperAdminAccess ? [ADMIN_PLATFORM, ...orderedPlatforms] : orderedPlatforms;
   const adminNavItems = hasSuperAdminAccess
     ? [
         { path: "/admin/overview", label: "Overview" },
@@ -549,6 +648,34 @@ export default function MainLayout() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem(OMEGA_WELCOME_KEY);
+    if (!raw) {
+      setOmegaWelcome(null);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as OmegaLaunchWelcome;
+      if (parsed?.pathPrefix && location.pathname.startsWith(parsed.pathPrefix)) {
+        setOmegaWelcome(parsed);
+        sessionStorage.removeItem(OMEGA_WELCOME_KEY);
+        return;
+      }
+    } catch {
+      sessionStorage.removeItem(OMEGA_WELCOME_KEY);
+    }
+
+    setOmegaWelcome(null);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!omegaWelcome) return;
+    const timeoutMs = omegaWelcome.dismissAfterMs ?? 12000;
+    const timer = window.setTimeout(() => setOmegaWelcome(null), timeoutMs);
+    return () => window.clearTimeout(timer);
+  }, [omegaWelcome]);
 
   const NavItem = ({ item }: { item: NavEntry }) => (
     <NavLink
@@ -697,6 +824,35 @@ export default function MainLayout() {
         </header>
 
         <ImpersonationBanner />
+        {omegaWelcome ? (
+          <section className="ml-omega-welcome" aria-live="polite">
+            <div className="ml-omega-kicker">{omegaWelcome.supervisor} Welcome</div>
+            <div className="ml-omega-title">{omegaWelcome.title}</div>
+            <p className="ml-omega-copy">{omegaWelcome.message}</p>
+            {omegaWelcome.profileType || omegaWelcome.entryPath || profileContext ? (
+              <div className="ml-omega-meta">
+                <span className="ml-omega-chip">{omegaWelcome.profileType ?? profileContext?.profileType ?? "Assigned Route"}</span>
+                <span className="ml-omega-chip">{omegaWelcome.entryPath ?? profileContext?.entryPath ?? omegaWelcome.pathPrefix}</span>
+                <span className="ml-omega-chip">{omegaWelcome.selectedPlan} plan</span>
+              </div>
+            ) : null}
+            {omegaWelcome.briefingFocus?.length ? (
+              <ul className="ml-omega-focus">
+                {omegaWelcome.briefingFocus.slice(0, 3).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
+            {omegaWelcome.firstAction ? (
+              <p className="ml-omega-copy" style={{ marginTop: 12 }}>
+                First action: {omegaWelcome.firstAction}
+              </p>
+            ) : null}
+            <button type="button" className="ml-omega-dismiss" onClick={() => setOmegaWelcome(null)}>
+              Continue
+            </button>
+          </section>
+        ) : null}
 
         <main className="ml-content">
           <LayerSubNav config={layerSubNav} />

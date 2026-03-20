@@ -160,6 +160,16 @@ model User {
   isPublicProfile            Boolean                        @default(true)
   profileViews               Int                            @default(0)
   metadata                   Json                           @default("{}")
+  profileType                String?
+  onboardingDone             Boolean                        @default(false)
+  omegaMission               String?                        @db.Text
+  incomeGoal                 String?
+  experienceLevel            String?
+  primaryMarkets             String[]                       @default([])
+  primarySkills              String[]                       @default([])
+  teamType                   String?
+  onboardingData             Json?
+  firstPlatform              String?
   trustScore                 Int                            @default(50)
   trustScoreTier             String                         @default("SILVER")
   trustScoreUpdatedAt        DateTime?

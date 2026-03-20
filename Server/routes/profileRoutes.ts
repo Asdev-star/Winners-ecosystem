@@ -1,14 +1,187 @@
 // server/routes/profileRoutes.ts
 
+import { Prisma } from "@prisma/client";
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
+import { buildOnboardingProfileFields } from "../services/onboardingProfileService.js";
 
 const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
+
+function metadataObject(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function normalizeString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeStringArray(value: unknown, limit = 3): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .map((item) => item.trim())
+    .slice(0, limit);
+}
+
+router.post("/onboarding", async (req: Request, res: Response) => {
+  const {
+    workspaceName,
+    buildingFocus,
+    profileType,
+    identity,
+    experienceLevel,
+    incomeTarget,
+    marketFocus,
+    topSkills,
+    primaryGoal,
+    primaryLayer,
+    teamSize,
+    recommendedPlan,
+    reasoning,
+    currentStage,
+    firstAction,
+    secondaryLayers,
+    assignedSupervisor,
+    welcomeMessage,
+  } = req.body ?? {};
+
+  const fields = {
+    workspaceName,
+    profileType,
+    identity,
+    experienceLevel,
+    primaryGoal,
+    primaryLayer,
+    teamSize,
+    recommendedPlan,
+  };
+
+  const missingField = Object.entries(fields).find(([, value]) => typeof value !== "string" || !value.trim());
+  if (missingField) {
+    return res.status(400).json({ message: `Missing or invalid field: ${missingField[0]}` });
+  }
+
+  const safeReasoning = Array.isArray(reasoning)
+    ? reasoning.filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, 12)
+    : [];
+  const safeBuildingFocus = normalizeString(buildingFocus);
+  const safeSecondaryLayers = normalizeStringArray(secondaryLayers, 3);
+  const safeMarketFocus = normalizeStringArray(marketFocus, 3);
+  const safeTopSkills = normalizeStringArray(topSkills, 5);
+  const safeCurrentStage = normalizeString(currentStage);
+  const safeFirstAction = normalizeString(firstAction);
+  const safeAssignedSupervisor = normalizeString(assignedSupervisor);
+  const safeWelcomeMessage = normalizeString(welcomeMessage);
+  const safeExperienceLevel = normalizeString(experienceLevel);
+  const safeIncomeTarget = normalizeString(incomeTarget);
+  const safeSelectedPlan = "free";
+  const onboardingProfile = buildOnboardingProfileFields({
+    q1: safeBuildingFocus,
+    q2: identity,
+    q3: safeExperienceLevel,
+    q4: safeIncomeTarget,
+    q5: safeMarketFocus,
+    q6: safeTopSkills,
+    q7: teamSize,
+  });
+
+  try {
+    const user = await db.user.findFirst({
+      where: { id: req.user!.userId, tenantId: req.user!.tenantId, deletedAt: null },
+      select: { id: true, role: true, metadata: true },
+    });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const existingMetadata = metadataObject(user.metadata);
+    const onboarding = {
+      completed: true,
+      completedAt: new Date().toISOString(),
+      supervisor: "OMEGA",
+      assignedSupervisor: safeAssignedSupervisor,
+      version: "2.0",
+      workspaceName: workspaceName.trim(),
+      buildingFocus: safeBuildingFocus,
+      profileType: onboardingProfile.profileTypeDisplay,
+      identity: identity.trim(),
+      experienceLevel: safeExperienceLevel,
+      incomeTarget: safeIncomeTarget,
+      marketFocus: safeMarketFocus,
+      topSkills: safeTopSkills,
+      primaryGoal: primaryGoal.trim(),
+      primaryLayer: primaryLayer.trim(),
+      secondaryLayers: safeSecondaryLayers,
+      teamSize: teamSize.trim(),
+      currentStage: safeCurrentStage,
+      firstAction: safeFirstAction,
+      selectedPlan: safeSelectedPlan,
+      recommendedPlan: recommendedPlan.trim().toLowerCase(),
+      reasoning: safeReasoning,
+      welcomeMessage: safeWelcomeMessage,
+    };
+
+    const nextMetadata: Record<string, unknown> = {
+      ...existingMetadata,
+      onboarding,
+      omegaRouting: {
+        primaryLayer: primaryLayer.trim(),
+        buildingFocus: safeBuildingFocus,
+        secondaryLayers: safeSecondaryLayers,
+        profileType: onboardingProfile.profileTypeDisplay,
+        experienceLevel: safeExperienceLevel,
+        incomeTarget: safeIncomeTarget,
+        marketFocus: safeMarketFocus,
+        topSkills: safeTopSkills,
+        supervisor: safeAssignedSupervisor,
+        currentStage: safeCurrentStage,
+        firstAction: safeFirstAction,
+        selectedPlan: safeSelectedPlan,
+        recommendedPlan: recommendedPlan.trim().toLowerCase(),
+      },
+    };
+
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        metadata: nextMetadata as Prisma.InputJsonValue,
+        profileType: onboardingProfile.profileType,
+        onboardingDone: true,
+        omegaMission: safeBuildingFocus,
+        incomeGoal: onboardingProfile.incomeGoal,
+        experienceLevel: onboardingProfile.experienceLevel,
+        primaryMarkets: onboardingProfile.primaryMarkets,
+        primarySkills: onboardingProfile.primarySkills,
+        teamType: onboardingProfile.teamType,
+        onboardingData: onboardingProfile.onboardingData as Prisma.InputJsonValue,
+        firstPlatform: onboardingProfile.primaryPlatform,
+      },
+    });
+
+    if ((user.role === "OWNER" || user.role === "ADMIN") && workspaceName.trim()) {
+      await db.tenant.update({
+        where: { id: req.user!.tenantId },
+        data: { name: workspaceName.trim() },
+      });
+    }
+
+    return res.json({
+      message: "Onboarding saved",
+      onboarding,
+      route: primaryLayer.trim(),
+      supervisor: safeAssignedSupervisor,
+      welcomeMessage: safeWelcomeMessage,
+    });
+  } catch (err) {
+    console.error("Onboarding save error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // ─── PATCH /profile — update name, email, and diaspora fields ────────────────────────
 

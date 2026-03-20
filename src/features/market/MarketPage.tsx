@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
 
 // Market Vertical Types
 interface MarketVertical {
@@ -233,6 +234,7 @@ Make it professional, engaging, and tailored to stand out to recruiters.`;
 
   return (
     <div className="market-page">
+      <OmegaProfileAssignmentCard layer="market" />
       <style>{`
         .market-page {
           

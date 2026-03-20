@@ -7,6 +7,7 @@ import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
 import { API_BASE } from "../../lib/api";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
+import FileDropZone, { AnalysisResult } from "../../components/ai/FileDropZone";
 import QuizTaker from "./components/QuizTaker";
 
 interface Course {
@@ -60,6 +61,7 @@ export default function CoursePage() {
   const [enrolling, setEnrolling] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'content' | 'quizzes'>('content');
+  const [sageAnalysis, setSageAnalysis] = useState<AnalysisResult | null>(null);
   const { user } = useAuthStore();
 
   const fetchCourse = useCallback(async () => {
@@ -519,6 +521,77 @@ export default function CoursePage() {
 
           {activeTab === 'quizzes' && (
             <QuizTaker courseId={course.id} />
+          )}
+
+          {/* SAGE Document Analysis - Per-lesson AI tutoring */}
+          {selectedLesson && enrollment && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{
+                fontFamily: 'Syne, sans-serif',
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'var(--gold)',
+                marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                🎓 SAGE AI Tutor
+              </div>
+              <FileDropZone
+                supervisor="sage"
+                context={{ courseId: course?.id, lessonId: selectedLesson, courseSlug: slug }}
+                acceptedTypes={['pdf', 'image', 'audio']}
+                label="Drop a PDF, screenshot, or audio for SAGE to analyze"
+                onAnalysis={(result) => setSageAnalysis(result)}
+              />
+              {sageAnalysis && (
+                <div style={{
+                  marginTop: 16,
+                  padding: 16,
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  borderLeft: '3px solid var(--gold)'
+                }}>
+                  <div style={{
+                    fontFamily: 'Space Mono, monospace',
+                    fontSize: 10,
+                    color: 'var(--gold)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: 8
+                  }}>
+                    SAGE Analysis
+                  </div>
+                  <div style={{
+                    fontFamily: 'Syne, sans-serif',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                    lineHeight: 1.6
+                  }}>
+                    {sageAnalysis.analysis}
+                  </div>
+                  {sageAnalysis.skills && sageAnalysis.skills.length > 0 && (
+                    <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {sageAnalysis.skills.map((skill, i) => (
+                        <span key={i} style={{
+                          padding: '4px 8px',
+                          background: 'rgba(201,168,76,0.15)',
+                          border: '1px solid rgba(201,168,76,0.3)',
+                          borderRadius: 4,
+                          fontFamily: 'Space Mono, monospace',
+                          fontSize: 9,
+                          color: 'var(--gold)'
+                        }}>
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
 

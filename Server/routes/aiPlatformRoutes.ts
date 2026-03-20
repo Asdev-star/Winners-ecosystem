@@ -4,6 +4,7 @@
 
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import { checkAICredits, deductAICredits } from "../middleware/aiCreditsMiddleware.js";
 import multer from "multer";
 
 const router = Router();
@@ -25,6 +26,9 @@ interface AIPlatformResponse {
   latency_ms?: number;
   assistant?: string;
   error?: string;
+  herald_uptime?: string;
+  services?: Record<string, any>;
+  routing_priority?: string;
   [key: string]: unknown;
 }
 
@@ -76,8 +80,163 @@ router.get("/models", async (_req: Request, res: Response) => {
   }
 });
 
-// Main chat endpoint
-router.post("/chat", authMiddleware, async (req: Request, res: Response) => {
+// HERALD orchestration status
+router.get("/herald/status", authMiddleware, async (_req: Request, res: Response) => {
+  try {
+    const data = await forwardToAIPlatform("/health/herald", "GET");
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch HERALD status" });
+  }
+});
+
+// System monitoring
+router.get("/monitor", authMiddleware, async (_req: Request, res: Response) => {
+  try {
+    const data = await forwardToAIPlatform("/health/monitor", "GET");
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch monitor status" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Image Generation (with credit metering)
+// ─────────────────────────────────────────────────────────────────────────
+
+router.post("/images/generate", authMiddleware, checkAICredits, async (req: Request, res: Response) => {
+  try {
+    const data = await forwardToAIPlatform("/api/v1/images/generate", "POST", req.body);
+    
+    // Deduct credits for image generation (5 credits)
+    if (req.user && data.response) {
+      await deductAICredits(req.user.userId, req.user.tenantId, "forge", 5);
+    }
+    
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Image generation failed" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Speech to Text - Transcription
+// ─────────────────────────────────────────────────────────────────────────
+
+router.post("/speech/transcribe", authMiddleware, upload.single("audio"), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Audio file required" });
+    }
+
+    const formData = new FormData();
+    const uint8Array = new Uint8Array(req.file.buffer);
+    const blob = new Blob([uint8Array], { type: req.file.mimetype });
+    formData.append("file", blob, req.file.originalname);
+    if (req.body.model) formData.append("model", req.body.model);
+
+    const response = await fetch(`${AI_PLATFORM_URL}/api/v1/speech/stt`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "STT request failed" });
+  }
+});
+
+// Legacy alias for speech/stt
+router.post("/speech/stt", authMiddleware, upload.single("file"), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Audio file required" });
+    }
+
+    const formData = new FormData();
+    const uint8Array = new Uint8Array(req.file.buffer);
+    const blob = new Blob([uint8Array], { type: req.file.mimetype });
+    formData.append("file", blob, req.file.originalname);
+    if (req.body.model) formData.append("model", req.body.model);
+
+    const response = await fetch(`${AI_PLATFORM_URL}/api/v1/speech/stt`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "STT request failed" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// SSE Streaming Chat (with credit metering)
+// ─────────────────────────────────────────────────────────────────────────
+
+router.post("/chat/stream", authMiddleware, checkAICredits, async (req: Request, res: Response) => {
+  try {
+    const { message, model = "claude", assistant, history } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    // Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+
+    // Forward to FastAPI streaming endpoint
+    const upstream = await fetch(`${AI_PLATFORM_URL}/api/v1/chat/stream?message=${encodeURIComponent(message)}&model=${encodeURIComponent(model)}`, {
+      method: "GET",
+      headers: {
+        "Accept": "text/event-stream",
+      },
+    });
+
+    if (!upstream.ok) {
+      res.status(upstream.status).json({ error: "Upstream streaming failed" });
+      return;
+    }
+
+    // Pipe SSE stream directly to client
+    const reader = upstream.body!.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      fullResponse += chunk;
+      res.write(chunk);
+    }
+
+    res.end();
+
+    // Deduct credits after successful response
+    if (req.user) {
+      await deductAICredits(req.user.userId, req.user.tenantId, assistant || "chat", 2);
+    }
+  } catch (error) {
+    console.error("[aiPlatformRoutes] Streaming chat error:", error);
+    res.status(500).json({ 
+      error: "Streaming AI request failed",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Main Chat (non-streaming with credit metering)
+// ─────────────────────────────────────────────────────────────────────────
+
+router.post("/chat", authMiddleware, checkAICredits, async (req: Request, res: Response) => {
   try {
     const { message, model = "claude", assistant, history, files } = req.body;
 
@@ -94,6 +253,12 @@ router.post("/chat", authMiddleware, async (req: Request, res: Response) => {
     };
 
     const data = await forwardToAIPlatform("/api/v1/chat", "POST", requestBody);
+    
+    // Deduct credits after successful response
+    if (req.user && data.response) {
+      await deductAICredits(req.user.userId, req.user.tenantId, assistant || "chat", 2);
+    }
+    
     res.json(data);
   } catch (error) {
     console.error("[aiPlatformRoutes] Chat error:", error);
@@ -104,10 +269,14 @@ router.post("/chat", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// Multimodal chat with file upload
+// ─────────────────────────────────────────────────────────────────────────
+// Multimodal Chat with file upload (with credit metering)
+// ─────────────────────────────────────────────────────────────────────────
+
 router.post(
   "/multimodal",
   authMiddleware,
+  checkAICredits,
   upload.single("file"),
   async (req: Request, res: Response) => {
     try {
@@ -150,8 +319,68 @@ router.post(
   }
 );
 
+// ─────────────────────────────────────────────────────────────────────────
+// Analyze Endpoint - Auto-route by file type via FORGE (with credit metering)
+// This is different from /multimodal - it's specifically for file analysis
+// ─────────────────────────────────────────────────────────────────────────
+
+router.post(
+  "/analyze",
+  authMiddleware,
+  checkAICredits,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    try {
+      const { prompt, provider } = req.body;
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "File required" });
+      }
+
+      // FORGE routes automatically based on file type
+      const formData = new FormData();
+      const uint8Array = new Uint8Array(req.file.buffer);
+      const blob = new Blob([uint8Array], { type: req.file.mimetype });
+      formData.append("file", blob, req.file.originalname);
+      formData.append("prompt", prompt || "Analyse this file and provide a structured summary.");
+      if (provider) formData.append("provider", provider);
+
+      const response = await fetch(`${AI_PLATFORM_URL}/api/v1/multimodal`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json() as AIPlatformResponse;
+      
+      // Deduct credits based on file type
+      if (req.user && data.response) {
+        let creditCost = 5; // default for images
+        const mimeType = req.file.mimetype;
+        
+        if (mimeType === "application/pdf") {
+          creditCost = 6;
+        } else if (mimeType.startsWith("audio/")) {
+          creditCost = 4;
+        } else if (mimeType.startsWith("video/")) {
+          creditCost = 10;
+        }
+        
+        await deductAICredits(req.user.userId, req.user.tenantId, "forge", creditCost);
+      }
+      
+      res.json(data);
+    } catch (error) {
+      console.error("[aiPlatformRoutes] Analyze error:", error);
+      res.status(500).json({ 
+        error: "File analysis failed",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+);
+
 // Chat with specific assistant
-router.post("/assistants/:assistantName/chat", authMiddleware, async (req: Request, res: Response) => {
+router.post("/assistants/:assistantName/chat", authMiddleware, checkAICredits, async (req: Request, res: Response) => {
   try {
     const assistantName = String(req.params.assistantName);
     const { message, model, history, files } = req.body;
@@ -172,6 +401,11 @@ router.post("/assistants/:assistantName/chat", authMiddleware, async (req: Reque
       "POST",
       requestBody
     );
+
+    // Deduct credits
+    if (req.user && data.response) {
+      await deductAICredits(req.user.userId, req.user.tenantId, assistantName, 2);
+    }
 
     res.json(data);
   } catch (error) {

@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore, type AuthUser } from "./authStore";
+import { getPostLoginPath, useAuthStore, type AuthUser } from "./authStore";
+import { OMEGA_WELCOME_KEY, type OmegaLaunchWelcome } from "../onboarding/omegaLaunchWelcome";
 
 import { API_BASE } from "../../lib/api";
 
@@ -339,19 +340,10 @@ function OtpInput({
 
 // ─── Register Wizard ───────────────────────────────────────────────────────
 
-const FOCUS_OPTIONS = [
-  { id: "community",    icon: "🧑‍🤝‍🧑", name: "Community",    desc: "Connect · Share · Grow" },
-  { id: "academy",      icon: "🎓", name: "Academy",      desc: "Learn · Certify · Level up" },
-  { id: "market",       icon: "🛒", name: "Market",       desc: "Sell · Source · Scale" },
-  { id: "work",         icon: "💼", name: "Work",         desc: "Freelance · Jobs · Escrow" },
-  { id: "intelligence", icon: "🤖", name: "Intelligence", desc: "AI · Automation · Insights" },
-  { id: "cloud",        icon: "☁️", name: "Cloud",        desc: "Build · API · Deploy" },
-];
-
 const STEP_META = [
   { label: "Identity" },
   { label: "Security" },
-  { label: "Focus" },
+  { label: "OMEGA" },
   { label: "Welcome" },
 ];
 
@@ -365,6 +357,15 @@ function passwordStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string } {
   if (score === 2) return { level: 2, label: "Fair" };
   return { level: 3, label: "Strong" };
 }
+
+const FOCUS_OPTIONS = [
+  { id: "community",    icon: "🧑‍🤝‍🧑", name: "Community",    desc: "Connect · Share · Grow" },
+  { id: "academy",      icon: "🎓", name: "Academy",      desc: "Learn · Certify · Level up" },
+  { id: "market",       icon: "🛒", name: "Market",       desc: "Sell · Source · Scale" },
+  { id: "work",         icon: "💼", name: "Work",         desc: "Freelance · Jobs · Escrow" },
+  { id: "intelligence", icon: "🤖", name: "Intelligence", desc: "AI · Automation · Insights" },
+  { id: "cloud",        icon: "☁️", name: "Cloud",        desc: "Build · API · Deploy" },
+];
 
 function RegisterWizard({
   onBack,
@@ -431,7 +432,6 @@ function RegisterWizard({
       const { token, user } = data as { token: string; user: import("./authStore").AuthUser };
       localStorage.setItem("we_token", token);
       localStorage.setItem("we_user", JSON.stringify(user));
-      if (focus) localStorage.setItem("we_focus", focus);
       useAuthStore.setState({ token, user, pendingTwoFactor: null });
       setStep(4);
     } catch {
@@ -550,8 +550,8 @@ function RegisterWizard({
       {/* ── Step 3: Ecosystem Focus ── */}
       {step === 3 && (
         <>
-          <h2 className="rw-title">Your <span>Focus</span></h2>
-          <p className="rw-subtitle">What brings you to the ecosystem? You can access all layers — pick your primary interest.</p>
+          <h2 className="rw-title">Meet <span>OMEGA</span></h2>
+          <p className="rw-subtitle">This final sign-up signal helps OMEGA start your first-login conversation with better context. Your full platform routing still happens in onboarding.</p>
           {error && <div className="lp-alert">{error}</div>}
           <div className="rw-focus-grid">
             {FOCUS_OPTIONS.map((f) => (
@@ -571,7 +571,7 @@ function RegisterWizard({
             <button type="button" className="rw-next" disabled={loading} onClick={handleNext}>
               {loading
                 ? <span className="lp-loading"><span className="lp-spinner" /> Creating account...</span>
-                : focus ? "Join Ecosystem →" : "Skip & Join →"}
+                : focus ? "Create Account →" : "Create Account →"}
             </button>
           </div>
         </>
@@ -584,7 +584,7 @@ function RegisterWizard({
           <h2 className="rw-success-title">Welcome, <span>{name.split(" ")[0]}</span>!</h2>
           <p className="rw-success-text">
             Your Winners Ecosystem account is ready.<br />
-            You now have access to all 6 live layers of the platform.
+            OMEGA is waiting to run your personalized onboarding conversation. Your first login starts on Free, with no credit card required.
           </p>
           <div className="rw-success-chips">
             <span className="rw-chip">✓ Core Engine</span>
@@ -595,7 +595,7 @@ function RegisterWizard({
             <span className="rw-chip">✓ Work</span>
           </div>
           <button type="button" className="rw-next" onClick={onDone}>
-            Enter Ecosystem →
+            Meet OMEGA →
           </button>
         </>
       )}
@@ -637,7 +637,7 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    if (user) navigate("/dashboard", { replace: true });
+    if (user) navigate(getPostLoginPath(user), { replace: true });
   }, [user, navigate]);
 
   useEffect(() => {
@@ -648,7 +648,21 @@ export default function LoginPage() {
 
   // OAuth callback handler (Google + Facebook)
   useEffect(() => {
-    const finishOAuthLogin = (token: string, rawUser: unknown, provider = "Google") => {
+    const stashOmegaWelcome = (rawWelcome: unknown) => {
+      if (!rawWelcome) return;
+      try {
+        const parsed: OmegaLaunchWelcome =
+          typeof rawWelcome === "string"
+            ? (JSON.parse(decodeURIComponent(rawWelcome)) as OmegaLaunchWelcome)
+            : (rawWelcome as OmegaLaunchWelcome);
+        if (!parsed?.pathPrefix || !parsed?.title || !parsed?.message) return;
+        sessionStorage.setItem(OMEGA_WELCOME_KEY, JSON.stringify(parsed));
+      } catch {
+        /* ignore malformed welcome payloads */
+      }
+    };
+
+    const finishOAuthLogin = (token: string, rawUser: unknown, rawWelcome?: unknown, provider = "Google") => {
       if (!token || !rawUser) {
         setError(`${provider} sign-in failed.`);
         return;
@@ -658,10 +672,11 @@ export default function LoginPage() {
           typeof rawUser === "string"
             ? (JSON.parse(decodeURIComponent(rawUser)) as AuthUser)
             : (rawUser as AuthUser);
+        stashOmegaWelcome(rawWelcome);
         localStorage.setItem("we_token", token);
         localStorage.setItem("we_user", JSON.stringify(userData));
         useAuthStore.setState({ token, user: userData, pendingTwoFactor: null });
-        navigate("/dashboard", { replace: true });
+        navigate(getPostLoginPath(userData), { replace: true });
       } catch {
         setError(`Failed to complete ${provider} sign-in.`);
       }
@@ -672,6 +687,7 @@ export default function LoginPage() {
     const state     = params.get("state");
     const token     = params.get("token");
     const userJson  = params.get("user");
+    const omegaWelcome = params.get("omegaWelcome");
     const oauthErr  = params.get("error");
     const redirectUri = `${window.location.origin}/login`;
 
@@ -699,7 +715,7 @@ export default function LoginPage() {
             return;
           }
           if (data.token && data.user) {
-            finishOAuthLogin(data.token, data.user, provider);
+            finishOAuthLogin(data.token, data.user, data.omegaWelcome, provider);
             return;
           }
           setError(data.message ?? `${provider} sign-in failed.`);
@@ -710,7 +726,7 @@ export default function LoginPage() {
     }
 
     if (token && userJson) {
-      finishOAuthLogin(token, userJson);
+      finishOAuthLogin(token, userJson, omegaWelcome);
     }
   }, [navigate]);
 
@@ -791,7 +807,7 @@ export default function LoginPage() {
           {showRegister ? (
             <RegisterWizard
               onBack={() => setShowRegister(false)}
-              onDone={() => navigate("/dashboard", { replace: true })}
+              onDone={() => navigate("/onboarding", { replace: true })}
             />
           ) : pendingTwoFactor ? (
             <div className="lp-otp-screen">
@@ -1055,4 +1071,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

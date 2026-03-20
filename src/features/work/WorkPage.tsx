@@ -7,6 +7,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 import ContextBar from "../../components/ui/ContextBar";
+import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
 import "./WorkPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
@@ -617,6 +618,8 @@ export default function WorkPage() {
           <h1 className="work-title">Winners <span>Work</span></h1>
           <p className="work-subtitle">African freelancers · Global clients · CIRCUIT AI matching</p>
         </div>
+
+        <OmegaProfileAssignmentCard layer="work" />
 
         {stats && (
           <div className="work-stats-row">

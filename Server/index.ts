@@ -23,6 +23,7 @@ import v1Router from "./routes/apiRouter.js";
 
 // ── Chat Routes (Phase 5 — Winners Intelligence) ──────────────────────────────
 import chatRoutes from "./routes/chatRoutes.js";
+import aiPlatformRoutes from "./routes/aiPlatformRoutes.js";
 import quizRoutes from "./routes/quizRoutes.js";
 
 // ── Message Routes (Phase 2 — Winners Community DMs) ───────────────────────
@@ -158,6 +159,7 @@ app.use("/api/v1", v1Router);
 // ── Direct Route Mounts — Chat + Messages + Live Spaces ────────────
 // Note: Academy routes are mounted via apiRouter at /api/v1/academy
 app.use("/api/v1/chat", chatRoutes);
+app.use("/api/v1/ai-platform", aiPlatformRoutes);
 app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/posts", postRoutes);
 app.use("/api/v1/groups", groupRoutes);

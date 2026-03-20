@@ -8,6 +8,7 @@ import LayerSubNav from "../../components/ui/LayerSubNav";
 import EmptyState from "../../components/ui/EmptyState";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import ContextBar from "../../components/ui/ContextBar";
+import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
 import { ACADEMY_SUBNAV } from "../../components/ui/subnav";
 
 interface Course {
@@ -90,6 +91,8 @@ export default function AcademyPage() {
   return (
     <div style={{ padding: 20 }}>
       {ctxBar}
+
+      <OmegaProfileAssignmentCard layer="academy" />
       
       {/* Academy Sub-Navigation */}
       <LayerSubNav

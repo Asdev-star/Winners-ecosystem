@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/authStore';
 import AssistantPanel from '../../components/ui/AssistantPanel';
+import OmegaProfileAssignmentCard from '../../components/ui/OmegaProfileAssignmentCard';
 
 const styles = {
   container: {
@@ -373,6 +374,8 @@ export default function VendorDashboard() {
           + Add Product
         </button>
       </div>
+
+      <OmegaProfileAssignmentCard layer="market" />
 
       {/* ATLAS AI Assistant */}
       <div style={{ marginBottom: '24px' }}>
