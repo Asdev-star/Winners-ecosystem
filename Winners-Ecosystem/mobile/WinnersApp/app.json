@@ -2,6 +2,7 @@
   "expo": {
     "name": "Winners Ecosystem",
     "slug": "winners-ecosystem",
+    "scheme": "winners",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -18,8 +19,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.winners.ecosystem",
       "infoPlist": {
-        "NSCameraUsageDescription": "Winners App needs camera access for profile pictures.",
-        "NSMicrophoneUsageDescription": "Winners App needs microphone access for voice-enabled AI chat."
+        "NSCameraUsageDescription": "Winners App needs camera access for profile pictures, product photos, and course uploads.",
+        "NSMicrophoneUsageDescription": "Winners App needs microphone access for voice-enabled AI chat.",
+        "NSFaceIDUsageDescription": "Allow Winners Ecosystem to use Face ID for secure sign-in.",
+        "NSPhotoLibraryUsageDescription": "Winners App needs photo library access to upload profile pictures and marketplace media."
       }
     },
     "android": {
@@ -27,7 +30,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0D1520"
       },
-      "package": "com.winners.ecosystem"
+      "package": "com.winners.ecosystem",
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS",
+        "READ_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,6 +45,38 @@
       "eas": {
         "projectId": "winners-ecosystem-project-id"
       }
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#C9A84C"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Winners Ecosystem to use Face ID for secure sign-in."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Winners App needs camera access for profile pictures, product photos, and course uploads.",
+          "microphonePermission": "Winners App needs microphone access for voice-enabled AI chat."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Winners App needs gallery access to select profile pictures and marketplace media.",
+          "cameraPermission": "Winners App can use the camera to capture new profile pictures and product photos."
+        }
+      ],
+      "@stripe/stripe-react-native",
+      "expo-sqlite"
+    ]
   }
 }

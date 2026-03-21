@@ -1,27 +1,40 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-const EcosystemContextBar = () => {
+type Props = {
+  label: string;
+  context: string;
+};
+
+const EcosystemContextBar = ({ context, label }: Props) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Winners Empire v1.0</Text>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.context}>{context}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#172335',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    backgroundColor: "#111D2E",
     borderBottomWidth: 1,
-    borderBottomColor: '#1E3248',
+    borderBottomColor: "#1E3248",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 4,
   },
-  text: {
-    color: '#5A7A96',
-    fontSize: 10,
-    fontFamily: 'monospace',
-    textAlign: 'center',
+  label: {
+    color: "#C9A84C",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  context: {
+    color: "#9AB1C6",
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
 
