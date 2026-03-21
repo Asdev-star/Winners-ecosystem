@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../features/auth/authStore";
-import FileDropZone, { AnalysisResult } from "../../components/ai/FileDropZone";
+import FileDropZone, { type AnalysisResult } from "../../components/ai/FileDropZone";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 

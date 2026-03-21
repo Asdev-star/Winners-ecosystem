@@ -7,7 +7,7 @@ import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
 import { API_BASE } from "../../lib/api";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
-import FileDropZone, { AnalysisResult } from "../../components/ai/FileDropZone";
+import FileDropZone, { type AnalysisResult } from "../../components/ai/FileDropZone";
 import QuizTaker from "./components/QuizTaker";
 
 interface Course {
@@ -540,7 +540,7 @@ export default function CoursePage() {
               </div>
               <FileDropZone
                 supervisor="sage"
-                context={{ courseId: course?.id, lessonId: selectedLesson, courseSlug: slug }}
+                context={{ courseId: course?.id ?? "", lessonId: selectedLesson ?? "", courseSlug: slug ?? "" }}
                 acceptedTypes={['pdf', 'image', 'audio']}
                 label="Drop a PDF, screenshot, or audio for SAGE to analyze"
                 onAnalysis={(result) => setSageAnalysis(result)}

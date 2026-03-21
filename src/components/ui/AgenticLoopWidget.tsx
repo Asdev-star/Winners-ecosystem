@@ -20,6 +20,7 @@ type NodeId = (typeof LOOP_NODES)[number]["id"];
 
 interface AgenticLoopWidgetProps {
   compact?: boolean;
+  currentStage?: number;
 }
 
 const css = `
@@ -176,7 +177,8 @@ const css = `
 `;
 
 export default function AgenticLoopWidget({ compact = false }: AgenticLoopWidgetProps) {
-  const { allStageStatuses, loopVelocity, estimatedCompletion, completedStages } = useLoopTracking();
+  const { allStageStatuses, stats } = useLoopTracking();
+  const { loopVelocity, estimatedCompletion, completedStages } = stats;
 
   const stageStatusMap = Object.fromEntries(
     allStageStatuses.map((s) => [s.stage, s.status])

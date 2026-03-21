@@ -199,7 +199,11 @@ function RevenueTooltip({
   active,
   payload,
   label,
-}: TooltipProps<number, string>) {
+}: TooltipProps<number, string> & {
+  active?: boolean;
+  payload?: Array<{ payload?: RevenueSnapshot["chart"]["series"][number] }>;
+  label?: string | number;
+}) {
   if (!active || !payload?.length) return null;
 
   const datum = payload[0]?.payload as RevenueSnapshot["chart"]["series"][number] | undefined;
@@ -647,4 +651,3 @@ export default function AdminRevenuePage() {
     </div>
   );
 }
-

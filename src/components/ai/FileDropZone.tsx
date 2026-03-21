@@ -3,7 +3,7 @@
 // Drag-and-drop: image | PDF | audio | video — routes to FORGE.
 // Renders as a full drop target or as an inline compact drop area.
 // Extended with supervisor context for per-layer integration (NOVA, SAGE, CIRCUIT)
-
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from "react";
 
 export type FileType = "image" | "pdf" | "audio" | "video";
@@ -42,6 +42,7 @@ export const SUPERVISOR_NAMES: Record<string, string> = {
 interface FileDropZoneProps {
   onFile?: (file: DroppedFile) => void;
   accept?: FileType[];
+  acceptedTypes?: FileType[];
   supervisor?: string;
   context?: Record<string, string>;
   label?: string;
@@ -239,6 +240,7 @@ const css = `
 export default function FileDropZone({
   onFile,
   accept = ["image", "pdf", "audio"],
+  acceptedTypes,
   supervisor,
   context,
   label,
@@ -247,6 +249,7 @@ export default function FileDropZone({
   disabled = false,
   className,
 }: FileDropZoneProps) {
+  const allowedTypes = acceptedTypes ?? accept;
   const assistantName = supervisor ? SUPERVISOR_NAMES[supervisor.toLowerCase()] || supervisor : "FORGE";
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState<DroppedFile | null>(null);
@@ -317,7 +320,7 @@ export default function FileDropZone({
   const processFile = useCallback(
     (file: File) => {
       const type = getFileType(file.name);
-      if (!type || !accept.includes(type)) return;
+      if (!type || !allowedTypes.includes(type)) return;
 
       const reader = new FileReader();
       reader.onload = () => {
@@ -338,7 +341,7 @@ export default function FileDropZone({
       };
       reader.readAsDataURL(file);
     },
-    [accept, onFile, onAnalysis, analyzeFile]
+    [allowedTypes, onFile, onAnalysis, analyzeFile]
   );
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -361,7 +364,7 @@ export default function FileDropZone({
     e.target.value = "";
   };
 
-  const acceptedTypes = accept.map((t) => ACCEPT_MAP[t]).flat().join(", ");
+  const acceptedTypeList = allowedTypes.map((t) => ACCEPT_MAP[t]).flat().join(", ");
 
   // Custom label display
   const displayLabel = label || (onAnalysis 
@@ -396,7 +399,7 @@ export default function FileDropZone({
           <input
             ref={inputRef}
             type="file"
-            accept={buildAcceptString(accept)}
+            accept={buildAcceptString(allowedTypes)}
             style={{ display: "none" }}
             onChange={onChange}
           />
@@ -404,7 +407,7 @@ export default function FileDropZone({
           {compact ? (
             <span className="fdz-label">
               <span className="fdz-icon">📎</span>
-              <strong>Drop file</strong> or click · {acceptedTypes}
+              <strong>Drop file</strong> or click · {acceptedTypeList}
             </span>
           ) : (
             <>
@@ -419,8 +422,8 @@ export default function FileDropZone({
                 )}
               </p>
               <p className="fdz-meta">
-                {accept.map((t) => TYPE_ICONS[t]).join(" ")} &nbsp;
-                {accept.join(" · ")} formats
+                {allowedTypes.map((t) => TYPE_ICONS[t]).join(" ")} &nbsp;
+                {allowedTypes.join(" · ")} formats
               </p>
             </>
           )}

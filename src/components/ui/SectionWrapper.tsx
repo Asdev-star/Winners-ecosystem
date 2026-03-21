@@ -2,15 +2,17 @@
 // Component: SectionWrapper
 // Max-width + 8px-grid padding for every major section. Never inline again.
 
+import type { CSSProperties, ElementType, ReactNode } from "react";
+
 interface SectionWrapperProps {
-  children: React.ReactNode;
+  children: ReactNode;
   maxWidth?: number;
   paddingX?: number;
   paddingY?: number;
   gap?: number;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
-  style?: React.CSSProperties;
+  as?: ElementType;
+  style?: CSSProperties;
 }
 
 export default function SectionWrapper({

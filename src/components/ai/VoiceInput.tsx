@@ -5,16 +5,18 @@ import { useState, useRef } from "react";
 import { useAuthStore } from "../../features/auth/authStore";
 
 interface VoiceInputProps {
-  onTranscript: (text: string) => void;
+  onTranscript?: (text: string) => void;
+  onTranscription?: (text: string) => void;
   disabled?: boolean;
 }
 
-export default function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
+export default function VoiceInput({ onTranscript, onTranscription, disabled }: VoiceInputProps) {
   const [recording, setRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [processing, setProcessing] = useState(false);
   const chunks = useRef<Blob[]>([]);
   const token  = useAuthStore(s => s.token);
+  const handleTranscript = onTranscript ?? onTranscription;
 
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -46,7 +48,7 @@ export default function VoiceInput({ onTranscript, disabled }: VoiceInputProps) 
       body:    formData
     });
     const data = await res.json();
-    if (data.text) onTranscript(data.text);
+    if (data.text) handleTranscript?.(data.text);
     setProcessing(false);
   };
 
