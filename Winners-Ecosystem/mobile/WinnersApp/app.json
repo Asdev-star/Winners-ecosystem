@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Winners Ecosystem",
+    "slug": "winners-ecosystem",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D1520"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.winners.ecosystem",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Winners App needs camera access for profile pictures.",
+        "NSMicrophoneUsageDescription": "Winners App needs microphone access for voice-enabled AI chat."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D1520"
+      },
+      "package": "com.winners.ecosystem"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "winners-ecosystem-project-id"
+      }
+    }
+  }
+}
