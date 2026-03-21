@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Outlet, useNavigate, useLocation, NavLink } from "react-router-dom";
-import { Bell, BellOff, Download } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
 import { useAuthStore } from "../../features/auth/authStore";
 import TenantSwitcher from "../ui/TenantSwitcher";
 import NotificationBell from "../../features/notifications/NotificationBell";
@@ -19,7 +19,6 @@ import { OMEGA_WELCOME_KEY, type OmegaLaunchWelcome } from "../../features/onboa
 import { getOmegaProfileContext, getOmegaSidebarRank } from "../../features/onboarding/omegaProfileContext";
 import { useEcosystemHealth } from "../../hooks/useEcosystemHealth";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
-import { useInstallPrompt } from "../../features/pwa/useInstallPrompt";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
@@ -738,7 +737,6 @@ export default function MainLayout() {
 
   const { health } = useEcosystemHealth();
   const { supported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe, error: pushError } = usePushNotifications();
-  const { isInstallable, showInstallPrompt } = useInstallPrompt();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -757,7 +755,7 @@ export default function MainLayout() {
     ? "Online" 
     : aiPlatformStatus === "building" ? "Synchronizing" : "Offline";
   const shouldOfferPush = supported && Boolean(user) && permission !== "denied";
-  const showMobileUtilityRail = isInstallable || shouldOfferPush;
+  const showMobileUtilityRail = shouldOfferPush;
   const pushStatus = pushError
     ? pushError
     : !supported
@@ -1001,27 +999,6 @@ export default function MainLayout() {
         <ImpersonationBanner />
         {showMobileUtilityRail ? (
           <section className="ml-utility-rail" aria-label="Device actions">
-            {isInstallable ? (
-              <div className="ml-utility-card">
-                <div className="ml-utility-kicker">
-                  <span className="ml-utility-icon">
-                    <Download size={16} />
-                  </span>
-                  Install Winners
-                </div>
-                <div className="ml-utility-title">Add the ecosystem to your device</div>
-                <p className="ml-utility-copy">
-                  Launch faster, keep the shell available offline, and make the platform feel native on mobile and desktop.
-                </p>
-                <div className="ml-utility-actions">
-                  <button type="button" className="ml-utility-button" onClick={showInstallPrompt}>
-                    <Download size={14} />
-                    Install App
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
             {shouldOfferPush ? (
               <div className="ml-utility-card push-card">
                 <div className="ml-utility-kicker">

@@ -42,6 +42,38 @@ router.get("/", async (req: Request, res: Response) => {
   return res.json({ notifications: notifs, total: notifs.length, unread: notifs.filter((n) => !n.read).length });
 });
 
+router.post("/device-token", async (req: Request, res: Response) => {
+  const { token, platform } = req.body ?? {};
+
+  if (!token) {
+    return res.status(400).json({ error: "Token required" });
+  }
+
+  const userAgentHeader = req.headers["user-agent"];
+  const userAgent = Array.isArray(userAgentHeader) ? userAgentHeader.join("; ") : userAgentHeader || "";
+
+  await db.deviceToken.upsert({
+    where: { token },
+    update: {
+      isActive: true,
+      lastSeen: new Date(),
+      platform: platform || "web",
+      tenantId: req.user!.tenantId,
+      userAgent,
+      userId: req.user!.userId,
+    },
+    create: {
+      token,
+      platform: platform || "web",
+      userId: req.user!.userId,
+      tenantId: req.user!.tenantId,
+      userAgent,
+    },
+  });
+
+  return res.json({ success: true });
+});
+
 // PATCH /notifications/:id/read
 router.patch("/:id/read", async (req: Request, res: Response) => {
   const notifs = getTenantNotifs(req.user!.tenantId);

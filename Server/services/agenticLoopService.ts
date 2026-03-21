@@ -2,7 +2,7 @@
 // Certificate earned -> CIRCUIT matching -> Work notification
 
 import db from '../db.js';
-import { sendPushNotification } from './fcmService.js';
+import { pushTriggers, sendPushNotification } from './fcmService.js';
 import { recordAdminSignal } from "./adminSignalService.js";
 
 export interface AgenticTrigger {
@@ -83,12 +83,8 @@ export async function onCertificateEarned(userId: string, courseId: string, tena
       },
     });
 
-    await sendPushNotification(userId, {
-      title: 'CIRCUIT: Job Match Found',
-      body: `Your ${cert.course?.title ?? 'certificate'} matches a $${bestJob.budgetMax ?? bestJob.budgetMin ?? 0} contract. Tap to view.`,
-      url: `/work/jobs/${bestJob.id}`,
-      data: { type: 'job_match', jobId: bestJob.id },
-    });
+    await pushTriggers.certificateEarned(userId, cert.course?.title ?? "Course");
+    await pushTriggers.jobMatch(userId, bestJob.title, 92, bestJob.id);
 
     const user = await db.user.findUnique({
       where: { id: userId },

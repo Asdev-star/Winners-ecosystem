@@ -22,6 +22,13 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
+function encodeSubscriptionToken(subscription: PushSubscription): string {
+  const subJson = subscription.toJSON();
+  const p256dhKey = subJson.keys?.p256dh ?? "";
+  const authKey = subJson.keys?.auth ?? "";
+  return `web_push:${btoa(JSON.stringify({ endpoint: subscription.endpoint, p256dh: p256dhKey, auth: authKey }))}`;
+}
+
 export function usePushNotifications() {
   const { token } = useAuthStore();
   const [state, setState] = useState<PushState>({
@@ -63,7 +70,7 @@ export function usePushNotifications() {
       await fetch(`${API_BASE}/push-tokens/register`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ token: fcmToken, platform: "web" }),
+        body: JSON.stringify({ token: fcmToken, platform: "web", userAgent: navigator.userAgent }),
       });
     } catch (err) {
       console.error("[push] Failed to register token with server:", err);
@@ -97,10 +104,7 @@ export function usePushNotifications() {
         });
       }
 
-      const subJson = sub.toJSON();
-      const p256dhKey = subJson.keys?.p256dh ?? "";
-      const authKey = subJson.keys?.auth ?? "";
-      const endpointToken = `web_push:${btoa(JSON.stringify({ endpoint: sub.endpoint, p256dh: p256dhKey, auth: authKey }))}`;
+      const endpointToken = encodeSubscriptionToken(sub);
 
       await registerTokenWithServer(endpointToken);
 
@@ -124,7 +128,7 @@ export function usePushNotifications() {
           await fetch(`${API_BASE}/push-tokens/register`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ token: sub.endpoint }),
+            body: JSON.stringify({ token: encodeSubscriptionToken(sub) }),
           });
         }
       }

@@ -1,252 +1,440 @@
-// Winners Ecosystem Service Worker
-// Provides offline caching and push notification support
+const CACHE_VERSION = "winners-v3";
+const DB_NAME = "winners-offline";
+const DB_VERSION = 2;
+const OFFLINE_QUEUE = "offline-queue";
+const META_STORE = "offline-meta";
 
-const CACHE_NAME = 'winners-ecosystem-v2';
-const STATIC_CACHE = 'winners-static-v2';
-const DYNAMIC_CACHE = 'winners-dynamic-v2';
-const OFFLINE_DB = 'winners-offline-db';
-const OFFLINE_STORE = 'queued-actions';
-
-// Assets to cache immediately on install
 const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/pwa-192x192.svg',
-  '/pwa-512x512.svg',
+  "/",
+  "/community",
+  "/academy",
+  "/intelligence",
+  "/work",
+  "/market",
+  "/notifications",
+  "/offline.html",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
 ];
 
-// Install event - cache static assets
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
-  
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      console.log('[SW] Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
-  
-  // Activate immediately
+const PAGE_CACHE_PATTERNS = [
+  /^\/academy(?:\/|$)/,
+  /^\/community(?:\/|$)/,
+  /^\/notifications(?:\/|$)/,
+  /^\/profile(?:\/|$)/,
+  /^\/work(?:\/|$)/,
+  /^\/intelligence(?:\/|$)/,
+];
+
+const MEDIA_CACHE_PATTERNS = [
+  /^\/uploads\/?/,
+  /\.(?:mp4|webm|mp3|wav|pdf|png|jpg|jpeg|webp|gif|svg)$/i,
+];
+
+const API_CACHE_RULES = [
+  { pattern: /^\/api\/v1\/analytics\/summary(?:\/|$)/, maxAgeMs: null },
+  { pattern: /^\/api\/v1\/courses(?:\/|$)/, maxAgeMs: null },
+  { pattern: /^\/api\/v1\/posts(?:\/|$)/, maxAgeMs: null },
+  { pattern: /^\/api\/v1\/community(?:\/|$)/, maxAgeMs: null },
+  { pattern: /^\/api\/v1\/notifications(?:\/|$)/, maxAgeMs: null },
+  { pattern: /^\/api\/v1\/work\/jobs(?:\/|$)/, maxAgeMs: 7 * 24 * 60 * 60 * 1000 },
+  { pattern: /^\/api\/v1\/omega\/briefing(?:\/|$)/, maxAgeMs: null },
+  { pattern: /^\/api\/v1\/omega\/briefing\/morning(?:\/|$)/, maxAgeMs: null },
+];
+
+const QUEUEABLE_MUTATIONS = [
+  /^\/api\/v1\/posts(?:\/?$|\/[^/]+\/like$|\/[^/]+\/comments(?:\/?$|\/[^/]+\/like$))/,
+  /^\/api\/v1\/community\/posts\/[^/]+\/react$/,
+  /^\/api\/v1\/work\/jobs\/[^/]+\/apply$/,
+  /^\/api\/v1\/messages\/[^/]+$/,
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
-  
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
-          .map((name) => {
-            console.log('[SW] Deleting old cache:', name);
-            return caches.delete(name);
-          })
-      );
-    })
-  );
-  
-  // Take control immediately
-  self.clients.claim();
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key)));
+    await self.clients.claim();
+    await broadcastQueueDepth();
+    await broadcastCacheMetrics();
+    await broadcastSyncMetrics();
+  })());
 });
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
+  if (url.origin !== self.location.origin) {
     return;
   }
 
-  // Skip API requests - always go to network unless it's a specific cached endpoint
-  if (url.pathname.startsWith('/api/')) {
+  if (request.method !== "GET") {
+    if (shouldQueueMutation(url.pathname)) {
+      event.respondWith(handleQueueableMutation(request));
+    }
     return;
   }
 
-  // Skip external requests
-  if (url.origin !== location.origin) {
+  if (request.mode === "navigate" || PAGE_CACHE_PATTERNS.some((pattern) => pattern.test(url.pathname))) {
+    event.respondWith(handlePageRequest(request));
     return;
   }
 
-  // For HTML pages - Network First
-  if (request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone and cache the response
-          const responseClone = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cache
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Return offline page if available
-            return caches.match('/');
-          });
-        })
-    );
+  const apiRule = getApiCacheRule(url.pathname);
+  if (apiRule) {
+    event.respondWith(handleApiRequest(request, apiRule));
     return;
   }
 
-  // For static assets - Cache First
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached response and update cache in background
-        fetch(request).then((response) => {
-          caches.open(STATIC_CACHE).then((cache) => {
-            cache.put(request, response);
-          });
-        }).catch(() => {}); // Ignore network errors for background update
-        return cachedResponse;
-      }
-
-      // Not in cache - fetch from network
-      return fetch(request).then((response) => {
-        // Cache the response
-        const responseClone = response.clone();
-        caches.open(DYNAMIC_CACHE).then((cache) => {
-          cache.put(request, responseClone);
-        });
-        return response;
-      });
-    })
-  );
+  if (MEDIA_CACHE_PATTERNS.some((pattern) => pattern.test(url.pathname))) {
+    event.respondWith(handleMediaRequest(request));
+  }
 });
 
-self.addEventListener('message', (event) => {
+self.addEventListener("sync", (event) => {
+  if (event.tag === "sync-offline-actions") {
+    event.waitUntil(flushOfflineQueue());
+  }
+});
+
+self.addEventListener("message", (event) => {
   const payload = event.data;
-  if (!payload || payload.type !== 'QUEUE_OFFLINE_ACTION' || !payload.action) {
+  if (!payload || typeof payload !== "object") {
     return;
   }
 
-  event.waitUntil(queueOfflineAction(payload.action));
+  if (payload.type === "SYNC_OFFLINE_QUEUE") {
+    event.waitUntil(flushOfflineQueue());
+    return;
+  }
+
+  if (payload.type === "QUEUE_OFFLINE_ACTION" && payload.action) {
+    event.waitUntil(
+      addQueuedAction(payload.action).then(() => broadcastQueueDepth()).catch(() => undefined),
+    );
+  }
 });
 
-// Push notification event
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
-  let data = {};
-  try {
-    data = event.data.json();
-  } catch (e) {
-    data = { title: 'Winners Ecosystem', body: event.data.text() };
-  }
-  
-  const options = {
-    body: data.body || 'New notification from Winners Ecosystem',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    image: data.image || null,
-    vibrate: [100, 50, 100],
-    tag: data.tag || 'winners-notification',
-    renotify: true,
-    data: {
-      url: data.url || '/',
-      dateOfArrival: Date.now(),
-    },
-    actions: data.actions || [
-      { action: 'view', title: 'View' },
-      { action: 'dismiss', title: 'Dismiss' },
-    ],
-  };
-
+self.addEventListener("push", (event) => {
+  const data = event.data?.json() ?? {};
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Winners Ecosystem', options)
+    self.registration.showNotification(data.title || "Winners", {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/badge-72.png",
+      data: { url: data.url || "/" },
+      actions: data.actions || [],
+      vibrate: [200, 100, 200],
+    }),
   );
 });
 
-// Notification click event
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(clients.openWindow(url));
+});
 
-  if (event.action === 'dismiss') {
+function getApiCacheRule(pathname) {
+  return API_CACHE_RULES.find((rule) => rule.pattern.test(pathname)) ?? null;
+}
+
+function shouldQueueMutation(pathname) {
+  return QUEUEABLE_MUTATIONS.some((pattern) => pattern.test(pathname));
+}
+
+async function handlePageRequest(request) {
+  const cache = await caches.open(CACHE_VERSION);
+  const cached = await cache.match(request);
+
+  if (cached) {
+    void recordCacheMetric("hit");
+    void refreshCacheEntry(cache, request);
+    return cached;
+  }
+
+  void recordCacheMetric("miss");
+
+  try {
+    const response = await fetch(request);
+    if (isSuccessfulResponse(response)) {
+      await cache.put(request, response.clone());
+      await rememberCacheTimestamp(request.url);
+    }
+    return response;
+  } catch {
+    return (await cache.match("/offline.html")) || new Response("Offline", { status: 503 });
+  }
+}
+
+async function handleApiRequest(request, rule) {
+  const cache = await caches.open(CACHE_VERSION);
+
+  try {
+    const response = await fetch(request);
+    if (isSuccessfulResponse(response)) {
+      await cache.put(request, response.clone());
+      await rememberCacheTimestamp(request.url);
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (!cached) {
+      void recordCacheMetric("miss");
+      return new Response(JSON.stringify({ offline: true, cached: false }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const freshEnough = await isCacheEntryFresh(request.url, rule.maxAgeMs);
+    if (!freshEnough) {
+      void recordCacheMetric("miss");
+      return new Response(JSON.stringify({ offline: true, expired: true }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    void recordCacheMetric("hit");
+    return cached;
+  }
+}
+
+async function handleMediaRequest(request) {
+  const cache = await caches.open(CACHE_VERSION);
+  const cached = await cache.match(request);
+
+  if (cached) {
+    void recordCacheMetric("hit");
+    void refreshCacheEntry(cache, request);
+    return cached;
+  }
+
+  void recordCacheMetric("miss");
+
+  try {
+    const response = await fetch(request);
+    if (isSuccessfulResponse(response)) {
+      await cache.put(request, response.clone());
+      await rememberCacheTimestamp(request.url);
+    }
+    return response;
+  } catch {
+    return new Response(null, { status: 504 });
+  }
+}
+
+async function refreshCacheEntry(cache, request) {
+  try {
+    const response = await fetch(request);
+    if (isSuccessfulResponse(response)) {
+      await cache.put(request, response.clone());
+      await rememberCacheTimestamp(request.url);
+    }
+  } catch {
+    // Stale content is still better than nothing while offline.
+  }
+}
+
+async function handleQueueableMutation(request) {
+  try {
+    return await fetch(request.clone());
+  } catch {
+    const queuedAction = await serializeRequestForQueue(request.clone());
+    if (!queuedAction) {
+      return new Response(JSON.stringify({ offline: true, queued: false }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    await addQueuedAction(queuedAction);
+    await broadcastQueueDepth();
+
+    return new Response(JSON.stringify({
+      queued: true,
+      offline: true,
+      message: "Action queued and will sync when you reconnect.",
+    }), {
+      status: 202,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+async function serializeRequestForQueue(request) {
+  const contentType = request.headers.get("Content-Type") || "application/json";
+  const authorization = request.headers.get("Authorization") || "";
+  const token = authorization.replace(/^Bearer\s+/i, "");
+
+  let body = null;
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    try {
+      if (contentType.includes("application/json")) {
+        body = await request.json();
+      } else {
+        body = await request.text();
+      }
+    } catch {
+      body = null;
+    }
+  }
+
+  return {
+    id: `${request.method}:${request.url}:${Date.now()}`,
+    url: request.url,
+    method: request.method,
+    body,
+    contentType,
+    token,
+    timestamp: Date.now(),
+  };
+}
+
+async function flushOfflineQueue() {
+  const db = await openDB();
+  const actions = await getAllQueuedActions(db);
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (const action of actions) {
+    try {
+      const response = await fetch(action.url, {
+        method: action.method,
+        headers: buildQueuedHeaders(action),
+        body: formatQueuedBody(action),
+      });
+
+      if (!response.ok) {
+        failureCount += 1;
+        continue;
+      }
+
+      await deleteQueuedAction(db, action.id);
+      successCount += 1;
+    } catch {
+      failureCount += 1;
+    }
+  }
+
+  await incrementMetric("sync-successes", successCount);
+  await incrementMetric("sync-failures", failureCount);
+  await broadcastQueueDepth();
+  await broadcastSyncMetrics();
+
+  if (failureCount > 0) {
+    await broadcastToClients({ type: "OFFLINE_SYNC_FAILED", message: "Some queued actions are still pending." });
     return;
   }
 
-  const url = event.notification.data?.url || '/';
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If a window is already open, focus it
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(url);
-          return client.focus();
-        }
-      }
-      // Otherwise open a new window
-      if (clients.openWindow) {
-        return clients.openWindow(url);
-      }
-    })
-  );
-});
-
-// Background sync for offline actions
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag);
-
-  if (event.tag === 'sync-cart') {
-    event.waitUntil(syncCart());
-  }
-
-  if (event.tag === 'sync-posts') {
-    event.waitUntil(syncPosts());
-  }
-  
-  if (event.tag === 'sync-messages') {
-    event.waitUntil(syncMessages());
-  }
-});
-
-async function syncCart() {
-  console.log('[SW] Syncing cart...');
-  await syncQueuedActionsByType('cart');
+  await broadcastToClients({
+    type: "OFFLINE_SYNC_COMPLETED",
+    count: await getQueuedActionCount(db),
+    syncedAt: Date.now(),
+  });
 }
 
-async function syncPosts() {
-  console.log('[SW] Syncing posts...');
-  await syncQueuedActionsByType('post');
-}
-
-async function syncMessages() {
-  console.log('[SW] Syncing messages...');
-  await syncQueuedActionsByType('message');
-}
-
-// Periodic background sync (if supported)
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'get-daily-news') {
-    event.waitUntil(fetchDailyNews());
+function buildQueuedHeaders(action) {
+  const headers = {};
+  if (action.contentType) {
+    headers["Content-Type"] = action.contentType;
   }
-});
-
-async function fetchDailyNews() {
-  console.log('[SW] Fetching daily news in background...');
+  if (action.token) {
+    headers.Authorization = `Bearer ${action.token}`;
+  }
+  return headers;
 }
 
-function openOfflineDB() {
+function formatQueuedBody(action) {
+  if (action.body == null || action.method === "GET" || action.method === "HEAD") {
+    return undefined;
+  }
+
+  return typeof action.body === "string" ? action.body : JSON.stringify(action.body);
+}
+
+function isSuccessfulResponse(response) {
+  return response && response.ok;
+}
+
+async function recordCacheMetric(kind) {
+  await incrementMetric(kind === "hit" ? "cache-hits" : "cache-misses", 1);
+  await broadcastCacheMetrics();
+}
+
+async function broadcastQueueDepth() {
+  const db = await openDB();
+  const count = await getQueuedActionCount(db);
+  await broadcastToClients({ type: "OFFLINE_QUEUE_UPDATED", count });
+}
+
+async function broadcastSyncMetrics() {
+  const [successes, failures] = await Promise.all([
+    getMetric("sync-successes"),
+    getMetric("sync-failures"),
+  ]);
+  const total = successes + failures;
+  await broadcastToClients({
+    type: "OFFLINE_SYNC_METRICS",
+    successes,
+    failures,
+    successRate: total > 0 ? successes / total : 1,
+  });
+}
+
+async function broadcastCacheMetrics() {
+  const [hits, misses] = await Promise.all([
+    getMetric("cache-hits"),
+    getMetric("cache-misses"),
+  ]);
+  const total = hits + misses;
+  await broadcastToClients({
+    type: "OFFLINE_CACHE_METRICS",
+    hits,
+    misses,
+    hitRate: total > 0 ? hits / total : 1,
+  });
+}
+
+async function broadcastToClients(message) {
+  const windowClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  await Promise.all(windowClients.map((client) => client.postMessage(message)));
+}
+
+async function rememberCacheTimestamp(url) {
+  await setMeta(`cache:${url}`, Date.now());
+}
+
+async function isCacheEntryFresh(url, maxAgeMs) {
+  if (!maxAgeMs) {
+    return true;
+  }
+
+  const lastCached = await getMeta(`cache:${url}`);
+  if (!lastCached) {
+    return false;
+  }
+
+  return Date.now() - lastCached <= maxAgeMs;
+}
+
+function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(OFFLINE_DB, 1);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(OFFLINE_STORE)) {
-        db.createObjectStore(OFFLINE_STORE, { keyPath: 'id' });
+      if (!request.result.objectStoreNames.contains(OFFLINE_QUEUE)) {
+        request.result.createObjectStore(OFFLINE_QUEUE, { keyPath: "id" });
+      }
+
+      if (!request.result.objectStoreNames.contains(META_STORE)) {
+        request.result.createObjectStore(META_STORE, { keyPath: "key" });
       }
     };
 
@@ -255,33 +443,10 @@ function openOfflineDB() {
   });
 }
 
-async function queueOfflineAction(action) {
-  const db = await openOfflineDB();
-
+function getAllQueuedActions(db) {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(OFFLINE_STORE, 'readwrite');
-    const store = transaction.objectStore(OFFLINE_STORE);
-    store.put({
-      id: action.id || `${action.type}-${Date.now()}`,
-      type: action.type || 'unknown',
-      endpoint: action.endpoint || null,
-      method: action.method || 'POST',
-      headers: action.headers || {},
-      body: action.body || null,
-      createdAt: action.createdAt || Date.now(),
-    });
-
-    transaction.oncomplete = () => resolve(true);
-    transaction.onerror = () => reject(transaction.error);
-  });
-}
-
-async function getQueuedActions() {
-  const db = await openOfflineDB();
-
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(OFFLINE_STORE, 'readonly');
-    const store = transaction.objectStore(OFFLINE_STORE);
+    const transaction = db.transaction(OFFLINE_QUEUE, "readonly");
+    const store = transaction.objectStore(OFFLINE_QUEUE);
     const request = store.getAll();
 
     request.onsuccess = () => resolve(request.result || []);
@@ -289,42 +454,69 @@ async function getQueuedActions() {
   });
 }
 
-async function removeQueuedAction(id) {
-  const db = await openOfflineDB();
-
+function getQueuedActionCount(db) {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(OFFLINE_STORE, 'readwrite');
-    const store = transaction.objectStore(OFFLINE_STORE);
-    store.delete(id);
+    const transaction = db.transaction(OFFLINE_QUEUE, "readonly");
+    const store = transaction.objectStore(OFFLINE_QUEUE);
+    const request = store.count();
 
-    transaction.oncomplete = () => resolve(true);
-    transaction.onerror = () => reject(transaction.error);
+    request.onsuccess = () => resolve(request.result || 0);
+    request.onerror = () => reject(request.error);
   });
 }
 
-async function syncQueuedActionsByType(type) {
-  const queued = await getQueuedActions();
-  const matching = queued.filter((entry) => entry.type === type);
+function addQueuedAction(action) {
+  return new Promise(async (resolve, reject) => {
+    const db = await openDB();
+    const transaction = db.transaction(OFFLINE_QUEUE, "readwrite");
+    const store = transaction.objectStore(OFFLINE_QUEUE);
+    const request = store.put(action);
 
-  for (const action of matching) {
-    try {
-      if (!action.endpoint) {
-        continue;
-      }
-
-      const response = await fetch(action.endpoint, {
-        method: action.method || 'POST',
-        headers: action.headers || {},
-        body: action.body ? JSON.stringify(action.body) : undefined,
-      });
-
-      if (response.ok) {
-        await removeQueuedAction(action.id);
-      }
-    } catch (error) {
-      console.warn('[SW] Failed queued sync action', action.id, error);
-    }
-  }
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
 }
 
-console.log('[SW] Service worker loaded');
+function deleteQueuedAction(db, id) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(OFFLINE_QUEUE, "readwrite");
+    const store = transaction.objectStore(OFFLINE_QUEUE);
+    const request = store.delete(id);
+
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getMeta(key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(META_STORE, "readonly");
+    const store = transaction.objectStore(META_STORE);
+    const request = store.get(key);
+
+    request.onsuccess = () => resolve(request.result?.value ?? null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function setMeta(key, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(META_STORE, "readwrite");
+    const store = transaction.objectStore(META_STORE);
+    const request = store.put({ key, value });
+
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function incrementMetric(key, incrementBy) {
+  const current = Number((await getMeta(`metric:${key}`)) || 0);
+  await setMeta(`metric:${key}`, current + incrementBy);
+}
+
+async function getMetric(key) {
+  return Number((await getMeta(`metric:${key}`)) || 0);
+}

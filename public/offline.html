@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Winners Offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at top, rgba(201, 168, 76, 0.18), transparent 40%),
+          linear-gradient(180deg, #0d1520 0%, #111d2e 100%);
+        color: #e8eef5;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(92vw, 540px);
+        border: 1px solid rgba(143, 166, 186, 0.18);
+        border-top: 2px solid #c9a84c;
+        border-radius: 12px;
+        background: rgba(17, 29, 46, 0.94);
+        padding: 28px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 28px;
+      }
+
+      p {
+        margin: 0 0 12px;
+        line-height: 1.6;
+        color: #9ab1c6;
+      }
+
+      a {
+        color: #c9a84c;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>You're offline</h1>
+      <p>Winners saved the core shell for you, but this page needs a connection before it can load fresh data.</p>
+      <p>Try again when you're back online, or return to the <a href="/">home screen</a>.</p>
+    </main>
+  </body>
+  </html>

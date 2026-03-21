@@ -1,9 +1,11 @@
 // src/features/notifications/notificationStore.ts
 
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { getAuthHeaders } from "../auth/authStore";
 
 import { API_BASE } from "../../lib/api";
+import { persistStorage } from "../../lib/storage";
 
 export type NotificationType = "anomaly" | "team" | "billing" | "system" | "revenue";
 
@@ -29,7 +31,7 @@ interface NotificationState {
   clearAll:           () => Promise<void>;
 }
 
-export const useNotificationStore = create<NotificationState>((set) => ({
+export const useNotificationStore = create<NotificationState>()(persist((set) => ({
   notifications: [],
   unreadCount:   0,
   isLoading:     false,
@@ -47,7 +49,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         isLoading:     false,
       });
     } catch {
-      set({ notifications: [], unreadCount: 0, isLoading: false });
+      set({ isLoading: false });
     }
   },
 
@@ -87,4 +89,11 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       await fetch(`${API_BASE}/notifications`, { method: "DELETE", headers: getAuthHeaders() });
     } catch { /* optimistic */ }
   },
+}), {
+  name: "winners-notification-history",
+  storage: createJSONStorage(() => persistStorage),
+  partialize: (state) => ({
+    notifications: state.notifications,
+    unreadCount: state.unreadCount,
+  }),
 }));

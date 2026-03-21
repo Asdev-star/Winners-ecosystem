@@ -4,22 +4,17 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 import { applyTheme, useThemeStore } from "./features/theme/themeStore";
-import { registerSW } from "virtual:pwa-register";
 
 // Apply saved theme before render
 applyTheme(useThemeStore.getState().theme);
 
-// Register PWA Service Worker
-const updateSW = registerSW({
-  onNeedRefresh() {
-    if (confirm("New content available. Reload?")) {
-      updateSW(true);
-    }
-  },
-  onOfflineReady() {
-    console.log("App ready for offline use.");
-  },
-});
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((error) => {
+      console.error("Service worker registration failed", error);
+    });
+  });
+}
 
 const rootElement = document.getElementById("root");
 
@@ -32,5 +27,5 @@ ReactDOM.createRoot(rootElement).render(
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

@@ -1,29 +1,29 @@
-import React from 'react';
-import { useOfflineSync } from '../pwa/useOfflineSync';
-import { WifiOff } from 'lucide-react';
+import React from "react";
+import { useOfflineSync } from "../pwa/useOfflineSync";
 
-export const OfflineIndicator: React.FC = () => {
-  const { isOnline } = useOfflineSync();
+export default function OfflineIndicator() {
+  const { isOnline, pendingActions } = useOfflineSync();
 
   if (isOnline) return null;
 
   return (
-    <div style={{
-      background: 'var(--red)',
-      color: 'white',
-      padding: '8px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      fontSize: '12px',
-      fontWeight: 600,
-      position: 'sticky',
-      top: 0,
-      zIndex: 1100,
-    }}>
-      <WifiOff size={14} />
-      <span>You are currently offline. Some features may be limited.</span>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9998,
+        background: "var(--red)",
+        color: "#fff",
+        textAlign: "center",
+        padding: "6px 12px",
+        fontSize: 11,
+        fontFamily: "'Space Mono', monospace",
+      }}
+    >
+      {"\u25CF"} You're offline - actions are queued and will sync when you reconnect
+      {pendingActions > 0 ? ` (${pendingActions} pending)` : ""}
     </div>
   );
-};
+}

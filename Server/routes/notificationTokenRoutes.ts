@@ -10,11 +10,12 @@ const router = Router();
 router.use(authMiddleware);
 
 router.post('/register', async (req: Request, res: Response) => {
-  const { token, platform } = req.body;
+  const { token, platform, userAgent } = req.body;
   const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
   if (!token) return res.status(400).json({ error: 'token is required' });
   try {
-    await registerDeviceToken(userId, token, platform || 'web');
+    await registerDeviceToken(userId, tenantId, token, platform || 'web', userAgent || req.get('user-agent') || undefined);
     return res.json({ success: true });
   } catch (error) {
     console.error('[push] Register token error:', error);
@@ -36,10 +37,11 @@ router.delete('/register', async (req: Request, res: Response) => {
 
 router.get('/status', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
   try {
     const tokens = await db.deviceToken.findMany({
-      where: { userId, isActive: true },
-      select: { id: true, platform: true, createdAt: true, updatedAt: true },
+      where: { userId, tenantId, isActive: true },
+      select: { id: true, platform: true, userAgent: true, lastSeen: true, createdAt: true, updatedAt: true },
     });
     return res.json({ registered: tokens.length > 0, devices: tokens });
   } catch (error) {

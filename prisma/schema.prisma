@@ -3219,14 +3219,18 @@ model DNSRecord {
 model DeviceToken {
   id        String   @id @default(cuid())
   userId    String
+  tenantId  String
   token     String   @unique
   platform  String   @default("web")
+  userAgent String?
   isActive  Boolean  @default(true)
+  lastSeen  DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, isActive])
   @@map("device_tokens")
 }
 

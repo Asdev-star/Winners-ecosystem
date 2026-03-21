@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./features/auth/authStore";
 import "./App.css";
 
@@ -9,6 +10,7 @@ import SuperAdminRoute from "./app/SuperAdminRoute";
 import LayerRouteGate from "./app/LayerRouteGate";
 import LayerThemeBridge from "./app/LayerThemeBridge";
 import AIBackdrop from "./components/ui/AIBackdrop";
+import InstallPrompt from "./features/mobile/InstallPrompt";
 
 import LoginPage from "./features/auth/LoginPage";
 import LandingPage from "./features/landing/LandingPage";
@@ -123,6 +125,8 @@ function App() {
     <div className="app-shell">
       <LayerThemeBridge />
       <AIBackdrop />
+      <Toaster position="top-center" toastOptions={{ duration: 4500 }} />
+      <InstallPrompt />
       <div className="app-route-layer">
         <Routes>
           <Route path="/" element={<LandingPage />} />

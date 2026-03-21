@@ -5,6 +5,18 @@
 import { create } from "zustand";
 import { getWinnersClient } from "../lib/api";
 
+const BRIEFING_STORAGE_KEY = "winners:last-omega-briefing";
+
+function readCachedBriefing() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(BRIEFING_STORAGE_KEY);
+}
+
+function persistBriefing(briefing: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(BRIEFING_STORAGE_KEY, briefing);
+}
+
 type LayerKey = "core" | "community" | "academy" | "market" | "intelligence" | "work" | "cloud" | "ai-platform";
 
 interface LayerHealth {
@@ -96,7 +108,7 @@ export const useEcosystemStore = create<EcosystemStore>((set, get) => ({
   loopHistory: [],
   loopCount: 0,
   omegaEvents: [],
-  latestBriefing: null,
+  latestBriefing: readCachedBriefing(),
   notifications: [],
   unreadCount: 0,
   
@@ -180,6 +192,7 @@ export const useEcosystemStore = create<EcosystemStore>((set, get) => ({
   },
   
   setBriefing: (briefing: string) => {
+    persistBriefing(briefing);
     set({ latestBriefing: briefing });
   },
 }));

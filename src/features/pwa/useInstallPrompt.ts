@@ -1,48 +1,115 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
   readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
+    outcome: "accepted" | "dismissed";
     platform: string;
   }>;
   prompt(): Promise<void>;
 }
 
+const DISMISS_KEY = "we_install_prompt_dismissed";
+
+function getDisplayMode(): "browser" | "standalone" {
+  if (typeof window === "undefined") return "browser";
+
+  const standaloneMatch = window.matchMedia?.("(display-mode: standalone)").matches;
+  const navStandalone = typeof navigator !== "undefined" && "standalone" in navigator
+    ? Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+    : false;
+
+  return standaloneMatch || navStandalone ? "standalone" : "browser";
+}
+
+function wasDismissed() {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(DISMISS_KEY) === "true";
+}
+
 export const useInstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(getDisplayMode() === "standalone");
+  const [dismissed, setDismissed] = useState(wasDismissed());
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsInstallable(true);
+    if (typeof window === "undefined") return undefined;
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+
+      if (dismissed || getDisplayMode() === "standalone") {
+        return;
+      }
+
+      setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    const handleAppInstalled = () => {
+      window.sessionStorage.removeItem(DISMISS_KEY);
+      setDismissed(false);
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
+  }, [dismissed]);
+
+  const dismissInstallPrompt = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(DISMISS_KEY, "true");
+    }
+
+    setDismissed(true);
+    setDeferredPrompt(null);
   }, []);
 
-  const showInstallPrompt = async () => {
-    if (!deferredPrompt) return;
+  const resetInstallPrompt = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(DISMISS_KEY);
+    }
 
-    // Show the install prompt
+    setDismissed(false);
+  }, []);
+
+  const showInstallPrompt = useCallback(async () => {
+    if (!deferredPrompt) {
+      return { outcome: "dismissed" as const };
+    }
+
     await deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
 
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
-
-    // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null);
-    setIsInstallable(false);
-  };
+    if (choice.outcome === "accepted") {
+      setIsInstalled(true);
+      resetInstallPrompt();
+    } else {
+      dismissInstallPrompt();
+    }
 
-  return { isInstallable, showInstallPrompt };
+    return choice;
+  }, [deferredPrompt, dismissInstallPrompt, resetInstallPrompt]);
+
+  const isInstallable = useMemo(
+    () => Boolean(deferredPrompt) && !dismissed && !isInstalled,
+    [deferredPrompt, dismissed, isInstalled],
+  );
+
+  return {
+    deferredPrompt,
+    dismissed,
+    isInstallable,
+    isInstalled,
+    showInstallPrompt,
+    dismissInstallPrompt,
+    resetInstallPrompt,
+    displayMode: getDisplayMode(),
+  };
 };
