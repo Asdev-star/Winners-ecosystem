@@ -8,6 +8,7 @@ export default defineConfig(() => ({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      manifestFilename: "manifest.json",
       includeAssets: ["favicon.svg", "robots.txt", "pwa-192x192.svg", "pwa-512x512.svg"],
       manifest: {
         name: "Winners Ecosystem",

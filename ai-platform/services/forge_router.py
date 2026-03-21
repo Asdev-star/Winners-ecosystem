@@ -185,3 +185,8 @@ class FORGERouter:
 
 # Exported singleton
 forge_router = FORGERouter()
+
+# Preserve the newer shorthand import used by multimodal routes.
+forge = forge_router
+
+__all__ = ["ProviderDecision", "FORGERouter", "forge_router", "forge"]

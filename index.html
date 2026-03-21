@@ -7,7 +7,6 @@
     <meta name="description" content="Real-time revenue analytics, Claude-powered insights, and automated reporting for winning teams." />
     <meta name="theme-color" content="#C9A84C" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/pwa-192x192.svg" />
     <style>
       /* Prevent flash before React loads — matches new navy bg */
@@ -47,15 +46,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Register service worker for PWA
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((reg) => console.log('SW registered:', reg.scope))
-            .catch((err) => console.log('SW registration failed:', err));
-        });
-      }
-    </script>
   </body>
 </html>

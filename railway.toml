@@ -15,6 +15,7 @@ healthcheckTimeout = 30
 
 [services.env]
 PORT         = "8001"
+AI_PLATFORM_URL = "http://ai-platform.railway.internal:8001"
 OLLAMA_HOST  = "http://localhost:11434"
 WHISPER_MODEL = "medium"
 
@@ -22,7 +23,8 @@ WHISPER_MODEL = "medium"
 [[services]]
 name        = "ai-platform"
 source      = "ai-platform/"
-startCommand = "uvicorn main:app --host 0.0.0.0 --port 8001"
+builder     = "DOCKERFILE"
+startCommand = "sh -c 'uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}'"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 
