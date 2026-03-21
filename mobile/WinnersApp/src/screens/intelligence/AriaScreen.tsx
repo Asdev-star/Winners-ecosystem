@@ -1,176 +1,164 @@
 import React, { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
+import * as Speech from "expo-speech";
 import EcosystemContextBar from "../../components/shared/EcosystemContextBar";
 import VoiceInput from "../../components/voice/VoiceInput";
-import { sendAssistantMessage } from "../../services/api";
 
-interface ChatMessage {
+type ChatMessage = {
+  id: string;
   role: "assistant" | "user";
-  content: string;
-}
+  text: string;
+};
 
-export default function AriaScreen() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
+const initialMessages: ChatMessage[] = [
+  {
+    id: "aria-welcome",
+    role: "assistant",
+    text: "I can help summarize signals across community, academy, market, and work. Ask for the next highest-leverage move.",
+  },
+];
+
+const AriaScreen = () => {
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState(initialMessages);
+
+  const sendMessage = (value: string) => {
+    if (!value.trim()) return null;
+
+    const nextUserMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      text: value.trim(),
+    };
+    const nextAssistantMessage: ChatMessage = {
+      id: `assistant-${Date.now()}`,
       role: "assistant",
-      content: "I am ARIA. Ask for a weekly plan, a summary, or a next move across the ecosystem.",
-    },
-  ]);
-  const [prompt, setPrompt] = useState("");
-  const [busy, setBusy] = useState(false);
+      text: "ARIA suggests prioritizing one quick win: convert fresh community interest into a structured follow-up and assign the next lesson or offer automatically.",
+    };
 
-  async function handleSend() {
-    if (!prompt.trim() || busy) {
-      return;
-    }
-
-    const input = prompt.trim();
-    setPrompt("");
-    setMessages((current) => [...current, { role: "user", content: input }]);
-    setBusy(true);
-
-    try {
-      const response = await sendAssistantMessage(input, "aria");
-      const reply =
-        response.data?.message ??
-        "ARIA could not reach the backend, so the mobile shell is showing a local fallback response.";
-
-      setMessages((current) => [...current, { role: "assistant", content: reply }]);
-    } catch {
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          content: "Backend unavailable. I would still suggest prioritizing the shortest path to shipped outcomes this week.",
-        },
-      ]);
-    } finally {
-      setBusy(false);
-    }
-  }
+    setMessages((current) => [...current, nextUserMessage, nextAssistantMessage]);
+    setInput("");
+    return nextAssistantMessage.text;
+  };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.root}
-    >
-      <View style={styles.inner}>
-        <EcosystemContextBar layer="Intelligence" assistant="ARIA" status="Voice enabled" />
-
-        <ScrollView contentContainerStyle={styles.messages}>
-          {messages.map((message, index) => (
-            <View
-              key={`${message.role}-${index}`}
-              style={[
-                styles.message,
-                message.role === "assistant" ? styles.assistantMessage : styles.userMessage,
-              ]}
-            >
-              <Text style={styles.messageRole}>{message.role === "assistant" ? "ARIA" : "You"}</Text>
-              <Text style={styles.messageText}>{message.content}</Text>
-            </View>
-          ))}
-        </ScrollView>
-
-        <View style={styles.composer}>
-          <TextInput
-            value={prompt}
-            onChangeText={setPrompt}
-            placeholder="Ask ARIA anything..."
-            placeholderTextColor="#6F849C"
-            style={styles.input}
-            multiline
-          />
-          <View style={styles.actions}>
-            <VoiceInput onTranscript={setPrompt} />
-            <Pressable onPress={handleSend} style={[styles.sendButton, busy && styles.sendButtonMuted]}>
-              <Text style={styles.sendButtonText}>{busy ? "Thinking..." : "Send"}</Text>
-            </Pressable>
+    <View style={styles.screen}>
+      <EcosystemContextBar
+        label="Aria"
+        context="Voice-enabled AI coordination for your learning, revenue, and community workflows."
+      />
+      <ScrollView contentContainerStyle={styles.content}>
+        {messages.map((message) => (
+          <View key={message.id} style={[styles.message, message.role === "assistant" ? styles.assistant : styles.user]}>
+            <Text style={styles.role}>{message.role === "assistant" ? "ARIA" : "You"}</Text>
+            <Text style={styles.messageText}>{message.text}</Text>
           </View>
-        </View>
+        ))}
+      </ScrollView>
+
+      <View style={styles.composer}>
+        <TextInput
+          placeholder="Ask Aria anything..."
+          placeholderTextColor="#6F889F"
+          style={styles.input}
+          value={input}
+          onChangeText={setInput}
+        />
+        <VoiceInput onSpeechResult={sendMessage} />
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => {
+            const response = sendMessage(input);
+            if (response) {
+              Speech.speak(response);
+            }
+          }}
+          style={styles.send}
+        >
+          <Text style={styles.sendText}>Send</Text>
+        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  root: {
+  screen: {
     flex: 1,
     backgroundColor: "#0D1520",
   },
-  inner: {
-    flex: 1,
-    padding: 20,
-  },
-  messages: {
+  content: {
+    padding: 16,
     gap: 12,
     paddingBottom: 20,
   },
   message: {
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 16,
+    gap: 6,
+    maxWidth: "92%",
+  },
+  assistant: {
+    alignSelf: "flex-start",
+    backgroundColor: "#111D2E",
     borderWidth: 1,
+    borderColor: "#1E3248",
   },
-  assistantMessage: {
-    backgroundColor: "#162131",
-    borderColor: "#223247",
+  user: {
+    alignSelf: "flex-end",
+    backgroundColor: "#1D4E89",
   },
-  userMessage: {
-    backgroundColor: "#1B2734",
-    borderColor: "#30455E",
-  },
-  messageRole: {
+  role: {
     color: "#C9A84C",
     fontSize: 11,
-    fontWeight: "800",
-    marginBottom: 6,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
   },
   messageText: {
-    color: "#F5F7FA",
+    color: "#E8EEF5",
     fontSize: 14,
     lineHeight: 22,
   },
   composer: {
-    gap: 12,
-    marginTop: 12,
-  },
-  input: {
-    minHeight: 112,
-    backgroundColor: "#101926",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#223247",
-    color: "#F5F7FA",
-    padding: 16,
-    textAlignVertical: "top",
-  },
-  actions: {
+    borderTopWidth: 1,
+    borderTopColor: "#1E3248",
+    backgroundColor: "#111D2E",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
-  sendButton: {
+  input: {
     flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: "#0D1520",
+    borderWidth: 1,
+    borderColor: "#1E3248",
+    color: "#E8EEF5",
+    paddingHorizontal: 14,
+  },
+  send: {
+    backgroundColor: "#C9A84C",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 999,
-    backgroundColor: "#C9A84C",
-    paddingVertical: 14,
   },
-  sendButtonMuted: {
-    opacity: 0.75,
-  },
-  sendButtonText: {
+  sendText: {
     color: "#0D1520",
-    fontWeight: "900",
-    fontSize: 13,
+    fontWeight: "800",
   },
 });
+
+export default AriaScreen;

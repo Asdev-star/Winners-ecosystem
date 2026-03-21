@@ -1,30 +1,46 @@
 import * as LocalAuthentication from "expo-local-authentication";
 
-export interface BiometricResult {
-  success: boolean;
-  reason?: string;
-}
+export type BiometricStatus = {
+  available: boolean;
+  enrolled: boolean;
+  label: string;
+};
 
-export async function authenticateWithBiometrics(
-  promptMessage = "Unlock Winners App",
-): Promise<BiometricResult> {
-  const hasHardware = await LocalAuthentication.hasHardwareAsync();
-  const enrolled = await LocalAuthentication.isEnrolledAsync();
+export const biometric = {
+  async getStatus(): Promise<BiometricStatus> {
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    const isEnrolled = hasHardware ? await LocalAuthentication.isEnrolledAsync() : false;
+    const supportedTypes = hasHardware ? await LocalAuthentication.supportedAuthenticationTypesAsync() : [];
 
-  if (!hasHardware || !enrolled) {
+    const label =
+      supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)
+        ? "Face ID"
+        : supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)
+          ? "Fingerprint"
+          : "Biometric";
+
     return {
-      success: false,
-      reason: "Biometrics unavailable on this device.",
+      available: hasHardware,
+      enrolled: isEnrolled,
+      label,
     };
-  }
+  },
 
-  const result = await LocalAuthentication.authenticateAsync({
-    promptMessage,
-    fallbackLabel: "Use device passcode",
-  });
+  async authenticate(reason = "Sign in to Winners Ecosystem") {
+    const status = await this.getStatus();
+    if (!status.available || !status.enrolled) {
+      return { success: false, reason: "Biometrics unavailable on this device." };
+    }
 
-  return {
-    success: result.success,
-    reason: result.success ? undefined : "Authentication was cancelled or failed.",
-  };
-}
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: reason,
+      fallbackLabel: "Use device passcode",
+      disableDeviceFallback: false,
+    });
+
+    return {
+      success: result.success,
+      reason: result.success ? null : result.warning || "Authentication was cancelled.",
+    };
+  },
+};

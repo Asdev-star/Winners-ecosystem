@@ -1,102 +1,104 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { MarketStackParamList } from "../../navigation/TabNavigator";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import EcosystemContextBar from "../../components/shared/EcosystemContextBar";
-import AssistantFAB from "../../components/shared/AssistantFAB";
+import { TabParamList } from "../../navigation/types";
 
-type Props = NativeStackScreenProps<MarketStackParamList, "MarketHome">;
+type Props = BottomTabScreenProps<TabParamList, "Market">;
 
 const offers = [
-  { id: "growth-kit", title: "Growth Kit", price: "$149", note: "Templates, scripts, and launch assets." },
-  { id: "audit-pack", title: "Offer Audit", price: "$95", note: "Fastest mobile checkout for service buyers." },
+  {
+    id: "market-growth-kit",
+    title: "Growth stack launch kit",
+    detail: "Offer pages, follow-up automations, and campaign copy for a fast launch.",
+  },
+  {
+    id: "market-creator-bundle",
+    title: "Creator commerce bundle",
+    detail: "Monetization templates, storefront setup, and community conversion playbooks.",
+  },
 ];
 
-export default function MarketScreen({ navigation }: Props) {
+const MarketScreen = ({ navigation }: Props) => {
   return (
-    <View style={styles.root}>
+    <View style={styles.screen}>
+      <EcosystemContextBar
+        label="Market"
+        context="Move from discovery to checkout with a mobile-native buying path."
+      />
       <ScrollView contentContainerStyle={styles.content}>
-        <EcosystemContextBar layer="Market" assistant="ATLAS" />
-        <Text style={styles.title}>High-intent offers</Text>
-        <Text style={styles.copy}>
-          The mobile storefront is optimized for urgency, trust, and fast checkout completion.
-        </Text>
+        <View style={styles.hero}>
+          <Text style={styles.heroTitle}>High-conviction offers</Text>
+          <Text style={styles.heroBody}>Ship mobile checkout flows that still behave when the network gets shaky.</Text>
+        </View>
 
         {offers.map((offer) => (
-          <View key={offer.id} style={styles.card}>
+          <TouchableOpacity
+            key={offer.id}
+            activeOpacity={0.9}
+            onPress={() => navigation.getParent()?.navigate("Checkout", { planId: offer.id, source: "market" })}
+            style={styles.card}
+          >
             <Text style={styles.cardTitle}>{offer.title}</Text>
-            <Text style={styles.cardPrice}>{offer.price}</Text>
-            <Text style={styles.cardCopy}>{offer.note}</Text>
-            <Pressable onPress={() => navigation.navigate("Checkout")} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>Buy now</Text>
-            </Pressable>
-          </View>
+            <Text style={styles.cardBody}>{offer.detail}</Text>
+            <Text style={styles.cta}>Open checkout</Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
-
-      <AssistantFAB
-        label="Ask ATLAS"
-        onPress={() => navigation.getParent()?.navigate("Intelligence" as never)}
-      />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  root: {
+  screen: {
     flex: 1,
     backgroundColor: "#0D1520",
   },
   content: {
+    padding: 16,
+    gap: 16,
+  },
+  hero: {
+    backgroundColor: "#111D2E",
+    borderColor: "#1E3248",
+    borderWidth: 1,
+    borderRadius: 20,
     padding: 20,
-    paddingBottom: 120,
+    gap: 8,
   },
-  title: {
-    color: "#F5F7FA",
-    fontSize: 28,
+  heroTitle: {
+    color: "#E8EEF5",
+    fontSize: 24,
     fontWeight: "800",
-    marginBottom: 8,
   },
-  copy: {
-    color: "#93A4B8",
+  heroBody: {
+    color: "#8FA6BA",
     fontSize: 14,
     lineHeight: 22,
-    marginBottom: 18,
   },
   card: {
-    backgroundColor: "#162131",
-    borderRadius: 20,
+    backgroundColor: "#111D2E",
+    borderColor: "#1E3248",
     borderWidth: 1,
-    borderColor: "#223247",
+    borderRadius: 18,
     padding: 18,
     gap: 10,
-    marginBottom: 14,
   },
   cardTitle: {
-    color: "#F5F7FA",
+    color: "#E8EEF5",
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: "700",
   },
-  cardPrice: {
-    color: "#C9A84C",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  cardCopy: {
-    color: "#C6D0DA",
+  cardBody: {
+    color: "#8FA6BA",
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
   },
-  secondaryButton: {
-    alignSelf: "flex-start",
-    backgroundColor: "#C9A84C",
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  secondaryButtonText: {
-    color: "#0D1520",
-    fontWeight: "900",
-    fontSize: 12,
+  cta: {
+    color: "#C9A84C",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });
+
+export default MarketScreen;

@@ -1,104 +1,117 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import EcosystemContextBar from "../../components/shared/EcosystemContextBar";
-import { queueOfflineAction } from "../../services/offline";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../navigation/types";
+import { api } from "../../services/api";
+import { useAuthStore } from "../../stores/authStore";
 
-export default function CheckoutScreen() {
-  const [status, setStatus] = useState("Secure checkout ready.");
+type Props = NativeStackScreenProps<RootStackParamList, "Checkout">;
 
-  async function queueCheckout() {
-    await queueOfflineAction({
-      id: `checkout-${Date.now()}`,
-      type: "checkout",
-      payload: { offer: "growth-kit", total: 14900 },
-      createdAt: new Date().toISOString(),
-    });
-    setStatus("Checkout intent saved for retry when connectivity returns.");
-  }
+const CheckoutScreen = ({ route }: Props) => {
+  const token = useAuthStore((state) => state.token);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("Secure checkout path ready.");
+
+  const handleCheckout = async () => {
+    setLoading(true);
+
+    try {
+      await api.post("/api/market/checkout", {
+        planId: route.params.planId ?? "market-growth-kit",
+        source: route.params.source ?? "mobile",
+      }, token);
+      setMessage("Checkout request sent successfully.");
+    } catch {
+      setMessage("No connection available. Checkout was queued and will retry automatically.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <EcosystemContextBar layer="Market" assistant="ATLAS" status="Mobile checkout" />
-      <Text style={styles.title}>Checkout</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Text style={styles.eyebrow}>Checkout</Text>
+      <Text style={styles.title}>{route.params.planId?.replace(/-/g, " ") ?? "market offer"}</Text>
+      <Text style={styles.copy}>
+        This screen is ready for Stripe or custom payment orchestration while preserving a graceful offline fallback.
+      </Text>
 
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Offer</Text>
-        <Text style={styles.summaryValue}>Growth Kit</Text>
-        <Text style={styles.summaryLabel}>Total</Text>
-        <Text style={styles.summaryValue}>$149.00</Text>
+      <View style={styles.summary}>
+        <Text style={styles.summaryTitle}>Order summary</Text>
+        <Text style={styles.summaryLine}>Offer: {route.params.planId ?? "market-growth-kit"}</Text>
+        <Text style={styles.summaryLine}>Channel: {route.params.source ?? "mobile"}</Text>
       </View>
 
-      <Pressable style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>Pay securely</Text>
-      </Pressable>
+      <TouchableOpacity activeOpacity={0.9} onPress={() => void handleCheckout()} style={styles.button}>
+        {loading ? <ActivityIndicator color="#0D1520" /> : <Text style={styles.buttonText}>Complete order</Text>}
+      </TouchableOpacity>
 
-      <Pressable onPress={queueCheckout} style={styles.secondaryButton}>
-        <Text style={styles.secondaryButtonText}>Save intent offline</Text>
-      </Pressable>
-
-      <Text style={styles.status}>{status}</Text>
+      <Text style={styles.message}>{message}</Text>
     </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  root: {
+  screen: {
     flex: 1,
     backgroundColor: "#0D1520",
   },
   content: {
-    padding: 20,
-    gap: 18,
+    padding: 24,
+    gap: 16,
+  },
+  eyebrow: {
+    color: "#C9A84C",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
   },
   title: {
-    color: "#F5F7FA",
+    color: "#E8EEF5",
     fontSize: 28,
     fontWeight: "800",
+    textTransform: "capitalize",
   },
-  summaryCard: {
-    backgroundColor: "#162131",
-    borderRadius: 22,
+  copy: {
+    color: "#9AB1C6",
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  summary: {
+    backgroundColor: "#111D2E",
     borderWidth: 1,
-    borderColor: "#223247",
-    padding: 20,
+    borderColor: "#1E3248",
+    borderRadius: 18,
+    padding: 18,
     gap: 8,
   },
-  summaryLabel: {
-    color: "#93A4B8",
-    fontSize: 12,
+  summaryTitle: {
+    color: "#E8EEF5",
+    fontSize: 16,
     fontWeight: "700",
   },
-  summaryValue: {
-    color: "#F5F7FA",
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  primaryButton: {
-    backgroundColor: "#C9A84C",
-    borderRadius: 999,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    color: "#0D1520",
-    fontWeight: "900",
+  summaryLine: {
+    color: "#8FA6BA",
     fontSize: 14,
   },
-  secondaryButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#31465D",
-    paddingVertical: 14,
+  button: {
+    backgroundColor: "#C9A84C",
+    borderRadius: 14,
+    minHeight: 52,
     alignItems: "center",
+    justifyContent: "center",
   },
-  secondaryButtonText: {
-    color: "#F5F7FA",
-    fontWeight: "700",
+  buttonText: {
+    color: "#0D1520",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  message: {
+    color: "#8FA6BA",
     fontSize: 13,
-  },
-  status: {
-    color: "#93A4B8",
-    fontSize: 12,
-    lineHeight: 18,
+    lineHeight: 20,
   },
 });
+
+export default CheckoutScreen;

@@ -1,7 +1,7 @@
-import { Platform } from "react-native";
 import Constants from "expo-constants";
+import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { MOBILE_API_BASE } from "./api";
+import { Platform } from "react-native";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -13,56 +13,42 @@ Notifications.setNotificationHandler({
   }),
 });
 
-export async function configurePushNotifications() {
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.HIGH,
-    });
-  }
-}
+export const fcm = {
+  async register(userId: string) {
+    const existingPermission = await Notifications.getPermissionsAsync();
+    const permission =
+      existingPermission.status === "granted"
+        ? existingPermission
+        : await Notifications.requestPermissionsAsync();
 
-export async function requestPushPermissions() {
-  const existing = await Notifications.getPermissionsAsync();
-  if (existing.granted) {
-    return true;
-  }
+    if (permission.status !== "granted" || !Device.isDevice) {
+      return null;
+    }
 
-  const requested = await Notifications.requestPermissionsAsync();
-  return requested.granted;
-}
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+      });
+    }
 
-export async function registerDevicePushToken(authToken?: string) {
-  await configurePushNotifications();
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      Constants.easConfig?.projectId;
 
-  const granted = await requestPushPermissions();
-  if (!granted) {
-    return null;
-  }
+    const token = (
+      await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined)
+    ).data;
 
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ??
-    Constants.easConfig?.projectId;
+    return {
+      userId,
+      token,
+      platform: Platform.OS,
+      deviceName: Device.deviceName ?? Device.modelName ?? "Unknown device",
+    };
+  },
 
-  const tokenResponse = await Notifications.getExpoPushTokenAsync(
-    projectId ? { projectId } : undefined,
-  );
-
-  try {
-    await fetch(`${MOBILE_API_BASE}/push-tokens/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      },
-      body: JSON.stringify({
-        token: tokenResponse.data,
-        platform: `${Platform.OS}-expo`,
-      }),
-    });
-  } catch (error) {
-    console.warn("[mobile-fcm] Token registration failed", error);
-  }
-
-  return tokenResponse.data;
-}
+  listen(callback: (notification: Notifications.Notification) => void) {
+    return Notifications.addNotificationReceivedListener(callback);
+  },
+};

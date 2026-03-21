@@ -1,61 +1,41 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-interface EcosystemContextBarProps {
-  layer: string;
-  assistant: string;
-  status?: string;
-}
+type Props = {
+  label: string;
+  context: string;
+};
 
-export default function EcosystemContextBar({
-  layer,
-  assistant,
-  status = "Live sync",
-}: EcosystemContextBarProps) {
+const EcosystemContextBar = ({ context, label }: Props) => {
   return (
-    <View style={styles.root}>
-      <Text style={styles.kicker}>{layer}</Text>
-      <Text style={styles.dot}>/</Text>
-      <Text style={styles.assistant}>{assistant}</Text>
-      <View style={styles.spacer} />
-      <Text style={styles.status}>{status}</Text>
+    <View style={styles.container}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.context}>{context}</Text>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  root: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#162131",
-    borderColor: "#223247",
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+  container: {
+    backgroundColor: "#111D2E",
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E3248",
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    marginBottom: 16,
+    gap: 4,
   },
-  kicker: {
-    color: "#93A4B8",
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.4,
-  },
-  dot: {
-    color: "#4D6785",
-    marginHorizontal: 8,
-  },
-  assistant: {
-    color: "#F5F7FA",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  spacer: {
-    flex: 1,
-  },
-  status: {
+  label: {
     color: "#C9A84C",
     fontSize: 11,
     fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  context: {
+    color: "#9AB1C6",
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
+
+export default EcosystemContextBar;

@@ -1,51 +1,150 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNetInfo } from "@react-native-community/netinfo";
+import * as SQLite from "expo-sqlite";
 
-const OFFLINE_QUEUE_KEY = "winners-mobile-offline-queue";
-
-export interface OfflineAction {
+export type OfflineAction = {
   id: string;
-  type: "message" | "checkout" | "lesson-download" | "profile-update";
-  payload: Record<string, unknown>;
-  createdAt: string;
+  endpoint: string;
+  method: string;
+  body?: unknown;
+  headers?: Record<string, string>;
+  createdAt: number;
+};
+
+type OfflineSnapshot = {
+  isOnline: boolean;
+  queue: OfflineAction[];
+  isSyncing: boolean;
+};
+
+type Listener = (snapshot: OfflineSnapshot) => void;
+
+const listeners = new Set<Listener>();
+const db = SQLite.openDatabaseSync("winners-mobile.db");
+
+db.execSync(`
+  PRAGMA journal_mode = WAL;
+  CREATE TABLE IF NOT EXISTS offline_queue (
+    id TEXT PRIMARY KEY NOT NULL,
+    endpoint TEXT NOT NULL,
+    method TEXT NOT NULL,
+    body TEXT,
+    headers TEXT,
+    createdAt INTEGER NOT NULL
+  );
+`);
+
+let snapshot: OfflineSnapshot = {
+  isOnline: true,
+  queue: [],
+  isSyncing: false,
+};
+
+function readQueueFromDatabase(): OfflineAction[] {
+  const rows = db.getAllSync<{
+    id: string;
+    endpoint: string;
+    method: string;
+    body: string | null;
+    headers: string | null;
+    createdAt: number;
+  }>("SELECT id, endpoint, method, body, headers, createdAt FROM offline_queue ORDER BY createdAt ASC");
+
+  return rows.map((row) => ({
+    id: row.id,
+    endpoint: row.endpoint,
+    method: row.method,
+    body: row.body ? JSON.parse(row.body) : undefined,
+    headers: row.headers ? (JSON.parse(row.headers) as Record<string, string>) : undefined,
+    createdAt: row.createdAt,
+  }));
 }
 
-export function useNetworkStatus() {
-  const netInfo = useNetInfo();
-  return {
-    isOnline: Boolean(netInfo.isConnected && netInfo.isInternetReachable !== false),
-    netInfo,
+function hydrateQueue() {
+  snapshot = {
+    ...snapshot,
+    queue: readQueueFromDatabase(),
   };
 }
 
-export async function getOfflineQueue(): Promise<OfflineAction[]> {
-  const raw = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
-  if (!raw) {
-    return [];
-  }
-
-  try {
-    return JSON.parse(raw) as OfflineAction[];
-  } catch {
-    return [];
-  }
+function publish() {
+  listeners.forEach((listener) => listener(snapshot));
 }
 
-export async function queueOfflineAction(action: OfflineAction) {
-  const queue = await getOfflineQueue();
-  queue.push(action);
-  await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-  return queue;
-}
+export const offline = {
+  subscribe(listener: Listener) {
+    listeners.add(listener);
+    listener(snapshot);
+    return () => {
+      listeners.delete(listener);
+    };
+  },
 
-export async function flushOfflineQueue(
-  handler: (action: OfflineAction) => Promise<void>,
-) {
-  const queue = await getOfflineQueue();
+  getSnapshot() {
+    return snapshot;
+  },
 
-  for (const action of queue) {
-    await handler(action);
-  }
+  restore() {
+    hydrateQueue();
+    publish();
+  },
 
-  await AsyncStorage.removeItem(OFFLINE_QUEUE_KEY);
-}
+  setOnline(isOnline: boolean) {
+    snapshot = { ...snapshot, isOnline };
+    publish();
+  },
+
+  enqueue(action: Omit<OfflineAction, "id" | "createdAt">) {
+    const nextAction: OfflineAction = {
+      ...action,
+      id: `${action.method}-${Date.now()}`,
+      createdAt: Date.now(),
+    };
+
+    db.runSync(
+      "INSERT INTO offline_queue (id, endpoint, method, body, headers, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        nextAction.id,
+        nextAction.endpoint,
+        nextAction.method,
+        nextAction.body == null ? null : JSON.stringify(nextAction.body),
+        nextAction.headers == null ? null : JSON.stringify(nextAction.headers),
+        nextAction.createdAt,
+      ],
+    );
+
+    snapshot = {
+      ...snapshot,
+      isOnline: false,
+      queue: [...snapshot.queue, nextAction],
+    };
+
+    publish();
+    return nextAction;
+  },
+
+  async flush(processor: (action: OfflineAction) => Promise<void>) {
+    if (!snapshot.queue.length) return;
+
+    snapshot = { ...snapshot, isSyncing: true };
+    publish();
+
+    const remaining: OfflineAction[] = [];
+    for (const action of snapshot.queue) {
+      try {
+        await processor(action);
+        db.runSync("DELETE FROM offline_queue WHERE id = ?", [action.id]);
+      } catch {
+        remaining.push(action);
+      }
+    }
+
+    snapshot = {
+      ...snapshot,
+      isOnline: remaining.length === 0,
+      isSyncing: false,
+      queue: remaining,
+    };
+    publish();
+  },
+};
+
+hydrateQueue();

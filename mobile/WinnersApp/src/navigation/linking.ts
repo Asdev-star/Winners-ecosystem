@@ -1,37 +1,29 @@
 import * as Linking from "expo-linking";
+import { LinkingOptions } from "@react-navigation/native";
+import { RootStackParamList } from "./types";
 
-const linking = {
-  prefixes: [Linking.createURL("/"), "winners://"],
+export const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: [
+    Linking.createURL("/"),
+    "winnersecosystem://",
+    "https://app.winnersecosystem.com",
+  ],
   config: {
     screens: {
       Login: "login",
       Onboarding: "onboarding",
-      AppTabs: {
+      Main: {
         screens: {
-          CommunityStack: {
-            screens: {
-              Feed: "community",
-              Post: "community/post/:postId",
-            },
-          },
-          AcademyStack: {
-            screens: {
-              Courses: "academy",
-              Lesson: "academy/lesson/:lessonId",
-            },
-          },
-          MarketStack: {
-            screens: {
-              MarketHome: "market",
-              Checkout: "market/checkout",
-            },
-          },
+          Community: "community",
+          Academy: "academy",
+          Market: "market",
           Work: "work",
-          Intelligence: "intelligence/aria",
+          Aria: "intelligence",
         },
       },
+      Post: "community/post/:postId",
+      Lesson: "academy/lesson/:lessonId",
+      Checkout: "market/checkout/:planId?",
     },
   },
 };
-
-export default linking;

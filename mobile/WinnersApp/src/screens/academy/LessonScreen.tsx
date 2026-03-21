@@ -1,100 +1,97 @@
-import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { AcademyStackParamList } from "../../navigation/TabNavigator";
-import EcosystemContextBar from "../../components/shared/EcosystemContextBar";
-import { queueOfflineAction } from "../../services/offline";
+import React from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Video, ResizeMode } from "expo-av";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../navigation/types";
+import { offline } from "../../services/offline";
 
-type Props = NativeStackScreenProps<AcademyStackParamList, "Lesson">;
+type Props = NativeStackScreenProps<RootStackParamList, "Lesson">;
 
-export default function LessonScreen({ route }: Props) {
-  const lessonId = route.params?.lessonId ?? "starter-lesson";
-  const [status, setStatus] = useState("Ready for streaming or offline download.");
-
-  async function handleOfflineDownload() {
-    await queueOfflineAction({
-      id: `lesson-${lessonId}`,
-      type: "lesson-download",
-      payload: { lessonId },
-      createdAt: new Date().toISOString(),
+const LessonScreen = ({ route }: Props) => {
+  const markOfflineReady = () => {
+    offline.enqueue({
+      endpoint: "/academy/offline-ready",
+      method: "POST",
+      body: { lessonId: route.params.lessonId },
     });
-    setStatus("Lesson queued for offline sync and download.");
-  }
+  };
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <EcosystemContextBar layer="Academy" assistant="SAGE" status="Offline-ready" />
-      <Text style={styles.title}>Lesson player</Text>
-      <Text style={styles.meta}>Current lesson: {lessonId}</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Text style={styles.eyebrow}>Lesson Player</Text>
+      <Text style={styles.title}>{route.params.lessonId.replace(/-/g, " ")}</Text>
 
-      <View style={styles.videoShell}>
-        <Text style={styles.videoTitle}>Offline-capable video player</Text>
-        <Text style={styles.videoCopy}>
-          Stream when online, queue encrypted lesson assets when offline support is required, and resume across devices once sync completes.
-        </Text>
+      <View style={styles.videoWrap}>
+        <Video
+          style={styles.video}
+          useNativeControls
+          resizeMode={ResizeMode.COVER}
+          source={{ uri: "https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4" }}
+        />
       </View>
 
-      <Pressable onPress={handleOfflineDownload} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>Download for offline study</Text>
-      </Pressable>
+      <Text style={styles.copy}>
+        The lesson screen is ready for streaming playback today and an offline queue pathway for saved progress and
+        download intents.
+      </Text>
 
-      <Text style={styles.status}>{status}</Text>
+      <TouchableOpacity activeOpacity={0.9} onPress={markOfflineReady} style={styles.button}>
+        <Text style={styles.buttonText}>Queue offline access</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  root: {
+  screen: {
     flex: 1,
     backgroundColor: "#0D1520",
   },
   content: {
-    padding: 20,
-    gap: 18,
+    padding: 24,
+    gap: 16,
+  },
+  eyebrow: {
+    color: "#C9A84C",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.5,
   },
   title: {
-    color: "#F5F7FA",
+    color: "#E8EEF5",
     fontSize: 28,
     fontWeight: "800",
+    textTransform: "capitalize",
   },
-  meta: {
-    color: "#93A4B8",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  videoShell: {
-    minHeight: 220,
-    backgroundColor: "#162131",
-    borderRadius: 24,
+  videoWrap: {
+    borderRadius: 20,
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#223247",
-    padding: 20,
-    justifyContent: "space-between",
+    borderColor: "#1E3248",
   },
-  videoTitle: {
-    color: "#F5F7FA",
-    fontSize: 18,
+  video: {
+    width: "100%",
+    height: 220,
+    backgroundColor: "#111D2E",
+  },
+  copy: {
+    color: "#9AB1C6",
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  button: {
+    backgroundColor: "#C9A84C",
+    borderRadius: 14,
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "#0D1520",
+    fontSize: 15,
     fontWeight: "800",
   },
-  videoCopy: {
-    color: "#C6D0DA",
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  primaryButton: {
-    backgroundColor: "#C9A84C",
-    borderRadius: 999,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    color: "#0D1520",
-    fontWeight: "900",
-    fontSize: 13,
-  },
-  status: {
-    color: "#6FD6A3",
-    fontSize: 12,
-    fontWeight: "700",
-  },
 });
+
+export default LessonScreen;

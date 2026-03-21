@@ -1,85 +1,117 @@
-import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { AcademyStackParamList } from "../../navigation/TabNavigator";
+import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import EcosystemContextBar from "../../components/shared/EcosystemContextBar";
-import AssistantFAB from "../../components/shared/AssistantFAB";
+import OfflineBanner from "../../components/shared/OfflineBanner";
+import { TabParamList } from "../../navigation/types";
+import { offline } from "../../services/offline";
+import { api } from "../../services/api";
 
-type Props = NativeStackScreenProps<AcademyStackParamList, "Courses">;
+type Props = BottomTabScreenProps<TabParamList, "Academy">;
 
-const courses = [
-  { id: "sales-systems", title: "Sales Systems for Digital Operators", progress: "68% complete" },
-  { id: "creator-ops", title: "Creator Ops and Offer Packaging", progress: "41% complete" },
+const lessons = [
+  {
+    id: "lesson-growth-systems",
+    title: "Growth systems for diaspora founders",
+    detail: "25 min video lesson with downloadable worksheet.",
+  },
+  {
+    id: "lesson-creator-commerce",
+    title: "Creator commerce operating model",
+    detail: "Voice-noted breakdown for product, offers, and distribution.",
+  },
 ];
 
-export default function CoursesScreen({ navigation }: Props) {
-  return (
-    <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <EcosystemContextBar layer="Academy" assistant="SAGE" />
-        <Text style={styles.title}>Course momentum</Text>
-        <Text style={styles.copy}>
-          Continue where you left off, queue lessons for offline review, and let SAGE surface the fastest path to completion.
-        </Text>
+const CoursesScreen = ({ navigation }: Props) => {
+  const [offlineState, setOfflineState] = useState(offline.getSnapshot());
 
-        {courses.map((course) => (
-          <Pressable
-            key={course.id}
+  useEffect(() => offline.subscribe(setOfflineState), []);
+
+  return (
+    <View style={styles.screen}>
+      <EcosystemContextBar
+        label="Academy"
+        context="Learn in focused bursts, then keep momentum even when the connection drops."
+      />
+      <OfflineBanner
+        isOnline={offlineState.isOnline}
+        isSyncing={offlineState.isSyncing}
+        pendingCount={offlineState.queue.length}
+        onSync={() => {
+          void api.flushQueuedRequests();
+        }}
+      />
+
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <Text style={styles.heroTitle}>Offline-ready curriculum</Text>
+          <Text style={styles.heroBody}>
+            Lessons can be bookmarked for travel, commute, and low-bandwidth study sessions.
+          </Text>
+        </View>
+
+        {lessons.map((lesson) => (
+          <TouchableOpacity
+            key={lesson.id}
+            activeOpacity={0.9}
+            onPress={() => navigation.getParent()?.navigate("Lesson", { lessonId: lesson.id })}
             style={styles.card}
-            onPress={() => navigation.navigate("Lesson", { lessonId: course.id })}
           >
-            <Text style={styles.cardTitle}>{course.title}</Text>
-            <Text style={styles.cardMeta}>{course.progress}</Text>
-          </Pressable>
+            <Text style={styles.cardTitle}>{lesson.title}</Text>
+            <Text style={styles.cardBody}>{lesson.detail}</Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
-
-      <AssistantFAB
-        label="Ask SAGE"
-        onPress={() => navigation.getParent()?.navigate("Intelligence" as never)}
-      />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  root: {
+  screen: {
     flex: 1,
     backgroundColor: "#0D1520",
   },
   content: {
+    padding: 16,
+    gap: 16,
+    paddingBottom: 40,
+  },
+  hero: {
+    backgroundColor: "#111D2E",
+    borderWidth: 1,
+    borderColor: "#1E3248",
+    borderRadius: 20,
     padding: 20,
-    paddingBottom: 120,
+    gap: 8,
   },
-  title: {
-    color: "#F5F7FA",
-    fontSize: 28,
+  heroTitle: {
+    color: "#E8EEF5",
+    fontSize: 24,
     fontWeight: "800",
-    marginBottom: 8,
   },
-  copy: {
-    color: "#93A4B8",
+  heroBody: {
+    color: "#8FA6BA",
     fontSize: 14,
     lineHeight: 22,
-    marginBottom: 18,
   },
   card: {
-    backgroundColor: "#162131",
-    borderRadius: 20,
+    backgroundColor: "#111D2E",
     borderWidth: 1,
-    borderColor: "#223247",
+    borderColor: "#1E3248",
+    borderRadius: 18,
     padding: 18,
-    marginBottom: 14,
+    gap: 8,
   },
   cardTitle: {
-    color: "#F5F7FA",
-    fontSize: 17,
-    fontWeight: "800",
-    marginBottom: 6,
-  },
-  cardMeta: {
-    color: "#6FD6A3",
+    color: "#E8EEF5",
+    fontSize: 18,
     fontWeight: "700",
-    fontSize: 12,
+  },
+  cardBody: {
+    color: "#8FA6BA",
+    fontSize: 14,
+    lineHeight: 21,
   },
 });
+
+export default CoursesScreen;

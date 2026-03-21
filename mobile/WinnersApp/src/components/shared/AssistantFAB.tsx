@@ -1,41 +1,54 @@
 import React from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Sparkles } from "lucide-react-native";
 
-interface AssistantFABProps {
+type Props = {
   label?: string;
   onPress: () => void;
-}
+};
 
-export default function AssistantFAB({
-  label = "Ask ARIA",
-  onPress,
-}: AssistantFABProps) {
+const AssistantFAB = ({ label = "Ask Aria", onPress }: Props) => {
   return (
-    <Pressable onPress={onPress} style={styles.button}>
-      <Text style={styles.label}>{label}</Text>
-    </Pressable>
+    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.button}>
+      <View style={styles.iconWrap}>
+        <Sparkles color="#0D1520" size={18} />
+      </View>
+      <Text style={styles.text}>{label}</Text>
+    </TouchableOpacity>
   );
-}
+};
 
 const styles = StyleSheet.create({
   button: {
     position: "absolute",
     right: 20,
     bottom: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     backgroundColor: "#C9A84C",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
     borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowRadius: 16,
+    elevation: 6,
   },
-  label: {
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F6E7B2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  text: {
     color: "#0D1520",
-    fontWeight: "800",
-    fontSize: 12,
-    letterSpacing: 0.4,
+    fontSize: 14,
+    fontWeight: "700",
   },
 });
+
+export default AssistantFAB;

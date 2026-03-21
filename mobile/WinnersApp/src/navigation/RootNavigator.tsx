@@ -1,69 +1,68 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import TabNavigator from "./TabNavigator";
+import { TabNavigator } from "./TabNavigator";
+import { RootStackParamList } from "./types";
+import { useAuthStore } from "../stores/authStore";
 import LoginScreen from "../screens/auth/LoginScreen";
 import OnboardingScreen from "../screens/auth/OnboardingScreen";
-import { configurePushNotifications } from "../services/fcm";
-
-export type RootStackParamList = {
-  Login: undefined;
-  Onboarding: undefined;
-  AppTabs: undefined;
-};
+import PostScreen from "../screens/community/PostScreen";
+import LessonScreen from "../screens/academy/LessonScreen";
+import CheckoutScreen from "../screens/market/CheckoutScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function RootNavigator() {
-  const [booting, setBooting] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
+export const RootNavigator = () => {
+  const hasCompletedOnboarding = useAuthStore((state) => state.hasCompletedOnboarding);
+  const isRestoring = useAuthStore((state) => state.isRestoring);
+  const restoreSession = useAuthStore((state) => state.restoreSession);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    const timer = setTimeout(() => setBooting(false), 450);
-    void configurePushNotifications();
-    return () => clearTimeout(timer);
-  }, []);
+    void restoreSession();
+  }, [restoreSession]);
 
-  if (booting) {
+  if (isRestoring) {
     return (
-      <View style={styles.boot}>
-        <ActivityIndicator size="large" color="#C9A84C" />
+      <View style={styles.loading}>
+        <ActivityIndicator color="#C9A84C" size="large" />
       </View>
     );
   }
 
+  const needsAuth = !user;
+  const needsOnboarding = !!user && !hasCompletedOnboarding;
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!authenticated ? (
-        <Stack.Screen name="Login">
-          {() => (
-            <LoginScreen
-              onLoginSuccess={() => setAuthenticated(true)}
-              onBiometricSuccess={() => {
-                setAuthenticated(true);
-                setOnboardingComplete(true);
-              }}
-            />
-          )}
-        </Stack.Screen>
-      ) : !onboardingComplete ? (
-        <Stack.Screen name="Onboarding">
-          {() => (
-            <OnboardingScreen
-              onComplete={() => setOnboardingComplete(true)}
-            />
-          )}
-        </Stack.Screen>
+    <Stack.Navigator
+      initialRouteName={needsAuth ? "Login" : needsOnboarding ? "Onboarding" : "Main"}
+      screenOptions={{
+        headerStyle: { backgroundColor: "#111D2E" },
+        headerTintColor: "#E8EEF5",
+        contentStyle: { backgroundColor: "#0D1520" },
+      }}
+    >
+      {needsAuth ? (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ title: "Get Started" }} />
+        </>
+      ) : needsOnboarding ? (
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ title: "Get Started" }} />
       ) : (
-        <Stack.Screen name="AppTabs" component={TabNavigator} />
+        <>
+          <Stack.Screen name="Main" component={TabNavigator} options={{ headerShown: false }} />
+          <Stack.Screen name="Post" component={PostScreen} options={{ title: "Community Post" }} />
+          <Stack.Screen name="Lesson" component={LessonScreen} options={{ title: "Lesson Player" }} />
+          <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: "Checkout" }} />
+        </>
       )}
     </Stack.Navigator>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  boot: {
+  loading: {
     flex: 1,
     backgroundColor: "#0D1520",
     alignItems: "center",

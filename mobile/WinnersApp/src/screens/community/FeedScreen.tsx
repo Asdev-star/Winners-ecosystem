@@ -1,90 +1,131 @@
-import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { CommunityStackParamList } from "../../navigation/TabNavigator";
+import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import EcosystemContextBar from "../../components/shared/EcosystemContextBar";
+import OfflineBanner from "../../components/shared/OfflineBanner";
 import AssistantFAB from "../../components/shared/AssistantFAB";
+import { TabParamList } from "../../navigation/types";
+import { offline } from "../../services/offline";
+import { api } from "../../services/api";
 
-type Props = NativeStackScreenProps<CommunityStackParamList, "Feed">;
+type Props = BottomTabScreenProps<TabParamList, "Community">;
 
 const posts = [
-  { id: "founders-circle", author: "NOVA", title: "Founders circle demand is up 18%", excerpt: "The strongest threads are tactical, not inspirational. Double down on execution posts." },
-  { id: "diaspora-market", author: "Mina", title: "Diaspora buyers are asking for bundled services", excerpt: "Packaging market offers with academy outcomes is converting better than standalone product drops." },
+  {
+    id: "diaspora-growth-playbook",
+    title: "Diaspora growth playbook is live",
+    excerpt: "A new operator guide connects community posts, academy tasks, and revenue follow-ups.",
+    tag: "Strategy",
+  },
+  {
+    id: "creator-collab-thread",
+    title: "Creator collaboration thread",
+    excerpt: "Members are matching editors, hosts, and marketers for cross-border campaigns.",
+    tag: "Community",
+  },
 ];
 
-export default function FeedScreen({ navigation }: Props) {
+const FeedScreen = ({ navigation }: Props) => {
+  const [offlineState, setOfflineState] = useState(offline.getSnapshot());
+
+  useEffect(() => offline.subscribe(setOfflineState), []);
+
   return (
-    <View style={styles.root}>
+    <View style={styles.screen}>
+      <EcosystemContextBar
+        label="Community"
+        context="Run the social layer from one feed, then turn promising momentum into action."
+      />
+      <OfflineBanner
+        isOnline={offlineState.isOnline}
+        isSyncing={offlineState.isSyncing}
+        onSync={() => {
+          void api.flushQueuedRequests();
+        }}
+        pendingCount={offlineState.queue.length}
+      />
+
       <ScrollView contentContainerStyle={styles.content}>
-        <EcosystemContextBar layer="Community" assistant="NOVA" />
-        <Text style={styles.title}>Community signal</Text>
-        <Text style={styles.copy}>
-          Mobile feed prioritizes momentum, replies, and network opportunities so you can act quickly between sessions.
-        </Text>
+        <View style={styles.hero}>
+          <Text style={styles.heroTitle}>Today's signal</Text>
+          <Text style={styles.heroBody}>
+            Three new high-intent conversations are trending across diaspora business, creator economy, and live
+            education.
+          </Text>
+        </View>
 
         {posts.map((post) => (
-          <Pressable
+          <TouchableOpacity
             key={post.id}
+            activeOpacity={0.9}
+            onPress={() => navigation.getParent()?.navigate("Post", { postId: post.id })}
             style={styles.card}
-            onPress={() => navigation.navigate("Post", { postId: post.id })}
           >
-            <Text style={styles.cardMeta}>{post.author}</Text>
+            <Text style={styles.tag}>{post.tag}</Text>
             <Text style={styles.cardTitle}>{post.title}</Text>
-            <Text style={styles.cardCopy}>{post.excerpt}</Text>
-          </Pressable>
+            <Text style={styles.cardBody}>{post.excerpt}</Text>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
-      <AssistantFAB
-        onPress={() => navigation.getParent()?.navigate("Intelligence" as never)}
-      />
+      <AssistantFAB onPress={() => navigation.navigate("Aria")} label="Draft with Aria" />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  root: {
+  screen: {
     flex: 1,
     backgroundColor: "#0D1520",
   },
   content: {
-    padding: 20,
+    padding: 16,
+    gap: 16,
     paddingBottom: 120,
   },
-  title: {
-    color: "#F5F7FA",
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 8,
+  hero: {
+    backgroundColor: "#111D2E",
+    borderColor: "#1E3248",
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 20,
+    gap: 8,
   },
-  copy: {
-    color: "#93A4B8",
+  heroTitle: {
+    color: "#E8EEF5",
+    fontSize: 24,
+    fontWeight: "800",
+  },
+  heroBody: {
+    color: "#8FA6BA",
     fontSize: 14,
     lineHeight: 22,
-    marginBottom: 18,
   },
   card: {
-    backgroundColor: "#162131",
-    borderRadius: 20,
+    backgroundColor: "#111D2E",
     borderWidth: 1,
-    borderColor: "#223247",
+    borderColor: "#1E3248",
+    borderRadius: 18,
     padding: 18,
     gap: 8,
-    marginBottom: 14,
   },
-  cardMeta: {
+  tag: {
     color: "#C9A84C",
-    fontWeight: "700",
     fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   cardTitle: {
-    color: "#F5F7FA",
+    color: "#E8EEF5",
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: "700",
   },
-  cardCopy: {
-    color: "#C6D0DA",
+  cardBody: {
+    color: "#8FA6BA",
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 21,
   },
 });
+
+export default FeedScreen;

@@ -1,52 +1,68 @@
-import React, { useState } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import React, { useMemo, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Mic } from "lucide-react-native";
 
-interface VoiceInputProps {
-  onTranscript: (text: string) => void;
-}
+type Props = {
+  onSpeechResult?: (text: string) => void;
+};
 
-export default function VoiceInput({ onTranscript }: VoiceInputProps) {
-  const [recording, setRecording] = useState(false);
+const prompts = [
+  "Summarise today's revenue signals for my team.",
+  "Draft a follow-up for the newest community lead.",
+  "Show me the next lesson I should finish offline.",
+];
 
-  async function handlePress() {
-    if (recording) {
-      setRecording(false);
-      onTranscript("Voice note captured. Drafting a transcript for ARIA.");
-      return;
-    }
+const VoiceInput = ({ onSpeechResult }: Props) => {
+  const [isListening, setIsListening] = useState(false);
+  const nextPrompt = useMemo(
+    () => prompts[Math.floor(Math.random() * prompts.length)],
+    [isListening],
+  );
 
-    setRecording(true);
-    setTimeout(() => {
-      setRecording(false);
-      onTranscript("I want ARIA to summarize my priorities for the week.");
-    }, 1200);
-  }
+  const handleRelease = () => {
+    setIsListening(false);
+    onSpeechResult?.(nextPrompt);
+  };
 
   return (
-    <Pressable style={[styles.button, recording && styles.buttonActive]} onPress={handlePress}>
-      <Text style={styles.label}>{recording ? "Stop Mic" : "Voice Input"}</Text>
-    </Pressable>
+    <View style={styles.wrap}>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onLongPress={() => setIsListening(true)}
+        onPressOut={handleRelease}
+        style={[styles.button, isListening && styles.listening]}
+      >
+        <Mic color={isListening ? "#FFFFFF" : "#C9A84C"} size={20} />
+      </TouchableOpacity>
+      <Text style={styles.caption}>{isListening ? "Listening..." : "Hold to speak"}</Text>
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
+  wrap: {
+    alignItems: "center",
+    gap: 6,
+  },
   button: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#172335",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#4D6785",
-    backgroundColor: "#162131",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderColor: "#1E3248",
   },
-  buttonActive: {
-    backgroundColor: "#4A1F2A",
-    borderColor: "#D66C6C",
+  listening: {
+    backgroundColor: "#B8912A",
+    borderColor: "#C9A84C",
   },
-  label: {
-    color: "#F5F7FA",
-    fontWeight: "700",
-    fontSize: 12,
+  caption: {
+    color: "#8FA6BA",
+    fontSize: 11,
+    fontWeight: "600",
   },
 });
+
+export default VoiceInput;
