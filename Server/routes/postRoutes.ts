@@ -188,7 +188,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// ─── POST /posts/voice — create voice post ─────────────────────────────────────
+// ─── POST /posts/voice — create voice post with NOVA transcription ──────────────────
 
 router.post("/voice", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
@@ -210,11 +210,50 @@ router.post("/voice", async (req: Request, res: Response) => {
       )
     );
 
+    // Extract base64 audio data from data URL
+    const audioBase64 = voiceData.includes(",") 
+      ? voiceData.split(",")[1] 
+      : voiceData;
+    
+    // NOVA transcription - call AI Platform STT
+    let transcribedContent = content?.trim() || "🎤 Voice post";
+    try {
+      const AI_PLATFORM_URL = process.env.AI_PLATFORM_URL || "http://localhost:8001";
+      
+      // Convert base64 to Buffer for FormData
+      const audioBuffer = Buffer.from(audioBase64, "base64");
+      
+      // Create FormData with audio
+      const FormData = require("formdata-node");
+      const formData = new FormData();
+      formData.append("file", new Blob([audioBuffer], { type: "audio/webm" }), "voice.webm");
+      formData.append("model", "whisper");
+      
+      const sttResponse = await fetch(`${AI_PLATFORM_URL}/api/v1/speech/stt`, {
+        method: "POST",
+        body: formData as unknown as BodyInit,
+        headers: {
+          // No auth needed for internal service call
+        }
+      });
+      
+      if (sttResponse.ok) {
+        const sttData = await sttResponse.json();
+        if (sttData.text) {
+          transcribedContent = sttData.text;
+          console.log("[NOVA] Voice transcribed:", transcribedContent.substring(0, 50) + "...");
+        }
+      }
+    } catch (transcribeErr) {
+      console.error("[NOVA] Transcription failed:", transcribeErr);
+      // Fallback to original content if transcription fails
+    }
+
     const post = await db.post.create({
       data: {
         tenantId,
         authorId,
-        content: content?.trim() || "🎤 Voice post",
+        content: transcribedContent,
         mediaUrl:  voiceData, // base64 data URL
         mediaType: "voice",
         tags: {
@@ -234,6 +273,7 @@ router.post("/voice", async (req: Request, res: Response) => {
       commentCount: post._count.comments,
       liked:        false,
       tags:         post.tags.map((t) => t.tag.name),
+      transcribed:  transcribedContent !== (content?.trim() || "🎤 Voice post"),
     });
   } catch (error) {
     console.error("Create voice post error:", error);

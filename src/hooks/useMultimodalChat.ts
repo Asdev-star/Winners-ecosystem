@@ -8,7 +8,7 @@ import type { ModelId } from "../components/ai/ModelSelector";
 import type { DroppedFile } from "../components/ai/FileDropZone";
 import { getAuthHeaders } from "../features/auth/authStore";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
+const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,7 +119,7 @@ export function useMultimodalChat(options: MultimodalChatOptions = {}) {
   ) => {
     abortRef.current = new AbortController();
 
-    const res = await fetch(`${API}/ai/chat/stream`, {
+    const res = await fetch(`${API}/api/v1/ai-platform/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       signal: abortRef.current.signal,
@@ -223,7 +223,8 @@ export function useMultimodalChat(options: MultimodalChatOptions = {}) {
         if (headers.Authorization) {
           await liveStream(userText, files, history, assistantMsgId);
         } else {
-          await mockStream(userText, files, assistantMsgId);
+          // No auth - show error instead of mock
+          throw new Error("Authentication required. Please log in to use the AI chat.");
         }
       } catch (err: unknown) {
         if ((err as Error)?.name === "AbortError") return;
