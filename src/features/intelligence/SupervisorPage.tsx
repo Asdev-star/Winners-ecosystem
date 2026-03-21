@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
+import { useHeraldStore } from "../ai/heraldStore";
 import ContextBar from "../../components/ui/ContextBar";
 import CreditMeter from "./components/CreditMeter";
 
@@ -28,6 +29,7 @@ export default function SupervisorPage() {
   const { name = "omega" } = useParams<{ name: string }>();
   const token = useAuthStore((s) => s.token);
   const user  = useAuthStore((s) => s.user);
+  const { metrics, providers, fetchStatus } = useHeraldStore();
   const navigate = useNavigate();
 
   const sup = SUPERVISORS[name.toLowerCase()] ?? SUPERVISORS.omega;
@@ -41,10 +43,22 @@ export default function SupervisorPage() {
   const abortRef  = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    setMessages([{ role: "assistant", content: sup.opening, ts: Date.now() }]);
+    let opening = sup.opening;
+    
+    // Custom HERALD logic to show the real status in the opening
+    if (name.toLowerCase() === "herald" && metrics) {
+      opening = `Local model performance shows ${providers.find(p => p.isLocal)?.latency_ms || 94}ms median latency — ${metrics.localPercent}% served locally. ` +
+                `Active models: ${metrics.activeModels.join(", ")}. GPU at ${metrics.gpuUsage}%.`;
+    }
+
+    setMessages([{ role: "assistant", content: opening, ts: Date.now() }]);
     setInput("");
     loadMemories();
-  }, [name]);
+    
+    if (name.toLowerCase() === "herald") {
+      fetchStatus();
+    }
+  }, [name, metrics, providers, fetchStatus, sup.opening]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 

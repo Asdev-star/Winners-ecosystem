@@ -10,6 +10,38 @@
   "scope": "/",
   "icons": [
     {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/pwa-192x192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
@@ -32,25 +64,25 @@
       "name": "Dashboard",
       "short_name": "Home",
       "url": "/dashboard",
-      "icons": [{ "src": "/pwa-192x192.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Community",
       "short_name": "Community",
       "url": "/community",
-      "icons": [{ "src": "/pwa-192x192.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Academy",
       "short_name": "Learn",
       "url": "/academy",
-      "icons": [{ "src": "/pwa-192x192.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "AI Assistant",
       "short_name": "AI",
       "url": "/intelligence",
-      "icons": [{ "src": "/pwa-192x192.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

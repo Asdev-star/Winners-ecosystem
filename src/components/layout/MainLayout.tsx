@@ -1,7 +1,8 @@
 // src/components/layout/MainLayout.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Outlet, useNavigate, useLocation, NavLink } from "react-router-dom";
+import { Bell, BellOff, Download } from "lucide-react";
 import { useAuthStore } from "../../features/auth/authStore";
 import TenantSwitcher from "../ui/TenantSwitcher";
 import NotificationBell from "../../features/notifications/NotificationBell";
@@ -16,6 +17,9 @@ import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 import ImpersonationBanner from "./ImpersonationBanner";
 import { OMEGA_WELCOME_KEY, type OmegaLaunchWelcome } from "../../features/onboarding/omegaLaunchWelcome";
 import { getOmegaProfileContext, getOmegaSidebarRank } from "../../features/onboarding/omegaProfileContext";
+import { useEcosystemHealth } from "../../hooks/useEcosystemHealth";
+import { usePushNotifications } from "../../hooks/usePushNotifications";
+import { useInstallPrompt } from "../../features/pwa/useInstallPrompt";
 
 type AssistantKey = "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega";
 
@@ -193,6 +197,26 @@ const css = `
 
   /* ── Main area ── */
   .ml-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  
+  .ml-offline-banner {
+    background: var(--red);
+    color: white;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    letter-spacing: 1px;
+    animation: slideDown 0.3s ease;
+  }
+  
+  @keyframes slideDown {
+    from { height: 0; opacity: 0; }
+    to { height: 24px; opacity: 1; }
+  }
+
   .ml-root.admin-realm {
     --admin-accent: var(--gold);
   }
@@ -265,6 +289,120 @@ const css = `
   .ml-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
   .ml-status-text { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); }
   .ml-content { flex: 1; overflow-y: auto; }
+  .ml-utility-rail {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    padding: 14px 20px 0;
+  }
+  .ml-utility-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(201,168,76,0.16);
+    background:
+      radial-gradient(circle at top right, rgba(201,168,76,0.14), transparent 32%),
+      linear-gradient(135deg, rgba(19,29,43,0.98), rgba(11,18,29,0.96));
+    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+  }
+  .ml-utility-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent 38%);
+  }
+  .ml-utility-card.push-card {
+    border-color: rgba(43,95,142,0.28);
+    background:
+      radial-gradient(circle at top right, rgba(43,95,142,0.18), transparent 34%),
+      linear-gradient(135deg, rgba(17,31,47,0.98), rgba(11,18,29,0.96));
+  }
+  .ml-utility-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .ml-utility-icon {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(201,168,76,0.14);
+    color: var(--gold);
+  }
+  .ml-utility-card.push-card .ml-utility-icon {
+    background: rgba(43,95,142,0.18);
+    color: var(--ice);
+  }
+  .ml-utility-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .ml-utility-copy {
+    margin: 0;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .ml-utility-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .ml-utility-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(201,168,76,0.24);
+    background: rgba(201,168,76,0.12);
+    color: var(--gold);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 120ms ease, opacity 120ms ease, border-color 120ms ease;
+  }
+  .ml-utility-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(201,168,76,0.4);
+  }
+  .ml-utility-button.alt {
+    border-color: rgba(43,95,142,0.28);
+    background: rgba(43,95,142,0.14);
+    color: var(--ice);
+  }
+  .ml-utility-button:disabled {
+    cursor: progress;
+    opacity: 0.7;
+    transform: none;
+  }
+  .ml-utility-status {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
   .ml-omega-welcome {
     margin: 14px 20px 0;
     padding: 16px 18px;
@@ -598,6 +736,38 @@ export default function MainLayout() {
   const { hasAccess: hasSuperAdminAccess } = useSuperAdminAccess();
   const profileContext = getOmegaProfileContext(user?.onboardingProfileType);
 
+  const { health } = useEcosystemHealth();
+  const { supported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe, error: pushError } = usePushNotifications();
+  const { isInstallable, showInstallPrompt } = useInstallPrompt();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline  = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online",  handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online",  handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const aiPlatformStatus = health["ai-platform"]?.status || "building";
+  const aiStatusLabel = aiPlatformStatus === "live" || aiPlatformStatus === "active" 
+    ? "Online" 
+    : aiPlatformStatus === "building" ? "Synchronizing" : "Offline";
+  const shouldOfferPush = supported && Boolean(user) && permission !== "denied";
+  const showMobileUtilityRail = isInstallable || shouldOfferPush;
+  const pushStatus = pushError
+    ? pushError
+    : !supported
+      ? "Push not supported on this device"
+      : subscribed
+        ? "Push alerts active"
+        : permission === "granted"
+          ? "Ready to subscribe"
+          : "Enable browser permission to receive alerts";
+
   const coreNavItems = CORE_NAV;
   const orderedPlatforms = [...PLATFORMS].sort(
     (left, right) => getOmegaSidebarRank(user?.onboardingProfileType, left.path) - getOmegaSidebarRank(user?.onboardingProfileType, right.path),
@@ -709,8 +879,8 @@ export default function MainLayout() {
 
         {/* AI Status */}
         <div className="ml-ai-bar">
-          <div className="ml-ai-dot" />
-          <div className="ml-ai-text">OMEGA · 9 Supervisors · Online</div>
+          <div className="ml-ai-dot" style={{ background: aiPlatformStatus === "live" ? "var(--green)" : aiPlatformStatus === "building" ? "var(--gold)" : "var(--red)" }} />
+          <div className="ml-ai-text">OMEGA · {aiStatusLabel}</div>
         </div>
 
         {/* Tenant switcher */}
@@ -798,6 +968,11 @@ export default function MainLayout() {
 
       {/* Main content area */}
       <div className="ml-main">
+        {!isOnline && (
+          <div className="ml-offline-banner">
+            OFFLINE MODE — Syncing paused
+          </div>
+        )}
         <header className="ml-header">
           <div className="ml-header-left">
             <button
@@ -824,6 +999,61 @@ export default function MainLayout() {
         </header>
 
         <ImpersonationBanner />
+        {showMobileUtilityRail ? (
+          <section className="ml-utility-rail" aria-label="Device actions">
+            {isInstallable ? (
+              <div className="ml-utility-card">
+                <div className="ml-utility-kicker">
+                  <span className="ml-utility-icon">
+                    <Download size={16} />
+                  </span>
+                  Install Winners
+                </div>
+                <div className="ml-utility-title">Add the ecosystem to your device</div>
+                <p className="ml-utility-copy">
+                  Launch faster, keep the shell available offline, and make the platform feel native on mobile and desktop.
+                </p>
+                <div className="ml-utility-actions">
+                  <button type="button" className="ml-utility-button" onClick={showInstallPrompt}>
+                    <Download size={14} />
+                    Install App
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {shouldOfferPush ? (
+              <div className="ml-utility-card push-card">
+                <div className="ml-utility-kicker">
+                  <span className="ml-utility-icon">
+                    {subscribed ? <BellOff size={16} /> : <Bell size={16} />}
+                  </span>
+                  Real-time Alerts
+                </div>
+                <div className="ml-utility-title">
+                  {subscribed ? "Push notifications are active" : "Stay ahead with push notifications"}
+                </div>
+                <p className="ml-utility-copy">
+                  Receive revenue, team, and intelligence alerts without keeping the tab open.
+                </p>
+                <div className="ml-utility-actions">
+                  <button
+                    type="button"
+                    className="ml-utility-button alt"
+                    onClick={() => {
+                      void (subscribed ? unsubscribe() : subscribe());
+                    }}
+                    disabled={pushLoading}
+                  >
+                    {subscribed ? <BellOff size={14} /> : <Bell size={14} />}
+                    {subscribed ? "Disable Alerts" : permission === "granted" ? "Connect Alerts" : "Enable Alerts"}
+                  </button>
+                  <span className="ml-utility-status">{pushStatus}</span>
+                </div>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
         {omegaWelcome ? (
           <section className="ml-omega-welcome" aria-live="polite">
             <div className="ml-omega-kicker">{omegaWelcome.supervisor} Welcome</div>

@@ -3,11 +3,15 @@
 
 import asyncio
 import time
-import psutil
 import httpx
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 from datetime import datetime
+
+try:
+    import psutil
+except ModuleNotFoundError:
+    psutil = None
 
 
 @dataclass
@@ -49,6 +53,41 @@ class HERALDMonitor:
         self._total_requests:  int = 0
         self.start_time = datetime.utcnow()
 
+    def _get_cpu_percent(self, interval: Optional[float]) -> float:
+        if psutil is None:
+            return 0.0
+        return float(psutil.cpu_percent(interval=interval))
+
+    def _get_memory_stats(self) -> Dict[str, Any]:
+        if psutil is None:
+            return {
+                "total": None,
+                "available": None,
+                "percent": 0.0,
+            }
+
+        memory = psutil.virtual_memory()
+        return {
+            "total": memory.total,
+            "available": memory.available,
+            "percent": memory.percent,
+        }
+
+    def _get_disk_stats(self) -> Dict[str, Any]:
+        if psutil is None:
+            return {
+                "total": None,
+                "free": None,
+                "percent": 0.0,
+            }
+
+        disk = psutil.disk_usage("/")
+        return {
+            "total": disk.total,
+            "free": disk.free,
+            "percent": disk.percent,
+        }
+
     async def get_health(self) -> PlatformHealth:
         ollama_ok, models = await self._check_ollama()
         whisper_ok        = await self._check_whisper()
@@ -64,8 +103,8 @@ class HERALDMonitor:
             gpu_available=    gpu_available,
             gpu_memory_used=  gpu_used,
             gpu_memory_total= gpu_total,
-            cpu_percent=      psutil.cpu_percent(interval=0.1),
-            ram_percent=      psutil.virtual_memory().percent,
+            cpu_percent=      self._get_cpu_percent(interval=0.1),
+            ram_percent=      self._get_memory_stats()["percent"],
             avg_latency_ms=   {k: sum(v)/len(v) for k, v in self._latency_samples.items() if v},
             requests_today=   self._request_counts.copy(),
             error_rate=       self._error_counts / max(self._total_requests, 1)
@@ -140,19 +179,15 @@ class HERALDMonitor:
     # Legacy method for backward compatibility
     def get_system_stats(self) -> Dict[str, Any]:
         """Get GPU/Memory monitoring results for HERALD dashboard"""
+        memory = self._get_memory_stats()
+        disk = self._get_disk_stats()
+
         stats = {
             "timestamp": datetime.utcnow().isoformat(),
-            "cpu_usage_percent": psutil.cpu_percent(interval=None),
-            "memory": {
-                "total": psutil.virtual_memory().total,
-                "available": psutil.virtual_memory().available,
-                "percent": psutil.virtual_memory().percent
-            },
-            "disk": {
-                "total": psutil.disk_usage('/').total,
-                "free": psutil.disk_usage('/').free,
-                "percent": psutil.disk_usage('/').percent
-            }
+            "cpu_usage_percent": self._get_cpu_percent(interval=None),
+            "memory": memory,
+            "disk": disk,
+            "psutil_installed": psutil is not None,
         }
         
         # Try to get GPU info

@@ -3,10 +3,18 @@
 // Manages AI assistant state across all 9 supervisors
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { getWinnersClient } from "../lib/api";
+import { getPersistStorage } from "../lib/storage";
+import type { AssistantName } from "../../sdk/WinnersSDK";
 
 // Supervisor types
 export type SupervisorName = "OMEGA" | "ARIA" | "NOVA" | "SAGE" | "ATLAS" | "FORGE" | "CIRCUIT" | "NEXUS" | "HERALD";
+
+// Map SupervisorName to AssistantName if needed, but they seem to match lowercase
+function getAssistantName(supervisor: SupervisorName): AssistantName {
+  return supervisor.toLowerCase() as AssistantName;
+}
 
 // Supervisor configurations
 export const SUPERVISOR_CONFIG: Record<SupervisorName, {
@@ -219,6 +227,7 @@ export const useAssistantStore = create<AssistantStore>()(
     }),
     {
       name: "winners-assistant-store",
+      storage: createJSONStorage(() => getPersistStorage()),
       partialize: (state) => ({
         currentSupervisor: state.currentSupervisor,
         model: state.model,
@@ -236,7 +245,7 @@ export function useSupervisorConfig(supervisor?: SupervisorName) {
 
 // Hook for conversation streaming
 export function useAssistantStream() {
-  const { addMessage, setLoading, setStreaming } = useAssistantStore();
+  const { addMessage, setLoading, setStreaming, currentSupervisor, model } = useAssistantStore();
 
   const sendMessage = async (
     content: string,
@@ -252,33 +261,17 @@ export function useAssistantStream() {
     setStreaming(true);
 
     try {
-      const response = await fetch("/api/v1/ai/chat/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: content,
-          supervisor: options?.supervisor,
-          context: options?.context,
-          stream: true
-        })
-      });
-
-      if (!response.ok) throw new Error("Failed to send message");
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error("No response body");
-
+      const client = getWinnersClient();
       let assistantMessage = "";
       
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
+      // Note: WinnersSDK.ai.streamChat is what we want for streaming.
+      await client.ai.streamChat({
+        message: content,
+        assistant: getAssistantName(options?.supervisor || currentSupervisor),
+        model: model as any,
+        context: options?.context,
+      }, (chunk) => {
         const lines = chunk.split("\n");
-        
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
@@ -288,21 +281,20 @@ export function useAssistantStream() {
               const parsed = JSON.parse(data);
               if (parsed.token) {
                 assistantMessage += parsed.token;
-                // Update the last message incrementally
               }
             } catch {
               // Ignore parse errors
             }
           }
         }
-      }
+      });
 
       // Add final assistant message
       addMessage({ 
         role: "assistant", 
         content: assistantMessage,
         provider: "anthropic",
-        model: "claude-sonnet-4-6"
+        model: model
       });
     } catch (error) {
       addMessage({ 

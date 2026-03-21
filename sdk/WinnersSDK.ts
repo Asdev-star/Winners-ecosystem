@@ -7,8 +7,9 @@
 // Cloud API Products: AI Assistant API, Certificate Verification, Academy, Market
 
 export interface SDKConfig {
-  apiKey: string; // API key issued via developer dashboard
-  tenantId: string; // The tenant context for all requests
+  apiKey?: string; // API key or JWT token
+  token?: string; // Explicit JWT token (optional)
+  tenantId?: string; // The tenant context (optional)
   baseUrl?: string; // Override for self-hosted instances
   version?: "v1"; // API version (default: "v1")
   timeout?: number; // Request timeout in ms (default: 30000)
@@ -23,33 +24,62 @@ export interface SDKResponse<T> {
 }
 
 export class WinnersSDKError extends Error {
+  public readonly code: string;
+  public readonly status: number;
+  public readonly requestId: string | null;
+
   constructor(
     message: string,
-    public code: string,
-    public status: number,
-    public requestId: string | null = null,
+    code: string,
+    status: number,
+    requestId: string | null = null,
   ) {
     super(message);
     this.name = "WinnersSDKError";
+    this.code = code;
+    this.status = status;
+    this.requestId = requestId;
   }
 }
 
 // ─── HTTP Client ───────────────────────────────────────────────────────────────
 
 class HTTPClient {
-  constructor(private config: Required<SDKConfig>) {}
+  private readonly config: Required<SDKConfig>;
+
+  constructor(config: Required<SDKConfig>) {
+    this.config = config;
+  }
 
   private buildUrl(path: string): string {
-    return `${this.config.baseUrl}/api/${this.config.version}${path}`;
+    const base = this.config.baseUrl.replace(/\/+$/, "");
+    const version = this.config.version;
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+    
+    // If the path already includes /api/v1, don't double it
+    if (cleanPath.startsWith(`/api/${version}`)) {
+      return `${base}${cleanPath}`;
+    }
+    
+    return `${base}/api/${version}${cleanPath}`;
   }
 
   private buildHeaders(): Record<string, string> {
-    return {
-      Authorization: `Bearer ${this.config.apiKey}`,
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "X-Tenant-ID": this.config.tenantId,
       "X-SDK-Version": "1.0.0",
     };
+
+    const auth = this.config.token || this.config.apiKey;
+    if (auth) {
+      headers["Authorization"] = `Bearer ${auth}`;
+    }
+
+    if (this.config.tenantId) {
+      headers["X-Tenant-ID"] = this.config.tenantId;
+    }
+
+    return headers;
   }
 
   async request<T>(method: string, path: string, body?: unknown): Promise<SDKResponse<T>> {
@@ -94,6 +124,48 @@ class HTTPClient {
     }
   }
 
+  async stream(method: string, path: string, body?: unknown, onChunk?: (chunk: string) => void): Promise<void> {
+    const url = this.buildUrl(path);
+    const controller = new AbortController();
+
+    if (this.config.debug) {
+      console.log(`[WinnersSDK] STREAM ${method} ${url}`, body ?? "");
+    }
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: this.buildHeaders(),
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new WinnersSDKError(
+          (json as any).message ?? (json as any).error ?? `HTTP ${res.status}`,
+          (json as any).code ?? "API_ERROR",
+          res.status,
+          res.headers.get("X-Request-ID"),
+        );
+      }
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error("No response body");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        onChunk?.(decoder.decode(value));
+      }
+    } catch (err: any) {
+      if (err instanceof WinnersSDKError) throw err;
+      throw new WinnersSDKError(err.message, "NETWORK_ERROR", 0);
+    }
+  }
+
   get<T>(path: string) {
     return this.request<T>("GET", path);
   }
@@ -111,7 +183,11 @@ class HTTPClient {
 // ─── Resource Modules ─────────────────────────────────────────────────────────
 
 class AnalyticsResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** Get analytics overview for the tenant */
   getOverview(period: "7d" | "30d" | "90d" = "30d") {
@@ -125,7 +201,11 @@ class AnalyticsResource {
 }
 
 class CommunityResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** Get community feed */
   getFeed(page = 0, limit = 10) {
@@ -149,7 +229,11 @@ class CommunityResource {
 }
 
 class UsersResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** List tenant users */
   list() {
@@ -163,7 +247,11 @@ class UsersResource {
 }
 
 class BillingResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** Get current subscription details */
   getSubscription() {
@@ -177,7 +265,11 @@ class BillingResource {
 }
 
 class GDPRResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** Export all personal data for the authenticated user */
   exportMyData() {
@@ -216,7 +308,11 @@ export interface AIChatResponse {
 }
 
 class AIResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** Chat with any AI assistant */
   chat(request: AIChatRequest) {
@@ -229,8 +325,8 @@ class AIResource {
   }
 
   /** Stream AI response (SSE) - returns SSE stream response */
-  streamChat(request: AIChatRequest): Promise<SDKResponse<AIChatResponse>> {
-    return this.http.post<AIChatResponse>("/ai/chat/stream", request);
+  streamChat(request: AIChatRequest, onChunk: (chunk: string) => void) {
+    return this.http.stream("POST", "/ai/chat/stream", request, onChunk);
   }
 
   /** Get assistant memory for a user */
@@ -274,7 +370,11 @@ export interface Certificate {
 }
 
 class AcademyResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** List all courses */
   listCourses(params?: { page?: number; limit?: number; level?: string; tag?: string }) {
@@ -353,7 +453,11 @@ export interface Order {
 }
 
 class MarketResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** List products */
   listProducts(params?: { page?: number; limit?: number; category?: string; vendorId?: string; search?: string }) {
@@ -406,7 +510,11 @@ class MarketResource {
 // ─── Cloud API: Certificate Verification Resource ───────────────────────────────
 
 class CertificateResource {
-  constructor(private http: HTTPClient) {}
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
 
   /** Verify an Academy certificate */
   verify(certificateId: string) {
@@ -455,8 +563,9 @@ export class WinnersSDK {
       version: config.version ?? "v1",
       timeout: config.timeout ?? 30_000,
       debug: config.debug ?? false,
-      apiKey: config.apiKey,
-      tenantId: config.tenantId,
+      apiKey: config.apiKey ?? "",
+      token: config.token ?? "",
+      tenantId: config.tenantId ?? "",
     };
 
     this.http = new HTTPClient(resolved);

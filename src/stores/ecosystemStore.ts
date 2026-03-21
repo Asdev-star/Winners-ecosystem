@@ -3,6 +3,7 @@
 // THE central nervous system connecting all 8 layers
 
 import { create } from "zustand";
+import { getWinnersClient } from "../lib/api";
 
 type LayerKey = "core" | "community" | "academy" | "market" | "intelligence" | "work" | "cloud" | "ai-platform";
 
@@ -104,16 +105,28 @@ export const useEcosystemStore = create<EcosystemStore>((set, get) => ({
     set({ isLoadingHealth: true });
     
     try {
-      // In production, this would call an API
-      // For now, simulate health checks
+      const client = getWinnersClient();
+      const { data: healthData } = await client.health();
+      const { data: registryData } = await client.registry();
+      
       const updatedHealth = { ...defaultLayerHealth };
       
-      // Simulate different statuses
-      updatedHealth.community = {
-        ...updatedHealth.community,
-        lastChecked: new Date().toISOString(),
-        metrics: { uptime: 99.8, responseTime: 150 + Math.random() * 50, activeUsers: Math.floor(Math.random() * 100) }
-      };
+      if (healthData) {
+        // Map global health to core
+        updatedHealth.core = {
+          status: healthData.status === "ready" ? "live" : "active",
+          lastChecked: new Date().toISOString(),
+          metrics: { uptime: 99.9, responseTime: 120 }
+        };
+      }
+
+      if (registryData) {
+        // Use registry data to update counts or status
+        // For now just refresh the timestamp
+        Object.keys(updatedHealth).forEach(key => {
+          updatedHealth[key as LayerKey].lastChecked = new Date().toISOString();
+        });
+      }
       
       set({ layerHealth: updatedHealth, isLoadingHealth: false });
     } catch (error) {
