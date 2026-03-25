@@ -1,0 +1,3495 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id                            String                         @id @default(cuid())
+  name                          String
+  plan                          Plan                           @default(FREE)
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  deletedAt                     DateTime?
+  timezone                      String                         @default("UTC")
+  currency                      String                         @default("USD")
+  fiscalMonth                   Int                            @default(1)
+  stripeCustomerId              String?
+  stripeSubscriptionId          String?
+  whiteLabelEnabled             Boolean                        @default(false)
+  customDomain                  String?
+  brandColor                    String?
+  logoUrl                       String?
+  faviconUrl                    String?
+  agenticLoopProgresses         AgenticLoopProgress[]
+  aiAgents                      AIAgent[]
+  analyticsEvents               AnalyticsEvent[]
+  apiKeys                       ApiKey[]
+  assignments                   Assignment[]
+  assistantActions              AssistantAction[]
+  automations                   Automation[]
+  breakoutRooms                 BreakoutRoom[]
+  broadcastStreams              BroadcastStream[]
+  cartItems                     CartItem[]
+  carts                         Cart[]
+  certificates                  Certificate[]
+  communityChallengeSubmissions CommunityChallengeSubmission[]
+  communityChallengeWinners     CommunityChallengeWinner[]
+  comments                      Comment[]
+  communityChallenges           CommunityChallenge[]
+  communityInsights             CommunityInsight[]
+  connectorInstalls             ConnectorInstall[]
+  contractMilestones            ContractMilestone[]
+  contracts                     Contract[]
+  conversationParticipants      ConversationParticipant[]
+  conversations                 Conversation[]
+  corporateAccount              CorporateAccount?
+  corporateEnrolls              CorporateEnroll[]
+  courses                       Course[]
+  creatorSubscriptions          CreatorSubscription[]
+  creatorTiers                  CreatorTier[]
+  dnsZones                      DNSZone[]
+  enrollments                   Enrollment[]
+  escrowPayments                EscrowPayment[]
+  externalCourseEnrollments     ExternalCourseEnrollment[]
+  externalCourseSaves           ExternalCourseSave[]
+  flashcardReviews              FlashcardReview[]
+  flashcards                    Flashcard[]
+  follows                       Follow[]
+  freelancerProfiles            FreelancerProfile[]
+  groupLearningTracks           GroupLearningTrack[]
+  groupMembers                  GroupMember[]
+  groups                        Group[]
+  invites                       Invite[]
+  jobApplications               JobApplication[]
+  jobListings                   JobListing[]
+  knowledgeGraphEdges           KnowledgeGraphEdge[]
+  knowledgeGraphNodes           KnowledgeGraphNode[]
+  learnerNotes                  LearnerNote[]
+  learnerProfiles               LearnerProfile[]
+  learningPaths                 LearningPath[]
+  learningStreaks               LearningStreak[]
+  lectureUploads                LectureUpload[]
+  lessonProgresses              LessonProgress[]
+  lessons                       Lesson[]
+  likes                         Like[]
+  liveSessionAttendees          LiveSessionAttendee[]
+  liveSessions                  LiveSession[]
+  liveSpaces                    LiveSpace[]
+  mentorSessions                MentorSession[]
+  mentors                       Mentor[]
+  messageReads                  MessageRead[]
+  messages                      Message[]
+  modules                       Module[]
+  notifications                 Notification[]
+  novaSkillDetections           NovaSkillDetection[]
+  opportunities                 Opportunity[]
+  orderItems                    OrderItem[]
+  orderTrackings                OrderTracking[]
+  orders                        Order[]
+  pathCourses                   PathCourse[]
+  pathEnrollments               PathEnrollment[]
+  portfolioItems                PortfolioItem[]
+  postReactions                 PostReaction[]
+  posts                         Post[]
+  ppvaccesses                   PPVAccess[]
+  privacyAcknowledgments        PrivacyAcknowledgment[]
+  productImages                 ProductImage[]
+  productReviews                ProductReview[]
+  productVariants               ProductVariant[]
+  products                      Product[]
+  qaquestions                   QAQuestion[]
+  quizAttempts                  QuizAttempt[]
+  quizQuestions                 QuizQuestion[]
+  quizzes                       Quiz[]
+  quotePosts                    QuotePost[]
+  referralCredits               ReferralCredit[]
+  revenueRecords                RevenueRecord[]
+  reviews                       Review[]
+  savedPosts                    SavedPost[]
+  sessionTranscripts            SessionTranscript[]
+  siteDeploys                   SiteDeploy[]
+  skillEndorsements             SkillEndorsement[]
+  socialAccounts                SocialAccount[]
+  socialCrossPosts              SocialCrossPost[]
+  socialMetricSnapshots         SocialMetricSnapshot[]
+  socialScheduledPosts          SocialScheduledPost[]
+  socialSkillSignals            SocialSkillSignal[]
+  streamViewers                 StreamViewer[]
+  studioEvents                  StudioEvent[]
+  studioRsvps                   StudioRsvp[]
+  studyGroups                   StudyGroup[]
+  studyMembers                  StudyMember[]
+  submissions                   Submission[]
+  superChats                    SuperChat[]
+  usageLogs                     UsageLog[]
+  userFeedPreferences           UserFeedPreference[]
+  users                         User[]
+  vendorPayouts                 VendorPayout[]
+  vendorReviews                 VendorReview[]
+  vendors                       Vendor[]
+  videoRoomParticipants         VideoRoomParticipant[]
+  videoRooms                    VideoRoom[]
+  webhookSubscriptions          WebhookSubscription[]
+  workReviews                   WorkReview[]
+
+  @@map("tenants")
+}
+
+model User {
+  id                         String                         @id @default(cuid())
+  tenantId                   String
+  email                      String
+  name                       String
+  password                   String
+  role                       Role                           @default(MEMBER)
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+  deletedAt                  DateTime?
+  twoFactorSecret            String?
+  twoFactorEnabled           Boolean                        @default(false)
+  twoFactorMethod            String?
+  twoFactorBackup            String[]                       @default([])
+  country                    String?
+  city                       String?
+  bio                        String?
+  skills                     String[]
+  industry                   String?
+  isPublicProfile            Boolean                        @default(true)
+  profileViews               Int                            @default(0)
+  metadata                   Json                           @default("{}")
+  profileType                String?
+  onboardingDone             Boolean                        @default(false)
+  omegaMission               String?                        @db.Text
+  incomeGoal                 String?
+  experienceLevel            String?
+  primaryMarkets             String[]                       @default([])
+  primarySkills              String[]                       @default([])
+  teamType                   String?
+  onboardingData             Json?
+  firstPlatform              String?
+  trustScore                 Int                            @default(50)
+  trustScoreTier             String                         @default("SILVER")
+  trustScoreUpdatedAt        DateTime?
+  openToOpportunities        Boolean                        @default(false)
+  opportunityStatus          String?
+  opportunityBio             String?
+  hostedBroadcasts           BroadcastStream[]
+  carts                      Cart[]
+  courseCertificates         Certificate[]                  @relation("CourseCertificate")
+  challengeSubmissions       CommunityChallengeSubmission[]
+  challengeWins              CommunityChallengeWinner[]
+  comments                   Comment[]                      @relation("CommentAuthor")
+  clientContracts            Contract[]                     @relation("ClientContracts")
+  conversationParticipations ConversationParticipant[]
+  createdConversations       Conversation[]                 @relation("ConversationCreator")
+  corporateEnrolls           CorporateEnroll[]
+  instructedCourses          Course[]                       @relation("CourseInstructor")
+  creatorSubscriptions       CreatorSubscription[]          @relation("Creator")
+  subscriberSubscriptions    CreatorSubscription[]          @relation("Subscriber")
+  creatorTier                CreatorTier[]
+  deviceTokens               DeviceToken[]
+  courseEnrollments          Enrollment[]                   @relation("CourseEnrollment")
+  flashcardReviews           FlashcardReview[]
+  flashcards                 Flashcard[]
+  followers                  Follow[]                       @relation("Followers")
+  following                  Follow[]                       @relation("Following")
+  freelancerProfile          FreelancerProfile?
+  learningTracks             GroupLearningTrack[]           @relation("LearningTrackCreator")
+  groupMemberships           GroupMember[]
+  createdGroups              Group[]                        @relation("GroupCreator")
+  postedJobs                 JobListing[]
+  learnerNotes               LearnerNote[]
+  learnerProfile             LearnerProfile?
+  learningStreak             LearningStreak?
+  lectureUploads             LectureUpload[]
+  lessonProgress             LessonProgress[]               @relation("LessonProgress")
+  likes                      Like[]
+  attendedSessions           LiveSessionAttendee[]
+  hostedLiveSessions         LiveSession[]
+  spaceParticipations        LiveSpaceParticipant[]
+  spaceSpeakers              LiveSpaceSpeaker[]
+  hostedSpaces               LiveSpace[]                    @relation("LiveSpaceHost")
+  mentorSessions             MentorSession[]                @relation("MentorSessionLearner")
+  mentorProfile              Mentor?
+  messageReads               MessageRead[]
+  messages                   Message[]                      @relation("MessageSender")
+  novaSkills                 NovaSkillDetection[]           @relation("UserNovaSkills")
+  opportunities              Opportunity[]
+  orders                     Order[]
+  passwordResetTokens        PasswordResetToken[]
+  pathEnrollments            PathEnrollment[]
+  postReactions              PostReaction[]
+  posts                      Post[]                         @relation("PostAuthor")
+  ppvPurchases               PPVAccess[]
+  privacyAcknowledgment      PrivacyAcknowledgment?
+  productReviews             ProductReview[]
+  qaQuestions                QAQuestion[]
+  referralCredits            ReferralCredit[]
+  referralsReceived          Referral[]                     @relation("ReferredRelation")
+  referralsGiven             Referral[]                     @relation("ReferrerRelation")
+  courseReviews              Review[]                       @relation("CourseReview")
+  savedPosts                 SavedPost[]
+  givenEndorsements          SkillEndorsement[]             @relation("Endorser")
+  endorsedSkills             SkillEndorsement[]             @relation("Endorsee")
+  socialAccounts             SocialAccount[]
+  socialCrossPosts           SocialCrossPost[]
+  socialMetricSnapshots      SocialMetricSnapshot[]
+  socialScheduledPosts       SocialScheduledPost[]
+  socialSkillSignals         SocialSkillSignal[]
+  streamViewers              StreamViewer[]
+  studioEvents               StudioEvent[]
+  studioRsvps                StudioRsvp[]
+  studyGroups                StudyGroup[]
+  studyMembers               StudyMember[]
+  submissions                Submission[]
+  superChats                 SuperChat[]
+  twoFactorOTPs              TwoFactorOTP[]
+  tenant                     Tenant                         @relation(fields: [tenantId], references: [id])
+  vendorReviews              VendorReview[]
+  vendors                    Vendor[]
+  videoRoomParticipations    VideoRoomParticipant[]
+  hostedVideoRooms           VideoRoom[]
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model PrivacyAcknowledgment {
+  id             String   @id @default(cuid())
+  tenantId       String
+  userId         String   @unique
+  policyVersion  String
+  acknowledgedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([acknowledgedAt(sort: Desc)])
+  @@map("privacy_acknowledgments")
+}
+
+model TwoFactorOTP {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("two_factor_otps")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model Invite {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  role      Role     @default(MEMBER)
+  token     String   @unique @default(cuid())
+  expiresAt DateTime
+  accepted  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([token])
+  @@map("invites")
+}
+
+model RevenueRecord {
+  id          String   @id @default(cuid())
+  tenantId    String
+  amount      Float
+  currency    String   @default("USD")
+  source      String
+  description String?
+  recordedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([recordedAt])
+  @@map("revenue_records")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  event     String   @default("unknown")
+  userId    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([event])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+model Referral {
+  id            String         @id @default(cuid())
+  referrerId    String
+  referredId    String?
+  code          String         @unique
+  status        ReferralStatus @default(PENDING)
+  creditAwarded Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  convertedAt   DateTime?
+  referred      User?          @relation("ReferredRelation", fields: [referredId], references: [id])
+  referrer      User           @relation("ReferrerRelation", fields: [referrerId], references: [id])
+
+  @@index([referrerId])
+  @@index([code])
+  @@map("referrals")
+}
+
+model ReferralCredit {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  amount    Float
+  reason    String?
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("referral_credits")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  userEmail String?
+  userName  String?
+  action    String
+  category  String
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt(sort: Desc)])
+  @@map("activity_logs")
+}
+
+model ChangelogEntry {
+  id          String        @id @default(cuid())
+  title       String
+  description String
+  type        ChangelogType @default(FEATURE)
+  version     String?
+  publishedAt DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  published   Boolean       @default(true)
+
+  @@index([publishedAt(sort: Desc)])
+  @@map("changelog_entries")
+}
+
+model Post {
+  id              String               @id @default(cuid())
+  tenantId        String
+  authorId        String
+  content         String
+  mediaUrl        String?
+  mediaType       String?
+  linkUrl         String?
+  linkTitle       String?
+  edited          Boolean              @default(false)
+  isPinned        Boolean              @default(false)
+  engagementScore Int                  @default(0)
+  quotedPostId    String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  deletedAt       DateTime?
+  groupId         String?
+  comments        Comment[]
+  likes           Like[]
+  novaSkills      NovaSkillDetection[]
+  reactions       PostReaction[]
+  tags            PostTag[]
+  author          User                 @relation("PostAuthor", fields: [authorId], references: [id])
+  group           Group?               @relation("GroupPosts", fields: [groupId], references: [id])
+  quotedPost      Post?                @relation("SelfQuotedPost", fields: [quotedPostId], references: [id])
+  quotedByPosts   Post[]               @relation("SelfQuotedPost")
+  tenant          Tenant               @relation(fields: [tenantId], references: [id])
+  quotingPosts    QuotePost[]          @relation("QuotingPost")
+  quotedInPosts   QuotePost[]          @relation("QuotedPost")
+  savedPosts      SavedPost[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([authorId])
+  @@index([tenantId, isPinned])
+  @@index([groupId])
+  @@map("posts")
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  tenantId  String
+  postId    String
+  authorId  String
+  content   String
+  parentId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  author    User      @relation("CommentAuthor", fields: [authorId], references: [id])
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  likes     Like[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  postId    String?
+  commentId String?
+  createdAt DateTime @default(now())
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([userId, postId, tenantId])
+  @@unique([userId, commentId, tenantId])
+  @@index([tenantId])
+  @@index([postId])
+  @@index([commentId])
+  @@map("likes")
+}
+
+model PostReaction {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  postId    String
+  reaction  String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, reaction, tenantId])
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([postId])
+  @@index([reaction])
+  @@map("post_reactions")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  tenantId    String
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([followerId, followingId, tenantId])
+  @@index([tenantId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model Group {
+  id             String               @id @default(cuid())
+  tenantId       String
+  name           String
+  slug           String
+  description    String?
+  coverImage     String?
+  isPrivate      Boolean              @default(false)
+  createdById    String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  learningTracks GroupLearningTrack[]
+  members        GroupMember[]
+  createdBy      User                 @relation("GroupCreator", fields: [createdById], references: [id])
+  tenant         Tenant               @relation(fields: [tenantId], references: [id])
+  posts          Post[]               @relation("GroupPosts")
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String          @id @default(cuid())
+  tenantId String
+  groupId  String
+  userId   String
+  role     GroupMemberRole @default(MEMBER)
+  joinedAt DateTime        @default(now())
+  group    Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tenant   Tenant          @relation(fields: [tenantId], references: [id])
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([groupId, userId, tenantId])
+  @@index([tenantId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+model GroupLearningTrack {
+  id           String   @id @default(cuid())
+  tenantId     String
+  groupId      String
+  title        String
+  description  String?
+  currentWeek  Int      @default(1)
+  totalWeeks   Int      @default(4)
+  startDate    DateTime
+  endDate      DateTime
+  courseId     String?
+  participants Int      @default(0)
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  creator      User     @relation("LearningTrackCreator", fields: [createdById], references: [id])
+  group        Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([groupId])
+  @@index([createdById])
+  @@map("group_learning_tracks")
+}
+
+model LiveSpace {
+  id           String                 @id @default(cuid())
+  tenantId     String
+  title        String
+  description  String?
+  hostId       String
+  status       LiveSpaceStatus        @default(SCHEDULED)
+  scheduledAt  DateTime?
+  startedAt    DateTime?
+  endedAt      DateTime?
+  maxSpeakers  Int                    @default(6)
+  maxListeners Int                    @default(500)
+  isRecorded   Boolean                @default(false)
+  recordingUrl String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  participants LiveSpaceParticipant[]
+  speakers     LiveSpaceSpeaker[]
+  host         User                   @relation("LiveSpaceHost", fields: [hostId], references: [id])
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([hostId])
+  @@index([status])
+  @@map("live_spaces")
+}
+
+model LiveSpaceParticipant {
+  id       String                   @id @default(cuid())
+  spaceId  String
+  userId   String
+  role     LiveSpaceParticipantRole @default(LISTENER)
+  joinedAt DateTime                 @default(now())
+  leftAt   DateTime?
+  space    LiveSpace                @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user     User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([spaceId])
+  @@index([userId])
+  @@map("live_space_participants")
+}
+
+model LiveSpaceSpeaker {
+  id        String    @id @default(cuid())
+  spaceId   String
+  userId    String
+  isMuted   Boolean   @default(false)
+  isInvited Boolean   @default(false)
+  joinedAt  DateTime  @default(now())
+  space     LiveSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([spaceId])
+  @@map("live_space_speakers")
+}
+
+model Opportunity {
+  id          String            @id @default(cuid())
+  tenantId    String
+  userId      String
+  title       String
+  description String
+  type        OpportunityType
+  category    String
+  budget      String?
+  skills      String[]
+  location    String?
+  status      OpportunityStatus @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  expiresAt   DateTime?
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([type])
+  @@index([category])
+  @@map("opportunities")
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  tenantId   String
+  userId     String
+  actorId    String?
+  type       NotificationType
+  title      String
+  body       String
+  entityId   String?
+  entityType String?
+  link       String?
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  tenant     Tenant           @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([userId, read])
+  @@index([tenantId])
+  @@map("notifications")
+}
+
+model CreatorSubscription {
+  id           String             @id @default(cuid())
+  tenantId     String
+  subscriberId String
+  creatorId    String
+  tier         String
+  amount       Int
+  status       SubscriptionStatus @default(ACTIVE)
+  startedAt    DateTime           @default(now())
+  expiresAt    DateTime?
+  stripeSubId  String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  creator      User               @relation("Creator", fields: [creatorId], references: [id], onDelete: Cascade)
+  subscriber   User               @relation("Subscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([subscriberId, creatorId])
+  @@index([tenantId])
+  @@index([creatorId])
+  @@index([subscriberId])
+  @@map("creator_subscriptions")
+}
+
+model CreatorTier {
+  id           String   @id @default(cuid())
+  creatorId    String
+  tenantId     String
+  name         String
+  description  String?
+  benefits     String[]
+  monthlyPrice Int
+  yearlyPrice  Int
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  creator      User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([creatorId, name])
+  @@index([tenantId])
+  @@map("creator_tiers")
+}
+
+model CommunityChallenge {
+  id          String                         @id @default(cuid())
+  tenantId    String
+  title       String
+  description String
+  category    String
+  prize       String
+  prizeValue  Int
+  startsAt    DateTime
+  endsAt      DateTime
+  status      ChallengeStatus                @default(ACTIVE)
+  createdAt   DateTime                       @default(now())
+  updatedAt   DateTime                       @updatedAt
+  submissions CommunityChallengeSubmission[]
+  winners     CommunityChallengeWinner[]
+  tenant      Tenant                         @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId, status])
+  @@index([endsAt])
+  @@map("community_challenges")
+}
+
+model CommunityChallengeSubmission {
+  id          String             @id @default(cuid())
+  tenantId    String
+  challengeId String
+  userId      String
+  postId      String?
+  content     String
+  engagement  Int                @default(0)
+  createdAt   DateTime           @default(now())
+  challenge   CommunityChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([challengeId, userId])
+  @@index([tenantId])
+  @@index([challengeId, engagement(sort: Desc)])
+  @@map("challenge_submissions")
+}
+
+model CommunityChallengeWinner {
+  id           String             @id @default(cuid())
+  tenantId     String
+  challengeId  String
+  userId       String
+  rank         Int
+  prizeAwarded String
+  createdAt    DateTime           @default(now())
+  challenge    CommunityChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([challengeId, rank])
+  @@index([tenantId])
+  @@map("challenge_winners")
+}
+
+model SkillEndorsement {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String
+  endorserId String
+  skill      String
+  weight     Float    @default(1.0)
+  createdAt  DateTime @default(now())
+  endorser   User     @relation("Endorser", fields: [endorserId], references: [id], onDelete: Cascade)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  endorsee   User     @relation("Endorsee", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([endorserId, userId, skill])
+  @@index([tenantId])
+  @@index([userId, skill])
+  @@index([endorserId])
+  @@map("skill_endorsements")
+}
+
+model NovaSkillDetection {
+  id         String   @id @default(cuid())
+  tenantId   String
+  postId     String
+  userId     String
+  skill      String
+  confidence Float
+  category   String?
+  source     String   @default("post")
+  loopStage  String?
+  isActioned Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  user       User     @relation("UserNovaSkills", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([userId, postId, skill])
+  @@index([tenantId])
+  @@index([postId])
+  @@index([skill])
+  @@index([userId])
+  @@map("nova_skill_detections")
+}
+
+model CommunityInsight {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  type      String
+  title     String
+  content   String
+  metadata  Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId, isRead])
+  @@index([type])
+  @@index([createdAt(sort: Desc)])
+  @@map("community_insights")
+}
+
+model SavedPost {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  postId    String
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([userId, postId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([postId])
+  @@map("saved_posts")
+}
+
+model QuotePost {
+  id           String   @id @default(cuid())
+  tenantId     String
+  postId       String
+  quotedPostId String
+  createdAt    DateTime @default(now())
+  post         Post     @relation("QuotingPost", fields: [postId], references: [id], onDelete: Cascade)
+  quotedPost   Post     @relation("QuotedPost", fields: [quotedPostId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([postId, quotedPostId])
+  @@index([tenantId])
+  @@index([postId])
+  @@index([quotedPostId])
+  @@map("quote_posts")
+}
+
+model UserFeedPreference {
+  id               String   @id @default(cuid())
+  tenantId         String
+  userId           String   @unique
+  feedMode         String   @default("foryou")
+  novaIntelligence Boolean  @default(true)
+  quickPostEnabled Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@map("user_feed_preferences")
+}
+
+model AgenticLoopProgress {
+  id             String    @id @default(cuid())
+  tenantId       String
+  userId         String    @unique
+  stage          Int       @default(1)
+  stageName      String
+  currentStage   String?
+  postsCount     Int       @default(0)
+  skillsDetected Int       @default(0)
+  coursesTaken   Int       @default(0)
+  contractsWon   Int       @default(0)
+  lastActivity   DateTime?
+  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("agentic_loop_progress")
+}
+
+model Conversation {
+  id           String                    @id @default(cuid())
+  tenantId     String
+  createdById  String
+  isGroup      Boolean                   @default(false)
+  title        String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  createdBy    User                      @relation("ConversationCreator", fields: [createdById], references: [id])
+  tenant       Tenant                    @relation(fields: [tenantId], references: [id])
+  messages     Message[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, updatedAt(sort: Desc)])
+  @@index([createdById])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String           @id @default(cuid())
+  tenantId       String
+  conversationId String
+  userId         String
+  role           ConversationRole @default(MEMBER)
+  lastReadAt     DateTime         @default(now())
+  joinedAt       DateTime         @default(now())
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([conversationId, userId])
+  @@index([tenantId])
+  @@index([conversationId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  tenantId       String
+  conversationId String
+  senderId       String
+  content        String
+  type           MessageType   @default(TEXT)
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+  reads          MessageRead[]
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User          @relation("MessageSender", fields: [senderId], references: [id])
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@index([senderId])
+  @@map("messages")
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  tenantId  String
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([messageId, userId])
+  @@index([tenantId])
+  @@index([messageId])
+  @@index([userId])
+  @@map("message_reads")
+}
+
+model Course {
+  id                   String               @id @default(cuid())
+  tenantId             String
+  instructorId         String
+  title                String
+  slug                 String
+  description          String
+  about                String?
+  thumbnail            String?
+  previewVideo         String?
+  category             String
+  level                CourseLevel          @default(BEGINNER)
+  price                Float                @default(0)
+  currency             String               @default("USD")
+  published            Boolean              @default(false)
+  featured             Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  deletedAt            DateTime?
+  assignments          Assignment[]
+  certificates         Certificate[]
+  corporateEnrollments CorporateEnroll[]
+  instructor           User                 @relation("CourseInstructor", fields: [instructorId], references: [id])
+  tenant               Tenant               @relation(fields: [tenantId], references: [id])
+  enrollments          Enrollment[]
+  flashcards           Flashcard[]
+  knowledgeGraph       KnowledgeGraphNode[]
+  learnerNotes         LearnerNote[]
+  learningPaths        LearningPath[]
+  lectureUploads       LectureUpload[]
+  liveSessions         LiveSession[]
+  mentorSessions       MentorSession[]
+  modules              Module[]
+  pathCourses          PathCourse[]
+  reviews              Review[]
+  studyGroups          StudyGroup[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, published])
+  @@index([instructorId])
+  @@index([category])
+  @@map("courses")
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  tenantId    String
+  courseId    String
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lessons     Lesson[]
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([courseId, order])
+  @@map("modules")
+}
+
+model Lesson {
+  id          String           @id @default(cuid())
+  tenantId    String
+  moduleId    String
+  title       String
+  description String?
+  content     String?
+  videoUrl    String?
+  duration    Int?
+  order       Int              @default(0)
+  isFree      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  assignments Assignment[]
+  progress    LessonProgress[]
+  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([moduleId, order])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id              String           @id @default(cuid())
+  tenantId        String
+  courseId        String
+  userId          String
+  status          EnrollmentStatus @default(ACTIVE)
+  paidAmount      Float            @default(0)
+  stripePaymentId String?
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  certificate     Certificate?
+  course          Course           @relation(fields: [courseId], references: [id])
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  user            User             @relation("CourseEnrollment", fields: [userId], references: [id])
+  progress        LessonProgress[]
+
+  @@unique([id, tenantId])
+  @@unique([courseId, userId, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id           String     @id @default(cuid())
+  tenantId     String
+  enrollmentId String
+  lessonId     String
+  userId       String
+  completed    Boolean    @default(false)
+  completedAt  DateTime?
+  watchedSecs  Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson       Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  user         User       @relation("LessonProgress", fields: [userId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([enrollmentId, lessonId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("lesson_progress")
+}
+
+model Certificate {
+  id           String     @id @default(cuid())
+  tenantId     String
+  enrollmentId String     @unique
+  courseId     String
+  userId       String
+  verifyToken  String     @unique @default(cuid())
+  issuedAt     DateTime   @default(now())
+  course       Course     @relation(fields: [courseId], references: [id])
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  user         User       @relation("CourseCertificate", fields: [userId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("certificates")
+}
+
+model ExternalPlatform {
+  id        String   @id
+  name      String
+  icon      String?
+  tenantId  String
+  createdAt DateTime @default(now())
+}
+
+model FreeCodeCampSync {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  fccUsername    String
+  lastSynced     DateTime @default(now())
+  certifications Json     @default("[]")
+  createdAt      DateTime @default(now())
+}
+
+model ExternalCourse {
+  id                String                     @id @default(cuid())
+  tenantId          String
+  platform          String
+  platformName      String?
+  externalId        String
+  title             String
+  description       String?
+  thumbnailUrl      String?
+  courseUrl         String
+  affiliateUrl      String?
+  instructor        String?
+  institution       String?
+  duration          Int?
+  category          String?
+  subcategory       String?
+  difficulty        String?
+  tags              String[]
+  price             Float                      @default(0)
+  currency          String                     @default("USD")
+  rating            Float?
+  reviewCount       Int                        @default(0)
+  enrollmentCount   Int                        @default(0)
+  isVerified        Boolean                    @default(false)
+  isFeatured        Boolean                    @default(false)
+  sageRecommended   Boolean                    @default(false)
+  africanRelevance  Int                        @default(5)
+  workContractCount Int                        @default(0)
+  hasCertificate    Boolean                    @default(true)
+  certificateType   String?
+  lastSynced        DateTime                   @default(now())
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  enrollments       ExternalCourseEnrollment[]
+  saves             ExternalCourseSave[]
+
+  @@unique([platform, externalId])
+  @@index([tenantId])
+  @@index([platform])
+  @@index([category])
+  @@index([isFeatured, sageRecommended])
+  @@map("external_courses")
+}
+
+model ExternalCourseEnrollment {
+  id               String         @id @default(cuid())
+  tenantId         String
+  userId           String
+  externalCourseId String
+  enrolledAt       DateTime       @default(now())
+  completedAt      DateTime?
+  progress         Int            @default(0)
+  certificateUrl   String?
+  isSynced         Boolean        @default(false)
+  externalCourse   ExternalCourse @relation(fields: [externalCourseId], references: [id], onDelete: Cascade)
+  tenant           Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([userId, externalCourseId, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("external_course_enrollments")
+}
+
+model ExternalCourseSave {
+  id       String         @id @default(cuid())
+  tenantId String
+  userId   String
+  courseId String
+  sageNote String?
+  savedAt  DateTime       @default(now())
+  course   ExternalCourse @relation(fields: [courseId], references: [id])
+  tenant   Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([userId, courseId, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("external_course_saves")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  tenantId  String
+  courseId  String
+  userId    String
+  rating    Int
+  body      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation("CourseReview", fields: [userId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([courseId, userId, tenantId])
+  @@index([tenantId])
+  @@index([courseId])
+  @@map("reviews")
+}
+
+model Quiz {
+  id               String         @id @default(cuid())
+  tenantId         String
+  courseId         String
+  moduleId         String?
+  title            String
+  description      String?
+  passingScore     Int            @default(70)
+  timeLimit        Int?
+  shuffleQuestions Boolean        @default(false)
+  showResults      Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  attempts         QuizAttempt[]
+  questions        QuizQuestion[]
+  tenant           Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([courseId])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id            String       @id @default(cuid())
+  tenantId      String
+  quizId        String
+  question      String
+  questionType  QuestionType @default(MULTIPLE_CHOICE)
+  options       Json
+  correctAnswer String
+  explanation   String?
+  points        Int          @default(1)
+  order         Int          @default(0)
+  createdAt     DateTime     @default(now())
+  quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade, map: "QuizQuestions")
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([quizId])
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id            String    @id @default(cuid())
+  tenantId      String
+  quizId        String
+  userId        String
+  score         Int
+  percentage    Float
+  passed        Boolean
+  answers       Json
+  timeTakenSecs Int?
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  quiz          Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade, map: "QuizAttempts")
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([quizId, userId], name: "quiz_user_attempt")
+  @@index([tenantId])
+  @@index([userId])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}
+
+model Flashcard {
+  id          String            @id @default(cuid())
+  tenantId    String
+  userId      String
+  courseId    String?
+  lessonId    String?
+  front       String
+  back        String
+  tags        String[]
+  easeFactor  Float             @default(2.5)
+  interval    Int               @default(0)
+  repetitions Int               @default(0)
+  nextReview  DateTime          @default(now())
+  sourceType  String?
+  sourceId    String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  reviews     FlashcardReview[]
+  course      Course?           @relation(fields: [courseId], references: [id])
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([nextReview])
+  @@map("flashcards")
+}
+
+model FlashcardReview {
+  id          String    @id @default(cuid())
+  tenantId    String
+  flashcardId String
+  userId      String
+  quality     Int
+  reviewedAt  DateTime  @default(now())
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([flashcardId])
+  @@index([userId])
+  @@map("flashcard_reviews")
+}
+
+model KnowledgeGraphNode {
+  id          String               @id @default(cuid())
+  tenantId    String
+  courseId    String
+  concept     String
+  description String?
+  importance  Int                  @default(1)
+  xPos        Float?
+  yPos        Float?
+  createdAt   DateTime             @default(now())
+  outgoing    KnowledgeGraphEdge[] @relation("EdgeFrom")
+  incoming    KnowledgeGraphEdge[] @relation("EdgeTo")
+  course      Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenant      Tenant               @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([courseId, concept])
+  @@index([tenantId])
+  @@index([courseId])
+  @@map("knowledge_graph_nodes")
+}
+
+model KnowledgeGraphEdge {
+  id         String             @id @default(cuid())
+  tenantId   String
+  fromNodeId String
+  toNodeId   String
+  relation   String
+  weight     Float              @default(1.0)
+  fromNode   KnowledgeGraphNode @relation("EdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  tenant     Tenant             @relation(fields: [tenantId], references: [id])
+  toNode     KnowledgeGraphNode @relation("EdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([fromNodeId, toNodeId, relation])
+  @@index([tenantId])
+  @@index([fromNodeId])
+  @@index([toNodeId])
+  @@map("knowledge_graph_edges")
+}
+
+model Mentor {
+  id                String          @id @default(cuid())
+  tenantId          String
+  userId            String          @unique
+  bio               String?
+  expertise         String[]
+  availability      String          @default("available")
+  hourlyRate        Int?
+  timezone          String?
+  linkedInUrl       String?
+  sessionsCompleted Int             @default(0)
+  avgRating         Float           @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  sessions          MentorSession[]
+  tenant            Tenant          @relation(fields: [tenantId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("mentors")
+}
+
+model MentorSession {
+  id              String   @id @default(cuid())
+  tenantId        String
+  mentorId        String
+  learnerId       String
+  courseId        String?
+  scheduledAt     DateTime
+  durationMin     Int      @default(60)
+  status          String   @default("scheduled")
+  meetingUrl      String?
+  learnerFeedback String?
+  mentorRating    Int?
+  createdAt       DateTime @default(now())
+  course          Course?  @relation(fields: [courseId], references: [id])
+  learner         User     @relation("MentorSessionLearner", fields: [learnerId], references: [id], onDelete: Cascade)
+  mentor          Mentor   @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([mentorId])
+  @@index([learnerId])
+  @@map("mentor_sessions")
+}
+
+model LiveSession {
+  id                  String                @id @default(cuid())
+  tenantId            String
+  courseId            String?
+  hostId              String
+  title               String
+  description         String?
+  scheduledAt         DateTime
+  durationMin         Int                   @default(60)
+  status              String                @default("scheduled")
+  streamUrl           String?
+  recordingUrl        String?
+  maxParticipants     Int                   @default(100)
+  currentParticipants Int                   @default(0)
+  sessionType         String                @default("workshop")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  attendees           LiveSessionAttendee[]
+  course              Course?               @relation(fields: [courseId], references: [id])
+  host                User                  @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  tenant              Tenant                @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([hostId])
+  @@index([courseId])
+  @@index([status])
+  @@map("live_sessions")
+}
+
+model LiveSessionAttendee {
+  id        String      @id @default(cuid())
+  tenantId  String
+  sessionId String
+  userId    String
+  joinedAt  DateTime    @default(now())
+  leftAt    DateTime?
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([sessionId, userId])
+  @@index([tenantId])
+  @@index([sessionId])
+  @@index([userId])
+  @@map("live_session_attendees")
+}
+
+model LearnerProfile {
+  id              String   @id @default(cuid())
+  tenantId        String
+  userId          String   @unique
+  skills          Json?
+  learningHistory Json?
+  preferences     Json?
+  goals           Json?
+  engagement      Json?
+  performance     Json?
+  preferredTone   String   @default("encouraging")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("learner_profiles")
+}
+
+model LearningStreak {
+  id               String    @id @default(cuid())
+  tenantId         String
+  userId           String    @unique
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActivityDate DateTime?
+  totalDaysLearned Int       @default(0)
+  milestones       Json      @default("[]")
+  updatedAt        DateTime  @updatedAt
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("learning_streaks")
+}
+
+model LectureUpload {
+  id            String   @id @default(cuid())
+  tenantId      String
+  userId        String
+  courseId      String?
+  fileName      String
+  fileUrl       String
+  durationSecs  Int?
+  status        String   @default("processing")
+  transcript    String?
+  notes         String?
+  glossary      Json?
+  quizQuestions Json?
+  creditsCost   Int      @default(15)
+  createdAt     DateTime @default(now())
+  course        Course?  @relation(fields: [courseId], references: [id])
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("lecture_uploads")
+}
+
+model LearningPath {
+  id            String           @id @default(cuid())
+  tenantId      String
+  title         String
+  description   String
+  tagline       String
+  category      String
+  difficulty    String
+  durationWeeks Int
+  thumbnailUrl  String?
+  certificate   String?
+  price         Float            @default(0)
+  published     Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  courseId      String?
+  course        Course?          @relation(fields: [courseId], references: [id])
+  tenant        Tenant           @relation(fields: [tenantId], references: [id])
+  pathCourses   PathCourse[]
+  enrollments   PathEnrollment[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@map("learning_paths")
+}
+
+model PathCourse {
+  id         String       @id @default(cuid())
+  tenantId   String
+  pathId     String
+  courseId   String
+  orderIndex Int
+  required   Boolean      @default(true)
+  course     Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  path       LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  tenant     Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([pathId, courseId])
+  @@index([tenantId])
+  @@index([pathId])
+  @@index([courseId])
+  @@map("path_courses")
+}
+
+model PathEnrollment {
+  id              String       @id @default(cuid())
+  tenantId        String
+  pathId          String
+  userId          String
+  currentCourseId String?
+  completedAt     DateTime?
+  certificateId   String?
+  createdAt       DateTime     @default(now())
+  path            LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  tenant          Tenant       @relation(fields: [tenantId], references: [id])
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([pathId, userId])
+  @@index([tenantId])
+  @@index([pathId])
+  @@index([userId])
+  @@map("path_enrollments")
+}
+
+model StudyGroup {
+  id          String        @id @default(cuid())
+  tenantId    String
+  courseId    String
+  creatorId   String
+  name        String
+  description String?
+  maxMembers  Int           @default(8)
+  sagePrompts Json          @default("[]")
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  course      Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  creator     User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  members     StudyMember[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([courseId])
+  @@index([creatorId])
+  @@map("study_groups")
+}
+
+model StudyMember {
+  id       String     @id @default(cuid())
+  tenantId String
+  groupId  String
+  userId   String
+  role     String     @default("member")
+  joinedAt DateTime   @default(now())
+  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tenant   Tenant     @relation(fields: [tenantId], references: [id])
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([groupId, userId])
+  @@index([tenantId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("study_members")
+}
+
+model Assignment {
+  id          String       @id @default(cuid())
+  tenantId    String
+  lessonId    String
+  title       String
+  description String
+  type        String
+  rubric      Json
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  courseId    String?
+  course      Course?      @relation(fields: [courseId], references: [id])
+  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  submissions Submission[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([lessonId])
+  @@map("assignments")
+}
+
+model Submission {
+  id             String     @id @default(cuid())
+  tenantId       String
+  assignmentId   String
+  userId         String
+  content        String?
+  fileUrl        String?
+  sageFeedback   String?
+  sageScore      Int?
+  sageReviewedAt DateTime?
+  submittedAt    DateTime   @default(now())
+  assignment     Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  tenant         Tenant     @relation(fields: [tenantId], references: [id])
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([assignmentId])
+  @@index([userId])
+  @@map("submissions")
+}
+
+model CorporateAccount {
+  id               String            @id @default(cuid())
+  tenantId         String            @unique
+  companyName      String
+  seats            Int               @default(10)
+  seatsUsed        Int               @default(0)
+  plan             String            @default("standard")
+  stripeCustomerId String?
+  createdAt        DateTime          @default(now())
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments      CorporateEnroll[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@map("corporate_accounts")
+}
+
+model CorporateEnroll {
+  id          String           @id @default(cuid())
+  tenantId    String
+  corporateId String
+  userId      String
+  courseId    String
+  managerId   String
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  corporate   CorporateAccount @relation(fields: [corporateId], references: [id], onDelete: Cascade)
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([corporateId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("corporate_enrollments")
+}
+
+model LearnerNote {
+  id             String   @id @default(cuid())
+  tenantId       String
+  userId         String
+  courseId       String?
+  moduleId       String?
+  lessonId       String?
+  videoTimestamp Int?
+  content        String
+  tags           Json     @default("[]")
+  shared         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  course         Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("learner_notes")
+}
+
+model SocialAccount {
+  id           String                 @id @default(cuid())
+  userId       String
+  tenantId     String
+  platform     String
+  platformId   String
+  username     String?
+  displayName  String?
+  profileImage String?
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+  pageId       String?
+  pageName     String?
+  scopes       String[]               @default([])
+  active       Boolean                @default(true)
+  lastSynced   DateTime?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id])
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts        SocialCrossPost[]
+  metrics      SocialMetricSnapshot[]
+  scheduled    SocialScheduledPost[]
+  skills       SocialSkillSignal[]
+
+  @@unique([id, tenantId])
+  @@unique([userId, platform, platformId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([platform])
+  @@map("social_accounts")
+}
+
+model SocialCrossPost {
+  id              String        @id @default(cuid())
+  tenantId        String
+  userId          String
+  communityPostId String?
+  socialAccountId String
+  platformPostId  String?
+  status          String        @default("pending")
+  error           String?
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  tenant          Tenant        @relation(fields: [tenantId], references: [id])
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([communityPostId])
+  @@index([socialAccountId, status])
+  @@map("social_cross_posts")
+}
+
+model SocialMetricSnapshot {
+  id              String        @id @default(cuid())
+  tenantId        String
+  userId          String
+  socialAccountId String
+  platform        String
+  snapshotDate    DateTime      @default(now())
+  followers       Int           @default(0)
+  followersGrowth Int           @default(0)
+  reach           Int           @default(0)
+  impressions     Int           @default(0)
+  engagements     Int           @default(0)
+  engagementRate  Float         @default(0)
+  posts           Int           @default(0)
+  topPostId       String?
+  topPostReach    Int           @default(0)
+  platformData    Json?         @default("{}")
+  createdAt       DateTime      @default(now())
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  tenant          Tenant        @relation(fields: [tenantId], references: [id])
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([socialAccountId, snapshotDate])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([socialAccountId])
+  @@index([snapshotDate])
+  @@map("social_metric_snapshots")
+}
+
+model SocialSkillSignal {
+  id              String         @id @default(cuid())
+  tenantId        String
+  userId          String
+  socialAccountId String?
+  platform        String
+  platformPostId  String?
+  content         String
+  skill           String
+  confidence      Float          @default(0)
+  category        String?
+  isActioned      Boolean        @default(false)
+  loopFired       Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId, skill])
+  @@index([platform])
+  @@index([isActioned])
+  @@map("social_skill_signals")
+}
+
+model SocialScheduledPost {
+  id              String         @id @default(cuid())
+  tenantId        String
+  userId          String
+  socialAccountId String?
+  communityPostId String?
+  content         String
+  mediaUrls       String[]       @default([])
+  platform        String
+  adaptedContent  String?
+  scheduledFor    DateTime
+  status          String         @default("scheduled")
+  novaOptimised   Boolean        @default(false)
+  publishedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId, scheduledFor])
+  @@index([status, scheduledFor])
+  @@map("social_scheduled_posts")
+}
+
+model VideoRoom {
+  id              String                 @id @default(cuid())
+  tenantId        String
+  hostId          String
+  title           String
+  description     String?
+  roomType        VideoRoomType          @default(WORKSHOP)
+  status          RoomStatus             @default(SCHEDULED)
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  maxParticipants Int                    @default(50)
+  isPrivate       Boolean                @default(false)
+  password        String?
+  courseId        String?
+  livekitRoomId   String?
+  recordingUrl    String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  breakouts       BreakoutRoom[]
+  qaQuestions     QAQuestion[]
+  participants    VideoRoomParticipant[]
+  host            User                   @relation(fields: [hostId], references: [id])
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([hostId, status])
+  @@map("video_rooms")
+}
+
+model VideoRoomParticipant {
+  id       String    @id @default(cuid())
+  tenantId String
+  roomId   String
+  userId   String
+  role     String    @default("participant")
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+  cameraOn Boolean   @default(false)
+  micOn    Boolean   @default(false)
+  room     VideoRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([roomId, userId])
+  @@index([tenantId])
+  @@index([roomId])
+  @@map("video_room_participants")
+}
+
+model BreakoutRoom {
+  id           String    @id @default(cuid())
+  tenantId     String
+  parentRoomId String
+  name         String
+  maxMembers   Int       @default(6)
+  createdAt    DateTime  @default(now())
+  endedAt      DateTime?
+  parentRoom   VideoRoom @relation(fields: [parentRoomId], references: [id], onDelete: Cascade)
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([parentRoomId])
+  @@map("breakout_rooms")
+}
+
+model BroadcastStream {
+  id               String         @id @default(cuid())
+  tenantId         String
+  hostId           String
+  title            String
+  description      String?
+  thumbnail        String?
+  category         String?
+  status           StreamStatus   @default(SCHEDULED)
+  scheduledAt      DateTime?
+  startedAt        DateTime?
+  endedAt          DateTime?
+  muxStreamId      String?
+  muxPlaybackId    String?
+  rtmpKey          String         @unique @default(cuid())
+  isPPV            Boolean        @default(false)
+  ppvPrice         Float          @default(0)
+  superChatEnabled Boolean        @default(true)
+  peakViewers      Int            @default(0)
+  totalViewers     Int            @default(0)
+  totalRevenue     Float          @default(0)
+  recordingUrl     String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  host             User           @relation(fields: [hostId], references: [id])
+  tenant           Tenant         @relation(fields: [tenantId], references: [id])
+  ppvAccess        PPVAccess[]
+  viewers          StreamViewer[]
+  superChats       SuperChat[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([hostId, status])
+  @@map("broadcast_streams")
+}
+
+model StreamViewer {
+  id        String          @id @default(cuid())
+  tenantId  String
+  streamId  String
+  userId    String
+  joinedAt  DateTime        @default(now())
+  leftAt    DateTime?
+  watchSecs Int             @default(0)
+  stream    BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([streamId, userId])
+  @@index([tenantId])
+  @@index([streamId])
+  @@map("stream_viewers")
+}
+
+model SuperChat {
+  id          String          @id @default(cuid())
+  tenantId    String
+  streamId    String
+  userId      String
+  message     String
+  amount      Float
+  currency    String          @default("USD")
+  stripeId    String
+  pinnedUntil DateTime
+  createdAt   DateTime        @default(now())
+  stream      BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([streamId])
+  @@map("super_chats")
+}
+
+model PPVAccess {
+  id       String          @id @default(cuid())
+  tenantId String
+  streamId String
+  userId   String
+  paidAt   DateTime        @default(now())
+  amount   Float
+  stripeId String
+  stream   BroadcastStream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  tenant   Tenant          @relation(fields: [tenantId], references: [id])
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([streamId, userId])
+  @@index([tenantId])
+  @@map("ppv_access")
+}
+
+model SessionTranscript {
+  id             String   @id @default(cuid())
+  tenantId       String
+  sessionType    String
+  sessionId      String   @unique
+  rawTranscript  String
+  novaSummary    String?
+  novaHighlights Json?
+  novaSkills     Json?
+  qaLog          Json?
+  wordCount      Int      @default(0)
+  durationSecs   Int      @default(0)
+  language       String   @default("en")
+  createdAt      DateTime @default(now())
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@map("session_transcripts")
+}
+
+model QAQuestion {
+  id          String    @id @default(cuid())
+  tenantId    String
+  sessionId   String
+  sessionType String
+  userId      String
+  question    String
+  novaScore   Float     @default(0)
+  upvotes     Int       @default(0)
+  answered    Boolean   @default(false)
+  answeredAt  DateTime?
+  createdAt   DateTime  @default(now())
+  videoRoom   VideoRoom @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([sessionId, novaScore])
+  @@map("qa_questions")
+}
+
+model StudioEvent {
+  id           String       @id @default(cuid())
+  tenantId     String
+  hostId       String
+  title        String
+  description  String?
+  sessionType  String
+  sessionId    String?
+  scheduledAt  DateTime
+  durationMins Int          @default(60)
+  rsvpCount    Int          @default(0)
+  isPublic     Boolean      @default(true)
+  thumbnail    String?
+  tags         String[]
+  createdAt    DateTime     @default(now())
+  host         User         @relation(fields: [hostId], references: [id])
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  rsvps        StudioRsvp[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, scheduledAt])
+  @@map("studio_events")
+}
+
+model StudioRsvp {
+  id        String      @id @default(cuid())
+  tenantId  String
+  eventId   String
+  userId    String
+  createdAt DateTime    @default(now())
+  event     StudioEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([eventId, userId])
+  @@index([tenantId])
+  @@index([eventId])
+  @@map("studio_rsvps")
+}
+
+model Vendor {
+  id              String         @id @default(cuid())
+  tenantId        String
+  userId          String
+  storeName       String
+  storeSlug       String         @unique
+  description     String?
+  logo            String?
+  banner          String?
+  verified        Boolean        @default(false)
+  trustScore      Float          @default(0)
+  totalSales      Int            @default(0)
+  totalRevenue    Float          @default(0)
+  payoutBalance   Float          @default(0)
+  payoutMethod    String?
+  stripeAccountId String?
+  freeShipping    Boolean        @default(false)
+  shippingPrice   Float          @default(0)
+  taxRate         Float          @default(0)
+  status          VendorStatus   @default(PENDING)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  orders          Order[]
+  products        Product[]
+  payouts         VendorPayout[]
+  reviews         VendorReview[]
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  owner           User           @relation(fields: [userId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("vendors")
+}
+
+model Product {
+  id              String           @id @default(cuid())
+  tenantId        String
+  vendorId        String
+  name            String
+  slug            String
+  description     String?
+  price           Float
+  comparePrice    Float?
+  costPrice       Float?
+  sku             String?
+  barcode         String?
+  category        String
+  subcategory     String?
+  tags            String[]
+  brand           String?
+  weight          Float?
+  weightUnit      String?
+  isDigital       Boolean          @default(false)
+  isActive        Boolean          @default(true)
+  isFeatured      Boolean          @default(false)
+  stockQuantity   Int              @default(0)
+  lowStockAlert   Int              @default(10)
+  allowBackorder  Boolean          @default(false)
+  shippingType    String?
+  freeShipping    Boolean          @default(false)
+  shippingPrice   Float?
+  taxRate         Float?
+  metaTitle       String?
+  metaDescription String?
+  viewCount       Int              @default(0)
+  soldCount       Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  images          ProductImage[]
+  reviews         ProductReview[]
+  variants        ProductVariant[]
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  vendor          Vendor           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, slug])
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([category])
+  @@map("products")
+}
+
+model ProductVariant {
+  id            String      @id @default(cuid())
+  tenantId      String
+  productId     String
+  name          String
+  sku           String?
+  price         Float
+  comparePrice  Float?
+  stockQuantity Int         @default(0)
+  attributes    Json?
+  imageUrl      String?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([productId, sku])
+  @@index([tenantId])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  tenantId  String
+  productId String
+  url       String
+  alt       String?
+  position  Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([productId])
+  @@map("product_images")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  tenantId  String
+  userId    String?
+  sessionId String?
+  status    CartStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  user      User?      @relation(fields: [userId], references: [id])
+
+  @@unique([tenantId, sessionId])
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([sessionId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String          @id @default(cuid())
+  tenantId  String
+  cartId    String
+  productId String
+  variantId String?
+  quantity  Int
+  price     Float
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id])
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([cartId, productId, variantId])
+  @@index([tenantId])
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id                    String         @id @default(cuid())
+  tenantId              String
+  userId                String
+  vendorId              String
+  orderNumber           String         @unique
+  status                OrderStatus    @default(PENDING)
+  subtotal              Float
+  shippingCost          Float          @default(0)
+  taxAmount             Float          @default(0)
+  discountAmount        Float          @default(0)
+  total                 Float
+  currency              String         @default("USD")
+  shippingName          String?
+  shippingAddress       String?
+  shippingCity          String?
+  shippingState         String?
+  shippingZip           String?
+  shippingCountry       String?
+  shippingPhone         String?
+  billingName           String?
+  billingAddress        String?
+  billingCity           String?
+  billingState          String?
+  billingZip            String?
+  billingCountry        String?
+  paymentMethod         String?
+  paymentStatus         PaymentStatus  @default(PENDING)
+  stripePaymentId       String?
+  stripeSessionId       String?
+  stripePaymentIntentId String?
+  stripeCustomerId      String?
+  notes                 String?
+  metadata              Json?
+  shippedAt             DateTime?
+  deliveredAt           DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  items                 OrderItem[]
+  tracking              OrderTracking?
+  tenant                Tenant         @relation(fields: [tenantId], references: [id])
+  user                  User           @relation(fields: [userId], references: [id])
+  vendor                Vendor         @relation(fields: [vendorId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([vendorId])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String          @id @default(cuid())
+  tenantId  String
+  orderId   String
+  productId String
+  variantId String?
+  name      String
+  sku       String?
+  quantity  Int
+  price     Float
+  total     Float
+  createdAt DateTime        @default(now())
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id])
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model OrderTracking {
+  id             String   @id @default(cuid())
+  tenantId       String
+  orderId        String   @unique
+  carrier        String?
+  trackingNumber String?
+  trackingUrl    String?
+  status         String?
+  events         Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([orderId])
+  @@map("order_tracking")
+}
+
+model ProductReview {
+  id           String   @id @default(cuid())
+  tenantId     String
+  productId    String
+  userId       String
+  orderId      String?
+  rating       Int
+  title        String?
+  content      String?
+  images       String[]
+  isVerified   Boolean  @default(false)
+  isApproved   Boolean  @default(true)
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([productId, userId])
+  @@index([tenantId])
+  @@index([productId])
+  @@index([userId])
+  @@map("product_reviews")
+}
+
+model VendorReview {
+  id         String   @id @default(cuid())
+  tenantId   String
+  vendorId   String
+  userId     String
+  orderId    String?
+  rating     Int
+  title      String?
+  content    String?
+  isVerified Boolean  @default(false)
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+  vendor     Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@unique([vendorId, userId])
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([userId])
+  @@map("vendor_reviews")
+}
+
+model AIPlatformUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  action    String
+  model     String
+  tokens    Int      @default(0)
+  cost      Float    @default(0)
+  latencyMs Int
+  createdAt DateTime @default(now())
+
+  @@unique([id, tenantId])
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@map("ai_platform_usage")
+}
+
+model AIConversation {
+  id        String      @id @default(cuid())
+  userId    String
+  tenantId  String
+  title     String      @default("New Conversation")
+  model     String      @default("llama3.1")
+  provider  String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  messages  AIMessage[]
+
+  @@unique([id, tenantId])
+  @@index([userId, updatedAt])
+  @@index([tenantId, updatedAt])
+  @@map("ai_conversations")
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  tenantId       String
+  conversationId String
+  role           String
+  content        String
+  provider       String?
+  model          String?
+  tokensUsed     Int            @default(0)
+  filesMeta      Json?
+  createdAt      DateTime       @default(now())
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([conversationId, createdAt])
+  @@map("ai_messages")
+}
+
+model AssistantMemory {
+  id         String    @id @default(cuid())
+  userId     String
+  tenantId   String
+  assistant  String
+  memoryType String
+  content    String
+  confidence Float     @default(1.0)
+  source     String?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([id, tenantId])
+  @@unique([userId, assistant, memoryType])
+  @@index([userId, assistant])
+  @@index([tenantId, assistant])
+  @@map("assistant_memory")
+}
+
+model AssistantAction {
+  id           String    @id @default(cuid())
+  tenantId     String
+  assistant    String
+  actionType   String
+  targetUserId String?
+  targetLayer  String?
+  targetId     String?
+  description  String
+  payload      Json?
+  status       String    @default("pending")
+  approved     Boolean   @default(false)
+  autoApproved Boolean   @default(false)
+  executedAt   DateTime?
+  result       String?
+  createdAt    DateTime  @default(now())
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([assistant, status])
+  @@index([targetUserId])
+  @@index([tenantId])
+  @@map("assistant_actions")
+}
+
+model AgenticLoop {
+  id            String    @id @default(cuid())
+  userId        String
+  tenantId      String
+  loopType      String
+  trigger       String
+  currentStep   Int       @default(0)
+  steps         Json
+  outcome       String?
+  revenueImpact Float?
+  status        String
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([id, tenantId])
+  @@index([userId, status])
+  @@index([tenantId, status])
+  @@map("agentic_loops")
+}
+
+model AIInteraction {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  layer     String
+  agentType String
+  input     String
+  output    String?
+  model     String?
+  provider  String?
+  tokens    Int      @default(0)
+  latencyMs Int
+  cost      Float    @default(0)
+  filesMeta Json?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@unique([id, tenantId])
+  @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([agentType, createdAt])
+  @@map("ai_interactions")
+}
+
+model OMEGABriefing {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  tenantId    String
+  content     String
+  highlights  Json
+  topAction   Json
+  loopStatus  Json
+  generatedAt DateTime  @default(now())
+  expiresAt   DateTime
+  openedAt    DateTime?
+  actedOnAt   DateTime?
+
+  @@index([tenantId])
+  @@map("omega_briefings")
+}
+
+model AICredit {
+  id          String   @id @default(cuid())
+  userId      String
+  tenantId    String
+  action      String
+  amount      Int
+  balance     Int
+  description String
+  refId       String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([tenantId])
+  @@map("ai_credits")
+}
+
+model UserCreditBalance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  tenantId  String
+  balance   Int      @default(200)
+  tier      String   @default("free")
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("user_credit_balances")
+}
+
+model JobListing {
+  id               String           @id @default(cuid())
+  tenantId         String
+  clientId         String
+  title            String
+  description      String
+  requirements     String?
+  category         String
+  skills           String[]
+  experienceLevel  String
+  jobType          String
+  budgetMin        Float?
+  budgetMax        Float?
+  currency         String           @default("USD")
+  duration         String?
+  location         String?
+  deadline         DateTime?
+  status           JobStatus        @default(OPEN)
+  isFeatured       Boolean          @default(false)
+  isVerified       Boolean          @default(false)
+  viewCount        Int              @default(0)
+  applicationCount Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  expiresAt        DateTime?
+  contracts        Contract[]
+  applications     JobApplication[]
+  client           User             @relation(fields: [clientId], references: [id])
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId, status])
+  @@index([clientId])
+  @@index([category])
+  @@index([createdAt])
+  @@map("job_listings")
+}
+
+model FreelancerProfile {
+  id              String           @id @default(cuid())
+  userId          String           @unique
+  tenantId        String
+  title           String?
+  bio             String?
+  hourlyRate      Float?
+  availability    Availability     @default(AVAILABLE)
+  yearsExperience Int?
+  languages       String[]         @default(["English"])
+  skills          String[]
+  portfolioUrl    String?
+  linkedInUrl     String?
+  githubUrl       String?
+  timezone        String?
+  country         String?
+  isVerified      Boolean          @default(false)
+  trustScore      Float            @default(0)
+  totalEarnings   Float            @default(0)
+  totalJobs       Int              @default(0)
+  successRate     Float            @default(0)
+  responseTime    Int              @default(24)
+  badges          String[]         @default([])
+  certificates    String[]         @default([])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  contracts       Contract[]
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  applications    JobApplication[]
+  portfolioItems  PortfolioItem[]
+
+  @@unique([id, tenantId])
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@index([skills])
+  @@index([availability])
+  @@map("freelancer_profiles")
+}
+
+model PortfolioItem {
+  id           String            @id @default(cuid())
+  tenantId     String
+  freelancerId String
+  title        String
+  description  String?
+  category     String?
+  url          String?
+  imageUrl     String?
+  toolsUsed    String[]
+  createdAt    DateTime          @default(now())
+  freelancer   FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  tenant       Tenant            @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([freelancerId])
+  @@map("portfolio_items")
+}
+
+model JobApplication {
+  id            String            @id @default(cuid())
+  tenantId      String
+  jobId         String
+  freelancerId  String
+  coverLetter   String?
+  proposedRate  Float?
+  estimatedDays Int?
+  status        ApplicationStatus @default(PENDING)
+  cvUrl         String?
+  portfolioUrls String[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  freelancer    FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  job           JobListing        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tenant        Tenant            @relation(fields: [tenantId], references: [id])
+
+  @@unique([jobId, freelancerId])
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([jobId])
+  @@index([freelancerId])
+  @@index([status])
+  @@map("job_applications")
+}
+
+model Contract {
+  id               String              @id @default(cuid())
+  tenantId         String
+  jobId            String?
+  clientId         String
+  freelancerId     String
+  title            String
+  description      String?
+  status           ContractStatus      @default(ACTIVE)
+  startDate        DateTime
+  endDate          DateTime?
+  paymentType      String
+  amount           Float
+  currency         String              @default("USD")
+  hoursLogged      Float               @default(0)
+  hoursApproved    Float               @default(0)
+  platformFee      Float               @default(0)
+  clientRating     Float?
+  freelancerRating Float?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  completedAt      DateTime?
+  milestones       ContractMilestone[]
+  client           User                @relation("ClientContracts", fields: [clientId], references: [id])
+  freelancer       FreelancerProfile   @relation(fields: [freelancerId], references: [id])
+  job              JobListing?         @relation(fields: [jobId], references: [id])
+  tenant           Tenant              @relation(fields: [tenantId], references: [id])
+  escrow           EscrowPayment?
+  reviews          WorkReview[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([freelancerId])
+  @@index([status])
+  @@map("contracts")
+}
+
+model ContractMilestone {
+  id          String          @id @default(cuid())
+  tenantId    String
+  contractId  String
+  title       String
+  description String?
+  amount      Float
+  dueDate     DateTime?
+  status      MilestoneStatus @default(PENDING)
+  completedAt DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime        @default(now())
+  contract    Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([contractId])
+  @@map("contract_milestones")
+}
+
+model EscrowPayment {
+  id              String       @id @default(cuid())
+  tenantId        String
+  contractId      String       @unique
+  amount          Float
+  currency        String       @default("USD")
+  status          EscrowStatus @default(HELD)
+  clientId        String
+  freelancerId    String
+  stripePaymentId String?
+  releasedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  contract        Contract     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  tenant          Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([freelancerId])
+  @@map("escrow_payments")
+}
+
+model WorkReview {
+  id         String   @id @default(cuid())
+  tenantId   String
+  contractId String
+  reviewerId String
+  revieweeId String
+  rating     Float
+  comment    String?
+  createdAt  DateTime @default(now())
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([contractId])
+  @@index([reviewerId])
+  @@index([revieweeId])
+  @@map("work_reviews")
+}
+
+model ApiKey {
+  id           String     @id @default(cuid())
+  tenantId     String
+  userId       String
+  name         String
+  keyHash      String     @unique
+  prefix       String
+  scopes       String[]
+  rateLimitRpm Int        @default(60)
+  lastUsedAt   DateTime?
+  expiresAt    DateTime?
+  revoked      Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  usageLogs    UsageLog[]
+
+  @@index([tenantId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+model Connector {
+  id           String             @id @default(cuid())
+  name         String
+  slug         String             @unique
+  description  String
+  logoUrl      String             @default("")
+  category     String
+  authType     String
+  tier         String             @default("community")
+  price        Float              @default(0)
+  installCount Int                @default(0)
+  rating       Float              @default(0)
+  reviewCount  Int                @default(0)
+  developerId  String?
+  published    Boolean            @default(false)
+  verified     Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+  installs     ConnectorInstall[]
+
+  @@index([category])
+  @@index([published, verified])
+  @@map("connectors")
+}
+
+model ConnectorInstall {
+  id            String    @id @default(cuid())
+  connectorId   String
+  tenantId      String
+  userId        String
+  credentials   Bytes
+  credentialsIv String
+  active        Boolean   @default(true)
+  lastUsedAt    DateTime?
+  installedAt   DateTime  @default(now())
+  connector     Connector @relation(fields: [connectorId], references: [id])
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@unique([connectorId, tenantId])
+  @@index([tenantId])
+  @@map("connector_installs")
+}
+
+model WebhookSubscription {
+  id         String            @id @default(cuid())
+  tenantId   String
+  userId     String
+  url        String
+  events     String[]
+  secret     String
+  active     Boolean           @default(true)
+  failCount  Int               @default(0)
+  createdAt  DateTime          @default(now())
+  deliveries WebhookDelivery[]
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("webhook_subscriptions")
+}
+
+model WebhookDelivery {
+  id             String              @id @default(cuid())
+  subscriptionId String
+  event          String
+  payload        Json
+  statusCode     Int?
+  responseMs     Int?
+  success        Boolean             @default(false)
+  attempts       Int                 @default(1)
+  nextRetryAt    DateTime?
+  createdAt      DateTime            @default(now())
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId])
+  @@map("webhook_deliveries")
+}
+
+model Automation {
+  id          String          @id @default(cuid())
+  tenantId    String
+  userId      String
+  name        String
+  description String?
+  trigger     Json
+  steps       Json
+  active      Boolean         @default(true)
+  runCount    Int             @default(0)
+  lastRunAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  runs        AutomationRun[]
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("automations")
+}
+
+model AutomationRun {
+  id           String     @id @default(cuid())
+  automationId String
+  status       String
+  startedAt    DateTime   @default(now())
+  completedAt  DateTime?
+  logs         Json
+  error        String?
+  creditsUsed  Int        @default(0)
+  automation   Automation @relation(fields: [automationId], references: [id])
+
+  @@index([automationId])
+  @@map("automation_runs")
+}
+
+model AIAgent {
+  id                    String     @id @default(cuid())
+  tenantId              String
+  userId                String
+  name                  String
+  description           String
+  goal                  String
+  baseAssistant         String     @default("omega")
+  tools                 String[]
+  schedule              String?
+  triggerEvent          String?
+  maxRuntime            Int        @default(300)
+  maxCreditsPerRun      Int        @default(100)
+  humanApprovalRequired Boolean    @default(false)
+  active                Boolean    @default(true)
+  runCount              Int        @default(0)
+  lastRunAt             DateTime?
+  createdAt             DateTime   @default(now())
+  runs                  AgentRun[]
+  tenant                Tenant     @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("ai_agents")
+}
+
+model AgentRun {
+  id          String    @id @default(cuid())
+  agentId     String
+  status      String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  reasoning   Json
+  actionsLog  Json
+  result      String?
+  creditsUsed Int       @default(0)
+  approved    Boolean?
+  agent       AIAgent   @relation(fields: [agentId], references: [id])
+
+  @@index([agentId])
+  @@map("agent_runs")
+}
+
+model UsageLog {
+  id       String   @id @default(cuid())
+  tenantId String
+  userId   String
+  apiKeyId String?
+  action   String
+  credits  Int
+  metadata Json?
+  billedAt DateTime @default(now())
+  apiKey   ApiKey?  @relation(fields: [apiKeyId], references: [id])
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, billedAt])
+  @@map("usage_logs")
+}
+
+model SiteDeploy {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String
+  domain     String?
+  subdomain  String   @unique
+  framework  String
+  status     String
+  url        String?
+  sslActive  Boolean  @default(false)
+  deployedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("site_deploys")
+}
+
+model DNSZone {
+  id        String      @id @default(cuid())
+  tenantId  String
+  domain    String      @unique
+  verified  Boolean     @default(false)
+  ns        String[]
+  createdAt DateTime    @default(now())
+  records   DNSRecord[]
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+
+  @@map("dns_zones")
+}
+
+model DNSRecord {
+  id        String   @id @default(cuid())
+  zoneId    String
+  type      String
+  name      String
+  value     String
+  ttl       Int      @default(3600)
+  priority  Int?
+  createdAt DateTime @default(now())
+  zone      DNSZone  @relation(fields: [zoneId], references: [id])
+
+  @@index([zoneId])
+  @@map("dns_records")
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  token     String   @unique
+  platform  String   @default("web")
+  userAgent String?
+  isActive  Boolean  @default(true)
+  lastSeen  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@map("device_tokens")
+}
+
+model VendorPayout {
+  id               String    @id @default(cuid())
+  tenantId         String
+  vendorId         String
+  orderId          String
+  amount           Float
+  commission       Float
+  stripeTransferId String?
+  status           String    @default("pending")
+  createdAt        DateTime  @default(now())
+  paidAt           DateTime?
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  vendor           Vendor    @relation(fields: [vendorId], references: [id])
+
+  @@index([tenantId])
+  @@index([vendorId])
+  @@map("vendor_payouts")
+}
+
+model PlatformLayerStatus {
+  id               String   @id @default(cuid())
+  layerId          String
+  layerName        String
+  status           String
+  actorUserId      String?
+  actorEmail       String?
+  confirmationText String?
+  summary          String?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  @@index([layerId, createdAt])
+  @@map("platform_layer_statuses")
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ReferralStatus {
+  PENDING
+  CONVERTED
+  EXPIRED
+}
+
+enum ChangelogType {
+  FEATURE
+  BUGFIX
+  IMPROVEMENT
+  COMING_SOON
+}
+
+enum GroupMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  MENTION
+  SKILL_DETECTED
+  OPPORTUNITY_MATCH
+  TRUST_SCORE_UPDATE
+  CHALLENGE_COMPLETE
+  LOOP_ADVANCE
+  SYSTEM
+}
+
+enum OpportunityType {
+  JOB
+  COLLABORATION
+  MENTORSHIP
+  INVESTMENT
+}
+
+enum OpportunityStatus {
+  ACTIVE
+  FILLED
+  EXPIRED
+  ARCHIVED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PAUSED
+}
+
+enum ChallengeStatus {
+  DRAFT
+  ACTIVE
+  VOTING
+  COMPLETED
+  CANCELLED
+}
+
+enum LiveSpaceStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum LiveSpaceParticipantRole {
+  HOST
+  SPEAKER
+  LISTENER
+}
+
+enum ConversationRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  VOICE
+  SYSTEM
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  REFUNDED
+  CANCELLED
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+}
+
+enum VideoRoomType {
+  WORKSHOP
+  PANEL
+  STUDY_GROUP
+  MENTORSHIP
+  TOWN_HALL
+  REVENUE_ROOM
+  CHALLENGE
+}
+
+enum RoomStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum StreamStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+enum CartStatus {
+  ACTIVE
+  CONVERTED
+  ABANDONED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  DRAFT
+}
+
+enum Availability {
+  AVAILABLE
+  UNAVAILABLE
+  BUSY
+}
+
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  INTERVIEWING
+  OFFERED
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  PAID
+  DISPUTED
+}
+
+enum EscrowStatus {
+  HELD
+  RELEASED
+  REFUNDED
+  DISPUTED
+}

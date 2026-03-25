@@ -1,0 +1,192 @@
+import { Router } from "express";
+import authRoutes from "./authRoutes.js";
+import passwordResetRoutes from "./passwordResetRoutes.js";
+import tenantsRoutes from "./tenantsRoutes.js";
+import usersRoutes from "./usersRoutes.js";
+import analyticsRoutes from "./analyticsRoutes.js";
+import exportRoutes from "./exportRoutes.js";
+import billingRoutes from "./billingRoutes.js";
+import aiRoutes from "./aiRoutes.js";
+import profileRoutes from "./profileRoutes.js";
+import onboardingRoutes from "./onboardingRoutes.js";
+import emailRoutes from "./emailRoutes.js";
+import notificationRoutes from "./notificationRoutes.js";
+import stripeRoutes from "./stripeRoutes.js";
+import searchRoutes from "./searchRoutes.js";
+import activityRoutes from "./activityRoutes.js";
+import referralRoutes from "./referralRoutes.js";
+import adminRoutes from "./adminRoutes.js";
+import changelogRoutes from "./changelogRoutes.js";
+import twoFactorRoutes from "./twoFactorRoutes.js";
+import postRoutes from "./postRoutes.js";
+import groupRoutes from "./groupRoutes.js";
+import slackRoutes from "./slackRoutes.js";
+import ssoRoutes from "./ssoRoutes.js";
+import whitelabelRoutes from "./whitelabelRoutes.js";
+import registryRoutes from "./registryRoutes.js";
+import healthRoutes from "./healthRoutes.js";
+import gdprRoutes from "./gdprRoutes.js";
+import academyRoutes from "./academyRoutes.js";
+import chatRoutes from "./chatRoutes.js";
+import messageRoutes from "./messageRoutes.js";
+import aiPlatformRoutes from "./aiPlatformRoutes.js";
+import liveSpaceRoutes from "./liveSpaceRoutes.js";
+import opportunityRoutes from "./opportunityRoutes.js";
+import communityIntelligenceRoutes from "./communityIntelligenceRoutes.js";
+import externalCourseRoutes from "./externalCourseRoutes.js";
+import socialRoutes from "./socialRoutes.js";
+import vendorRoutes from "./vendorRoutes.js";
+import productRoutes from "./productRoutes.js";
+import cartRoutes from "./cartRoutes.js";
+import orderRoutes from "./orderRoutes.js";
+import workRoutes from "./workRoutes.js";
+import liveSessionRoutes from "./liveSessionRoutes.js";
+import quizRoutes from "./quizRoutes.js";
+import lectureUploadRoutes from "./lectureUploadRoutes.js";
+import cloudRoutes from "./cloudRoutes.js";
+import studioRoutes from "./studioRoutes.js";
+import omegaRoutes from "./omegaRoutes.js";
+import supervisorRoutes from "./supervisorRoutes.js";
+import communityExtrasRoutes from "./communityExtrasRoutes.js";
+import autonomousRoutes from "./autonomousRoutes.js";
+import agenticLoopRoutes from "./agenticLoopRoutes.js";
+import creditRoutes from "./creditRoutes.js";
+import escrowRoutes from "./escrowRoutes.js";
+import circuitRoutes from "./circuitRoutes.js";
+import atlasRoutes from "./atlasRoutes.js";
+import connectorRoutes from "./connectorRoutes.js";
+import notificationTokenRoutes from "./notificationTokenRoutes.js";
+
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { requireLayerAccess } from "../middleware/layerAccessMiddleware.js";
+import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
+
+const router = Router();
+const version = process.env.npm_package_version ?? "1.0.0";
+
+const gatewayRoutes = [
+  "/auth",
+  "/health",
+  "/tenants",
+  "/users",
+  "/analytics",
+  "/export",
+  "/billing",
+  "/ai",
+  "/profile",
+  "/onboarding",
+  "/email",
+  "/notifications",
+  "/stripe",
+  "/search",
+  "/activity",
+  "/referral",
+  "/admin",
+  "/changelog",
+  "/2fa",
+  "/posts",
+  "/groups",
+  "/gdpr",
+  "/slack",
+  "/sso",
+  "/registry",
+  "/academy",
+  "/chat",
+  "/messages",
+  "/ai-platform",
+  "/live-sessions",
+  "/community",
+  "/vendors",
+  "/products",
+  "/cart",
+  "/orders",
+  "/work",
+  "/quizzes",
+  "/lecture-uploads",
+  "/cloud",
+  "/studio",
+  "/omega",
+  "/supervisors",
+  "/community-extras",
+  "/insights",
+  "/agentic",
+  "/credits",
+  "/escrow",
+  "/circuit",
+  "/atlas",
+  "/connectors",
+  "/push-tokens",
+];
+
+router.get("/", (_req, res) => {
+  res.json({
+    name: "Winners Ecosystem API Gateway",
+    gateway: "v1",
+    version,
+    timestamp: new Date().toISOString(),
+    routeCount: gatewayRoutes.length,
+    routes: gatewayRoutes,
+  });
+});
+
+router.use("/auth/login", authLimiter);
+router.use("/auth/register", authLimiter);
+router.use("/auth", authRoutes);
+router.use("/auth", passwordResetRoutes);
+router.use("/health", healthRoutes);
+router.use("/tenants", tenantsRoutes);
+router.use("/users", usersRoutes);
+router.use("/analytics", analyticsRoutes);
+router.use("/export", exportRoutes);
+router.use("/billing", billingRoutes);
+router.use("/ai", aiRoutes);
+router.use("/profile", profileRoutes);
+router.use("/onboarding", onboardingRoutes);
+router.use("/email", emailRoutes);
+router.use("/notifications", notificationRoutes);
+router.use("/stripe", stripeRoutes);
+router.use("/search", searchRoutes);
+router.use("/activity", activityRoutes);
+router.use("/referral", referralRoutes);
+router.use("/admin", adminRoutes);
+router.use("/changelog", changelogRoutes);
+router.use("/2fa", twoFactorRoutes);
+router.use("/posts", postLimiter, postRoutes);
+router.use("/groups", groupRoutes);
+router.use("/gdpr", gdprRoutes);
+router.use("/slack", slackRoutes);
+router.use("/sso", ssoRoutes);
+router.use("/whitelabel", whitelabelRoutes);
+router.use("/registry", registryRoutes);
+router.use("/academy", academyRoutes);
+router.use("/chat", chatRoutes);
+router.use("/messages", messageRoutes);
+router.use("/ai-platform", aiPlatformRoutes);
+router.use("/live-sessions", liveSessionRoutes);
+router.use("/spaces", liveSpaceRoutes);
+router.use("/opportunities", opportunityRoutes);
+router.use("/community", communityIntelligenceRoutes);
+router.use("/external-courses", externalCourseRoutes);
+router.use("/social", socialRoutes);
+router.use("/vendors", authMiddleware, requireLayerAccess("market"), vendorRoutes);
+router.use("/products", authMiddleware, requireLayerAccess("market"), productRoutes);
+router.use("/cart", authMiddleware, requireLayerAccess("market"), cartRoutes);
+router.use("/orders", authMiddleware, requireLayerAccess("market"), orderRoutes);
+router.use("/work", authMiddleware, requireLayerAccess("work"), workRoutes);
+router.use("/quizzes", quizRoutes);
+router.use("/lecture-uploads", lectureUploadRoutes);
+router.use("/cloud", authMiddleware, requireLayerAccess("cloud"), cloudRoutes);
+router.use("/studio", studioRoutes);
+router.use("/omega", omegaRoutes);
+router.use("/supervisors", supervisorRoutes);
+router.use("/community-extras", communityExtrasRoutes);
+router.use("/insights", autonomousRoutes);
+router.use("/agentic", agenticLoopRoutes);
+router.use("/credits", creditRoutes);
+router.use("/escrow", authMiddleware, requireLayerAccess("work"), escrowRoutes);
+router.use("/circuit", authMiddleware, requireLayerAccess("work"), circuitRoutes);
+router.use("/atlas", authMiddleware, requireLayerAccess("market"), atlasRoutes);
+router.use("/connectors", authMiddleware, requireLayerAccess("cloud"), connectorRoutes);
+router.use("/push-tokens", notificationTokenRoutes);
+
+export default router;

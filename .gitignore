@@ -1,0 +1,45 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+/src/generated/prisma
+
+/src/generated/prisma
+ 
+# Utility / debug scripts - not source code 
+gen_files.py 
+up.py 
+write_*.py 
+temp_*.py 
+execute_migration.py 
+script.py 
+seed_runner.py 
+seed_connectors.cjs 
+test_db.cjs 
+test_*.cjs 
+*.cjs 
+ 
+# Scratch / test artifacts 
+fix_test.txt 
+tmpclaude-*

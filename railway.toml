@@ -1,0 +1,34 @@
+# railway.toml
+# Winners Ecosystem - Railway Deployment Configuration
+
+# This file is configured for a multi-service deployment.
+
+# This service appears to be the primary web application, configured to build from a Dockerfile.
+# A name ("web") has been assigned as it's required in a multi-service setup.
+[[services]]
+name = "web"
+builder = "DOCKERFILE"
+buildCommand = "npm install && npm run build"
+startCommand = "npm run start:prod"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+
+[services.env]
+PORT         = "8001"
+AI_PLATFORM_URL = "http://ai-platform.railway.internal:8001"
+OLLAMA_HOST  = "http://localhost:11434"
+WHISPER_MODEL = "medium"
+
+# This is the new FastAPI service for AI tasks.
+[[services]]
+name        = "ai-platform"
+source      = "ai-platform/"
+builder     = "DOCKERFILE"
+startCommand = "sh -c 'uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}'"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+
+[services.env]
+PORT         = "8001"
+OLLAMA_HOST  = "http://localhost:11434"
+WHISPER_MODEL = "medium"

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Winners Ecosystem — AI-Powered Revenue Analytics</title>
+<meta name="description" content="Real-time revenue analytics, Claude-powered insights, and automated reporting for winning teams.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --gold: #F5C842; --bg: #080B10; --surface: #0D1117; --surface2: #141B24;
+  --border: #1E2A38; --text: #E8EDF2; --text-dim: #5A6878;
+  --green: #2DD4A0; --blue: #4A9EFF; --red: #FF5975; --purple: #9B6FFF;
+}
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; overflow-x: hidden; }
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(8,11,16,0.88); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px; height: 64px;
+}
+.nav-logo { display: flex; align-items: center; gap: 10px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); text-decoration: none; }
+.nav-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); flex-shrink: 0; }
+.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-link { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); text-decoration: none; letter-spacing: 0.5px; transition: color 0.15s; }
+.nav-link:hover { color: var(--gold); }
+.nav-cta { background: var(--gold); color: #080B10; border: none; border-radius: 3px; padding: 9px 22px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; transition: opacity 0.15s; }
+.nav-cta:hover { opacity: 0.88; }
+
+/* HERO */
+.hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 120px 48px 80px; position: relative; text-align: center; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(245,200,66,0.07) 0%, transparent 70%); pointer-events: none; }
+.hero-grid { position: absolute; inset: 0; opacity: 0.04; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 48px 48px; pointer-events: none; }
+.hero-content { position: relative; z-index: 1; }
+.hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(245,200,66,0.08); border: 1px solid rgba(245,200,66,0.2); border-radius: 20px; padding: 6px 16px; margin-bottom: 28px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.hero-title { font-size: clamp(48px, 8vw, 96px); font-weight: 900; letter-spacing: -3px; line-height: 0.95; margin-bottom: 24px; }
+.hero-title .gold { color: var(--gold); }
+.hero-sub { font-size: 18px; color: var(--text-dim); line-height: 1.6; max-width: 560px; margin: 0 auto 40px; font-weight: 400; }
+.hero-actions { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 60px; }
+.btn-primary { background: var(--gold); color: #080B10; border: none; border-radius: 4px; padding: 14px 32px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; box-shadow: 0 0 32px rgba(245,200,66,0.2); }
+.btn-primary:hover { opacity: 0.9; box-shadow: 0 0 48px rgba(245,200,66,0.35); transform: translateY(-1px); }
+.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 14px 32px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; }
+.btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+.hero-stats { display: flex; align-items: center; justify-content: center; gap: 48px; flex-wrap: wrap; }
+.stat-val { font-size: 28px; font-weight: 800; color: var(--gold); letter-spacing: -1px; }
+.stat-label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+
+/* SECTIONS */
+section { padding: 100px 48px; }
+.inner { max-width: 1100px; margin: 0 auto; }
+.tag { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+h2 { font-size: clamp(32px, 4vw, 52px); font-weight: 800; letter-spacing: -1.5px; line-height: 1.05; margin-bottom: 16px; }
+.section-desc { font-size: 16px; color: var(--text-dim); line-height: 1.6; max-width: 540px; margin-bottom: 60px; }
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 0 48px; }
+
+/* FEATURES */
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 28px 24px; position: relative; overflow: hidden; transition: border-color 0.2s, transform 0.2s; }
+.feature-card:hover { border-color: rgba(245,200,66,0.25); transform: translateY(-3px); }
+.feature-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.feature-card:nth-child(1)::before { background: var(--gold); }
+.feature-card:nth-child(2)::before { background: var(--blue); }
+.feature-card:nth-child(3)::before { background: var(--green); }
+.feature-card:nth-child(4)::before { background: var(--purple); }
+.feature-card:nth-child(5)::before { background: var(--red); }
+.feature-card:nth-child(6)::before { background: var(--gold); }
+.feature-icon { font-size: 28px; margin-bottom: 14px; }
+.feature-name { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.feature-desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; font-family: 'Space Mono', monospace; }
+
+/* PRICING */
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.plan { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 32px 28px; position: relative; overflow: hidden; transition: border-color 0.2s, transform 0.2s; }
+.plan:hover { transform: translateY(-3px); }
+.plan.featured { border-color: rgba(245,200,66,0.4); background: linear-gradient(180deg, rgba(245,200,66,0.05) 0%, var(--surface) 60%); }
+.plan-popular { position: absolute; top: 16px; right: 16px; background: var(--gold); color: #080B10; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 2px; font-weight: 700; }
+.plan-name { font-size: 13px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 16px; font-family: 'Space Mono', monospace; }
+.plan-price { font-size: 48px; font-weight: 900; letter-spacing: -2px; margin-bottom: 4px; }
+.plan.featured .plan-price { color: var(--gold); }
+.plan-period { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); margin-bottom: 24px; }
+.plan-features { list-style: none; margin-bottom: 28px; display: flex; flex-direction: column; gap: 10px; }
+.plan-feature { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.4; }
+.check { color: var(--green); flex-shrink: 0; font-size: 12px; }
+.xmark { color: var(--border); flex-shrink: 0; font-size: 12px; }
+.plan-btn { width: 100%; padding: 12px; border-radius: 3px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; border: 1px solid var(--border); background: transparent; color: var(--text); }
+.plan-btn:hover { border-color: var(--gold); color: var(--gold); }
+.plan.featured .plan-btn { background: var(--gold); color: #080B10; border-color: var(--gold); }
+.plan.featured .plan-btn:hover { opacity: 0.88; }
+
+/* TESTIMONIALS */
+.testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.testimonial { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 28px 24px; }
+.stars { color: var(--gold); font-size: 12px; margin-bottom: 14px; letter-spacing: 2px; }
+.quote { font-size: 13px; color: var(--text-dim); line-height: 1.7; margin-bottom: 20px; font-style: italic; }
+.quote::before { content: '"'; color: var(--gold); font-size: 28px; font-style: normal; display: block; margin-bottom: 8px; line-height: 1; }
+.author { display: flex; align-items: center; gap: 12px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.author-name { font-size: 13px; font-weight: 700; }
+.author-role { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
+
+/* FAQ */
+.faq-list { display: flex; flex-direction: column; gap: 2px; max-width: 740px; }
+.faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.faq-q { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; cursor: pointer; font-size: 14px; font-weight: 700; transition: color 0.15s; gap: 16px; user-select: none; }
+.faq-q:hover { color: var(--gold); }
+.faq-chevron { font-size: 12px; color: var(--text-dim); transition: transform 0.2s; flex-shrink: 0; }
+.faq-a { padding: 0 24px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text-dim); line-height: 1.7; }
+.faq-item.open .faq-a { max-height: 200px; padding: 0 24px 20px; }
+.faq-item.open .faq-chevron { transform: rotate(180deg); }
+
+/* CTA */
+.cta-section { padding: 100px 48px; text-align: center; position: relative; overflow: hidden; }
+.cta-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 80% at 50% 50%, rgba(245,200,66,0.06) 0%, transparent 70%); pointer-events: none; }
+.cta-content { position: relative; z-index: 1; }
+.cta-title { font-size: clamp(36px, 5vw, 64px); font-weight: 900; letter-spacing: -2px; margin-bottom: 16px; }
+.cta-title span { color: var(--gold); }
+.cta-desc { font-size: 16px; color: var(--text-dim); margin-bottom: 36px; }
+
+/* FOOTER */
+footer { background: var(--surface); border-top: 1px solid var(--border); padding: 60px 48px 32px; }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-top { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
+.footer-brand { font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.footer-desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; max-width: 260px; }
+.footer-col-title { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 16px; }
+.footer-links { display: flex; flex-direction: column; gap: 10px; }
+.footer-link { font-size: 13px; color: var(--text-dim); text-decoration: none; transition: color 0.15s; }
+.footer-link:hover { color: var(--gold); }
+.footer-bottom { border-top: 1px solid var(--border); padding-top: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.footer-copy { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); }
+.footer-legal { display: flex; gap: 20px; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+@media (max-width: 900px) {
+  nav { padding: 0 24px; }
+  .nav-links { display: none; }
+  section { padding: 70px 24px; }
+  .hero { padding: 120px 24px 60px; }
+  .features-grid, .pricing-grid, .testimonials-grid { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr 1fr; }
+  .cta-section { padding: 70px 24px; }
+  .divider { margin: 0 24px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#"><div class="nav-dot"></div>Winners Ecosystem</a>
+  <div class="nav-links">
+    <a class="nav-link" href="#features">Features</a>
+    <a class="nav-link" href="#pricing">Pricing</a>
+    <a class="nav-link" href="#faq">FAQ</a>
+    <a class="nav-link" href="/login">Sign In</a>
+  </div>
+  <a class="nav-cta" href="/login">Get Started →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><div class="badge-dot"></div>AI-Powered Analytics Platform</div>
+    <h1 class="hero-title">The Intelligence<br>Layer for <span class="gold">Winners</span></h1>
+    <p class="hero-sub">Real-time revenue analytics, Claude-powered insights, and automated reporting — built for teams that move fast.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="/login">Start Free Today →</a>
+      <a class="btn-secondary" href="#features">See Features</a>
+    </div>
+    <div class="hero-stats">
+      <div style="text-align:center"><div class="stat-val">$2.4M+</div><div class="stat-label">Revenue tracked</div></div>
+      <div style="text-align:center"><div class="stat-val">98%</div><div class="stat-label">Uptime SLA</div></div>
+      <div style="text-align:center"><div class="stat-val">6 min</div><div class="stat-label">Avg setup time</div></div>
+      <div style="text-align:center"><div class="stat-val">3×</div><div class="stat-label">Faster reporting</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="inner">
+    <div class="tag">Features</div>
+    <h2>Everything you need<br>to grow faster</h2>
+    <p class="section-desc">A complete intelligence platform — from real-time analytics to AI-generated recommendations.</p>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon">🧠</div><div class="feature-name">AI-Powered Insights</div><div class="feature-desc">Claude analyzes your data in real-time and delivers actionable recommendations tailored to your workspace.</div></div>
+      <div class="feature-card"><div class="feature-icon">📊</div><div class="feature-name">Advanced Analytics</div><div class="feature-desc">Revenue trends, activity charts, anomaly detection, and forecasting — all in one unified dashboard.</div></div>
+      <div class="feature-card"><div class="feature-icon">👥</div><div class="feature-name">Multi-Tenant Teams</div><div class="feature-desc">Invite teammates, assign roles, and manage permissions across multiple workspaces seamlessly.</div></div>
+      <div class="feature-card"><div class="feature-icon">📤</div><div class="feature-name">Flexible Export</div><div class="feature-desc">Export your data as PDF, XLSX, CSV, or JSON with one click. Perfect for stakeholder reports.</div></div>
+      <div class="feature-card"><div class="feature-icon">📧</div><div class="feature-name">Automated Reports</div><div class="feature-desc">Schedule weekly and monthly email reports. Get instant anomaly alerts when your data spikes.</div></div>
+      <div class="feature-card"><div class="feature-icon">🔒</div><div class="feature-name">Enterprise Security</div><div class="feature-desc">JWT auth, RBAC with 4 permission levels, tenant isolation, and audit logging built in.</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="inner">
+    <div class="tag">Pricing</div>
+    <h2>Simple, transparent<br>pricing</h2>
+    <p class="section-desc">Start free. Upgrade when you need more. No hidden fees.</p>
+    <div class="pricing-grid">
+      <div class="plan">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0</div>
+        <div class="plan-period">/month</div>
+        <ul class="plan-features">
+          <li class="plan-feature"><span class="check">✓</span><span>3 team members</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>30-day analytics history</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>CSV &amp; JSON export</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>Basic dashboard</span></li>
+          <li class="plan-feature"><span class="xmark">×</span><span style="color:var(--text-dim)">AI recommendations</span></li>
+          <li class="plan-feature"><span class="xmark">×</span><span style="color:var(--text-dim)">Email reports</span></li>
+        </ul>
+        <button class="plan-btn" onclick="location.href='/login'">Get Started Free →</button>
+      </div>
+      <div class="plan featured">
+        <div class="plan-popular">Most Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$99</div>
+        <div class="plan-period">/month</div>
+        <ul class="plan-features">
+          <li class="plan-feature"><span class="check">✓</span><span>10 team members</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>90-day analytics history</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>All export formats</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>AI recommendations</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>Automated email reports</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>Revenue forecasting</span></li>
+        </ul>
+        <button class="plan-btn" onclick="location.href='/login'">Start Pro →</button>
+      </div>
+      <div class="plan">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price">$299</div>
+        <div class="plan-period">/month</div>
+        <ul class="plan-features">
+          <li class="plan-feature"><span class="check">✓</span><span>Unlimited members</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>Unlimited history</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>All export formats</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>AI + custom models</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>Priority support + SLA</span></li>
+          <li class="plan-feature"><span class="check">✓</span><span>Custom integrations</span></li>
+        </ul>
+        <button class="plan-btn" onclick="location.href='/login'">Start Enterprise →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TESTIMONIALS -->
+<section id="testimonials">
+  <div class="inner">
+    <div class="tag">Testimonials</div>
+    <h2>Trusted by teams<br>that win</h2>
+    <div class="testimonials-grid" style="margin-top:60px">
+      <div class="testimonial"><div class="stars">★★★★★</div><div class="quote">Winners Ecosystem transformed how we track revenue. The AI insights saved us 10 hours a week that we used to spend building manual reports.</div><div class="author"><div class="avatar" style="background:rgba(245,200,66,0.12);color:#F5C842">SK</div><div><div class="author-name">Sarah K.</div><div class="author-role">CEO, GrowthLab</div></div></div></div>
+      <div class="testimonial"><div class="stars">★★★★★</div><div class="quote">The anomaly detection caught a billing error we would have missed for months. Paid for itself in the first week of using it.</div><div class="author"><div class="avatar" style="background:rgba(74,158,255,0.12);color:#4A9EFF">MT</div><div><div class="author-name">Marcus T.</div><div class="author-role">CFO, Nexus Ventures</div></div></div></div>
+      <div class="testimonial"><div class="stars">★★★★★</div><div class="quote">Best SaaS analytics platform I've used. The multi-tenant setup was flawless for managing our agency clients.</div><div class="author"><div class="avatar" style="background:rgba(45,212,160,0.12);color:#2DD4A0">PM</div><div><div class="author-name">Priya M.</div><div class="author-role">Director, DataForge</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="inner">
+    <div class="tag">FAQ</div>
+    <h2>Common questions</h2>
+    <div class="faq-list" style="margin-top:60px">
+      <div class="faq-item"><div class="faq-q">How does the AI recommendation engine work?<span class="faq-chevron">▼</span></div><div class="faq-a">We use Claude by Anthropic to analyze your real revenue and activity data. It generates personalized insights covering revenue trends, anomalies, growth opportunities, team performance, and specific action items.</div></div>
+      <div class="faq-item"><div class="faq-q">Can I export my data at any time?<span class="faq-chevron">▼</span></div><div class="faq-a">Yes. Export your analytics as PDF, Excel (XLSX), CSV, or JSON at any time. The export page lets you choose your dataset and date range.</div></div>
+      <div class="faq-item"><div class="faq-q">How does multi-tenant access work?<span class="faq-chevron">▼</span></div><div class="faq-a">Each workspace is fully isolated. Invite team members and assign roles: Owner, Admin, Member, or Viewer. Each role has specific permissions for what they can view or modify.</div></div>
+      <div class="faq-item"><div class="faq-q">Is there a free trial for Pro?<span class="faq-chevron">▼</span></div><div class="faq-a">Start on the Free plan immediately with no credit card required. When you're ready, upgrading to Pro unlocks AI insights, all export formats, and automated email reports.</div></div>
+      <div class="faq-item"><div class="faq-q">What happens to my data if I cancel?<span class="faq-chevron">▼</span></div><div class="faq-a">Your data is retained for 30 days after cancellation, giving you time to export everything. After that, it's permanently deleted from our servers.</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="cta-content">
+    <h2 class="cta-title">Ready to build your<br><span>winning edge?</span></h2>
+    <p class="cta-desc">Join hundreds of teams using Winners Ecosystem to grow faster.</p>
+    <a class="btn-primary" href="/login">Start Free Today →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand"><div class="nav-dot" style="width:5px;height:5px"></div>Winners Ecosystem</div>
+        <div class="footer-desc">The AI-powered intelligence platform for revenue analytics and team performance.</div>
+      </div>
+      <div>
+        <div class="footer-col-title">Product</div>
+        <div class="footer-links"><a class="footer-link" href="#features">Features</a><a class="footer-link" href="#pricing">Pricing</a><a class="footer-link" href="#faq">FAQ</a><a class="footer-link" href="/login">Dashboard</a></div>
+      </div>
+      <div>
+        <div class="footer-col-title">Company</div>
+        <div class="footer-links"><a class="footer-link" href="#">About</a><a class="footer-link" href="#">Blog</a><a class="footer-link" href="#">Careers</a><a class="footer-link" href="#">Contact</a></div>
+      </div>
+      <div>
+        <div class="footer-col-title">Legal</div>
+        <div class="footer-links"><a class="footer-link" href="#">Privacy Policy</a><a class="footer-link" href="#">Terms of Service</a><a class="footer-link" href="#">Cookie Policy</a><a class="footer-link" href="#">Security</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">© <script>document.write(new Date().getFullYear())</script> Winners Ecosystem. All rights reserved.</div>
+      <div class="footer-legal"><a class="footer-link" href="#">Privacy</a><a class="footer-link" href="#">Terms</a></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// FAQ accordion
+document.querySelectorAll('.faq-q').forEach(q => {
+  q.addEventListener('click', () => {
+    const item = q.parentElement;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+});
+</script>
+</body>
+</html>

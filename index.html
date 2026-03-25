@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Winners Ecosystem — AI-Powered Revenue Analytics</title>
+    <meta name="description" content="Real-time revenue analytics, Claude-powered insights, and automated reporting for winning teams." />
+    <meta name="theme-color" content="#C9A84C" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.svg" />
+    <style>
+      /* Prevent flash before React loads — matches new navy bg */
+      body { background: #0D1520; margin: 0; }
+    </style>
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem("winners_theme") || "dark";
+          var r = document.documentElement;
+          r.classList.add(t);
+          if (t === "light") {
+            r.style.setProperty("--bg",       "#EEF2F7");
+            r.style.setProperty("--surface",  "#FFFFFF");
+            r.style.setProperty("--surface2", "#E4EBF4");
+            r.style.setProperty("--border",   "#C2D0E0");
+            r.style.setProperty("--text",     "#1A2B3C");
+            r.style.setProperty("--text-dim", "#5A7A96");
+            r.style.setProperty("--gold",     "#B8912A");
+            r.style.setProperty("--blue",     "#2B5F8E");
+            r.style.setProperty("--ice",      "#89C4E1");
+          } else {
+            r.style.setProperty("--bg",       "#0D1520");
+            r.style.setProperty("--surface",  "#111D2E");
+            r.style.setProperty("--surface2", "#172335");
+            r.style.setProperty("--border",   "#1E3248");
+            r.style.setProperty("--text",     "#E8EEF5");
+            r.style.setProperty("--text-dim", "#5A7A96");
+            r.style.setProperty("--gold",     "#C9A84C");
+            r.style.setProperty("--blue",     "#2B5F8E");
+            r.style.setProperty("--ice",      "#89C4E1");
+          }
+        } catch(e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

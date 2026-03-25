@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Winners App",
+    "slug": "winners-app",
+    "scheme": "winners",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.winners.ecosystem.mobile"
+    },
+    "android": {
+      "package": "com.winners.ecosystem.mobile",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "NOTIFICATIONS"
+      ]
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:3001",
+      "eas": {
+        "projectId": "replace-with-eas-project-id"
+      }
+    }
+  }
+}
