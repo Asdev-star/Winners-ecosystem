@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/authStore';
 import AssistantPanel from '../../components/ui/AssistantPanel';
 import OmegaProfileAssignmentCard from '../../components/ui/OmegaProfileAssignmentCard';
+import AtlasContextBar from './atlas/AtlasContextBar';
 
 const styles = {
   container: {
@@ -259,12 +260,16 @@ export default function VendorDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVendorData();
   }, []);
 
   const fetchVendorData = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
       // Fetch vendor info
       const vendorRes = await fetch('/api/v1/vendors/me', {
@@ -281,39 +286,31 @@ export default function VendorDashboard() {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      // Use demo data if API not available
-      setProducts([
-        { id: '1', name: 'Premium African Print Dashiki', image: '/placeholder.jpg', price: 89.99, stock: 28, sales: 156, status: 'active' },
-        { id: '2', name: 'Handwoven Kente Scarf', image: '/placeholder.jpg', price: 45.00, stock: 12, sales: 89, status: 'active' },
-        { id: '3', name: 'Ankara Print Tote Bag', image: '/placeholder.jpg', price: 32.50, stock: 45, sales: 234, status: 'active' },
-        { id: '4', name: 'Traditional Beaded Bracelet Set', image: '/placeholder.jpg', price: 24.99, stock: 0, sales: 78, status: 'active' },
-        { id: '5', name: 'African Pattern Laptop Sleeve', image: '/placeholder.jpg', price: 54.00, stock: 3, sales: 42, status: 'active' },
-      ]);
+      // Process responses - use real data from API
+      if (productsRes.ok) {
+        const productsData = await productsRes.json();
+        setProducts(productsData.products || productsData || []);
+      }
       
-      setOrders([
-        { id: 'ORD-7829', customer: 'Sarah Johnson', product: 'Premium African Print Dashiki', amount: 89.99, status: 'pending', date: '2026-03-06' },
-        { id: 'ORD-7828', customer: 'Michael Chen', product: 'Handwoven Kente Scarf', amount: 45.00, status: 'processing', date: '2026-03-05' },
-        { id: 'ORD-7827', customer: 'Emily Davis', product: 'Ankara Print Tote Bag', amount: 32.50, status: 'shipped', date: '2026-03-04' },
-        { id: 'ORD-7826', customer: 'James Wilson', product: 'Premium African Print Dashiki', amount: 89.99, status: 'delivered', date: '2026-03-03' },
-        { id: 'ORD-7825', customer: 'Lisa Anderson', product: 'Traditional Beaded Bracelet', amount: 24.99, status: 'cancelled', date: '2026-03-02' },
-      ]);
-    } catch (err) {
-      // Demo data fallback
-      setProducts([
-        { id: '1', name: 'Premium African Print Dashiki', image: '/placeholder.jpg', price: 89.99, stock: 28, sales: 156, status: 'active' },
-        { id: '2', name: 'Handwoven Kente Scarf', image: '/placeholder.jpg', price: 45.00, stock: 12, sales: 89, status: 'active' },
-        { id: '3', name: 'Ankara Print Tote Bag', image: '/placeholder.jpg', price: 32.50, stock: 45, sales: 234, status: 'active' },
-        { id: '4', name: 'Traditional Beaded Bracelet Set', image: '/placeholder.jpg', price: 24.99, stock: 0, sales: 78, status: 'active' },
-        { id: '5', name: 'African Pattern Laptop Sleeve', image: '/placeholder.jpg', price: 54.00, stock: 3, sales: 42, status: 'active' },
-      ]);
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        setOrders(ordersData.orders || ordersData || []);
+      }
       
-      setOrders([
-        { id: 'ORD-7829', customer: 'Sarah Johnson', product: 'Premium African Print Dashiki', amount: 89.99, status: 'pending', date: '2026-03-06' },
-        { id: 'ORD-7828', customer: 'Michael Chen', product: 'Handwoven Kente Scarf', amount: 45.00, status: 'processing', date: '2026-03-05' },
-        { id: 'ORD-7827', customer: 'Emily Davis', product: 'Ankara Print Tote Bag', amount: 32.50, status: 'shipped', date: '2026-03-04' },
-        { id: 'ORD-7826', customer: 'James Wilson', product: 'Premium African Print Dashiki', amount: 89.99, status: 'delivered', date: '2026-03-03' },
-        { id: 'ORD-7825', customer: 'Lisa Anderson', product: 'Traditional Beaded Bracelet', amount: 24.99, status: 'cancelled', date: '2026-03-02' },
-      ]);
+      if (!vendorRes.ok) {
+        const vendorData = await vendorRes.json();
+        if (vendorData.code === 'NOT_SETUP') {
+          setError('VENDOR_NOT_SETUP');
+        } else {
+          throw new Error(vendorData.error || 'Failed to load vendor data');
+        }
+      }
+    } catch (err: unknown) {
+      // Error state - no fallback data, show error UI
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      setProducts([]);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -363,6 +360,9 @@ export default function VendorDashboard() {
         <span className="ctx-sep">›</span>
         <span className="ctx-badge active">🛒 Market</span>
       </div>
+
+      {/* ATLAS Market Insight Bar */}
+      <AtlasContextBar view="vendor-dashboard" />
 
       {/* Header */}
       <div style={styles.header}>

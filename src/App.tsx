@@ -22,8 +22,10 @@ import SsoExchangePage from "./features/auth/SsoExchangePage";
 import OnboardingPage from "./features/onboarding/OnboardingPage";
 
 import DashboardPage from "./features/dashboard/DashboardPage";
+import UserHomePage from "./features/home/UserHomePage";
 import ProfilePage from "./features/profile/ProfilePage";
 import SettingsPage from "./features/settings/SettingsPage";
+import CoreSettingsPage from "./features/settings/CoreSettingsPage";
 import AnalyticsPage from "./features/analytics/AnalyticsPage";
 import TeamPage from "./features/team/TeamPage";
 import ExportPage from "./features/export/ExportPage";
@@ -80,6 +82,7 @@ import WinnersDropshipping from "./features/market/dropshipping/WinnersDropshipp
 import CartPage from "./features/market/CartPage";
 import OrdersPage from "./features/market/OrdersPage";
 import CheckoutPage from "./features/market/CheckoutPage";
+import FinancePage from "./features/market/finance/FinancePage";
 import BusinessLauncherPage from "./features/market/BusinessLauncherPage";
 import CVToolsPage from "./features/market/CVToolsPage";
 import DigitalMarketingPage from "./features/market/DigitalMarketingPage";
@@ -110,7 +113,6 @@ import BroadcastPage from "./features/admin/BroadcastPage";
 import SecurityPage from "./features/admin/SecurityPage";
 import {
   AdminPlatformLayerPage,
-  AdminSettingsPage,
 } from "./features/admin/AdminRoutePages";
 
 function App() {
@@ -162,7 +164,7 @@ function App() {
             <Route path="health" element={<SystemHealthPage />} />
             <Route path="broadcast" element={<BroadcastPage />} />
             <Route path="security" element={<SecurityPage />} />
-            <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="settings" element={<Navigate to="/settings/core" replace />} />
             <Route path="platform-launch" element={<Navigate to="/admin/platform" replace />} />
             <Route path="forge-intelligence" element={<Navigate to="/admin/forge" replace />} />
             <Route path="omega-broadcast" element={<Navigate to="/admin/broadcast" replace />} />
@@ -179,6 +181,15 @@ function App() {
           />
 
           <Route
+            path="dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             element={
               <ProtectedRoute>
                 <MainLayout />
@@ -186,7 +197,6 @@ function App() {
             }
           >
             <Route path="2fa" element={<TwoFactorPage />} />
-            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="search" element={<SearchPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="team" element={<TeamPage />} />
@@ -194,7 +204,16 @@ function App() {
             <Route path="billing" element={<BillingPage />} />
             <Route path="email" element={<EmailReportsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="home" element={<UserHomePage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route
+              path="settings/core"
+              element={
+                <SuperAdminRoute>
+                  <CoreSettingsPage />
+                </SuperAdminRoute>
+              }
+            />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="slack" element={<SlackSettingsPage />} />
             <Route path="stripe" element={<StripeDashboard />} />
@@ -301,6 +320,7 @@ function App() {
             <Route path="market/cart" element={<LayerRouteGate layerId="market"><CartPage /></LayerRouteGate>} />
             <Route path="market/orders" element={<LayerRouteGate layerId="market"><OrdersPage /></LayerRouteGate>} />
             <Route path="market/checkout" element={<LayerRouteGate layerId="market"><CheckoutPage /></LayerRouteGate>} />
+            <Route path="market/finance" element={<LayerRouteGate layerId="market"><FinancePage /></LayerRouteGate>} />
             <Route path="market/business-launcher" element={<LayerRouteGate layerId="market"><BusinessLauncherPage /></LayerRouteGate>} />
             <Route path="market/cv-tools" element={<LayerRouteGate layerId="market"><CVToolsPage /></LayerRouteGate>} />
             <Route path="market/digital-marketing" element={<LayerRouteGate layerId="market"><DigitalMarketingPage /></LayerRouteGate>} />

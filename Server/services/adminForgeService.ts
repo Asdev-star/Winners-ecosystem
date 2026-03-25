@@ -5,6 +5,7 @@ import db from "../db.js";
 import { getAdminOverviewSnapshot } from "./adminOverviewService.js";
 import { getAdminRevenueSnapshot } from "./adminRevenueService.js";
 import { AppRegistry } from "./appRegistry.js";
+import { getMobileHealthReport } from "./heraldMobileMonitor.js";
 import { getPlatformChecklist, getPlatformLaunchControlSnapshot } from "./platformLaunchControlService.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -75,6 +76,7 @@ type ForgeChatContext = {
     ai: "ok" | "attention";
     email: "ok" | "attention";
   };
+  mobileHealth: Awaited<ReturnType<typeof getMobileHealthReport>>;
 };
 
 function exists(relativePath: string) {
@@ -99,7 +101,7 @@ function round(value: number, digits = 0) {
 }
 
 export async function getAdminForgeSnapshot(): Promise<ForgeSnapshot> {
-  const [overview, revenue, launchControl, trustAverage, activeLoops, dbHealthy] = await Promise.all([
+  const [overview, revenue, launchControl, trustAverage, activeLoops, dbHealthy, mobileHealth] = await Promise.all([
     getAdminOverviewSnapshot(),
     getAdminRevenueSnapshot(),
     getPlatformLaunchControlSnapshot(),
@@ -108,6 +110,7 @@ export async function getAdminForgeSnapshot(): Promise<ForgeSnapshot> {
     db.$queryRaw`SELECT 1`
       .then(() => true)
       .catch(() => false),
+    getMobileHealthReport(),
   ]);
 
   const marketChecklist = await getPlatformChecklist("market");
@@ -153,6 +156,15 @@ export async function getAdminForgeSnapshot(): Promise<ForgeSnapshot> {
         ? "Shared panel exists; FORGE admin UX still needs a command-grade shell."
         : "Shared assistant shell is not in place yet for cross-layer deployment.",
     },
+    {
+      id: "mobile-intelligence",
+      label: "Tighten mobile signal reporting",
+      eta: "6h est",
+      detail:
+        mobileHealth.expiredTokenCount > 0
+          ? `${mobileHealth.expiredTokenCount} expired mobile token${mobileHealth.expiredTokenCount === 1 ? "" : "s"} need cleanup, and offline queue telemetry still needs a client feed into HERALD.`
+          : `PWA install rate is ${mobileHealth.successMetrics.pwaInstallRate.current ?? 0}% against a 15% Month 1 target, and push opt-in is ${mobileHealth.successMetrics.pushOptInRate.current ?? 0}% against a 40% target.`,
+    },
   ];
 
   const alerts: ForgeAlert[] = [
@@ -193,6 +205,23 @@ export async function getAdminForgeSnapshot(): Promise<ForgeSnapshot> {
     },
   ];
 
+  alerts.push({
+    id: "mobile-health",
+    tone:
+      mobileHealth.expiredTokenCount > 0 || mobileHealth.successMetrics.fcmDeliveryRate.status === "off_track"
+        ? "attention"
+        : "positive",
+    layer: "Mobile",
+    title:
+      mobileHealth.expiredTokenCount > 0
+        ? `${mobileHealth.expiredTokenCount} stale push token${mobileHealth.expiredTokenCount === 1 ? "" : "s"} detected`
+        : `${mobileHealth.pushPermissions} active push permission${mobileHealth.pushPermissions === 1 ? "" : "s"}`,
+    detail:
+      mobileHealth.expiredTokenCount > 0
+        ? `FCM delivery health is ${mobileHealth.fcmDeliveryRate}% and HERALD is waiting on client queue/session telemetry to complete the mobile picture.`
+        : `PWA install rate is ${mobileHealth.successMetrics.pwaInstallRate.current ?? 0}% versus a 15% Month 1 target, push opt-in is ${mobileHealth.successMetrics.pushOptInRate.current ?? 0}% versus 40%, and the next monetization lane is ${mobileHealth.monetization.find((lane) => lane.status === "building")?.label ?? "native monetization planning"}.`,
+  });
+
   const currentFocus =
     alerts.find((alert) => alert.tone === "critical")?.layer ??
     alerts.find((alert) => alert.tone === "attention")?.layer ??
@@ -224,6 +253,8 @@ export async function getAdminForgeSnapshot(): Promise<ForgeSnapshot> {
       "Who are my top 10 most valuable users?",
       "What would double MRR in 90 days?",
       "Run a health check on all platform services",
+      "Show me mobile health and push delivery",
+      "Show me mobile monetization plan",
       "Which users have completed the most agentic loops?",
       "Write a broadcast message for all PRO users",
     ],
@@ -231,7 +262,7 @@ export async function getAdminForgeSnapshot(): Promise<ForgeSnapshot> {
 }
 
 export async function getAdminForgeChatContext(): Promise<ForgeChatContext> {
-  const [snapshot, launchControl, userCount, recentActivity, tenants, loops] =
+  const [snapshot, launchControl, userCount, recentActivity, tenants, loops, mobileHealth] =
     await Promise.all([
       getAdminForgeSnapshot(),
       getPlatformLaunchControlSnapshot(),
@@ -259,6 +290,7 @@ export async function getAdminForgeChatContext(): Promise<ForgeChatContext> {
           status: true,
         },
       }),
+      getMobileHealthReport(),
     ]);
 
   const dbHealthy = await db.$queryRaw`SELECT 1`
@@ -353,6 +385,7 @@ export async function getAdminForgeChatContext(): Promise<ForgeChatContext> {
       ai: process.env.ANTHROPIC_API_KEY ? "ok" : "attention",
       email: process.env.RESEND_API_KEY ? "ok" : "attention",
     },
+    mobileHealth,
   };
 }
 
@@ -367,6 +400,7 @@ You have complete operational visibility:
 - Monthly revenue: ${fmtMoney(context.snapshot.vitals.mrr)}
 - Active loops right now: ${context.snapshot.vitals.activeLoops}
 - System health: ${JSON.stringify(context.health)}
+- Mobile health: ${JSON.stringify(context.mobileHealth)}
 - FORGE operator snapshot: ${JSON.stringify(context.snapshot)}
 - Launch queue: ${JSON.stringify(context.launchQueue)}
 - Highest-risk tenants: ${JSON.stringify(context.riskyTenants)}
@@ -466,6 +500,26 @@ export async function buildAdminForgeFallbackResponse(context: ForgeChatContext,
 
   if (normalized.includes("health check")) {
     return `System health is ${context.health.label}. Database is ${context.health.database}. AI is ${context.health.ai}. Email is ${context.health.email}. The single most important move is to keep infrastructure stable while you clear Market launch blockers.`;
+  }
+
+  if (
+    normalized.includes("mobile health") ||
+    normalized.includes("push delivery") ||
+    normalized.includes("pwa install")
+  ) {
+    return `Mobile health report: PWA install rate is ${context.mobileHealth.successMetrics.pwaInstallRate.current ?? 0}% against a 15% Month 1 target and ${context.mobileHealth.successMetrics.pwaInstallRate.month3Target}% Month 3 target. Push opt-in is ${context.mobileHealth.successMetrics.pushOptInRate.current ?? 0}% against a 40% Month 1 target. Push open rate proxy is ${context.mobileHealth.successMetrics.pushOpenRate.current ?? 0}%, and FCM delivery health is ${context.mobileHealth.fcmDeliveryRate}%. Platform mix is web ${context.mobileHealth.platformBreakdown.web}, iOS ${context.mobileHealth.platformBreakdown.ios}, Android ${context.mobileHealth.platformBreakdown.android}. The single most important move is to wire offline queue depth and session duration telemetry into HERALD so FORGE can see the full mobile picture.`;
+  }
+
+  if (
+    normalized.includes("mobile monetization") ||
+    normalized.includes("m-pesa") ||
+    normalized.includes("flutterwave") ||
+    normalized.includes("app store")
+  ) {
+    const lanes = context.mobileHealth.monetization
+      .map((lane) => `${lane.label} (${lane.status}) via ${lane.platform} — ${lane.notes}`)
+      .join(" ");
+    return `Mobile monetization plan: ${lanes} The single most important move is to finish the native checkout lane, because Stripe-backed in-app purchases unlock courses and AI credits before the later M-Pesa and vendor-sponsored push streams come online.`;
   }
 
   if (normalized.includes("broadcast message") || normalized.includes("pro users")) {

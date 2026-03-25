@@ -15,6 +15,8 @@ export interface CartItem {
     price: number;
     stockQuantity: number;
     isDigital: boolean;
+    vendorId?: string;   // Required for multi-vendor checkout
+    vendorName?: string;
   };
   variant?: {
     id: string;

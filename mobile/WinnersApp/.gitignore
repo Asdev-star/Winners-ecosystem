@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android
+android/
+*.keystore
+!debug.keystore
+
+# iOS
+ios/
+*.xcworkspace
+*.xcodeproj

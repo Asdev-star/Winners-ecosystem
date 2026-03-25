@@ -181,7 +181,7 @@ AppRegistry.register({
   id: "market",
   name: "Winners Market",
   phase: 4,
-  status: "in_progress",
+  status: "live",
   version: "1.0.0",
   description: "Marketplace — digital products, dropshipping, vendor dashboards",
   apiPrefix: "/api/v1/market",

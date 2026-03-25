@@ -1,0 +1,4 @@
+This command is deprecated. Use eas env:create instead.
+
+Unexpected arguments: EXPO_PUBLIC_API_URL, https://winners-empire.up.railway.app
+See more help with --help

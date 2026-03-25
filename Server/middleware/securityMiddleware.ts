@@ -7,4 +7,5 @@ export {
   exportRateLimiter,
   xssSanitizer,
   requestSizeGuard,
+  permissionsPolicy,
 } from "./securityMiddleware_safe.js";

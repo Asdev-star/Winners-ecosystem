@@ -1,0 +1,47 @@
+{
+  "cli": {
+    "version": ">= 12.6.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "image": "latest"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "image": "latest",
+        "env": {
+          "GRADLE_OPTS": "-Dorg.gradle.jvmargs=-Xmx4g"
+        }
+      }
+    },
+    "preview-go": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "image": "latest",
+        "env": {
+          "EXPO_NO_FLIPPER": "1"
+        }
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "image": "latest"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

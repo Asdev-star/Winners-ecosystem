@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
+import { AUTH_TOKEN_KEY, clearAuthToken, getAuthToken, setAuthToken } from "../services/api";
 
 export type MobileUser = {
   id: string;
   name: string;
   email: string;
   role: "member" | "admin" | "owner";
+  tenantId?: string;
+  tenantName?: string;
 };
 
 type AuthState = {
@@ -14,7 +17,8 @@ type AuthState = {
   token: string | null;
   isRestoring: boolean;
   hasCompletedOnboarding: boolean;
-  login: (mode: "biometric" | "password") => Promise<void>;
+  login: (token: string, user: MobileUser) => Promise<void>;
+  setToken: (token: string | null) => Promise<void>;
   logout: () => void;
   completeOnboarding: () => void;
   restoreSession: () => Promise<void>;
@@ -27,27 +31,31 @@ const DEMO_USER: MobileUser = {
   role: "owner",
 };
 
-const SESSION_KEY = "winners-mobile-session";
+const SESSION_KEY = AUTH_TOKEN_KEY;
 const ONBOARDING_KEY = "winners-mobile-onboarding";
 
 async function persistSession(user: MobileUser, token: string) {
-  await SecureStore.setItemAsync(
-    SESSION_KEY,
-    JSON.stringify({
-      user,
-      token,
-    }),
-  );
+  await setAuthToken(token);
+  await AsyncStorage.setItem("winners-mobile-user", JSON.stringify(user));
+}
+
+function normalizeUser(user: MobileUser): MobileUser {
+  return {
+    ...user,
+    role: user.role.toLowerCase() as MobileUser["role"],
+  };
 }
 
 async function readSession() {
-  const raw = await SecureStore.getItemAsync(SESSION_KEY);
-  if (!raw) {
+  const token = await getAuthToken();
+  if (!token) {
     return null;
   }
 
   try {
-    return JSON.parse(raw) as { user: MobileUser; token: string };
+    const rawUser = await AsyncStorage.getItem("winners-mobile-user");
+    const user = rawUser ? (JSON.parse(rawUser) as MobileUser) : DEMO_USER;
+    return { user, token };
   } catch {
     await SecureStore.deleteItemAsync(SESSION_KEY);
     return null;
@@ -60,18 +68,33 @@ export const useAuthStore = create<AuthState>((set) => ({
   isRestoring: false,
   hasCompletedOnboarding: false,
 
-  login: async (mode) => {
-    const token = `demo-${mode}-token`;
-    await persistSession(DEMO_USER, token);
+  login: async (token, user) => {
+    const normalizedUser = normalizeUser(user);
+    await persistSession(normalizedUser, token);
     set({
-      user: DEMO_USER,
+      user: normalizedUser,
       token,
     });
   },
 
+  setToken: async (token) => {
+    if (!token) {
+      await clearAuthToken();
+      set({ token: null, user: null });
+      return;
+    }
+
+    await persistSession(DEMO_USER, token);
+    set({
+      token,
+      user: DEMO_USER,
+    });
+  },
+
   logout: () => {
-    void SecureStore.deleteItemAsync(SESSION_KEY);
+    void clearAuthToken();
     void AsyncStorage.removeItem(ONBOARDING_KEY);
+    void AsyncStorage.removeItem("winners-mobile-user");
     set({
       user: null,
       token: null,

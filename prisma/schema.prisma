@@ -2314,6 +2314,14 @@ model Product {
   metaDescription String?
   viewCount       Int              @default(0)
   soldCount       Int              @default(0)
+  // Dropshipping fields
+  fulfillmentType         String   @default("own") // own | dropship | digital
+  sourceSupplierProductId String?
+  supplierId              String?
+  supplierProduct         SupplierProduct? @relation(fields: [sourceSupplierProductId], references: [id])
+  fulfillmentStatus       String?  // pending | sent_to_supplier | shipped | delivered
+  trackingNumber          String?
+  fulfilledAt             DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   cartItems       CartItem[]
@@ -2374,6 +2382,49 @@ model ProductImage {
   @@index([tenantId])
   @@index([productId])
   @@map("product_images")
+}
+
+// Dropshipping Suppliers
+model Supplier {
+  id            String            @id @default(cuid())
+  tenantId      String
+  name          String
+  origin        String            // "Kenya · Local" | "China · International"
+  website       String?
+  contactEmail  String?
+  rating        Float             @default(0)
+  isVerified    Boolean           @default(false)
+  products      SupplierProduct[]
+  createdAt     DateTime          @default(now())
+
+  @@index([tenantId])
+}
+
+model SupplierProduct {
+  id              String    @id @default(cuid())
+  tenantId        String
+  supplierId      String
+  supplier        Supplier  @relation(fields: [supplierId], references: [id])
+  title           String
+  description     String    @db.Text
+  costPrice       Float
+  suggestedRetail Float
+  category        String
+  images          String[]
+  shippingTime    String
+  minOrder        Int       @default(1)
+  stockLevel      String    @default("high")
+  atlasScore      Int       @default(50)
+  atlasReason     String    @default("")
+  tags            String[]
+  isActive        Boolean   @default(true)
+  products        Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, category])
+  @@index([tenantId, atlasScore])
 }
 
 model Cart {
@@ -2482,6 +2533,11 @@ model OrderItem {
   quantity  Int
   price     Float
   total     Float
+  // Dropshipping fulfillment
+  fulfillmentStatus  String?   // pending | sent_to_supplier | shipped | delivered
+  trackingNumber     String?
+  fulfilledAt        DateTime?
+  supplierId         String?
   createdAt DateTime        @default(now())
   order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product         @relation(fields: [productId], references: [id])
@@ -3251,6 +3307,78 @@ model VendorPayout {
   @@index([tenantId])
   @@index([vendorId])
   @@map("vendor_payouts")
+}
+
+// Winners Finance - Internal Settlement Rail
+model UserWallet {
+  id            String        @id @default(cuid())
+  userId        String
+  tenantId      String
+  currency      String        @default("USD")
+  balance       Float         @default(0)
+  available     Float         @default(0)  // Available for withdrawal
+  pending       Float         @default(0)  // Pending transactions
+  totalEarned   Float         @default(0)  // Lifetime earnings
+  totalSpent    Float         @default(0)  // Lifetime spending
+  stripeAccountId String?
+  mPesaNumber   String?       // Kenya mobile money
+  bankAccount   String?       // Bank account for withdrawals
+  bankName      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [id])
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  transactions  WalletTransaction[]
+
+  @@unique([userId, tenantId])
+  @@index([tenantId, userId])
+  @@map("user_wallets")
+}
+
+model WalletTransaction {
+  id            String        @id @default(cuid())
+  walletId      String
+  wallet        UserWallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type          String        // deposit, withdrawal, transfer, payment, refund, earned, fee
+  amount        Float
+  fee           Float         @default(0)
+  netAmount     Float         // amount - fee
+  currency      String        @default("USD")
+  status        String        @default("pending") // pending, completed, failed, reversed
+  description   String?
+  reference     String?       // External reference (Stripe payment intent, order ID, etc.)
+  relatedUserId String?       // For transfers: other user involved
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  completedAt   DateTime?
+
+  @@index([walletId, createdAt])
+  @@index([walletId, type])
+  @@index([relatedUserId])
+  @@map("wallet_transactions")
+}
+
+model WithdrawalRequest {
+  id            String        @id @default(cuid())
+  userId        String
+  tenantId      String
+  walletId      String
+  amount        Float
+  fee           Float         @default(0)
+  netAmount     Float         // amount - fee
+  method        String        // stripe, mpesa, bank
+  status        String        @default("pending") // pending, processing, completed, failed, cancelled
+  payoutId      String?        // External payout ID
+  failureReason String?
+  createdAt     DateTime      @default(now())
+  processedAt   DateTime?
+  user          User          @relation(fields: [userId], references: [id])
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  wallet        UserWallet    @relation(fields: [walletId], references: [id])
+
+  @@index([userId, status])
+  @@index([tenantId, status])
+  @@map("withdrawal_requests")
 }
 
 model PlatformLayerStatus {

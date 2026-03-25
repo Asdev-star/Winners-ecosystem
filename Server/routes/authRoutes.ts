@@ -1,9 +1,12 @@
 // Server/routes/authRoutes.ts
 
 import { Router, type Request, type Response } from "express";
+import type { Prisma } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
+import passport from "passport";
+import passportFacebook from "passport-facebook";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import type { JwtPayload } from "../middleware/authMiddleware.js";
@@ -12,6 +15,7 @@ import { emitAdminEvent } from "../services/adminEventService.js";
 import { buildReturningOmegaBriefing, extractOnboardingState } from "../services/returningOmegaBriefingService.js";
 
 const router = Router();
+const FacebookStrategy = passportFacebook.Strategy;
 
 const JWT_SECRET           = process.env.JWT_SECRET           ?? "winners_dev_secret_change_in_prod";
 const JWT_EXPIRES_IN       = process.env.JWT_EXPIRES_IN       ?? "8h";
@@ -82,6 +86,77 @@ const authUserSelect = {
     },
   },
 } as const;
+
+type AuthUser = Prisma.UserGetPayload<{ select: typeof authUserSelect }>;
+
+function buildLoginRedirectUrl(user: AuthUser, token: string, refreshToken: string, omegaWelcome?: unknown) {
+  const userJson = encodeURIComponent(JSON.stringify({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role.toLowerCase(),
+    tenantId: user.tenantId,
+    tenantName: user.tenant.name,
+    ...extractOnboardingState(user),
+  }));
+  const omegaWelcomeJson = omegaWelcome ? encodeURIComponent(JSON.stringify(omegaWelcome)) : "";
+  return `${APP_URL}/login?token=${token}&refreshToken=${refreshToken}&user=${userJson}${omegaWelcomeJson ? `&omegaWelcome=${omegaWelcomeJson}` : ""}`;
+}
+
+async function findOrCreateFacebookUser(profile: { id?: string; email?: string; name?: string }) {
+  const email = profile.email?.toLowerCase().trim();
+  if (!email) throw new Error("No email from Facebook");
+
+  let user = await db.user.findFirst({
+    where: { email, deletedAt: null },
+    select: authUserSelect,
+  });
+
+  const isNewUser = !user;
+  if (!user) {
+    const displayName = profile.name?.trim() || email.split("@")[0];
+    const tenant = await db.tenant.create({ data: { name: `${displayName}'s Workspace` } });
+    user = await db.user.create({
+      data: {
+        tenantId: tenant.id,
+        email,
+        name: displayName,
+        password: await bcrypt.hash(profile.id ?? email, 10),
+        role: "OWNER",
+      },
+      include: { tenant: true },
+    });
+    emitSignupAdminEvent(user);
+  }
+
+  return { user, isNewUser };
+}
+
+if (FACEBOOK_APP_ID && FACEBOOK_APP_SECRET) {
+  passport.use(
+    new FacebookStrategy(
+      {
+        clientID: FACEBOOK_APP_ID,
+        clientSecret: FACEBOOK_APP_SECRET,
+        callbackURL: `${SERVER_URL}/auth/facebook/callback`,
+        profileFields: ["id", "emails", "name", "picture.type(large)"],
+      },
+      async (_accessToken, _refreshToken, profile, done) => {
+        try {
+          const fallbackName = [profile.name?.givenName, profile.name?.familyName].filter(Boolean).join(" ").trim();
+          const { user } = await findOrCreateFacebookUser({
+            id: profile.id,
+            email: profile.emails?.[0]?.value,
+            name: profile.displayName || fallbackName,
+          });
+          return done(null, user);
+        } catch (error) {
+          return done(error as Error);
+        }
+      },
+    ),
+  );
+}
 
 // ─── POST /auth/register ──────────────────────────────────────────────────────
 
@@ -409,14 +484,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     const jwtPayload   = buildPayload(user);
     const token        = signToken(jwtPayload, JWT_EXPIRES_IN);
     const refreshToken = signToken(jwtPayload, JWT_REFRESH_EXPIRES);
-    const userJson     = encodeURIComponent(JSON.stringify({
-      id: user.id, email: user.email, name: user.name,
-      role: user.role.toLowerCase(), tenantId: user.tenantId, tenantName: user.tenant.name,
-      ...onboardingState,
-    }));
-    const omegaWelcomeJson = omegaWelcome ? encodeURIComponent(JSON.stringify(omegaWelcome)) : "";
-
-    return res.redirect(`${APP_URL}/login?token=${token}&refreshToken=${refreshToken}&user=${userJson}${omegaWelcomeJson ? `&omegaWelcome=${omegaWelcomeJson}` : ""}`);
+    return res.redirect(buildLoginRedirectUrl(user, token, refreshToken, omegaWelcome));
   } catch (err) {
     console.error("Google OAuth error:", err);
     return res.redirect(`${APP_URL}/login?error=oauth_failed`);
@@ -424,6 +492,53 @@ router.get("/google/callback", async (req: Request, res: Response) => {
 });
 
 // ─── Facebook OAuth ───────────────────────────────────────────────────────────
+
+router.get("/facebook", (req: Request, res: Response, next) => {
+  if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET) {
+    return res.status(503).json({ message: "Facebook OAuth not configured" });
+  }
+
+  return passport.authenticate("facebook", { scope: ["email"], session: false })(req, res, next);
+});
+
+router.get(
+  "/facebook/callback",
+  (req: Request, res: Response, next) => {
+    if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET) {
+      return res.redirect(`${APP_URL}/login?error=facebook_not_configured`);
+    }
+
+    return passport.authenticate("facebook", {
+      session: false,
+      failureRedirect: `${APP_URL}/login?error=oauth_failed`,
+    })(req, res, next);
+  },
+  async (req: Request, res: Response) => {
+    try {
+      const user = req.user as AuthUser | undefined;
+      if (!user) return res.redirect(`${APP_URL}/login?error=oauth_failed`);
+
+      const omegaWelcome = await buildReturningOmegaBriefing(user);
+      await logActivity({
+        tenantId: user.tenantId,
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+        action: "Login via Facebook",
+        category: "auth",
+        ip: req.ip,
+      });
+
+      const jwtPayload = buildPayload(user);
+      const token = signToken(jwtPayload, JWT_EXPIRES_IN);
+      const refreshToken = signToken(jwtPayload, JWT_REFRESH_EXPIRES);
+      return res.redirect(buildLoginRedirectUrl(user, token, refreshToken, omegaWelcome));
+    } catch (err) {
+      console.error("Facebook OAuth callback error:", err);
+      return res.redirect(`${APP_URL}/login?error=oauth_failed`);
+    }
+  },
+);
 
 router.post("/facebook/exchange", async (req: Request, res: Response) => {
   const { code, redirectUri } = req.body as { code?: string; redirectUri?: string };
@@ -455,20 +570,11 @@ router.post("/facebook/exchange", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Facebook account has no email address. Please ensure your Facebook account has a verified email." });
     }
 
-    let user = await db.user.findFirst({
-      where:   { email: profile.email.toLowerCase(), deletedAt: null },
-      select: authUserSelect,
+    const { user, isNewUser } = await findOrCreateFacebookUser({
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
     });
-
-    const isNewUser = !user;
-    if (!user) {
-      const tenant = await db.tenant.create({ data: { name: `${profile.name ?? profile.email}'s Workspace` } });
-      user = await db.user.create({
-        data:    { tenantId: tenant.id, email: profile.email.toLowerCase(), name: profile.name ?? profile.email.split("@")[0], password: await bcrypt.hash(profile.id ?? "", 10), role: "OWNER" },
-        include: { tenant: true },
-      });
-      emitSignupAdminEvent(user);
-    }
 
     const onboardingState = extractOnboardingState(user);
     const omegaWelcome = isNewUser ? null : await buildReturningOmegaBriefing(user);

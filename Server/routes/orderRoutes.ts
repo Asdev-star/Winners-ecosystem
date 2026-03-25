@@ -367,6 +367,26 @@ router.put("/:id/status", authMiddleware, async (req: Request, res: Response) =>
       data: { status }
     });
 
+    // VENDOR SETTLEMENT: Credit vendor wallet when order is delivered
+    if (status === "DELIVERED" || status === "COMPLETED") {
+      try {
+        const orderItems = await db.orderItem.findMany({ where: { orderId: id } });
+        for (const item of orderItems) {
+          const vendor = await db.vendor.findUnique({ where: { id: order.vendorId } });
+          if (vendor) {
+            const wallet = await db.userWallet.findUnique({ where: { userId_tenantId: { userId: vendor.userId, tenantId } } });
+            if (wallet) {
+              const payout = item.price - (item.price * 0.10); // 10% platform fee
+              await db.$transaction([
+                db.userWallet.update({ where: { id: wallet.id }, data: { balance: { increment: payout }, available: { increment: payout }, totalEarned: { increment: payout } } }),
+                db.walletTransaction.create({ data: { walletId: wallet.id, type: "earned", amount: payout, fee: 0, netAmount: payout, status: "completed", description: `Order ${id} payout`, reference: id, completedAt: new Date() } })
+              ]);
+            }
+          }
+        }
+      } catch (err) { console.error("[vendor settlement]", err); }
+    }
+
     // Add tracking if provided
     if (trackingNumber) {
       await db.orderTracking.upsert({

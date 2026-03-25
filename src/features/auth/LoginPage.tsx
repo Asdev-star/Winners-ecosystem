@@ -783,11 +783,8 @@ export default function LoginPage() {
   };
 
   const handleFacebook = () => {
-    const appId      = import.meta.env.VITE_FACEBOOK_APP_ID ?? "";
-    if (!appId) { setError("Facebook login is not configured yet."); return; }
-    const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
-    const scope       = encodeURIComponent("email,public_profile");
-    window.location.href = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&state=facebook`;
+    setError("");
+    window.location.href = `${API_BASE}/auth/facebook`;
   };
 
   const fillDemo = () => {

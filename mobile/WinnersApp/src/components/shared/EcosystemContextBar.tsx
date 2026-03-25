@@ -1,15 +1,18 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import Badge, { type BadgeVariant } from "../ui/Badge";
+import { colors, spacing, typography } from "../../theme/tokens";
 
 type Props = {
   label: string;
   context: string;
+  accent?: BadgeVariant;
 };
 
-const EcosystemContextBar = ({ context, label }: Props) => {
+const EcosystemContextBar = ({ context, label, accent = "gold" }: Props) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Badge label={label} variant={accent} />
       <Text style={styles.context}>{context}</Text>
     </View>
   );
@@ -17,24 +20,16 @@ const EcosystemContextBar = ({ context, label }: Props) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#111D2E",
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#1E3248",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderBottomColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + spacing.xs,
     gap: 4,
   },
-  label: {
-    color: "#C9A84C",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
   context: {
-    color: "#9AB1C6",
-    fontSize: 13,
-    lineHeight: 18,
+    ...typography.bodySm,
+    color: colors.textDim,
   },
 });
 

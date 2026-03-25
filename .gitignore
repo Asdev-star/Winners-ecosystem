@@ -39,6 +39,7 @@ seed_connectors.cjs
 test_db.cjs 
 test_*.cjs 
 *.cjs 
+!mobile/WinnersApp/scripts/repair-rngh.cjs
  
 # Scratch / test artifacts 
 fix_test.txt 

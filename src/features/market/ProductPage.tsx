@@ -449,43 +449,9 @@ export default function ProductPage() {
         setSelectedVariant(data.variants[0].id);
       }
     } catch (err) {
-      // For demo, use mock data
-      setProduct({
-        id: productId || '1',
-        name: 'Premium African Print Dashiki Shirt',
-        description: 'Handcrafted authentic African dashiki shirt featuring traditional geometric patterns. Made from 100% cotton for maximum comfort and breathability. Perfect for cultural events, celebrations, or everyday wear.',
-        price: 89.99,
-        comparePrice: 129.99,
-        images: [
-          { id: '1', url: '/placeholder-product.jpg', alt: 'Front view' },
-          { id: '2', url: '/placeholder-product.jpg', alt: 'Back view' },
-          { id: '3', url: '/placeholder-product.jpg', alt: 'Detail view' },
-        ],
-        variants: [
-          { id: 'v1', name: 'Small', price: 89.99, stock: 5 },
-          { id: 'v2', name: 'Medium', price: 89.99, stock: 12 },
-          { id: 'v3', name: 'Large', price: 89.99, stock: 8 },
-          { id: 'v4', name: 'XL', price: 94.99, stock: 3 },
-        ],
-        vendor: {
-          id: 'v1',
-          name: 'AfroThreads Authentic',
-          verified: true,
-          rating: 4.8,
-        },
-        category: 'Fashion',
-        tags: ['african', 'dashiki', 'cotton', 'handmade'],
-        rating: 4.7,
-        reviewCount: 128,
-        stock: 28,
-        features: [
-          '100% Premium Cotton',
-          'Handcrafted in Nigeria',
-          'Traditional Geometric Patterns',
-          'Unisex Design',
-          'Machine Washable',
-        ],
-      });
+      // No demo fallback — show real error state
+      setError(err instanceof Error ? err.message : 'Failed to load product');
+      console.error('[ProductPage] Fetch error:', err);
     } finally {
       setLoading(false);
     }

@@ -631,6 +631,7 @@ const PLATFORMS = [
       { path: "/market/vendor",              label: "My Store",           icon: "🏪" },
       { path: "/market/cart",                label: "Cart",               icon: "🛍️" },
       { path: "/market/orders",              label: "Orders",             icon: "📋" },
+      { path: "/market/finance",             label: "Finance",            icon: "💰" },
       { path: "/market/digital-marketing",   label: "Digital Marketing",  icon: "📣" },
       { path: "/market/business-launcher",   label: "Business Launcher",  icon: "🚀" },
       { path: "/market/cv-tools",            label: "CV Builder",         icon: "📄" },

@@ -4,6 +4,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import passport from "passport";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -13,6 +14,7 @@ import {
   globalRateLimiter,
   xssSanitizer,
   requestSizeGuard,
+  permissionsPolicy,
 } from "./middleware/securityMiddleware.js";
 
 // ── Core Infrastructure: App Registry (Block 1 — Item 2) ──────────────────────
@@ -96,6 +98,9 @@ app.use(helmetMiddleware);
 // 2. Request Size Guard — reject oversized payloads early
 app.use(requestSizeGuard);
 
+// 2.5. Permissions Policy — restrict browser features
+app.use(permissionsPolicy);
+
 // 3. CORS — scoped to known origins only
 app.use(
   cors({
@@ -124,6 +129,7 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(passport.initialize());
 
 // 5. XSS Sanitization — strip dangerous patterns from all string inputs
 app.use(xssSanitizer);

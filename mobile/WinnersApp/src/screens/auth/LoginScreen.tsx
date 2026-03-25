@@ -1,179 +1,522 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
-  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  TextInput,
   View,
+  type NativeSyntheticEvent,
+  type TextInputSubmitEditingEventData,
 } from "react-native";
+import * as Linking from "expo-linking";
+import * as LocalAuthentication from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Fingerprint, ShieldCheck } from "lucide-react-native";
-import { biometric, BiometricStatus } from "../../services/biometric";
-import { useAuthStore } from "../../stores/authStore";
+import Card from "../../components/ui/Card";
+import { useAuthStore, type MobileUser } from "../../stores/authStore";
+import { ENV } from "../../config/env";
 import { RootStackParamList } from "../../navigation/types";
+import { colors, radius, spacing, touch, typography, withAlpha } from "../../theme/tokens";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
-const LoginScreen = ({ navigation }: Props) => {
-  const login = useAuthStore((state) => state.login);
-  const [authenticating, setAuthenticating] = useState(false);
-  const [biometricStatus, setBiometricStatus] = useState<BiometricStatus>({
-    available: false,
-    enrolled: false,
-    label: "Biometric",
-  });
-  const [message, setMessage] = useState("Secure mobile access for your ecosystem command center.");
-
-  useEffect(() => {
-    void biometric.getStatus().then(setBiometricStatus);
-  }, []);
-
-  const handleBiometricLogin = async () => {
-    setAuthenticating(true);
-    const result = await biometric.authenticate("Unlock Winners Ecosystem");
-    if (result.success) {
-      await login("biometric");
-    } else {
-      setMessage(result.reason ?? "Authentication did not complete.");
-    }
-    setAuthenticating(false);
+type LoginResponse = {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    tenantId?: string;
+    tenantName?: string;
   };
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>Digital Sovereign Infrastructure</Text>
-          <Text style={styles.title}>Winners Ecosystem</Text>
-          <Text style={styles.body}>{message}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <Fingerprint color="#C9A84C" size={22} />
-            <View style={styles.rowText}>
-              <Text style={styles.cardTitle}>{biometricStatus.label} sign-in</Text>
-              <Text style={styles.cardBody}>
-                {biometricStatus.available && biometricStatus.enrolled
-                  ? "This device is ready for secure biometric access."
-                  : "Biometrics are not configured yet. Continue with onboarding to prepare the app."}
-              </Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            disabled={!biometricStatus.available || !biometricStatus.enrolled || authenticating}
-            onPress={() => void handleBiometricLogin()}
-            style={[styles.primaryButton, (!biometricStatus.available || !biometricStatus.enrolled) && styles.disabled]}
-          >
-            {authenticating ? (
-              <ActivityIndicator color="#0D1520" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Login with {biometricStatus.label}</Text>
-            )}
-          </TouchableOpacity>
-
-          <Pressable onPress={() => navigation.navigate("Onboarding")} style={styles.secondaryButton}>
-            <ShieldCheck color="#E8EEF5" size={16} />
-            <Text style={styles.secondaryButtonText}>Continue to onboarding</Text>
-          </Pressable>
-        </View>
-      </View>
-    </SafeAreaView>
-  );
 };
 
+function normalizeUser(user: LoginResponse["user"]): MobileUser {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role.toLowerCase() as MobileUser["role"],
+    tenantId: user.tenantId,
+    tenantName: user.tenantName,
+  };
+}
+
+export default function LoginScreen({ navigation }: Props) {
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [checkingBiometrics, setCheckingBiometrics] = useState(true);
+  const [biometricReady, setBiometricReady] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { hasCompletedOnboarding, login, setToken } = useAuthStore();
+
+  useEffect(() => {
+    const initialize = async () => {
+      const [hardware, enrolled, biometricEnabled] = await Promise.all([
+        LocalAuthentication.hasHardwareAsync(),
+        LocalAuthentication.isEnrolledAsync(),
+        SecureStore.getItemAsync("winners_biometric_enabled"),
+      ]);
+
+      const ready = hardware && enrolled;
+      setBiometricReady(ready);
+
+      if (ready && biometricEnabled === "true") {
+        const success = await attemptBiometricLogin();
+        if (success) {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: hasCompletedOnboarding ? "Main" : "Onboarding" }],
+          });
+          return;
+        }
+      }
+
+      setCheckingBiometrics(false);
+    };
+
+    void initialize();
+  }, [hasCompletedOnboarding, navigation, setToken]);
+
+  const attemptBiometricLogin = async () => {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+
+    if (!compatible || !enrolled) {
+      return false;
+    }
+
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: "Verify your identity to access Winners",
+      fallbackLabel: "Use password",
+      cancelLabel: "Cancel",
+    });
+
+    if (!result.success) {
+      return false;
+    }
+
+    const storedToken = await SecureStore.getItemAsync("winners_jwt");
+    if (!storedToken) {
+      return false;
+    }
+
+    await setToken(storedToken);
+    return true;
+  };
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      setError("Enter your email and password to continue.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${ENV.API_V1_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as Partial<LoginResponse> & {
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !data.token || !data.user) {
+        throw new Error(data.error || data.message || "Login failed");
+      }
+
+      await login(data.token, normalizeUser(data.user));
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: hasCompletedOnboarding ? "Main" : "Onboarding" }],
+      });
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordSubmit = (_event: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => {
+    void handleLogin();
+  };
+
+  const handleBiometricLogin = async () => {
+    setError(null);
+    const success = await attemptBiometricLogin();
+
+    if (success) {
+      await SecureStore.setItemAsync("winners_biometric_enabled", "true");
+      navigation.reset({
+        index: 0,
+        routes: [{ name: hasCompletedOnboarding ? "Main" : "Onboarding" }],
+      });
+      return;
+    }
+
+    setError("Biometric sign-in is not ready on this device, or no secure session has been saved yet.");
+  };
+
+  const handleGoogleLogin = () => {
+    void Linking.openURL(`${ENV.API_V1_URL}/auth/google`);
+  };
+
+  const handleFacebookLogin = () => {
+    void Linking.openURL(`${ENV.API_V1_URL}/auth/facebook`);
+  };
+
+  useEffect(() => {
+    if (showPasswordForm) {
+      const timeout = setTimeout(() => {
+        emailRef.current?.focus();
+      }, 250);
+
+      return () => clearTimeout(timeout);
+    }
+
+    return undefined;
+  }, [showPasswordForm]);
+
+  return (
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.header}>
+        <Text style={styles.eyebrow}>DIGITAL SOVEREIGN{"\n"}INFRASTRUCTURE</Text>
+        <Text style={styles.title}>Winners Ecosystem</Text>
+        <Text style={styles.subtitle}>Secure mobile access for your ecosystem command center.</Text>
+      </View>
+
+      <Card accent="gold">
+        <View style={styles.cardStack}>
+          <Text style={styles.cardTitle}>Fingerprint sign-in</Text>
+          <Text style={styles.cardBody}>
+            {checkingBiometrics
+              ? "Checking this device for secure biometric access."
+              : biometricReady
+                ? "This device is ready for secure biometric access."
+                : "Biometric sign-in is unavailable on this device, but you can continue with password or social login."}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Login with fingerprint"
+            accessibilityHint="Verifies your identity with the device biometric prompt and signs you in."
+            disabled={!biometricReady}
+            onPress={() => void handleBiometricLogin()}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              !biometricReady && styles.disabledButton,
+              pressed && biometricReady && styles.pressedButton,
+            ]}
+          >
+            <Text style={styles.primaryButtonText}>Login with Fingerprint</Text>
+          </Pressable>
+        </View>
+      </Card>
+
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>or</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Continue with Google"
+        accessibilityHint="Opens the Google sign-in flow in the browser."
+        onPress={handleGoogleLogin}
+        style={({ pressed }) => [styles.surfaceButton, pressed && styles.surfaceButtonPressed]}
+      >
+        <Text style={styles.surfaceButtonText}>Continue with Google</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Continue with Facebook"
+        accessibilityHint="Opens the Facebook sign-in flow in the browser."
+        onPress={handleFacebookLogin}
+        style={({ pressed }) => [styles.surfaceButton, pressed && styles.surfaceButtonPressed]}
+      >
+        <Text style={styles.surfaceButtonText}>Continue with Facebook</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Setup continue to onboard"
+        accessibilityHint="Opens the onboarding flow so you can preview the setup questions."
+        onPress={() => navigation.navigate("Onboarding")}
+        style={({ pressed }) => [styles.outlineButton, pressed && styles.outlineButtonPressed]}
+      >
+        <Text style={styles.outlineButtonText}>Setup Continue to onboard</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Continue with password"
+        accessibilityHint="Shows the email and password sign-in form."
+        onPress={() => setShowPasswordForm((current) => !current)}
+        style={({ pressed }) => [styles.textAction, pressed && styles.textActionPressed]}
+      >
+        <Text style={styles.textActionLabel}>Continue with password</Text>
+      </Pressable>
+
+      {showPasswordForm ? (
+        <Card accent="blue">
+          <View style={styles.formStack}>
+            <TextInput
+              ref={emailRef}
+              accessibilityLabel="Email address"
+              accessibilityHint="Enter the email address for your Winners account."
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              placeholder="Email address"
+              placeholderTextColor={colors.textDim}
+              returnKeyType="next"
+              style={styles.input}
+              textContentType="username"
+              value={email}
+            />
+            <TextInput
+              ref={passwordRef}
+              accessibilityLabel="Password"
+              accessibilityHint="Enter your password and submit to sign in."
+              autoCapitalize="none"
+              autoComplete="password"
+              onChangeText={setPassword}
+              onSubmitEditing={handlePasswordSubmit}
+              placeholder="Password"
+              placeholderTextColor={colors.textDim}
+              returnKeyType="done"
+              secureTextEntry
+              style={styles.input}
+              textContentType="password"
+              value={password}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Forgot password"
+              accessibilityHint="Opens the password reset screen."
+              onPress={() => navigation.navigate("ForgotPassword")}
+              style={({ pressed }) => [styles.inlineLink, pressed && styles.textActionPressed]}
+            >
+              <Text style={styles.inlineLinkText}>Forgot password?</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Sign in with password"
+              accessibilityHint="Submits your email and password and signs you in."
+              disabled={loading}
+              onPress={() => void handleLogin()}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                loading && styles.disabledButton,
+                pressed && !loading && styles.pressedButton,
+              ]}
+            >
+              <Text style={styles.primaryButtonText}>{loading ? "Signing in..." : "Sign in"}</Text>
+            </Pressable>
+          </View>
+        </Card>
+      ) : null}
+
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={styles.errorText}>
+          {error}
+        </Text>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Create a new account"
+        accessibilityHint="Opens the registration screen."
+        onPress={() => navigation.navigate("Register")}
+        style={({ pressed }) => [styles.registerRow, pressed && styles.textActionPressed]}
+      >
+        <Text style={styles.registerText}>
+          Don't have an account? <Text style={styles.registerLink}>Create one →</Text>
+        </Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
 const styles = StyleSheet.create({
-  safeArea: {
+  screen: {
     flex: 1,
-    backgroundColor: "#0D1520",
+    backgroundColor: colors.bg,
   },
-  container: {
-    flex: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: 80,
+    paddingBottom: spacing.xxl,
   },
-  hero: {
-    gap: 14,
-    marginTop: 32,
+  header: {
+    marginBottom: spacing.lg,
   },
-  kicker: {
-    color: "#C9A84C",
-    fontSize: 12,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-    fontWeight: "700",
+  eyebrow: {
+    ...typography.labelLg,
+    color: colors.gold,
+    marginBottom: spacing.sm + spacing.xs,
   },
   title: {
-    color: "#E8EEF5",
-    fontSize: 34,
-    fontWeight: "800",
+    ...typography.displayLg,
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
-  body: {
-    color: "#9AB1C6",
-    fontSize: 15,
-    lineHeight: 24,
+  subtitle: {
+    ...typography.bodyMd,
+    color: colors.textDim,
   },
-  card: {
-    backgroundColor: "#111D2E",
-    borderWidth: 1,
-    borderColor: "#1E3248",
-    borderRadius: 20,
-    padding: 20,
-    gap: 18,
-  },
-  row: {
-    flexDirection: "row",
-    gap: 14,
-  },
-  rowText: {
-    flex: 1,
-    gap: 6,
+  cardStack: {
+    gap: spacing.sm,
   },
   cardTitle: {
-    color: "#E8EEF5",
-    fontSize: 16,
-    fontWeight: "700",
+    ...typography.displaySm,
+    color: colors.text,
   },
   cardBody: {
-    color: "#8FA6BA",
-    fontSize: 14,
-    lineHeight: 21,
+    ...typography.bodyMd,
+    color: colors.textDim,
   },
-  primaryButton: {
-    backgroundColor: "#C9A84C",
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 54,
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  primaryButtonText: {
-    color: "#0D1520",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  secondaryButton: {
+  dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#29415D",
-    minHeight: 50,
+    gap: spacing.sm,
+    marginVertical: spacing.md,
   },
-  secondaryButtonText: {
-    color: "#E8EEF5",
-    fontSize: 14,
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    ...typography.labelMd,
+    color: colors.textDim,
+  },
+  primaryButton: {
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+  },
+  primaryButtonText: {
+    ...typography.labelLg,
+    color: colors.bg,
+  },
+  surfaceButton: {
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  surfaceButtonPressed: {
+    opacity: 0.88,
+  },
+  surfaceButtonText: {
+    ...typography.labelLg,
+    color: colors.text,
+  },
+  outlineButton: {
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+  },
+  outlineButtonPressed: {
+    backgroundColor: withAlpha("gold", 0.08),
+  },
+  outlineButtonText: {
+    ...typography.labelLg,
+    color: colors.gold,
+  },
+  textAction: {
+    minHeight: touch.minimum,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.xs,
+  },
+  textActionPressed: {
+    opacity: 0.78,
+  },
+  textActionLabel: {
+    ...typography.bodyMd,
+    color: colors.textDim,
+  },
+  formStack: {
+    gap: spacing.sm,
+  },
+  input: {
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
+    paddingHorizontal: spacing.md,
+    color: colors.text,
+    ...typography.bodyMd,
+  },
+  inlineLink: {
+    minHeight: touch.minimum,
+    justifyContent: "center",
+    alignSelf: "flex-end",
+  },
+  inlineLinkText: {
+    ...typography.bodySm,
+    color: colors.textDim,
+  },
+  errorText: {
+    ...typography.bodySm,
+    color: colors.red,
+    marginTop: spacing.sm,
+  },
+  registerRow: {
+    minHeight: touch.minimum,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.lg,
+  },
+  registerText: {
+    ...typography.bodyMd,
+    color: colors.textDim,
+  },
+  registerLink: {
+    color: colors.gold,
     fontWeight: "700",
   },
+  disabledButton: {
+    opacity: 0.45,
+  },
+  pressedButton: {
+    opacity: 0.88,
+  },
 });
-
-export default LoginScreen;

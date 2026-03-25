@@ -1,67 +1,129 @@
-import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Mic } from "lucide-react-native";
+import React, { useState } from "react";
+import { Pressable, StyleSheet, Text } from "react-native";
+import { Audio, InterruptionModeIOS } from "expo-av";
+import * as Haptics from "expo-haptics";
+import { API_BASE, getAuthToken } from "../../services/api";
+import { colors, typography } from "../../theme/tokens";
 
 type Props = {
-  onSpeechResult?: (text: string) => void;
+  onTranscript: (text: string) => void;
 };
 
-const prompts = [
-  "Summarise today's revenue signals for my team.",
-  "Draft a follow-up for the newest community lead.",
-  "Show me the next lesson I should finish offline.",
-];
+const VoiceInput = ({ onTranscript }: Props) => {
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-const VoiceInput = ({ onSpeechResult }: Props) => {
-  const [isListening, setIsListening] = useState(false);
-  const nextPrompt = useMemo(
-    () => prompts[Math.floor(Math.random() * prompts.length)],
-    [isListening],
-  );
+  const startRecording = async () => {
+    const permission = await Audio.requestPermissionsAsync();
+    if (!permission.granted || isProcessing) {
+      return;
+    }
 
-  const handleRelease = () => {
-    setIsListening(false);
-    onSpeechResult?.(nextPrompt);
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+    });
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const nextRecording = new Audio.Recording();
+    nextRecording.setOnRecordingStatusUpdate((status) => {
+      setIsRecording(status.isRecording);
+    });
+    await nextRecording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+    await nextRecording.startAsync();
+    setRecording(nextRecording);
+  };
+
+  const stopRecording = async () => {
+    if (!recording || !isRecording) {
+      return;
+    }
+
+    await recording.stopAndUnloadAsync();
+    setIsProcessing(true);
+
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+      });
+
+      const uri = recording.getURI();
+      if (!uri) {
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("audio", {
+        uri,
+        name: "voice.m4a",
+        type: "audio/m4a",
+      } as any);
+
+      const token = await getAuthToken();
+      const response = await fetch(`${API_BASE}/ai-platform/speech/transcribe`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+      });
+      const data = (await response.json().catch(() => ({}))) as { text?: string };
+
+      if (data.text) {
+        onTranscript(data.text);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } finally {
+      setRecording(null);
+      setIsRecording(false);
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <View style={styles.wrap}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onLongPress={() => setIsListening(true)}
-        onPressOut={handleRelease}
-        style={[styles.button, isListening && styles.listening]}
-      >
-        <Mic color={isListening ? "#FFFFFF" : "#C9A84C"} size={20} />
-      </TouchableOpacity>
-      <Text style={styles.caption}>{isListening ? "Listening..." : "Hold to speak"}</Text>
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={isRecording ? "Stop voice recording" : "Start voice recording"}
+      accessibilityHint="Press and hold to record your voice message."
+      onPressIn={() => void startRecording()}
+      onPressOut={() => void stopRecording()}
+      style={({ pressed }) => [
+        styles.button,
+        isRecording ? styles.recording : styles.idle,
+        pressed && styles.pressed,
+        isProcessing && styles.processing,
+      ]}
+    >
+      <Text style={styles.icon}>Mic</Text>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
-  wrap: {
-    alignItems: "center",
-    gap: 6,
-  },
   button: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#172335",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#1E3248",
   },
-  listening: {
-    backgroundColor: "#B8912A",
-    borderColor: "#C9A84C",
+  idle: {
+    backgroundColor: colors.purple,
   },
-  caption: {
-    color: "#8FA6BA",
-    fontSize: 11,
-    fontWeight: "600",
+  recording: {
+    backgroundColor: colors.red,
+  },
+  pressed: {
+    transform: [{ scale: 0.92 }],
+  },
+  processing: {
+    opacity: 0.6,
+  },
+  icon: {
+    color: colors.text,
+    ...typography.labelLg,
   },
 });
 

@@ -26,16 +26,36 @@ export const helmetMiddleware = helmet({
       scriptSrc:      ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
       styleSrc:       ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc:        ["'self'", "https://fonts.gstatic.com"],
-      imgSrc:         ["'self'", "data:", "https:"],
-      connectSrc:     ["'self'", "https://api.stripe.com", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
-      frameSrc:       ["https://js.stripe.com", "https://hooks.stripe.com"],
+      imgSrc:         ["'self'", "data:", "https:", "https://images.unsplash.com", "https://cloudinary.com"],
+      connectSrc:     ["'self'", "https://api.stripe.com", "https://fonts.googleapis.com", "https://fonts.gstatic.com", "wss:", "ws:"],
+      frameSrc:       ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
       objectSrc:      ["'none'"],
+      baseUri:        ["'self'"],
+      formAction:     ["'self'"],
+      frameAncestors: ["'none'"],
       upgradeInsecureRequests: [],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: { policy: "same-origin" },
+  crossOriginResourcePolicy: { policy: "same-site" },
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
 });
+
+// ─── Permissions Policy ───────────────────────────────────────────────────────
+
+export function permissionsPolicy(_req: Request, res: Response, next: NextFunction): void {
+  res.setHeader(
+    "Permissions-Policy",
+    "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(self), usb=()"
+  );
+  next();
+}
 
 // ─── Global Rate Limiter ───────────────────────────────────────────────────────
 // No custom keyGenerator — express-rate-limit default is already IPv6-safe
@@ -80,7 +100,7 @@ export const apiRateLimiter = rateLimit({
   legacyHeaders:   false,
   message:         { error: "API rate limit exceeded. Please slow down.", code: "API_RATE_LIMITED" },
   keyGenerator:    (req: Request) => {
-    const userId = req.user?.userId;
+    const userId = (req as any).user?.userId;
     return userId ? `user:${userId}` : `ip:${normalizeIp(req)}`;
   },
 });
@@ -94,7 +114,7 @@ export const exportRateLimiter = rateLimit({
   legacyHeaders:   false,
   message:         { error: "Export rate limit exceeded. Maximum 50 exports per hour.", code: "EXPORT_RATE_LIMITED" },
   keyGenerator:    (req: Request) => {
-    const userId = req.user?.userId;
+    const userId = (req as any).user?.userId;
     return `export:${userId ?? normalizeIp(req)}`;
   },
 });
@@ -109,6 +129,8 @@ const XSS_PATTERNS = [
   /<object/gi,
   /<embed/gi,
   /vbscript:/gi,
+  /expression\s*\(/gi,
+  /data:\s*text\/html/gi,
 ];
 
 function sanitizeString(value: string): string {

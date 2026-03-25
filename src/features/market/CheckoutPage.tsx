@@ -20,6 +20,11 @@ interface CartItem {
     price: number;
     imageUrl?: string;
     isDigital: boolean;
+    vendorId?: string;
+    vendor?: {
+      id: string;
+      name: string;
+    };
   };
   variant?: {
     id: string;

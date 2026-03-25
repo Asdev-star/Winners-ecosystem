@@ -1,104 +1,371 @@
-import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import React, { useMemo, useState } from "react";
+import {
+  AccessibilityInfo,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import Card from "../../components/ui/Card";
+import Badge from "../../components/ui/Badge";
 import EcosystemContextBar from "../../components/shared/EcosystemContextBar";
-import { TabParamList } from "../../navigation/types";
+import { MarketStackParamList } from "../../navigation/types";
+import { useMarketStore, type MarketProduct } from "../../stores/marketStore";
+import { colors, radius, spacing, touch, typography, withAlpha } from "../../theme/tokens";
 
-type Props = BottomTabScreenProps<TabParamList, "Market">;
+type Props = NativeStackScreenProps<MarketStackParamList, "Home">;
 
-const offers = [
-  {
-    id: "market-growth-kit",
-    title: "Growth stack launch kit",
-    detail: "Offer pages, follow-up automations, and campaign copy for a fast launch.",
-  },
-  {
-    id: "market-creator-bundle",
-    title: "Creator commerce bundle",
-    detail: "Monetization templates, storefront setup, and community conversion playbooks.",
-  },
-];
+const CATEGORY_CHIPS = ["All", "Fashion", "Beauty", "Tech"];
 
-const MarketScreen = ({ navigation }: Props) => {
-  return (
-    <View style={styles.screen}>
-      <EcosystemContextBar
-        label="Market"
-        context="Move from discovery to checkout with a mobile-native buying path."
-      />
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>High-conviction offers</Text>
-          <Text style={styles.heroBody}>Ship mobile checkout flows that still behave when the network gets shaky.</Text>
-        </View>
+function formatPrice(value: number) {
+  return `$${value.toFixed(2)}`;
+}
 
-        {offers.map((offer) => (
-          <TouchableOpacity
-            key={offer.id}
-            activeOpacity={0.9}
-            onPress={() => navigation.getParent()?.navigate("Checkout", { planId: offer.id, source: "market" })}
-            style={styles.card}
-          >
-            <Text style={styles.cardTitle}>{offer.title}</Text>
-            <Text style={styles.cardBody}>{offer.detail}</Text>
-            <Text style={styles.cta}>Open checkout</Text>
-          </TouchableOpacity>
+export default function MarketScreen({ navigation }: Props) {
+  const products = useMarketStore((state) => state.products);
+  const cartItems = useMarketStore((state) => state.cartItems);
+  const wishlist = useMarketStore((state) => state.wishlist);
+  const addToCart = useMarketStore((state) => state.addToCart);
+  const toggleWishlist = useMarketStore((state) => state.toggleWishlist);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+
+  const cartCount = useMemo(
+    () => cartItems.reduce((total, item) => total + item.quantity, 0),
+    [cartItems],
+  );
+
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((product) => {
+        const matchesCategory = category === "All" || product.category === category;
+        const matchesSearch = `${product.name} ${product.vendorName}`.toLowerCase().includes(search.toLowerCase());
+        return matchesCategory && matchesSearch;
+      }),
+    [category, products, search],
+  );
+
+  const recommended = useMemo(() => products.slice(0, 3), [products]);
+
+  const onAddToCart = (product: MarketProduct) => {
+    addToCart(product.id);
+    const nextCount = cartCount + 1;
+    void AccessibilityInfo.announceForAccessibility(`Added, cart has ${nextCount} items`);
+  };
+
+  const header = (
+    <View style={styles.headerStack}>
+      <EcosystemContextBar accent="gold" label="ATLAS" context="3 trending products are climbing fast across mobile traffic and repeat-buyer signals." />
+
+      <View style={styles.searchWrap}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          accessibilityLabel="Search products"
+          accessibilityHint="Filters products by name or vendor."
+          onChangeText={setSearch}
+          placeholder="Search products..."
+          placeholderTextColor={colors.textDim}
+          style={styles.searchInput}
+          value={search}
+        />
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalRow}>
+        {CATEGORY_CHIPS.map((chip) => {
+          const selected = chip === category;
+
+          return (
+            <Pressable
+              key={chip}
+              accessibilityRole="button"
+              accessibilityLabel={`${chip} category`}
+              onPress={() => setCategory(chip)}
+              style={({ pressed }) => [
+                styles.chip,
+                selected && styles.chipSelected,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{chip}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      <Text style={styles.sectionLabel}>Recommended</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalRow}>
+        {recommended.map((product) => (
+          <Card key={product.id} accent="gold" style={styles.recommendedCard}>
+            <View style={styles.productImage}>
+              <Text style={styles.imageText}>Image</Text>
+            </View>
+            <View style={styles.rowBetween}>
+              <Badge label={`ATLAS ${product.atlasScore}`} variant="gold" />
+              <Badge label={product.vendorType} variant="dim" />
+            </View>
+            <Text numberOfLines={2} style={styles.productName}>
+              {product.name}
+            </Text>
+            <Text accessibilityLabel={formatPrice(product.price)} style={styles.price}>
+              {formatPrice(product.price)}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${product.name}`}
+              onPress={() => navigation.navigate("ProductDetail", { productId: product.id })}
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.secondaryButtonText}>View product</Text>
+            </Pressable>
+          </Card>
         ))}
       </ScrollView>
+
+      <Text style={styles.sectionLabel}>All Products</Text>
     </View>
   );
-};
+
+  return (
+    <View style={styles.screen}>
+      <FlatList
+        data={filteredProducts}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={header}
+        renderItem={({ item }) => (
+          <Card accent="gold" style={styles.gridCard}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${item.name}, ${formatPrice(item.price)}, ${item.rating} stars`}
+              accessibilityHint="Opens the product detail screen."
+              onLongPress={() => toggleWishlist(item.id)}
+              onPress={() => navigation.navigate("ProductDetail", { productId: item.id })}
+            >
+              <View accessibilityLabel={item.images[0]} style={styles.gridImage}>
+                <Text style={styles.imageText}>Image</Text>
+              </View>
+              <Text numberOfLines={2} style={styles.gridName}>
+                {item.name}
+              </Text>
+              <Text accessibilityLabel={formatPrice(item.price)} style={styles.price}>
+                {formatPrice(item.price)}
+              </Text>
+              <Text style={styles.meta}>
+                ⭐ {item.rating} · {item.reviews} reviews
+              </Text>
+              <View style={styles.gridBadges}>
+                <Badge label={item.vendorType} variant="dim" />
+                {wishlist.includes(item.id) ? <Badge label="Saved" variant="purple" /> : null}
+              </View>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Add ${item.name} to cart`}
+              accessibilityHint={`Adds ${item.name} to your cart.`}
+              onLongPress={() => {
+                void Share.share({
+                  message: `${item.name} · ${formatPrice(item.price)} · ${item.vendorName}`,
+                });
+              }}
+              onPress={() => onAddToCart(item)}
+              style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.primaryButtonText}>Add Cart</Text>
+            </Pressable>
+          </Card>
+        )}
+      />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open cart, ${cartCount} items`}
+        accessibilityHint="Opens your shopping cart."
+        onPress={() => navigation.navigate("Cart")}
+        style={({ pressed }) => [styles.cartButton, pressed && styles.pressed]}
+      >
+        <Text style={styles.cartButtonText}>Cart ({cartCount})</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#0D1520",
+    backgroundColor: colors.bg,
   },
-  content: {
-    padding: 16,
-    gap: 16,
+  headerStack: {
+    paddingTop: spacing.md,
+    gap: spacing.md,
   },
-  hero: {
-    backgroundColor: "#111D2E",
-    borderColor: "#1E3248",
+  listContent: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: 120,
+  },
+  searchWrap: {
+    minHeight: touch.minimum,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 20,
-    gap: 8,
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
   },
-  heroTitle: {
-    color: "#E8EEF5",
-    fontSize: 24,
-    fontWeight: "800",
+  searchIcon: {
+    marginRight: spacing.sm,
+    fontSize: 16,
   },
-  heroBody: {
-    color: "#8FA6BA",
-    fontSize: 14,
-    lineHeight: 22,
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+    ...typography.bodyMd,
   },
-  card: {
-    backgroundColor: "#111D2E",
-    borderColor: "#1E3248",
+  horizontalRow: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  chip: {
+    minHeight: touch.minimum,
+    borderRadius: radius.full,
     borderWidth: 1,
-    borderRadius: 18,
-    padding: 18,
-    gap: 10,
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
+    paddingHorizontal: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  cardTitle: {
-    color: "#E8EEF5",
-    fontSize: 18,
+  chipSelected: {
+    borderColor: colors.gold,
+    backgroundColor: withAlpha("gold", 0.1),
+  },
+  chipText: {
+    color: colors.textDim,
+    ...typography.labelLg,
+  },
+  chipTextSelected: {
+    color: colors.gold,
+  },
+  sectionLabel: {
+    color: colors.textDim,
+    ...typography.labelLg,
+  },
+  recommendedCard: {
+    width: 220,
+  },
+  productImage: {
+    height: 120,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.sm,
+  },
+  imageText: {
+    color: colors.textDim,
+    ...typography.labelLg,
+  },
+  rowBetween: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  productName: {
+    color: colors.text,
+    ...typography.bodyMd,
     fontWeight: "700",
+    marginBottom: spacing.xs,
   },
-  cardBody: {
-    color: "#8FA6BA",
-    fontSize: 14,
-    lineHeight: 22,
+  price: {
+    color: colors.gold,
+    ...typography.displaySm,
+    marginBottom: spacing.xs,
   },
-  cta: {
-    color: "#C9A84C",
-    fontSize: 13,
+  meta: {
+    color: colors.textDim,
+    ...typography.bodySm,
+  },
+  secondaryButton: {
+    minHeight: touch.minimum,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.sm,
+  },
+  secondaryButtonText: {
+    color: colors.text,
+    ...typography.labelLg,
+  },
+  gridRow: {
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  gridCard: {
+    flex: 1,
+  },
+  gridImage: {
+    height: 108,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.sm,
+  },
+  gridName: {
+    color: colors.text,
+    ...typography.bodySm,
     fontWeight: "700",
+    marginBottom: spacing.xs,
+    minHeight: 34,
+  },
+  gridBadges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  primaryButton: {
+    minHeight: touch.minimum,
+    borderRadius: radius.md,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryButtonText: {
+    color: colors.bg,
+    ...typography.labelLg,
+  },
+  cartButton: {
+    position: "absolute",
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.md,
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cartButtonText: {
+    color: colors.bg,
+    ...typography.labelLg,
+  },
+  pressed: {
+    opacity: 0.78,
   },
 });
-
-export default MarketScreen;

@@ -1,31 +1,75 @@
 {
   "expo": {
-    "name": "Winners App",
-    "slug": "winners-app",
-    "scheme": "winners",
+    "name": "Winners",
+    "slug": "winners-ecosystem",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "winners",
     "userInterfaceStyle": "dark",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D1520"
+    },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.winners.ecosystem.mobile"
+      "supportsTablet": false,
+      "bundleIdentifier": "io.winnersempire.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Winners uses the camera for product photos, profile images, and proof uploads.",
+        "NSMicrophoneUsageDescription": "Winners uses the microphone for Aria voice input.",
+        "NSPhotoLibraryUsageDescription": "Winners uses your library for product media, profile images, and attachments."
+      }
     },
     "android": {
-      "package": "com.winners.ecosystem.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/monochrome-icon.png",
+        "backgroundColor": "#0D1520"
+      },
+      "package": "io.winnersempire.app",
+      "minSdkVersion": 23,
+      "targetSdkVersion": 34,
       "permissions": [
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
-        "NOTIFICATIONS"
-      ]
+        "NOTIFICATIONS",
+        "CAMERA",
+        "RECORD_AUDIO"
+      ],
+      "versionCode": 3
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#C9A84C"
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "kotlinVersion": "2.0.21"
+          }
+        }
+      ]
+    ],
     "extra": {
-      "apiBaseUrl": "http://localhost:3001",
+      "apiBaseUrl": "https://winners-empire.up.railway.app/api/v1",
+      "stripePublishableKey": "pk_test_51R5Px1FTOTF6Eif7H5tZLKV8DocByo5NgDtPN7h9wOohTzGC2GiT5lEQYzl7fQJKH0JmjkLygl8JZk9rjs9LJjZp00srpgyVMq",
+      "privacyPolicyUrl": "https://winners-empire.up.railway.app/privacy",
+      "supportUrl": "https://winners-empire.up.railway.app/support",
       "eas": {
-        "projectId": "replace-with-eas-project-id"
+        "projectId": "05683e88-1742-4cbd-82c1-514893e005b7"
       }
-    }
+    },
+    "owner": "the-winners-empire-inc"
   }
 }

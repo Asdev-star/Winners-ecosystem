@@ -1,117 +1,233 @@
-import React, { useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../navigation/types";
-import { api } from "../../services/api";
-import { useAuthStore } from "../../stores/authStore";
+import Card from "../../components/ui/Card";
+import { MarketStackParamList } from "../../navigation/types";
+import { useMarketStore } from "../../stores/marketStore";
+import { colors, radius, spacing, touch, typography, withAlpha } from "../../theme/tokens";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Checkout">;
+type Props = NativeStackScreenProps<MarketStackParamList, "Checkout">;
+type PaymentMethod = "applepay" | "googlepay" | "mpesa" | "momo" | "card";
 
-const CheckoutScreen = ({ route }: Props) => {
-  const token = useAuthStore((state) => state.token);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("Secure checkout path ready.");
+function formatPrice(value: number) {
+  return `$${value.toFixed(2)}`;
+}
 
-  const handleCheckout = async () => {
-    setLoading(true);
+export default function CheckoutScreen({ navigation }: Props) {
+  const products = useMarketStore((state) => state.products);
+  const cartItems = useMarketStore((state) => state.cartItems);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("applepay");
+  const [message, setMessage] = useState("Biometric confirmation will be required before the payment intent is finalized.");
 
-    try {
-      await api.post("/api/market/checkout", {
-        planId: route.params.planId ?? "market-growth-kit",
-        source: route.params.source ?? "mobile",
-      }, token);
-      setMessage("Checkout request sent successfully.");
-    } catch {
-      setMessage("No connection available. Checkout was queued and will retry automatically.");
-    } finally {
-      setLoading(false);
-    }
+  const total = useMemo(() => {
+    const subtotal = cartItems.reduce((sum, item) => {
+      const product = products.find((entry) => entry.id === item.productId);
+      return sum + (product?.price ?? 0) * item.quantity;
+    }, 0);
+
+    return subtotal + (cartItems.length ? 5 : 0);
+  }, [cartItems, products]);
+
+  const methods: Array<{ id: PaymentMethod; label: string }> = [
+    { id: "card", label: "Card ending in 4242" },
+    { id: "applepay", label: "Apple Pay / Google Pay" },
+    { id: "mpesa", label: "M-Pesa" },
+    { id: "momo", label: "MTN MoMo" },
+  ];
+
+  const handlePay = () => {
+    setMessage(`Payment flow prepared for ${paymentMethod.toUpperCase()}. Stripe and native-wallet confirmation are the next integration step.`);
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.eyebrow}>Checkout</Text>
-      <Text style={styles.title}>{route.params.planId?.replace(/-/g, " ") ?? "market offer"}</Text>
-      <Text style={styles.copy}>
-        This screen is ready for Stripe or custom payment orchestration while preserving a graceful offline fallback.
-      </Text>
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => navigation.goBack()} style={({ pressed }) => [styles.topAction, pressed && styles.pressed]}>
+            <Text style={styles.topActionText}>← Back</Text>
+          </Pressable>
+          <Text style={styles.title}>Checkout</Text>
+          <View style={styles.topSpacer} />
+        </View>
 
-      <View style={styles.summary}>
-        <Text style={styles.summaryTitle}>Order summary</Text>
-        <Text style={styles.summaryLine}>Offer: {route.params.planId ?? "market-growth-kit"}</Text>
-        <Text style={styles.summaryLine}>Channel: {route.params.source ?? "mobile"}</Text>
-      </View>
+        <Card accent="gold">
+          <Text style={styles.sectionTitle}>Delivery Address</Text>
+          <Pressable style={({ pressed }) => [styles.addressCard, pressed && styles.pressed]}>
+            <View>
+              <Text style={styles.addressName}>Amina Njeri</Text>
+              <Text style={styles.addressText}>Westlands · Nairobi</Text>
+              <Text style={styles.addressText}>+254 700 000 111</Text>
+            </View>
+            <Text style={styles.editText}>Edit</Text>
+          </Pressable>
+        </Card>
 
-      <TouchableOpacity activeOpacity={0.9} onPress={() => void handleCheckout()} style={styles.button}>
-        {loading ? <ActivityIndicator color="#0D1520" /> : <Text style={styles.buttonText}>Complete order</Text>}
-      </TouchableOpacity>
+        <Card accent="gold">
+          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <View style={styles.methods}>
+            {methods.map((method) => {
+              const selected = paymentMethod === method.id;
 
-      <Text style={styles.message}>{message}</Text>
-    </ScrollView>
+              return (
+                <Pressable
+                  key={method.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={method.label}
+                  onPress={() => setPaymentMethod(method.id)}
+                  style={({ pressed }) => [styles.methodRow, selected && styles.methodRowSelected, pressed && styles.pressed]}
+                >
+                  <View style={[styles.radio, selected && styles.radioSelected]} />
+                  <Text style={[styles.methodText, selected && styles.methodTextSelected]}>{method.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Card>
+
+        <Card accent="gold">
+          <Text style={styles.sectionTitle}>Order Summary</Text>
+          <Text style={styles.summaryText}>
+            {cartItems.length} items from {new Set(cartItems.map((item) => products.find((entry) => entry.id === item.productId)?.vendorName)).size || 1} vendors
+          </Text>
+          <Text style={styles.totalText}>Total: {formatPrice(total)}</Text>
+        </Card>
+
+        <Text style={styles.message}>{message}</Text>
+      </ScrollView>
+
+      <Pressable onPress={handlePay} style={({ pressed }) => [styles.stickyButton, pressed && styles.pressed]}>
+        <Text style={styles.stickyButtonText}>Pay {formatPrice(total)} →</Text>
+      </Pressable>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#0D1520",
+    backgroundColor: colors.bg,
   },
   content: {
-    padding: 24,
-    gap: 16,
+    padding: spacing.md,
+    paddingBottom: 120,
+    gap: spacing.md,
   },
-  eyebrow: {
-    color: "#C9A84C",
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  topAction: {
+    minHeight: touch.minimum,
+    justifyContent: "center",
+  },
+  topActionText: {
+    color: colors.textDim,
+    ...typography.labelLg,
+  },
+  topSpacer: {
+    width: 56,
   },
   title: {
-    color: "#E8EEF5",
-    fontSize: 28,
-    fontWeight: "800",
-    textTransform: "capitalize",
+    color: colors.text,
+    ...typography.displaySm,
   },
-  copy: {
-    color: "#9AB1C6",
-    fontSize: 15,
-    lineHeight: 24,
+  sectionTitle: {
+    color: colors.text,
+    ...typography.displaySm,
+    marginBottom: spacing.sm,
   },
-  summary: {
-    backgroundColor: "#111D2E",
+  addressCard: {
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: "#1E3248",
-    borderRadius: 18,
-    padding: 18,
-    gap: 8,
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
+    padding: spacing.md,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: spacing.sm,
   },
-  summaryTitle: {
-    color: "#E8EEF5",
-    fontSize: 16,
+  addressName: {
+    color: colors.text,
+    ...typography.bodyMd,
     fontWeight: "700",
   },
-  summaryLine: {
-    color: "#8FA6BA",
-    fontSize: 14,
+  addressText: {
+    color: colors.textDim,
+    ...typography.bodySm,
   },
-  button: {
-    backgroundColor: "#C9A84C",
-    borderRadius: 14,
-    minHeight: 52,
+  editText: {
+    color: colors.gold,
+    ...typography.labelLg,
+  },
+  methods: {
+    gap: spacing.sm,
+  },
+  methodRow: {
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
+    paddingHorizontal: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  methodRowSelected: {
+    borderColor: colors.gold,
+    backgroundColor: withAlpha("gold", 0.08),
+  },
+  radio: {
+    width: spacing.md,
+    height: spacing.md,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.textDim,
+    backgroundColor: colors.surface2,
+  },
+  radioSelected: {
+    borderColor: colors.gold,
+    backgroundColor: colors.gold,
+  },
+  methodText: {
+    color: colors.text,
+    ...typography.bodyMd,
+  },
+  methodTextSelected: {
+    color: colors.gold,
+  },
+  summaryText: {
+    color: colors.textDim,
+    ...typography.bodyMd,
+    marginBottom: spacing.sm,
+  },
+  totalText: {
+    color: colors.gold,
+    ...typography.displaySm,
+  },
+  message: {
+    color: colors.textDim,
+    ...typography.bodySm,
+  },
+  stickyButton: {
+    position: "absolute",
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.md,
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
+    backgroundColor: colors.gold,
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: {
-    color: "#0D1520",
-    fontSize: 15,
-    fontWeight: "800",
+  stickyButtonText: {
+    color: colors.bg,
+    ...typography.labelLg,
   },
-  message: {
-    color: "#8FA6BA",
-    fontSize: 13,
-    lineHeight: 20,
+  pressed: {
+    opacity: 0.78,
   },
 });
-
-export default CheckoutScreen;

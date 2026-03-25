@@ -146,6 +146,57 @@ router.put("/me", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// GET /vendors/me/analytics - Get vendor analytics
+router.get("/me/analytics", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
+
+    const vendor = await db.vendor.findFirst({ where: { userId, tenantId } });
+    if (!vendor) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Get order stats
+    const [totalOrders, recentOrders, products, revenueResult] = await Promise.all([
+      db.order.count({ where: { vendorId: vendor.id } }),
+      db.order.count({ where: { vendorId: vendor.id, createdAt: { gte: thirtyDaysAgo } } }),
+      db.product.count({ where: { vendorId: vendor.id, isActive: true } }),
+      db.order.aggregate({
+        where: { vendorId: vendor.id, status: { in: ["CONFIRMED", "SHIPPED", "DELIVERED"] } },
+        _sum: { total: true }
+      })
+    ]);
+
+    // Get recent revenue trend
+    const dailyRevenue = await db.order.groupBy({
+      by: ["createdAt"],
+      where: { vendorId: vendor.id, createdAt: { gte: thirtyDaysAgo }, status: { in: ["CONFIRMED", "SHIPPED", "DELIVERED"] } },
+      _sum: { total: true },
+      _count: { id: true }
+    });
+
+    res.json({
+      vendorId: vendor.id,
+      totalOrders,
+      recentOrders,
+      activeProducts: products,
+      totalRevenue: revenueResult._sum.total || 0,
+      dailyRevenue: dailyRevenue.map(d => ({
+        date: d.createdAt,
+        revenue: d._sum.total || 0,
+        orders: d._count.id
+      }))
+    });
+  } catch (error) {
+    console.error("[vendorRoutes] Error fetching analytics:", error);
+    res.status(500).json({ error: "Failed to fetch analytics" });
+  }
+});
+
 // GET /vendors/:id - Get vendor by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {

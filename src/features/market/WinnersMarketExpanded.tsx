@@ -39,22 +39,22 @@ const T = {
 const VERTICALS = [
   {
     id:"commerce", icon:"🛒", label:"Commerce Hub",
-    color:T.green, badge:"V1 · Core",
+    color:T.green, badge:"V1 · LIVE",
     tagline:"Products · Dropshipping · Vendors",
     desc:"The original marketplace engine. Digital downloads, physical products, print-on-demand, and a full multi-vendor storefront system. Like Shopify + Amazon in one place.",
     revenue:["10–20% transaction commission","Vendor subscriptions $15–$49/mo","Featured listing fees","Print-on-demand margins"],
     features:["Product catalog (digital + physical)","Cart + Stripe checkout","Vendor onboarding & dashboard","Printful / Gelato / AliExpress integration","Order management + tracking","AI product description generator"],
-    status:"planned", phase:"4A",
+    status:"live", phase:"4A",
     stack:["Stripe","Printful API","Shippo","Cloudinary"],
   },
   {
     id:"digitalmarketing", icon:"📣", label:"Digital Marketing Hub",
-    color:T.gold, badge:"V2 · Expansion",
+    color:T.gold, badge:"V2 · LIVE",
     tagline:"Ads · SEO · Campaigns · Analytics",
     desc:"A full-service digital marketing platform. Sell marketing services, run paid ad campaigns, offer SEO audits, social media management packages, and email marketing automation — all inside the ecosystem.",
     revenue:["Marketing package sales 20% cut","Subscription tools $29–$99/mo","Ad budget management fee 5–10%","White-label marketing tools"],
     features:["Service marketplace for marketing agencies","Ad campaign builder (Meta, Google, TikTok)","SEO audit tool + keyword tracker","Social media scheduler + analytics","Email marketing automation suite","AI copywriting assistant","Lead generation tools","Client reporting dashboard"],
-    status:"planned", phase:"4B",
+    status:"live", phase:"4B",
     stack:["Meta Ads API","Google Ads API","Resend","Claude AI"],
   },
   {

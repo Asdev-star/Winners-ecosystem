@@ -1,6 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Sparkles } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { colors, radius, spacing, touch, typography, withAlpha } from "../../theme/tokens";
 
 type Props = {
   label?: string;
@@ -9,28 +9,35 @@ type Props = {
 
 const AssistantFAB = ({ label = "Ask Aria", onPress }: Props) => {
   return (
-    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.button}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="Opens the assistant for contextual help."
+      onPress={onPress}
+      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+    >
       <View style={styles.iconWrap}>
-        <Sparkles color="#0D1520" size={18} />
+        <Text style={styles.iconText}>AI</Text>
       </View>
       <Text style={styles.text}>{label}</Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
     position: "absolute",
-    right: 20,
-    bottom: 24,
+    right: spacing.lg - spacing.xs,
+    bottom: spacing.lg,
+    minHeight: touch.comfortable,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    backgroundColor: "#C9A84C",
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    shadowColor: "#000",
+    gap: spacing.sm + 2,
+    backgroundColor: colors.gold,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + spacing.xs,
+    shadowColor: withAlpha("bg", 1),
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -39,15 +46,22 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 28,
     height: 28,
-    borderRadius: 14,
-    backgroundColor: "#F6E7B2",
+    borderRadius: radius.full,
+    backgroundColor: withAlpha("gold", 0.3),
     alignItems: "center",
     justifyContent: "center",
   },
   text: {
-    color: "#0D1520",
-    fontSize: 14,
+    color: colors.bg,
+    ...typography.bodyMd,
     fontWeight: "700",
+  },
+  iconText: {
+    color: colors.bg,
+    ...typography.labelLg,
+  },
+  pressed: {
+    opacity: 0.82,
   },
 });
 
