@@ -3381,6 +3381,78 @@ model WithdrawalRequest {
   @@map("withdrawal_requests")
 }
 
+// ========== SAVINGS GROUPS / CHAMA ==========
+
+model SavingsGroup {
+  id                String   @id @default(cuid())
+  tenantId          String
+  name              String
+  description       String   @default("")
+  contributionAmount Float
+  frequency         String   // weekly, biweekly, monthly
+  maxMembers        Int      @default(10)
+  currency          String   @default("USD")
+  status            String   @default("active") // active, completed, cancelled
+  currentRound      Int      @default(1)
+  totalPool         Float    @default(0)
+  createdBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  members           SavingsGroupMember[]
+  contributions     SavingsGroupContribution[]
+  payouts           SavingsGroupPayout[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("savings_groups")
+}
+
+model SavingsGroupMember {
+  id                String   @id @default(cuid())
+  groupId           String
+  userId            String
+  role              String   @default("member") // admin, member
+  payoutOrder       Int
+  totalContributed  Float    @default(0)
+  hasReceivedPayout Boolean  @default(false)
+  joinedAt          DateTime @default(now())
+  group             SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("savings_group_members")
+}
+
+model SavingsGroupContribution {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  amount    Float
+  round     Int
+  status    String   @default("completed")
+  createdAt DateTime @default(now())
+  group     SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, round])
+  @@index([userId])
+  @@map("savings_group_contributions")
+}
+
+model SavingsGroupPayout {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  amount    Float
+  round     Int
+  status    String   @default("completed")
+  createdAt DateTime @default(now())
+  group     SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, round])
+  @@index([userId])
+  @@map("savings_group_payouts")
+}
+
 model PlatformLayerStatus {
   id               String   @id @default(cuid())
   layerId          String

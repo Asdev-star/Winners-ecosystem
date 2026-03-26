@@ -373,4 +373,239 @@ router.post("/admin/withdrawal/:id/reject", async (req, res) => {
   }
 });
 
+// ========== STEP 9: SAVINGS GROUPS / CHAMA TOOLS ==========
+
+// POST /finance/chama/create - Create a savings group
+router.post("/chama/create", requirePro("Savings Groups"), async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
+    const { name, description, contributionAmount, frequency, maxMembers = 10, currency = "USD" } = req.body;
+    if (!name || !contributionAmount || !frequency) return res.status(400).json({ error: "Name, contribution amount, and frequency required" });
+    if (contributionAmount <= 0) return res.status(400).json({ error: "Contribution must be positive" });
+    if (!["weekly", "biweekly", "monthly"].includes(frequency)) return res.status(400).json({ error: "Frequency must be weekly, biweekly, or monthly" });
+
+    const group = await db.savingsGroup.create({
+      data: {
+        tenantId,
+        name,
+        description: description || "",
+        contributionAmount,
+        frequency,
+        maxMembers: Math.min(maxMembers, 50),
+        currency,
+        status: "active",
+        currentRound: 1,
+        totalPool: 0,
+        createdBy: userId
+      }
+    });
+
+    // Add creator as first member
+    await db.savingsGroupMember.create({
+      data: {
+        groupId: group.id,
+        userId,
+        role: "admin",
+        payoutOrder: 1,
+        totalContributed: 0,
+        hasReceivedPayout: false
+      }
+    });
+
+    res.json({ success: true, group });
+  } catch (error) {
+    console.error("[chama/create]", error);
+    res.status(500).json({ error: "Failed to create group" });
+  }
+});
+
+// POST /finance/chama/join - Join a savings group
+router.post("/chama/join", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { groupId, inviteCode } = req.body;
+    if (!groupId) return res.status(400).json({ error: "Group ID required" });
+
+    const group = await db.savingsGroup.findUnique({ where: { id: groupId } });
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.status !== "active") return res.status(400).json({ error: "Group is not accepting members" });
+
+    const memberCount = await db.savingsGroupMember.count({ where: { groupId } });
+    if (memberCount >= group.maxMembers) return res.status(400).json({ error: "Group is full" });
+
+    const existing = await db.savingsGroupMember.findFirst({ where: { groupId, userId } });
+    if (existing) return res.status(400).json({ error: "Already a member" });
+
+    const member = await db.savingsGroupMember.create({
+      data: {
+        groupId,
+        userId,
+        role: "member",
+        payoutOrder: memberCount + 1,
+        totalContributed: 0,
+        hasReceivedPayout: false
+      }
+    });
+
+    res.json({ success: true, member, payoutOrder: member.payoutOrder });
+  } catch (error) {
+    console.error("[chama/join]", error);
+    res.status(500).json({ error: "Failed to join group" });
+  }
+});
+
+// POST /finance/chama/contribute - Make a contribution
+router.post("/chama/contribute", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
+    const { groupId } = req.body;
+    if (!groupId) return res.status(400).json({ error: "Group ID required" });
+
+    const group = await db.savingsGroup.findUnique({ where: { id: groupId } });
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    if (group.status !== "active") return res.status(400).json({ error: "Group is not active" });
+
+    const member = await db.savingsGroupMember.findFirst({ where: { groupId, userId } });
+    if (!member) return res.status(403).json({ error: "Not a member" });
+
+    const wallet = await db.userWallet.findUnique({ where: { userId_tenantId: { userId, tenantId } } });
+    if (!wallet || wallet.available < group.contributionAmount) return res.status(400).json({ error: "Insufficient balance" });
+
+    // Check if already contributed this round
+    const existingContribution = await db.savingsGroupContribution.findFirst({
+      where: { groupId, userId, round: group.currentRound }
+    });
+    if (existingContribution) return res.status(400).json({ error: "Already contributed this round" });
+
+    // Process contribution
+    await db.$transaction([
+      db.userWallet.update({ where: { id: wallet.id }, data: { balance: { decrement: group.contributionAmount }, available: { decrement: group.contributionAmount }, totalSpent: { increment: group.contributionAmount } } }),
+      db.savingsGroupContribution.create({
+        data: {
+          groupId,
+          userId,
+          amount: group.contributionAmount,
+          round: group.currentRound,
+          status: "completed"
+        }
+      }),
+      db.savingsGroupMember.update({ where: { id: member.id }, data: { totalContributed: { increment: group.contributionAmount } } }),
+      db.savingsGroup.update({ where: { id: groupId }, data: { totalPool: { increment: group.contributionAmount } } }),
+      db.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          type: "chama_contribution",
+          amount: -group.contributionAmount,
+          status: "completed",
+          description: `Contribution to ${group.name} (Round ${group.currentRound})`,
+          reference: `CHAMA_${groupId}_${group.currentRound}`,
+          completedAt: new Date()
+        }
+      })
+    ]);
+
+    // Check if all members have contributed - auto-rotate payout
+    const totalMembers = await db.savingsGroupMember.count({ where: { groupId } });
+    const contributionsThisRound = await db.savingsGroupContribution.count({ where: { groupId, round: group.currentRound } });
+    
+    if (contributionsThisRound >= totalMembers) {
+      // Find next payout recipient
+      const nextRecipient = await db.savingsGroupMember.findFirst({
+        where: { groupId, hasReceivedPayout: false },
+        orderBy: { payoutOrder: "asc" }
+      });
+
+      if (nextRecipient) {
+        const payoutAmount = group.totalPool;
+        const recipientWallet = await db.userWallet.findUnique({ where: { userId_tenantId: { userId: nextRecipient.userId, tenantId } } });
+        if (recipientWallet) {
+          await db.$transaction([
+            db.savingsGroupMember.update({ where: { id: nextRecipient.id }, data: { hasReceivedPayout: true } }),
+            db.savingsGroup.update({ where: { id: groupId }, data: { currentRound: { increment: 1 }, totalPool: 0 } }),
+            db.userWallet.update({ where: { id: recipientWallet.id }, data: { balance: { increment: payoutAmount }, available: { increment: payoutAmount }, totalEarned: { increment: payoutAmount } } }),
+            db.walletTransaction.create({
+              data: {
+                walletId: recipientWallet.id,
+                type: "chama_payout",
+                amount: payoutAmount,
+                status: "completed",
+                description: `Payout from ${group.name} (Round ${group.currentRound})`,
+                reference: `CHAMA_PAYOUT_${groupId}_${group.currentRound}`,
+                completedAt: new Date()
+              }
+            })
+          ]);
+        }
+      }
+    }
+
+    res.json({ success: true, amount: group.contributionAmount, round: group.currentRound });
+  } catch (error) {
+    console.error("[chama/contribute]", error);
+    res.status(500).json({ error: "Contribution failed" });
+  }
+});
+
+// GET /finance/chama/list - List user's savings groups
+router.get("/chama/list", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const memberships = await db.savingsGroupMember.findMany({
+      where: { userId },
+      include: { group: true }
+    });
+    const groups = memberships.map(m => ({
+      ...m.group,
+      myRole: m.role,
+      myPayoutOrder: m.payoutOrder,
+      myTotalContributed: m.totalContributed,
+      hasReceivedPayout: m.hasReceivedPayout
+    }));
+    res.json({ groups });
+  } catch (error) {
+    console.error("[chama/list]", error);
+    res.status(500).json({ error: "Failed to list groups" });
+  }
+});
+
+// GET /finance/chama/:id - Get group details
+router.get("/chama/:id", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    const group = await db.savingsGroup.findUnique({ where: { id }, include: { members: { include: { user: { select: { id: true, name: true, email: true } } } } } });
+    if (!group) return res.status(404).json({ error: "Group not found" });
+
+    const isMember = group.members.some(m => m.userId === userId);
+    if (!isMember) return res.status(403).json({ error: "Not a member" });
+
+    const contributions = await db.savingsGroupContribution.findMany({ where: { groupId: id }, orderBy: { createdAt: "desc" }, take: 50 });
+    const myMember = group.members.find(m => m.userId === userId);
+
+    res.json({ group, contributions, myMember });
+  } catch (error) {
+    console.error("[chama/:id]", error);
+    res.status(500).json({ error: "Failed to get group" });
+  }
+});
+
+// POST /finance/chama/:id/leave - Leave a savings group
+router.post("/chama/:id/leave", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    const member = await db.savingsGroupMember.findFirst({ where: { groupId: id, userId } });
+    if (!member) return res.status(404).json({ error: "Not a member" });
+    if (member.role === "admin") return res.status(400).json({ error: "Admin cannot leave. Transfer admin first." });
+
+    await db.savingsGroupMember.delete({ where: { id: member.id } });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[chama/leave]", error);
+    res.status(500).json({ error: "Failed to leave group" });
+  }
+});
+
 export default router; 
