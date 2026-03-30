@@ -126,6 +126,7 @@ model Tenant {
   superChats                    SuperChat[]
   usageLogs                     UsageLog[]
   userFeedPreferences           UserFeedPreference[]
+  userWallets                   UserWallet[]
   users                         User[]
   vendorPayouts                 VendorPayout[]
   vendorReviews                 VendorReview[]
@@ -134,6 +135,7 @@ model Tenant {
   videoRooms                    VideoRoom[]
   webhookSubscriptions          WebhookSubscription[]
   workReviews                   WorkReview[]
+  withdrawalRequests            WithdrawalRequest[]
 
   @@map("tenants")
 }
@@ -248,10 +250,12 @@ model User {
   superChats                 SuperChat[]
   twoFactorOTPs              TwoFactorOTP[]
   tenant                     Tenant                         @relation(fields: [tenantId], references: [id])
+  userWallets                UserWallet[]
   vendorReviews              VendorReview[]
   vendors                    Vendor[]
   videoRoomParticipations    VideoRoomParticipant[]
   hostedVideoRooms           VideoRoom[]
+  withdrawalRequests         WithdrawalRequest[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -3329,6 +3333,7 @@ model UserWallet {
   user          User          @relation(fields: [userId], references: [id])
   tenant        Tenant        @relation(fields: [tenantId], references: [id])
   transactions  WalletTransaction[]
+  withdrawalRequests WithdrawalRequest[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, userId])
