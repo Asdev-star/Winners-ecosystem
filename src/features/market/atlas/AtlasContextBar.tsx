@@ -2,7 +2,7 @@
 // src/features/market/atlas/AtlasContextBar.tsx
 
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '../../features/auth/authStore';
+import { useAuthStore } from '../../auth/authStore';
 
 interface AtlasContextBarProps {
   view: string;

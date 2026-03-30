@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
-import LiveKit from "livekit-client";
 
 interface Participant {
   id: string;

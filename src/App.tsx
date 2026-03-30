@@ -26,7 +26,7 @@ import DashboardPage from "./features/dashboard/DashboardPage";
 import UserHomePage from "./features/home/UserHomePage";
 import ProfilePage from "./features/profile/ProfilePage";
 import SettingsPage from "./features/settings/SettingsPage";
-import CoreSettingsPage from "./features/settings/CoreSettingsPage";
+import { CoreSettingsPage } from "./features/settings/CoreSettingsPage";
 import AnalyticsPage from "./features/analytics/AnalyticsPage";
 import TeamPage from "./features/team/TeamPage";
 import ExportPage from "./features/export/ExportPage";
