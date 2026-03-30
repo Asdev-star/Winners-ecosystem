@@ -131,13 +131,11 @@ model Tenant {
   vendorPayouts                 VendorPayout[]
   vendorReviews                 VendorReview[]
   vendors                       Vendor[]
-  userWallets                   UserWallet[]
   withdrawalRequests            WithdrawalRequest[]
   videoRoomParticipants         VideoRoomParticipant[]
   videoRooms                    VideoRoom[]
   webhookSubscriptions          WebhookSubscription[]
   workReviews                   WorkReview[]
-  withdrawalRequests            WithdrawalRequest[]
 
   @@map("tenants")
 }
@@ -255,11 +253,9 @@ model User {
   userWallets                UserWallet[]
   vendorReviews              VendorReview[]
   vendors                    Vendor[]
-  userWallets                UserWallet[]
   withdrawalRequests         WithdrawalRequest[]
   videoRoomParticipations    VideoRoomParticipant[]
   hostedVideoRooms           VideoRoom[]
-  withdrawalRequests         WithdrawalRequest[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
