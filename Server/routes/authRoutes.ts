@@ -515,7 +515,7 @@ router.get(
   },
   async (req: Request, res: Response) => {
     try {
-      const user = req.user as AuthUser | undefined;
+      const user = req.user as unknown as AuthUser | undefined;
       if (!user) return res.redirect(`${APP_URL}/login?error=oauth_failed`);
 
       const omegaWelcome = await buildReturningOmegaBriefing(user);

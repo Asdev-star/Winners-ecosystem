@@ -70,8 +70,7 @@ router.post("/import", authMiddleware, async (req, res) => {
         tags: supplierProduct.tags,
         fulfillmentType: "dropship",
         sourceSupplierProductId: supplierProductId,
-        supplierId: supplierProduct.supplierId,
-        status: "draft"
+        supplierId: supplierProduct.supplierId
       }
     });
 
@@ -94,8 +93,8 @@ router.get("/orders", authMiddleware, async (req, res) => {
     const orders = await db.orderItem.findMany({
       where: { product: { vendorId: vendor.id, fulfillmentType: "dropship" } },
       include: {
-        order: { include: { buyer: { select: { name: true, email: true } } } },
-        product: { include: { supplier: { select: { name: true, contactEmail: true } } } }
+        order: { include: { user: { select: { name: true, email: true } } } },
+        product: { include: { supplierProduct: { include: { supplier: { select: { name: true, contactEmail: true } } } } } }
       },
       orderBy: { createdAt: "desc" }
     });
@@ -112,9 +111,10 @@ router.post("/orders/:id/fulfill", authMiddleware, async (req, res) => {
   try {
     const { trackingNumber } = req.body;
     const tenantId = req.user.tenantId;
+    const orderItemId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
     await db.orderItem.update({
-      where: { id: req.params.id, tenantId },
+      where: { id_tenantId: { id: orderItemId, tenantId } },
       data: {
         fulfillmentStatus: "sent_to_supplier",
         trackingNumber: trackingNumber || null,

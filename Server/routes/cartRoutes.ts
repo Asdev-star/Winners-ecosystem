@@ -18,9 +18,17 @@ async function getCart(tenantId: string, userId?: string, sessionId?: string) {
       include: {
         items: {
           include: {
-            product: { 
-              select: { id: true, name: true, slug: true, price: true, stockQuantity: true, isDigital: true, vendorId: true },
-              include: { vendor: { select: { id: true, name: true } } }
+            product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                price: true,
+                stockQuantity: true,
+                isDigital: true,
+                vendorId: true,
+                vendor: { select: { id: true, storeName: true } }
+              }
             },
             variant: true
           }
@@ -35,9 +43,17 @@ async function getCart(tenantId: string, userId?: string, sessionId?: string) {
       include: {
         items: {
           include: {
-            product: { 
-              select: { id: true, name: true, slug: true, price: true, stockQuantity: true, isDigital: true, vendorId: true },
-              include: { vendor: { select: { id: true, name: true } } }
+            product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                price: true,
+                stockQuantity: true,
+                isDigital: true,
+                vendorId: true,
+                vendor: { select: { id: true, storeName: true } }
+              }
             },
             variant: true
           }
@@ -57,9 +73,17 @@ async function getCart(tenantId: string, userId?: string, sessionId?: string) {
       include: {
         items: {
           include: {
-            product: { 
-              select: { id: true, name: true, slug: true, price: true, stockQuantity: true, isDigital: true, vendorId: true },
-              include: { vendor: { select: { id: true, name: true } } }
+            product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                price: true,
+                stockQuantity: true,
+                isDigital: true,
+                vendorId: true,
+                vendor: { select: { id: true, storeName: true } }
+              }
             },
             variant: true
           }

@@ -10,7 +10,7 @@ const router = Router();
 router.use(authMiddleware);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-01-27.acacia',
+  apiVersion: '2026-02-25.clover',
 });
 
 interface CartItem {
@@ -37,8 +37,9 @@ router.get('/cart', async (req: AuthRequest, res: Response) => {
             product: {
               include: {
                 vendor: {
-                  select: { id: true, name: true, stripeAccountId: true }
-                }
+                  select: { id: true, storeName: true, stripeAccountId: true }
+                },
+                images: { select: { url: true }, take: 1 }
               }
             }
           }
@@ -71,7 +72,7 @@ router.get('/cart', async (req: AuthRequest, res: Response) => {
       if (!acc[vendorId]) {
         acc[vendorId] = {
           vendorId,
-          vendorName: item.product.vendor?.name || 'Unknown Vendor',
+          vendorName: item.product.vendor?.storeName || 'Unknown Vendor',
           stripeAccountId: item.product.vendor?.stripeAccountId || null,
           items: [],
           subtotal: 0
@@ -81,16 +82,16 @@ router.get('/cart', async (req: AuthRequest, res: Response) => {
       acc[vendorId].items.push({
         id: item.id,
         productId: item.productId,
-        title: item.product.title,
+        title: item.product.name,
         price: item.price,
         quantity: item.quantity,
-        imageUrl: item.product.images?.[0] || undefined
+        imageUrl: item.product.images?.[0]?.url || undefined
       });
       acc[vendorId].subtotal += item.price * item.quantity;
       return acc;
     }, {});
 
-    const vendors = Object.values(vendorGroups);
+    const vendors = Object.values(vendorGroups) as Array<{ subtotal: number } & Record<string, unknown>>;
     const total = vendors.reduce((sum, v) => sum + v.subtotal, 0);
 
     res.json({ items: cart.items, vendors, total });
@@ -131,13 +132,13 @@ router.post('/create-payment-intents', async (req: AuthRequest, res: Response) =
     }> = [];
 
     for (const [vendorId, vendorItems] of Object.entries(vendorGroups)) {
-      let vendor: { stripeAccountId: string | null; name: string } | null = null;
+      let vendor: { stripeAccountId: string | null; storeName: string } | null = null;
 
       if (vendorId !== 'direct') {
         vendor = await db.vendor.findUnique({
           where: { id: vendorId },
-          select: { stripeAccountId: true, name: true }
-        }) as { stripeAccountId: string | null; name: string } | null;
+          select: { stripeAccountId: true, storeName: true }
+        }) as { stripeAccountId: string | null; storeName: string } | null;
       }
 
       const amount = vendorItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -164,7 +165,7 @@ router.post('/create-payment-intents', async (req: AuthRequest, res: Response) =
 
       paymentIntents.push({
         vendorId,
-        vendorName: vendor?.name || 'Direct Sale',
+        vendorName: vendor?.storeName || 'Direct Sale',
         clientSecret: intent.client_secret!,
         amount
       });
@@ -202,19 +203,24 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     // Create orders for each vendor
     const orders = [];
     for (const group of vendorGroups) {
+      const subtotal = group.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
       const order = await db.order.create({
         data: {
           userId,
           tenantId,
           vendorId: group.vendorId,
+          orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
           status: 'CONFIRMED',
-          total: group.items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+          subtotal,
+          total: subtotal,
           items: {
             create: group.items.map(item => ({
+              tenantId,
               productId: item.productId,
-              quantity: item.price,
+              name: 'Product',
+              quantity: item.quantity,
               price: item.price,
-              status: 'PENDING'
+              total: item.price * item.quantity
             }))
           }
         },

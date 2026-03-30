@@ -7,6 +7,8 @@ import db from "../db.js";
 
 const router = Router();
 router.use(authMiddleware);
+const getStringParam = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? value[0] : (value ?? "");
 
 // Helper: Get or create wallet
 async function getOrCreateWallet(userId: string, tenantId: string) {
@@ -17,6 +19,40 @@ async function getOrCreateWallet(userId: string, tenantId: string) {
     });
   }
   return wallet;
+}
+
+function createWalletTransaction(input: {
+  walletId: string;
+  type: string;
+  amount: number;
+  fee?: number;
+  netAmount?: number;
+  currency?: string;
+  status?: string;
+  description?: string;
+  reference?: string;
+  relatedUserId?: string;
+  metadata?: unknown;
+  completedAt?: Date;
+}) {
+  const fee = input.fee ?? 0;
+  const netAmount = input.netAmount ?? (input.amount - fee);
+  return db.walletTransaction.create({
+    data: {
+      wallet: { connect: { id: input.walletId } },
+      type: input.type,
+      amount: input.amount,
+      fee,
+      netAmount,
+      currency: input.currency ?? "USD",
+      status: input.status ?? "pending",
+      description: input.description,
+      reference: input.reference,
+      relatedUserId: input.relatedUserId,
+      metadata: input.metadata as never,
+      completedAt: input.completedAt,
+    }
+  });
 }
 
 // GET /finance/balance - Get user's wallet balance
@@ -69,8 +105,8 @@ router.post("/transfer", requirePro("P2P Transfers"), async (req: Request, res: 
     await db.$transaction([
       db.userWallet.update({ where: { id: senderWallet.id }, data: { balance: { decrement: amount }, available: { decrement: amount } } }),
       db.userWallet.update({ where: { id: recipientWallet.id }, data: { balance: { increment: netAmount }, available: { increment: netAmount }, totalEarned: { increment: netAmount } } }),
-      db.walletTransaction.create({ data: { walletId: senderWallet.id, type: "transfer", amount: -amount, fee, netAmount: -netAmount, status: "completed", description: description || "Transfer", relatedUserId: recipientUserId, completedAt: new Date() } }),
-      db.walletTransaction.create({ data: { walletId: recipientWallet.id, type: "transfer", amount: netAmount, fee: 0, netAmount, status: "completed", description: description || "Transfer received", relatedUserId: userId, completedAt: new Date() } })
+      createWalletTransaction({ walletId: senderWallet.id, type: "transfer", amount: -amount, fee, netAmount: -netAmount, status: "completed", description: description || "Transfer", relatedUserId: recipientUserId, completedAt: new Date() }),
+      createWalletTransaction({ walletId: recipientWallet.id, type: "transfer", amount: netAmount, fee: 0, netAmount, status: "completed", description: description || "Transfer received", relatedUserId: userId, completedAt: new Date() })
     ]);
     res.json({ success: true, amount, fee, netAmount });
   } catch (error) {
@@ -92,7 +128,7 @@ router.post("/withdraw", requirePro("Withdrawals"), async (req: Request, res: Re
     const [withdrawal] = await db.$transaction([
       db.withdrawalRequest.create({ data: { userId, tenantId, walletId: wallet.id, amount, fee: WITHDRAWAL_FEE, netAmount, method: method || "stripe", status: "pending" } }),
       db.userWallet.update({ where: { id: wallet.id }, data: { balance: { decrement: amount }, available: { decrement: amount }, pending: { increment: amount }, mPesaNumber: mPesaNumber || wallet.mPesaNumber, bankAccount: bankAccount || wallet.bankAccount } }),
-      db.walletTransaction.create({ data: { walletId: wallet.id, type: "withdrawal", amount: -amount, fee: WITHDRAWAL_FEE, netAmount: -netAmount, status: "pending", description: `Withdrawal via ${method || "stripe"}`, completedAt: new Date() } })
+      createWalletTransaction({ walletId: wallet.id, type: "withdrawal", amount: -amount, fee: WITHDRAWAL_FEE, netAmount: -netAmount, status: "pending", description: `Withdrawal via ${method || "stripe"}`, completedAt: new Date() })
     ]);
     res.json({ success: true, withdrawalId: withdrawal.id, amount, fee: WITHDRAWAL_FEE, netAmount, status: "pending" });
   } catch (error) {
@@ -155,9 +191,7 @@ router.post("/deposit/stripe", async (req: Request, res: Response) => {
       metadata: { walletId: wallet.id, userId, tenantId, type: "deposit" }
     });
 
-    await db.walletTransaction.create({
-      data: { walletId: wallet.id, type: "deposit", amount, currency, status: "pending", description: "Stripe deposit", reference: paymentIntent.id }
-    });
+    await createWalletTransaction({ walletId: wallet.id, type: "deposit", amount, currency, status: "pending", description: "Stripe deposit", reference: paymentIntent.id });
 
     res.json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
   } catch (error) {
@@ -190,9 +224,7 @@ router.post("/deposit/mpesa", async (req: Request, res: Response) => {
     const data = await response.json();
     if (data.status !== "success") return res.status(400).json({ error: data.message });
 
-    await db.walletTransaction.create({
-      data: { walletId: wallet.id, type: "deposit", amount, currency: "KES", status: "pending", description: "M-Pesa deposit", reference: ref }
-    });
+    await createWalletTransaction({ walletId: wallet.id, type: "deposit", amount, currency: "KES", status: "pending", description: "M-Pesa deposit", reference: ref });
 
     res.json({ success: true, reference: ref, message: "STK push sent" });
   } catch (error) {
@@ -212,9 +244,7 @@ router.post("/deposit/bank", async (req: Request, res: Response) => {
     const wallet = await getOrCreateWallet(userId, tenantId);
     const virtualAccountNumber = `W${wallet.id.slice(0, 10).toUpperCase()}`;
 
-    await db.walletTransaction.create({
-      data: { walletId: wallet.id, type: "deposit", amount, currency: "USD", status: "pending", description: `Bank transfer to ${bankName}`, reference: virtualAccountNumber }
-    });
+    await createWalletTransaction({ walletId: wallet.id, type: "deposit", amount, currency: "USD", status: "pending", description: `Bank transfer to ${bankName}`, reference: virtualAccountNumber });
 
     res.json({ success: true, virtualAccountNumber, routingNumber: "110000000", amount, currency: "USD", reference: virtualAccountNumber, instructions: "Transfer funds. Credited in 1-3 days." });
   } catch (error) {
@@ -245,9 +275,7 @@ router.post("/deposit/flutterwave", async (req: Request, res: Response) => {
     const data = await response.json();
     if (data.status !== "success") return res.status(400).json({ error: data.message });
 
-    await db.walletTransaction.create({
-      data: { walletId: wallet.id, type: "deposit", amount, currency, status: "pending", description: `Flutterwave ${paymentType} deposit`, reference: txRef }
-    });
+    await createWalletTransaction({ walletId: wallet.id, type: "deposit", amount, currency, status: "pending", description: `Flutterwave ${paymentType} deposit`, reference: txRef });
 
     res.json({ success: true, link: data.data.link, txRef });
   } catch (error) {
@@ -297,7 +325,7 @@ router.get("/deposit/methods", async (req: Request, res: Response) => {
 // ADMIN: Approve/reject withdrawals
 router.post("/admin/withdrawal/:id/approve", async (req, res) => {
   try {
-    if (req.user!.role !== "OWNER" && req.user!.role !== "ADMIN") {
+    if (req.user!.role !== "owner" && req.user!.role !== "admin") {
       return res.status(403).json({ error: "Admin only" });
     }
     const { id } = req.params;
@@ -352,7 +380,7 @@ router.post("/admin/withdrawal/:id/approve", async (req, res) => {
 
 router.post("/admin/withdrawal/:id/reject", async (req, res) => {
   try {
-    if (req.user!.role !== "OWNER" && req.user!.role !== "ADMIN") {
+    if (req.user!.role !== "owner" && req.user!.role !== "admin") {
       return res.status(403).json({ error: "Admin only" });
     }
     const { id } = req.params;
@@ -493,16 +521,14 @@ router.post("/chama/contribute", async (req: Request, res: Response) => {
       }),
       db.savingsGroupMember.update({ where: { id: member.id }, data: { totalContributed: { increment: group.contributionAmount } } }),
       db.savingsGroup.update({ where: { id: groupId }, data: { totalPool: { increment: group.contributionAmount } } }),
-      db.walletTransaction.create({
-        data: {
-          walletId: wallet.id,
-          type: "chama_contribution",
-          amount: -group.contributionAmount,
-          status: "completed",
-          description: `Contribution to ${group.name} (Round ${group.currentRound})`,
-          reference: `CHAMA_${groupId}_${group.currentRound}`,
-          completedAt: new Date()
-        }
+      createWalletTransaction({
+        walletId: wallet.id,
+        type: "chama_contribution",
+        amount: -group.contributionAmount,
+        status: "completed",
+        description: `Contribution to ${group.name} (Round ${group.currentRound})`,
+        reference: `CHAMA_${groupId}_${group.currentRound}`,
+        completedAt: new Date()
       })
     ]);
 
@@ -525,16 +551,14 @@ router.post("/chama/contribute", async (req: Request, res: Response) => {
             db.savingsGroupMember.update({ where: { id: nextRecipient.id }, data: { hasReceivedPayout: true } }),
             db.savingsGroup.update({ where: { id: groupId }, data: { currentRound: { increment: 1 }, totalPool: 0 } }),
             db.userWallet.update({ where: { id: recipientWallet.id }, data: { balance: { increment: payoutAmount }, available: { increment: payoutAmount }, totalEarned: { increment: payoutAmount } } }),
-            db.walletTransaction.create({
-              data: {
-                walletId: recipientWallet.id,
-                type: "chama_payout",
-                amount: payoutAmount,
-                status: "completed",
-                description: `Payout from ${group.name} (Round ${group.currentRound})`,
-                reference: `CHAMA_PAYOUT_${groupId}_${group.currentRound}`,
-                completedAt: new Date()
-              }
+            createWalletTransaction({
+              walletId: recipientWallet.id,
+              type: "chama_payout",
+              amount: payoutAmount,
+              status: "completed",
+              description: `Payout from ${group.name} (Round ${group.currentRound})`,
+              reference: `CHAMA_PAYOUT_${groupId}_${group.currentRound}`,
+              completedAt: new Date()
             })
           ]);
         }
@@ -574,17 +598,25 @@ router.get("/chama/list", async (req: Request, res: Response) => {
 router.get("/chama/:id", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { id } = req.params;
-    const group = await db.savingsGroup.findUnique({ where: { id }, include: { members: { include: { user: { select: { id: true, name: true, email: true } } } } } });
+    const id = getStringParam(req.params.id);
+    const group = await db.savingsGroup.findUnique({ where: { id }, include: { members: true } });
     if (!group) return res.status(404).json({ error: "Group not found" });
 
     const isMember = group.members.some(m => m.userId === userId);
     if (!isMember) return res.status(403).json({ error: "Not a member" });
 
-    const contributions = await db.savingsGroupContribution.findMany({ where: { groupId: id }, orderBy: { createdAt: "desc" }, take: 50 });
-    const myMember = group.members.find(m => m.userId === userId);
+    const memberUserIds = group.members.map((m) => m.userId);
+    const memberUsers = await db.user.findMany({
+      where: { id: { in: memberUserIds } },
+      select: { id: true, name: true, email: true }
+    });
+    const usersById = new Map(memberUsers.map((u) => [u.id, u]));
+    const membersWithUser = group.members.map((m) => ({ ...m, user: usersById.get(m.userId) || null }));
 
-    res.json({ group, contributions, myMember });
+    const contributions = await db.savingsGroupContribution.findMany({ where: { groupId: id }, orderBy: { createdAt: "desc" }, take: 50 });
+    const myMember = membersWithUser.find(m => m.userId === userId);
+
+    res.json({ group: { ...group, members: membersWithUser }, contributions, myMember });
   } catch (error) {
     console.error("[chama/:id]", error);
     res.status(500).json({ error: "Failed to get group" });
@@ -595,7 +627,7 @@ router.get("/chama/:id", async (req: Request, res: Response) => {
 router.post("/chama/:id/leave", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { id } = req.params;
+    const id = getStringParam(req.params.id);
     const member = await db.savingsGroupMember.findFirst({ where: { groupId: id, userId } });
     if (!member) return res.status(404).json({ error: "Not a member" });
     if (member.role === "admin") return res.status(400).json({ error: "Admin cannot leave. Transfer admin first." });

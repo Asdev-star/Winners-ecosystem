@@ -428,7 +428,7 @@ Generate a JSON response with the following structure. Do not include any preamb
 // POST /products/:id/images - Upload product images
 router.post('/:id/images', authMiddleware, imageLimitMiddleware(), upload.array('images', 5), async (req: Request, res: Response) => {
   try {
-    const productId = req.params.id;
+    const productId = getParam(req.params.id);
     const files = req.files as Express.Multer.File[];
     
     if (!files?.length) {
@@ -454,11 +454,10 @@ router.post('/:id/images', authMiddleware, imageLimitMiddleware(), upload.array(
     // Upload images to Cloudinary
     const uploaded = await Promise.all(
       files.map(async (file) => {
-        const result = await uploadImage(
-          file.buffer,
-          `market/products/${productId}`,
-          { width: 1200 }
-        );
+        const result = await (uploadImage as unknown as (filePath: string, options?: unknown) => Promise<{ url: string; publicId: string }>)(`data:${file.mimetype};base64,${file.buffer.toString("base64")}`, {
+          folder: `market/products/${productId}`,
+          transformation: { width: 1200 }
+        });
         return {
           url: result.url,
           publicId: result.publicId
@@ -471,7 +470,6 @@ router.post('/:id/images', authMiddleware, imageLimitMiddleware(), upload.array(
       data: uploaded.map((img, index) => ({
         productId,
         url: img.url,
-        publicId: img.publicId,
         position: index,
         isPrimary: index === 0,
         tenantId

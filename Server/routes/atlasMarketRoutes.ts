@@ -59,7 +59,7 @@ router.post('/product-score', async (req: Request, res: Response) => {
   try {
     const product = await db.product.findUnique({
       where: { id: productId },
-      include: { supplier: true }
+      include: { supplierProduct: { include: { supplier: true } } }
     });
 
     if (!product) {
@@ -72,11 +72,11 @@ router.post('/product-score', async (req: Request, res: Response) => {
     }
 
     const prompt = `Score this product 0–100 for sales potential in African + diaspora markets.
-Product: ${product.title}
+Product: ${product.name}
 Category: ${product.category}
 Price: $${product.price}
 Cost: $${product.costPrice ?? 'N/A'}
-Supplier: ${product.supplier?.name ?? 'Own inventory'}
+Supplier: ${product.supplierProduct?.supplier?.name ?? 'Own inventory'}
 Respond ONLY with valid JSON, no markdown:
 { "score": number, "reasons": string[], "recommendations": string[], "atlasVerdict": string }`;
 
