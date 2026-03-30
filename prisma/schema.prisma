@@ -130,6 +130,8 @@ model Tenant {
   vendorPayouts                 VendorPayout[]
   vendorReviews                 VendorReview[]
   vendors                       Vendor[]
+  userWallets                   UserWallet[]
+  withdrawalRequests            WithdrawalRequest[]
   videoRoomParticipants         VideoRoomParticipant[]
   videoRooms                    VideoRoom[]
   webhookSubscriptions          WebhookSubscription[]
@@ -250,6 +252,8 @@ model User {
   tenant                     Tenant                         @relation(fields: [tenantId], references: [id])
   vendorReviews              VendorReview[]
   vendors                    Vendor[]
+  userWallets                UserWallet[]
+  withdrawalRequests         WithdrawalRequest[]
   videoRoomParticipations    VideoRoomParticipant[]
   hostedVideoRooms           VideoRoom[]
 
@@ -3329,6 +3333,7 @@ model UserWallet {
   user          User          @relation(fields: [userId], references: [id])
   tenant        Tenant        @relation(fields: [tenantId], references: [id])
   transactions  WalletTransaction[]
+  withdrawalRequests WithdrawalRequest[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, userId])
