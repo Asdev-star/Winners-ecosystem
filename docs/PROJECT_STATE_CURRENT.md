@@ -1,175 +1,342 @@
-# WINNERS ECOSYSTEM — PROJECT STATE
-## Last Updated: March 18, 2026 (Repo-Verified from App.tsx + apiRouter.ts + filesystem)
+# WINNERS ECOSYSTEM - PROJECT STATE
+## Last Updated: March 29, 2026 (repo-verified from filesystem, App.tsx, apiRouter.ts, AppRegistry, and package manifests)
 
-**Live URL:** https://winners-empire-eco.up.railway.app
-**Stack:** React 19 + TypeScript (Vite) · Node/Express 5 · PostgreSQL (Prisma 7) · Railway
-**Overall Progress:** ~65% (Core, Community, Academy solid; Market/Intelligence active; Work/Cloud scaffolded)
-
----
-
-## CORRECTIONS vs PREVIOUS DOCS
-
-| Old Claim | Reality (March 18 2026) |
-|---|---|
-| "Cloud = Planned, 0%" | ✅ Cloud is BUILDING — 8 frontend pages + cloudRoutes.ts mounted |
-| "Intelligence = 4 routes" | ✅ Intelligence has 11 routes (agents, loop, memory, credits, reports, analytics, revenue added) |
-| "Work = 3 routes" | ✅ Work has 5 routes (/work/escrow, /work/profile added) |
-| "Market = 3 routes" | ✅ Market has 10 routes (business-launcher, cv-tools, digital-marketing added) |
-| "Backend route modules = 45" | ✅ 57 route modules (12 new since V7) |
-| "Service modules = 12" | ✅ 17 service modules (5 new since V7) |
-| "Middleware files = 6" | ✅ 7 middleware files (aiCreditsMiddleware.ts added) |
-| "Top-level hooks = 7" | ✅ 10 hooks (useAgenticLoop, useAssistant, useEcosystemHealth added) |
-| "Cloudinary not confirmed" | ✅ cloudinaryService.ts present in Server/services/ |
-| "Test files = 4" | ✅ 7 test files (auth.test.ts, postSecurity.test.ts, cartCheckout.test.ts added) |
-| "Academy /verify not present" | ✅ /verify/:token (CertificateVerificationPage) is a public route |
-| "NOVA/ATLAS/CIRCUIT partial/planning" | ✅ All three have dedicated service/route files |
+**Stack:** React 19 + TypeScript + Vite · Node/Express 5 · PostgreSQL + Prisma 7 · Expo React Native · Electron · FastAPI
+**Overall Progress:** ~70% complete
+**Verification Scope:** Static repo analysis only in this pass. No runtime boot, network checks, or full test run were performed.
 
 ---
 
-## PLATFORM STATUS (Verified March 18 2026)
+## EXECUTIVE SNAPSHOT
 
-| Platform | Frontend Pages | Backend Routes | AI Supervisor | Status |
-|---|---|---|---|---|
-| Core Engine | 20+ pages | 15+ routes | ARIA (chatRoutes, aiRoutes) | ✅ Live (~95%) |
-| Community | 15+ pages | 8+ routes | NOVA (communityIntelligenceRoutes + novaSkillDetection service) | ✅ Live (~85%) |
-| Academy | 11 pages | 6+ routes | SAGE (academyRoutes, quizRoutes, lectureUploadRoutes, liveSessionRoutes) | ✅ Live (~75%) |
-| Market | 11 pages | 5+ routes | ATLAS (atlasRoutes.ts present) | 🔨 Building (~50%) |
-| Intelligence | 10 pages + components | 8+ routes | OMEGA (omegaRoutes, supervisorRoutes, autonomousRoutes, agenticLoopRoutes) | 🔨 Building (~70%) |
-| Work | 3 pages | 2+ routes | CIRCUIT (circuitRoutes.ts present) | 🔨 Building (~30%) |
-| Cloud | 8 pages | 1+ routes | NEXUS (cloudRoutes.ts present) | 🔨 Building (~40%) |
-| Mobile | PWA + Electron | N/A | — | ✅ Ready |
-
----
-
-## VERIFIED BACKEND ROUTE MODULES (57 total, 5 test files)
-
-### Route Modules (57)
-- `academyRoutes.ts` — `activityRoutes.ts` — `adminRoutes.ts` — `agenticLoopRoutes.ts` **[NEW]**
-- `aiPlatformRoutes.ts` — `aiRoutes.ts` — `analyticsRoutes.ts` — `apiRouter.ts`
-- `atlasRoutes.ts` **[NEW]** — `authRoutes.ts` — `autonomousRoutes.ts` — `billingRoutes.ts`
-- `cartRoutes.ts` — `changelogRoutes.ts` — `chatRoutes.ts` — `circuitRoutes.ts` **[NEW]**
-- `cloudRoutes.ts` **[NEW]** — `communityExtrasRoutes.ts` — `communityIntelligenceRoutes.ts`
-- `connectorRoutes.ts` **[NEW]** — `creditRoutes.ts` **[NEW]** — `emailRoutes.ts` — `escrowRoutes.ts` **[NEW]**
-- `exportRoutes.ts` — `externalCourseRoutes.ts` — `gdprRoutes.ts` — `groupRoutes.ts`
-- `healthRoutes.ts` — `lectureUploadRoutes.ts` **[NEW]** — `liveSessionRoutes.ts` **[NEW]**
-- `liveSpaceRoutes.ts` — `messageRoutes.ts` — `notificationRoutes.ts` — `notificationTokenRoutes.ts` **[NEW]**
-- `omegaRoutes.ts` — `opportunityRoutes.ts` — `orderRoutes.ts` — `passwordResetRoutes.ts`
-- `platformLaunchRoutes.ts` **[NEW — EXISTS BUT NOT WIRED IN apiRouter.ts ⚠️]**
-- `postRoutes.ts` — `productRoutes.ts` — `profileRoutes.ts` — `quizRoutes.ts`
-- `referralRoutes.ts` — `registryRoutes.ts` — `searchRoutes.ts` — `slackRoutes.ts`
-- `socialRoutes.ts` — `ssoRoutes.ts` — `stripeRoutes.ts` — `studioRoutes.ts`
-- `supervisorRoutes.ts` — `tenantsRoutes.ts` — `twoFactorRoutes.ts` — `usersRoutes.ts`
-- `vendorRoutes.ts` — `workRoutes.ts`
-
-### Route Test Files (5)
-- `apiRouter.test.ts` — `auth.test.ts` **[NEW]** — `cartCheckout.test.ts` **[NEW]**
-- `postSecurity.test.ts` **[NEW]** — `registryRoutes.test.ts`
+- This repo is a multi-surface product, not a single app.
+- The primary production surfaces are:
+  - Web app in `src/`
+  - Express API in `Server/`
+  - Prisma schema in `prisma/`
+  - Mobile app in `mobile/WinnersApp/`
+  - Electron wrapper in `electron/`
+  - Separate FastAPI AI service in `ai-platform/`
+- The root `README.md` is still the default Vite template and is not a reliable description of the current system.
 
 ---
 
-## VERIFIED BACKEND SERVICE MODULES (17 total, 1 test file)
+## PLATFORM STATUS (repo-verified March 29, 2026)
 
-- `activityService.ts` — `agenticLoopService.ts` **[NEW]** — `aiService.ts`
-- `appRegistry.ts` — `certificateService.ts` **[NEW]** — `cloudinaryService.ts` **[NEW — now confirmed]**
-- `emailScheduler.ts` — `emailService.ts` — `externalCourseSeed.ts` **[NEW]**
-- `fcmService.ts` **[NEW]** — `novaSkillDetection.ts` **[NEW]** — `omegaSignalService.ts` **[NEW]**
-- `quizService.ts` **[NEW]** — `referralService.ts` — `slackService.ts` — `stripeService.ts` — `wsService.ts`
-
-### Service Test Files (1)
-- `appRegistry.test.ts`
-
----
-
-## VERIFIED BACKEND MIDDLEWARE (7 files)
-
-- `aiCreditsMiddleware.ts` **[NEW]** — `authMiddleware.ts` — `rateLimitMiddleware.ts`
-- `rbacMiddleware.ts` — `securityMiddleware.ts` — `securityMiddleware_safe.ts` — `usageLimits.ts`
+| Platform | Source of truth | Current status | Notes |
+|---|---|---|---|
+| Core Engine | `Server/services/appRegistry.ts` | Live | Auth, billing, analytics, exports, admin, API gateway |
+| Community | `Server/services/appRegistry.ts` | Live | Feed, posts, groups, messaging, live spaces, studio surfaces |
+| Academy | `Server/services/appRegistry.ts` | Live | Courses, quizzes, certificates, live sessions, uploads |
+| Market | `Server/services/appRegistry.ts` | Live | Vendors, products, cart, checkout, orders, dropshipping |
+| Intelligence | `Server/services/appRegistry.ts` | Live | Omega, supervisors, agentic loops, credits, reports |
+| Work | `Server/services/appRegistry.ts` | In progress | Jobs, freelancer profiles, contracts, escrow are present but still treated as not fully launched |
+| Mobile | `Server/services/appRegistry.ts` | Planned | Native Expo app exists in repo, but registry still marks the layer as planned |
+| Cloud | `Server/services/appRegistry.ts` | In progress | API keys, connectors, agents, automations, webhooks surfaces exist |
 
 ---
 
-## VERIFIED FRONTEND ROUTES (from App.tsx — March 18 2026)
+## REPO SHAPE
 
-### Public Routes
-- `/` — `/landing` — `/login` — `/invite/accept` — `/onboarding`
-- `/architecture` — `/ui-quality` — `/forgot-password` — `/reset-password`
-- `/sso/exchange` — `/verify/:token` **[NEW — CertificateVerificationPage]**
+### Top-level product surfaces
 
-### Core Protected Routes
-- `/2fa` `/dashboard` `/search` `/analytics` `/team` `/export` `/billing`
-- `/email` `/notifications` `/settings` `/profile` `/slack` `/stripe`
-- `/activity` `/referral` `/admin` `/ops` `/changelog`
+- `src/` - React web client
+- `Server/` - Express API and services
+- `prisma/` - database schema, migrations, seeds
+- `mobile/WinnersApp/` - Expo mobile application
+- `electron/` - desktop shell around the web app
+- `ai-platform/` - separate FastAPI AI service
+- `sdk/` - shared SDK client
+- `docs/` - living product and planning documents
 
-### Community Routes (17)
-- `/community` `/community/groups` `/community/spaces` `/community/directory`
-- `/community/opportunities` `/community/analytics` `/community/creator`
-- `/community/social-accounts` `/community/social-intelligence`
-- `/community/discover` `/community/saved`
-- `/community/studio` `/community/studio/room/:roomId` `/community/studio/stream/:streamId`
-- `/community/profile/:id`
-- `/messages` `/messages/:conversationId`
-
-### Academy Routes (14)
-- `/academy` `/academy/external` `/academy/explore` `/academy/my-learning`
-- `/academy/courses/:slug`
-- `/academy/instructor` `/academy/instructor/create` `/academy/instructor/edit/:id`
-- `/academy/paths` `/academy/paths/:pathId`
-- `/academy/study-groups` `/academy/study-groups/:groupId`
-- `/academy/quiz/:quizId`
-- `/academy/live-sessions` **[NEW]**
-
-### Intelligence Routes (11)
-- `/intelligence` `/intelligence/aria` `/intelligence/omega` `/intelligence/platform`
-- `/intelligence/agents/:name` **[NEW]** `/intelligence/loop` **[NEW]**
-- `/intelligence/memory` **[NEW]** `/intelligence/credits` **[NEW]**
-- `/intelligence/reports` **[NEW]** `/intelligence/analytics` **[NEW]**
-- `/intelligence/revenue` **[NEW]**
-
-### Market Routes (11)
-- `/market` `/market/dropshipping` `/market/product/:productId`
-- `/market/vendor` `/market/cart` `/market/orders` `/market/checkout`
-- `/market/business-launcher` **[NEW]** `/market/cv-tools` **[NEW]**
-- `/market/digital-marketing` **[NEW]** `/market/:vertical`
-
-### Work Routes (5)
-- `/work` `/work/freelancers` `/work/contracts`
-- `/work/escrow` **[NEW]** `/work/profile` **[NEW — FreelancerProfilePage]**
-
-### Cloud Routes (8) — ENTIRE SECTION NEW (was "Planned" in V7)
-- `/cloud` `/cloud/connectors` `/cloud/automations` `/cloud/agents`
-- `/cloud/keys` `/cloud/webhooks` `/cloud/usage` `/cloud/marketplace`
-
----
-
-## VERIFIED FRONTEND STRUCTURE
+### Current codebase counts
 
 | Category | Count | Notes |
 |---|---|---|
-| Feature directories | 30 | +1 vs V7 (`theme` added) |
-| Top-level hooks (`src/hooks/`) | 10 | +3 vs V7 (useAgenticLoop, useAssistant, useEcosystemHealth) |
-| Top-level stores (`src/stores/`) | 4 | socialGraphStore, ecosystemStore, assistantStore, agenticLoopStore |
-| Total test files (all) | 7 | authStore.test.ts + 5 route tests + 1 service test |
+| Backend route modules | 62 | `Server/routes/*Routes.ts` |
+| Backend route test files | 5 | `apiRouter`, `auth`, `cartCheckout`, `postSecurity`, `registryRoutes` |
+| Backend service modules | 36 | excludes `appRegistry.test.ts` |
+| Backend service test files | 1 | `Server/services/appRegistry.test.ts` |
+| Backend middleware files | 10 | includes auth, RBAC, layer gates, rate limiting, usage limits |
+| Frontend feature directories | 33 | `src/features/*` |
+| Top-level frontend hooks | 10 | `src/hooks/*` |
+| Top-level frontend stores | 4 | `src/stores/*` |
+| Total test files | 7 | across frontend and backend |
 
 ---
 
-## KNOWN MISMATCHES (unresolved)
+## VERIFIED FRONTEND SURFACES
 
-| # | Issue | Detail |
+### Public routes
+
+- `/`
+- `/landing`
+- `/login`
+- `/invite/accept`
+- `/onboarding`
+- `/architecture`
+- `/ui-quality`
+- `/forgot-password`
+- `/reset-password`
+- `/sso/exchange`
+- `/verify/:token`
+
+### Admin and operations
+
+- `/admin/overview`
+- `/admin/platform`
+- `/admin/platform/:layerId`
+- `/admin/tenants`
+- `/admin/tenants/:id`
+- `/admin/users`
+- `/admin/users/:id`
+- `/admin/revenue`
+- `/admin/forge`
+- `/admin/health`
+- `/admin/broadcast`
+- `/admin/security`
+- `/ops` redirects to admin health
+
+### Core protected surfaces
+
+- `/dashboard`
+- `/home`
+- `/search`
+- `/analytics`
+- `/team`
+- `/export`
+- `/billing`
+- `/email`
+- `/notifications`
+- `/settings`
+- `/settings/core`
+- `/profile`
+- `/slack`
+- `/stripe`
+- `/activity`
+- `/referral`
+- `/changelog`
+- `/2fa`
+
+### Community surfaces
+
+- `/community`
+- `/community/feed`
+- `/community/groups`
+- `/community/spaces`
+- `/community/directory`
+- `/community/opportunities`
+- `/community/analytics`
+- `/community/creator`
+- `/community/social-accounts`
+- `/community/social-intelligence`
+- `/community/discover`
+- `/community/saved`
+- `/community/studio`
+- `/community/studio/room/:roomId`
+- `/community/studio/stream/:streamId`
+- `/community/profile/:id`
+- `/messages`
+- `/messages/:conversationId`
+
+### Academy surfaces
+
+- `/academy`
+- `/academy/external`
+- `/academy/explore`
+- `/academy/my-learning`
+- `/academy/courses/:slug`
+- `/academy/instructor`
+- `/academy/instructor/create`
+- `/academy/instructor/edit/:id`
+- `/academy/paths`
+- `/academy/paths/:pathId`
+- `/academy/study-groups`
+- `/academy/study-groups/:groupId`
+- `/academy/quiz/:quizId`
+- `/academy/live-sessions`
+
+### Intelligence surfaces
+
+- `/intelligence`
+- `/intelligence/aria`
+- `/intelligence/omega`
+- `/intelligence/platform`
+- `/intelligence/agents/:name`
+- `/intelligence/loop`
+- `/intelligence/memory`
+- `/intelligence/credits`
+- `/intelligence/reports`
+- `/intelligence/analytics`
+- `/intelligence/revenue`
+
+### Market surfaces
+
+- `/market`
+- `/market/dropshipping`
+- `/market/product/:productId`
+- `/market/vendor`
+- `/market/cart`
+- `/market/orders`
+- `/market/checkout`
+- `/market/finance`
+- `/market/business-launcher`
+- `/market/cv-tools`
+- `/market/digital-marketing`
+- `/market/marketing`
+- `/market/:vertical`
+
+### Work surfaces
+
+- `/work`
+- `/work/jobs`
+- `/work/freelancers`
+- `/work/contracts`
+- `/work/escrow`
+- `/work/profile`
+
+### Cloud surfaces
+
+- `/cloud`
+- `/cloud/connectors`
+- `/cloud/automations`
+- `/cloud/agents`
+- `/cloud/keys`
+- `/cloud/webhooks`
+- `/cloud/usage`
+- `/cloud/marketplace`
+
+---
+
+## VERIFIED BACKEND SURFACES
+
+### API gateway
+
+- Main gateway: `/api/v1`
+- Health endpoint outside the rate limiter: `/health`
+- Legacy route redirects still exist for older unversioned endpoints
+
+### Major mounted backend domains
+
+- Auth and password reset
+- Tenants and users
+- Analytics and export
+- Billing and Stripe
+- AI and chat
+- Profile and onboarding
+- Email and notifications
+- Search and activity
+- Referral and changelog
+- 2FA and GDPR
+- Community posts, groups, spaces, messages, studio, social
+- Academy, quizzes, lecture uploads, live sessions, external courses
+- Market, vendors, products, cart, checkout, orders, finance, dropship
+- Work, escrow, circuit
+- Cloud, connectors, push tokens
+- Omega, supervisors, autonomous insights, agentic loops, credits
+- Atlas and market-specific Atlas routes
+
+### AI service
+
+The separate FastAPI service in `ai-platform/` exposes:
+
+- chat
+- images
+- speech
+- multimodal
+- health
+- config
+
+This appears to be an adjunct inference service rather than the main application backend.
+
+---
+
+## DATA MODEL STATUS
+
+The Prisma schema remains one of the clearest indicators of product scope. It includes:
+
+- Multi-tenant core entities
+- Auth, 2FA, impersonation, privacy acknowledgments
+- Community posts, comments, reactions, groups, live spaces, studio entities
+- Academy courses, lessons, quizzes, certificates, live sessions, learning paths
+- Market vendors, products, carts, orders, reviews, payouts
+- Work jobs, applications, freelancer profiles, contracts, milestones, escrow, reviews
+- Cloud connectors, installs, API keys, webhooks, automations, AI agents, usage logs
+- Finance wallets, wallet transactions, withdrawal requests, savings groups
+- Platform launch status tracking
+
+The schema is broad and powerful, but also a clear maintainability hotspot because so many domains live in one model file.
+
+---
+
+## TESTING STATUS
+
+Current test surface is still small relative to repo size.
+
+### Present tests
+
+- `src/features/auth/authStore.test.ts`
+- `Server/services/appRegistry.test.ts`
+- `Server/routes/apiRouter.test.ts`
+- `Server/routes/auth.test.ts`
+- `Server/routes/cartCheckout.test.ts`
+- `Server/routes/postSecurity.test.ts`
+- `Server/routes/registryRoutes.test.ts`
+
+### Assessment
+
+- Security and router regression coverage exists in a few important places.
+- The overall test footprint is still thin for the breadth of platform features.
+- Mobile, Electron, and the Python AI service currently have no obvious automated coverage in this repo.
+
+---
+
+## KNOWN GAPS AND MISMATCHES (repo-verified)
+
+| # | Issue | Current reality |
 |---|---|---|
-| 1 | Docker runs wrong path | Runs `node dist/Server/index.js` — output is `dist/server/index.js` |
-| 2 | Electron packaging wrong path | References `dist-server/**/*` — output is `dist/server/**/*` |
-| 3 | Presence token key mismatch | `authStore.ts` saves as `we_token`; `usePresence.ts` reads `token` — breaks WebSocket presence |
-| 4 | `appRegistry.ts` stale | Marks Cloud, Work, Intelligence as planned/in-progress; all now have routed surfaces |
-| 5 | `platformLaunchRoutes.ts` unwired | File exists in `Server/routes/` but is NOT imported or mounted in `apiRouter.ts` |
+| 1 | Root README is stale | `README.md` still describes the default Vite template rather than the actual platform |
+| 2 | `platformLaunchRoutes.ts` is not wired into the API gateway | The file exists, but `Server/routes/apiRouter.ts` does not import or mount it |
+| 3 | SSO routes are still partially stubbed | `Server/routes/ssoRoutes.ts` still contains TODOs for SAML validation, Okta profile handling, and persistence |
+| 4 | Timezone handling is still hardcoded in one prompt path | `src/config/supervisorPrompts.ts` still hardcodes `Africa/Nairobi` with a TODO to use profile data |
+| 5 | Status semantics are mixed across layers | `AppRegistry` marks Mobile as planned even though a substantial Expo app exists in the repo |
+
+### Recently resolved from earlier project-state notes
+
+- Docker server output path is now aligned to `dist/server/index.js`
+- Electron packaging references `dist/server/**/*`, which matches the current build output
+- Presence token storage currently uses `we_token` consistently between auth persistence and `usePresence.ts`
 
 ---
 
-## PRIORITY NEXT ACTIONS
+## CURRENT READINESS SUMMARY
 
-| Priority | Action |
-|---|---|
-| 🔴 1 | Fix presence token key mismatch (`we_token` → `token` or vice versa) |
-| 🔴 2 | Fix Docker + Electron output path mismatches |
-| 🔴 3 | Wire or delete `platformLaunchRoutes.ts` |
-| 🟡 4 | Update `appRegistry.ts` — Cloud, Work, Intelligence are live |
-| 🟡 5 | Lint stabilization — ~212 errors backlog |
-| 🟢 6 | Expand test coverage (market checkout, academy flows, auth hardening already started) |
+### Strongest areas
+
+- Web app route surface
+- Express API gateway structure
+- Multi-tenant Prisma data model
+- Admin and platform-control surfaces
+- Market and Intelligence feature breadth
+
+### Mid-maturity areas
+
+- Cloud layer
+- Work layer
+- Mobile productization and launch-state alignment
+
+### Weakest areas
+
+- Onboarding quality of repo docs
+- Test coverage versus system size
+- Clear separation of source-of-truth docs versus historical planning docs
+
+---
+
+## RECOMMENDED NEXT ACTIONS
+
+1. Replace the root `README.md` with a real architecture and startup guide.
+2. Decide whether `platformLaunchRoutes.ts` should be mounted or removed.
+3. Finish the TODO-backed SSO implementation before calling that path production-ready.
+4. Expand test coverage around Market, Work, Cloud, and critical auth flows.
+5. Reconcile launch-state semantics for Mobile and other layers so docs, registry state, and surfaced functionality all match.
