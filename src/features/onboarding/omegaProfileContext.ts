@@ -236,8 +236,8 @@ const PROFILE_CONTEXTS: Record<OmegaSupportedProfileType, OmegaProfileContext> =
     primaryLayer: "core",
     primarySupervisor: "OMEGA",
     secondarySupervisor: null,
-    primaryPlatformHost: "winnersempire.io/dashboard",
-    entryPath: "/dashboard",
+    primaryPlatformHost: "winnersempire.io/home",
+    entryPath: "/home",
     briefingFocus: [
       "Weekly \"here's what you could do next\" - three options, no pressure",
       "Platform discovery - rotating spotlight on different layers",
@@ -257,7 +257,7 @@ const PROFILE_CONTEXTS: Record<OmegaSupportedProfileType, OmegaProfileContext> =
 function normalizeLayerKey(path: string): OmegaLayerKey | null {
   const layer = path.replace(/^\//, "").split("/")[0]?.toLowerCase();
   if (!layer) return null;
-  if (layer === "dashboard" || layer === "core") return "core";
+  if (layer === "dashboard" || layer === "home" || layer === "core") return "core";
   if (layer === "community") return "community";
   if (layer === "academy") return "academy";
   if (layer === "market") return "market";
@@ -273,7 +273,7 @@ export function getOmegaProfileContext(profileType?: string | null): OmegaProfil
 }
 
 export function getOmegaProfileEntryPath(profileType?: string | null, fallbackPath?: string | null): string {
-  return getOmegaProfileContext(profileType)?.entryPath ?? fallbackPath ?? "/dashboard";
+  return getOmegaProfileContext(profileType)?.entryPath ?? fallbackPath ?? "/home";
 }
 
 export function getOmegaSidebarRank(profileType: string | null | undefined, platformPath: string): number {

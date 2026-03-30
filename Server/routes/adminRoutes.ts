@@ -170,8 +170,112 @@ const streamTextAsSse = (res: Response, text: string) => {
   res.on("close", () => clearInterval(timer));
 };
 
+const handleForgeChat = async (req: Request, res: Response) => {
+  const { message, history = [] } = req.body;
+  if (!message) return res.status(400).json({ message: "message is required" });
+
+  const context = await getAdminForgeChatContext();
+  const safeHistory: Array<{ role: "user" | "assistant"; content: string }> = Array.isArray(history)
+    ? history.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const messageEntry = entry as { role?: unknown; content?: unknown };
+        const role: "user" | "assistant" | null =
+          messageEntry.role === "assistant" ? "assistant" : messageEntry.role === "user" ? "user" : null;
+        const content = typeof messageEntry.content === "string" ? messageEntry.content.trim() : "";
+        return role && content ? [{ role, content }] : [];
+      })
+    : [];
+
+  if (!anthropic) {
+    const fallback = await buildAdminForgeFallbackResponse(context, message);
+    return streamTextAsSse(res, fallback);
+  }
+
+  const system = buildAdminForgeSystemPrompt(context, req.user!.email);
+  beginSse(res);
+
+  const stream = await anthropic.messages.stream({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1400,
+    system,
+    messages: [...safeHistory, { role: "user", content: message }],
+  });
+
+  for await (const chunk of stream) {
+    if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+      res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
+    }
+  }
+  res.write("data: [DONE]\n\n");
+  res.end();
+};
+
+const handleTenantImpersonation = async (req: Request, res: Response, tenantId: string) => {
+  const { reason } = req.body ?? {};
+  const owner = await db.user.findFirst({
+    where: { tenantId, role: "OWNER", deletedAt: null },
+    include: {
+      tenant: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+  if (!owner) return res.status(404).json({ message: "No owner found" });
+  const token = jwt.sign(
+    {
+      userId: owner.id,
+      tenantId: owner.tenantId,
+      email: owner.email,
+      role: owner.role.toLowerCase(),
+      isImpersonation: true,
+      adminId: req.user!.userId,
+    },
+    JWT_SECRET,
+    { expiresIn: "30m" },
+  );
+  await recordAdminAction({
+    actor: getAdminActor(req),
+    action: "ADMIN_TENANT_IMPERSONATED",
+    summary: `Impersonated tenant ${tenantId} as ${owner.email}`,
+    metadata: { tenantId, targetUserId: owner.id, reason: typeof reason === "string" ? reason.trim() : "" },
+  });
+  const impersonationUser = serializeImpersonationUser(owner, req.user!.userId);
+  if (!impersonationUser) {
+    return res.status(500).json({ message: "Failed to serialize impersonation user" });
+  }
+  return res.json({
+    token,
+    impersonationToken: token,
+    expiresIn: 30 * 60,
+    user: impersonationUser,
+  });
+};
+
+const handleBroadcastCreate = async (req: Request, res: Response) => {
+  const { channels, message, audienceKind, plan, layerId } = req.body;
+  const result = await sendAdminBroadcast({
+    actorTenantId: req.user!.tenantId,
+    audience: { kind: audienceKind || "all", plan, layerId },
+    channels: channels || ["in_app"],
+    message,
+  });
+  await recordAdminAction({
+    actor: getAdminActor(req),
+    action: "ADMIN_BROADCAST_SENT",
+    summary: `Broadcast sent to ${result.recipients} users`,
+    metadata: { result },
+  });
+  return res.json(result);
+};
+
 // --- MIDDLEWARE ---
 router.use(concealedSuperAdminMiddleware);
+
+router.get("/access", (_req, res) => {
+  return res.json({ ok: true, realm: "admin" });
+});
 
 router.get("/subnav", async (_req, res) => {
   try {
@@ -187,6 +291,15 @@ router.get("/overview", async (_req, res) => {
   try {
     const snapshot = await getAdminOverviewSnapshot();
     return res.json(snapshot);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.get("/stats", async (_req, res) => {
+  try {
+    const snapshot = await getAdminOverviewSnapshot();
+    return res.json(snapshot.kpis);
   } catch (err) {
     return res.status(500).json({ message: errorMessage(err) });
   }
@@ -328,43 +441,15 @@ router.get("/forge/panel", async (_req, res) => {
 
 router.post("/forge/chat", async (req, res) => {
   try {
-    const { message, history = [] } = req.body;
-    if (!message) return res.status(400).json({ message: "message is required" });
+    return await handleForgeChat(req, res);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
 
-    const context = await getAdminForgeChatContext();
-    const safeHistory: Array<{ role: "user" | "assistant"; content: string }> = Array.isArray(history)
-      ? history.flatMap((entry) => {
-          if (!entry || typeof entry !== "object") return [];
-          const messageEntry = entry as { role?: unknown; content?: unknown };
-          const role: "user" | "assistant" | null =
-            messageEntry.role === "assistant" ? "assistant" : messageEntry.role === "user" ? "user" : null;
-          const content = typeof messageEntry.content === "string" ? messageEntry.content.trim() : "";
-          return role && content ? [{ role, content }] : [];
-        })
-      : [];
-
-    if (!anthropic) {
-      const fallback = await buildAdminForgeFallbackResponse(context, message);
-      return streamTextAsSse(res, fallback);
-    }
-
-    const system = buildAdminForgeSystemPrompt(context, req.user!.email);
-    beginSse(res);
-
-    const stream = await anthropic.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1400,
-      system,
-      messages: [...safeHistory, { role: "user", content: message }],
-    });
-
-    for await (const chunk of stream) {
-      if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
-        res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
-      }
-    }
-    res.write("data: [DONE]\n\n");
-    res.end();
+router.post("/forge/ask", async (req, res) => {
+  try {
+    return await handleForgeChat(req, res);
   } catch (err) {
     return res.status(500).json({ message: errorMessage(err) });
   }
@@ -605,35 +690,15 @@ router.patch("/tenants/:id/plan", async (req, res) => {
 
 router.post("/tenants/:id/impersonate", async (req, res) => {
   try {
-    const { reason } = req.body ?? {};
-    const owner = await db.user.findFirst({
-      where: { tenantId: req.params.id, role: "OWNER", deletedAt: null },
-      include: {
-        tenant: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-    if (!owner) return res.status(404).json({ message: "No owner found" });
-    const token = jwt.sign({ userId: owner.id, tenantId: owner.tenantId, email: owner.email, role: owner.role.toLowerCase(), isImpersonation: true, adminId: req.user!.userId }, JWT_SECRET, { expiresIn: "30m" });
-    await recordAdminAction({
-      actor: getAdminActor(req),
-      action: "ADMIN_TENANT_IMPERSONATED",
-      summary: `Impersonated tenant ${req.params.id} as ${owner.email}`,
-      metadata: { tenantId: req.params.id, targetUserId: owner.id, reason: typeof reason === "string" ? reason.trim() : "" },
-    });
-    const impersonationUser = serializeImpersonationUser(owner, req.user!.userId);
-    if (!impersonationUser) {
-      return res.status(500).json({ message: "Failed to serialize impersonation user" });
-    }
-    return res.json({
-      token,
-      impersonationToken: token,
-      expiresIn: 30 * 60,
-      user: impersonationUser,
-    });
+    return await handleTenantImpersonation(req, res, req.params.id);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/impersonate/:tenantId", async (req, res) => {
+  try {
+    return await handleTenantImpersonation(req, res, req.params.tenantId);
   } catch (err) {
     return res.status(500).json({ message: errorMessage(err) });
   }
@@ -807,6 +872,43 @@ router.get("/revenue/summary", async (_req, res) => {
   }
 });
 
+router.get("/revenue/breakdown", async (_req, res) => {
+  try {
+    const [snapshot, tenants, users] = await Promise.all([
+      getAdminRevenueSnapshot(),
+      db.tenant.findMany({ where: { deletedAt: null }, select: { plan: true } }),
+      db.user.findMany({ where: { deletedAt: null }, select: { country: true } }),
+    ]);
+
+    const planCounts = ["FREE", "PRO", "ENTERPRISE"].map((plan) => ({
+      plan,
+      tenantCount: tenants.filter((tenant) => tenant.plan === plan).length,
+    }));
+
+    const geoCounts = Array.from(
+      users.reduce((map, user) => {
+        const key = (user.country ?? "Unknown").trim() || "Unknown";
+        map.set(key, (map.get(key) ?? 0) + 1);
+        return map;
+      }, new Map<string, number>()),
+    )
+      .map(([country, usersCount]) => ({ country, users: usersCount }))
+      .sort((left, right) => right.users - left.users)
+      .slice(0, 10);
+
+    return res.json({
+      kpis: snapshot.kpis,
+      chart: snapshot.chart,
+      layers: snapshot.layers,
+      byPlan: planCounts,
+      byGeo: geoCounts,
+      note: "Layer revenue is live. Plan and geography breakdowns currently reflect tenant and user distribution.",
+    });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
 router.get("/revenue/chart", async (_req, res) => {
   try {
     const snapshot = await getAdminRevenueSnapshot();
@@ -849,15 +951,15 @@ router.get("/broadcasts", async (_req, res) => {
 
 router.post("/broadcasts", async (req, res) => {
   try {
-    const { channels, message, audienceKind, plan, layerId } = req.body;
-    const result = await sendAdminBroadcast({
-      actorTenantId: req.user!.tenantId,
-      audience: { kind: audienceKind || "all", plan, layerId },
-      channels: channels || ["in_app"],
-      message,
-    });
-    await recordAdminAction({ actor: getAdminActor(req), action: "ADMIN_BROADCAST_SENT", summary: `Broadcast sent to ${result.recipients} users`, metadata: { result } });
-    return res.json(result);
+    return await handleBroadcastCreate(req, res);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/broadcast", async (req, res) => {
+  try {
+    return await handleBroadcastCreate(req, res);
   } catch (err) {
     return res.status(500).json({ message: errorMessage(err) });
   }
@@ -902,6 +1004,24 @@ router.get("/audit-log", async (_req, res) => {
   }
 });
 
+router.get("/actions", async (_req, res) => {
+  try {
+    const logs = await db.activityLog.findMany({ where: { category: "admin" }, orderBy: { createdAt: "desc" }, take: 100 });
+    return res.json(logs);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.get("/security/audit", async (_req, res) => {
+  try {
+    const snapshot = await getAdminSecuritySnapshot();
+    return res.json(snapshot);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
 // --- HEALTH ---
 router.get("/health", async (_req, res) => {
   try {
@@ -913,6 +1033,15 @@ router.get("/health", async (_req, res) => {
 });
 
 router.get("/health/errors", async (_req, res) => {
+  try {
+    const errors = await db.activityLog.findMany({ where: { category: "error" }, orderBy: { createdAt: "desc" }, take: 50 });
+    return res.json(errors);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.get("/errors", async (_req, res) => {
   try {
     const errors = await db.activityLog.findMany({ where: { category: "error" }, orderBy: { createdAt: "desc" }, take: 50 });
     return res.json(errors);

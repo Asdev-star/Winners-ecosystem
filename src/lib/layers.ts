@@ -20,7 +20,7 @@ export const LAYERS: LayerConfig[] = [
   {
     id: "core",
     label: "Core Engine",
-    routePrefixes: ["/", "/landing", "/dashboard", "/search", "/activity", "/team", "/settings", "/profile", "/notifications"],
+    routePrefixes: ["/", "/landing", "/home", "/dashboard", "/search", "/activity", "/team", "/settings", "/profile", "/notifications"],
     accent: "var(--gold)",
     accentSoft: "color-mix(in srgb, var(--gold) 16%, transparent)",
     accentAlt: "var(--ice)",

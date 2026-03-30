@@ -35,7 +35,7 @@ const NAVIGATION_COMMANDS: CommandResult[] = [
   { id: "nav-market", type: "navigation", label: "Marketplace", href: "/market", icon: "🛒", layer: "market" },
   { id: "nav-work", type: "navigation", label: "Find Work", href: "/work", icon: "💼", layer: "work" },
   { id: "nav-intelligence", type: "navigation", label: "AI Intelligence", href: "/intelligence", icon: "🤖", layer: "intelligence" },
-  { id: "nav-dashboard", type: "navigation", label: "Dashboard", href: "/dashboard", icon: "⬡", layer: "core" },
+  { id: "nav-home", type: "navigation", label: "User Home", href: "/home", icon: "⌂", layer: "core" },
   { id: "nav-team", type: "navigation", label: "Team", href: "/team", icon: "👥", layer: "core" },
   { id: "nav-billing", type: "navigation", label: "Billing", href: "/billing", icon: "💳", layer: "core" },
   { id: "nav-settings", type: "navigation", label: "Settings", href: "/settings", icon: "⚙️", layer: "core" },

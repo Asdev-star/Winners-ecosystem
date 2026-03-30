@@ -343,7 +343,7 @@ export default function CVToolsPage() {
                 </div>
                 <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13.5, lineHeight: 1.85, color: "var(--text)", whiteSpace: "pre-wrap", maxHeight: 600, overflowY: "auto" }}>
                   {output.split("\n").map((line, i) => {
-                    const isHeading = /^[📄✉🎤💼💰📋✅1-9🎯🔑💡🌍]/.test(line) || /^#{1,3} /.test(line);
+                    const isHeading = /^[📄✉🎤💼💰📋✅1-9🎯🔑💡🌍]/u.test(line) || /^#{1,3} /.test(line);
                     return (
                       <div key={i} style={{ marginBottom: isHeading ? 10 : 3, fontWeight: isHeading ? 700 : 400, color: isHeading ? "var(--text)" : "var(--text-dim)", fontSize: isHeading ? 14 : 13 }}>
                         {line.replace(/^#{1,3} /, "")}

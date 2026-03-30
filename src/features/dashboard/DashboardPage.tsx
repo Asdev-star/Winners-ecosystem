@@ -1,5 +1,14 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { API_BASE } from "../../lib/api";
 import { getAuthHeaders, useAuthStore } from "../auth/authStore";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
@@ -67,6 +76,36 @@ type LoopFeedEntry = {
 type LoopFeedResponse = {
   active: LoopFeedEntry[];
   completed: LoopFeedEntry[];
+};
+
+type RevenueBreakdownResponse = {
+  chart: {
+    series: Array<{
+      key: string;
+      label: string;
+      fullLabel: string;
+      actual: number | null;
+      forecast: number | null;
+      note?: string;
+    }>;
+  };
+  layers: Array<{
+    id: string;
+    name: string;
+    status: "live" | "locked";
+    statusLabel: string;
+    detail: string;
+    amount: number;
+    sharePct: number;
+  }>;
+  note?: string;
+};
+
+type AdminActivityEntry = {
+  id: string;
+  action?: string;
+  summary?: string;
+  createdAt: string;
 };
 
 type ChecklistResponse = {
@@ -166,6 +205,14 @@ const css = `
   .aov-state{width:30px;height:30px;border-radius:999px;display:grid;place-items:center;flex-shrink:0;font-size:14px;background:rgba(255,255,255,.06)}
   .aov-state.done{color:var(--green);background:rgba(45,212,160,.1)} .aov-state.attention{color:var(--gold);background:rgba(201,168,76,.1)} .aov-state.blocked{color:#ffbbb4;background:rgba(224,90,78,.1)}
   .aov-check-copy{font-size:14px;line-height:1.55} .aov-check-copy small{display:block;margin-top:4px;color:var(--text-dim)}
+  .aov-layer-supervisor{margin-top:10px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ice)}
+  .aov-chart-wrap{height:260px}
+  .aov-chart-note{margin-top:10px;font-size:12px;line-height:1.6;color:var(--text-dim)}
+  .aov-attribution{display:grid;gap:10px;margin-top:14px}
+  .aov-attribution-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03)}
+  .aov-attribution-name{font-size:13px;font-weight:700;color:var(--text)}
+  .aov-attribution-share{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+  .aov-attribution-value{font-family:'Cormorant Garamond',serif;font-size:24px;line-height:1;color:var(--text)}
   .aov-load{display:grid;gap:18px;padding:24px} .aov-skel{min-height:120px;border-radius:22px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.08),rgba(255,255,255,.04));background-size:180% 100%;animation:aov-shimmer 1.4s linear infinite}
   @keyframes aov-shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
   @keyframes aov-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
@@ -231,6 +278,48 @@ const NAV_ITEMS = [
   { icon: "🔐", label: "Security",           path: "/admin/security",  end: false },
 ];
 
+const LAYER_CHROME: Record<string, { icon: string; supervisor: string }> = {
+  "Core Engine": { icon: "⬡", supervisor: "FORGE" },
+  "Community": { icon: "👥", supervisor: "NOVA" },
+  "Academy": { icon: "🎓", supervisor: "SAGE" },
+  "Intelligence": { icon: "🤖", supervisor: "OMEGA" },
+  "Market": { icon: "🛒", supervisor: "ATLAS" },
+  "Work": { icon: "💼", supervisor: "CIRCUIT" },
+  "Mobile": { icon: "📱", supervisor: "HERALD" },
+  "Cloud": { icon: "☁️", supervisor: "NEXUS" },
+  "AI Platform": { icon: "🧬", supervisor: "HERALD" },
+};
+
+function layerChrome(name: string) {
+  return LAYER_CHROME[name] ?? { icon: "⬡", supervisor: "OMEGA" };
+}
+
+function AdminRevenueTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name?: string; value?: number }>;
+  label?: string | number;
+}) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,.08)", background: "rgba(8,13,22,.96)", padding: "12px 14px", boxShadow: "0 18px 38px rgba(0,0,0,.34)" }}>
+      <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 8 }}>
+        {label}
+      </div>
+      {payload.map((entry) => (
+        <div key={entry.name} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 13, color: "var(--text)", marginTop: 6 }}>
+          <span>{entry.name}</span>
+          <strong>{money(entry.value ?? 0)}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const token = useAuthStore((s) => s.token);
@@ -238,6 +327,8 @@ export default function DashboardPage() {
   const [dayKey, setDayKey] = useState(todayKey());
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
   const [loops, setLoops] = useState<LoopFeedResponse | null>(null);
+  const [revenueBreakdown, setRevenueBreakdown] = useState<RevenueBreakdownResponse | null>(null);
+  const [adminActivity, setAdminActivity] = useState<AdminActivityEntry[]>([]);
   const [signals, setSignals] = useState<AdminSignal[]>([]);
   const [briefing, setBriefing] = useState("");
   const [briefingStreaming, setBriefingStreaming] = useState(false);
@@ -251,6 +342,36 @@ export default function DashboardPage() {
 
   const dismissKey = useMemo(() => `admin-overview-briefing-dismissed-${dayKey}`, [dayKey]);
   const loopFeed = useMemo(() => (loops ? [...loops.active, ...loops.completed] : []), [loops]);
+  const activityFeed = useMemo(
+    () =>
+      adminActivity.length
+        ? adminActivity.slice(0, 20).map((entry) => ({
+            id: entry.id,
+            summary: entry.summary ?? entry.action ?? "Admin action recorded",
+            createdAt: entry.createdAt,
+          }))
+        : overview?.recentActions ?? [],
+    [adminActivity, overview],
+  );
+  const revenueSeries = useMemo(() => {
+    if (!revenueBreakdown?.chart.series?.length || !revenueBreakdown.layers.length) return [];
+    const share = Object.fromEntries(
+      revenueBreakdown.layers.map((layer) => [layer.id, Math.max(layer.sharePct, 0) / 100]),
+    );
+
+    return revenueBreakdown.chart.series.map((entry) => {
+      const actual = entry.actual ?? 0;
+      return {
+        label: entry.label,
+        core: actual * (share.core ?? 0),
+        community: actual * (share.community ?? 0),
+        academy: actual * (share.academy ?? 0),
+        market: actual * (share.market ?? 0),
+        work: actual * (share.work ?? 0),
+        cloud: actual * (share.cloud ?? 0),
+      };
+    });
+  }, [revenueBreakdown]);
 
   useEffect(() => {
     if (!isChecking && !hasAccess) {
@@ -275,10 +396,17 @@ export default function DashboardPage() {
     async function load(initial = false) {
       try {
         if (initial) setLoading(true); else setRefreshing(true);
-        const [overviewData, loopsData] = await Promise.all([apiGet<OverviewResponse>("/admin/overview"), apiGet<LoopFeedResponse>("/admin/loops/live")]);
+        const [overviewData, loopsData, revenueData, actionsData] = await Promise.all([
+          apiGet<OverviewResponse>("/admin/overview"),
+          apiGet<LoopFeedResponse>("/admin/loops/live"),
+          apiGet<RevenueBreakdownResponse>("/admin/revenue/breakdown"),
+          apiGet<AdminActivityEntry[]>("/admin/actions"),
+        ]);
         if (cancelled) return;
         setOverview(overviewData);
         setLoops(loopsData);
+        setRevenueBreakdown(revenueData);
+        setAdminActivity(actionsData);
         setSignals(overviewData.signals);
         setError("");
       } catch (err) {
@@ -350,9 +478,16 @@ export default function DashboardPage() {
   async function refresh() {
     try {
       setRefreshing(true);
-      const [overviewData, loopsData] = await Promise.all([apiGet<OverviewResponse>("/admin/overview"), apiGet<LoopFeedResponse>("/admin/loops/live")]);
+      const [overviewData, loopsData, revenueData, actionsData] = await Promise.all([
+        apiGet<OverviewResponse>("/admin/overview"),
+        apiGet<LoopFeedResponse>("/admin/loops/live"),
+        apiGet<RevenueBreakdownResponse>("/admin/revenue/breakdown"),
+        apiGet<AdminActivityEntry[]>("/admin/actions"),
+      ]);
       setOverview(overviewData);
       setLoops(loopsData);
+      setRevenueBreakdown(revenueData);
+      setAdminActivity(actionsData);
       setSignals(overviewData.signals);
       setError("");
     } catch (err) {
@@ -532,6 +667,7 @@ export default function DashboardPage() {
                 <div className="aov-brief-actions">
                   <Link className="aov-link" to="/admin/forge">Ask FORGE →</Link>
                   <Link className="aov-link ghost" to="/admin/forge">View Full Analysis</Link>
+                  <button className="aov-btn ghost" onClick={() => navigate("/admin/broadcast")}>Schedule Briefing</button>
                   <button className="aov-btn ghost" onClick={dismissBriefing}>Dismiss</button>
                 </div>
               </section>
@@ -597,16 +733,17 @@ export default function DashboardPage() {
                         {overview.layers.map((layer) => (
                           <button key={layer.id} type="button" className="aov-layer" onClick={() => handleLayer(layer)}>
                             <div className="aov-layer-head">
-                              <h3 className="aov-layer-name">{layer.name}</h3>
+                              <h3 className="aov-layer-name">{layerChrome(layer.name).icon} {layer.name}</h3>
                               <span className={`aov-pill ${layer.status}`}>{layer.statusLabel}</span>
                             </div>
                             <div className="aov-progress">
                               <div className="aov-fill" style={{ width: `${layer.progress}%` }} />
                             </div>
                             <div className="aov-layer-meta">
-                              <span>{layer.progress}%</span>
+                              <span>{layer.progress}% complete</span>
                               <span>{layer.actionLabel}</span>
                             </div>
+                            <div className="aov-layer-supervisor">{layerChrome(layer.name).supervisor}</div>
                             <div className="aov-layer-note">{layer.note}</div>
                           </button>
                         ))}
@@ -652,6 +789,58 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="aov-stack">
+                    {/* Revenue Chart + Layer Attribution */}
+                    <div className="aov-panel">
+                      <div className="aov-head">
+                        <div>
+                          <div className="aov-kicker">Revenue Chart + Layer Attribution</div>
+                          <h2 className="aov-title">MRR trend with current layer share overlay</h2>
+                        </div>
+                        <Link className="aov-mini-link" to="/admin/revenue">Open Revenue</Link>
+                      </div>
+                      {revenueSeries.length === 0 ? (
+                        <div className="aov-empty">Revenue attribution is still calibrating.</div>
+                      ) : (
+                        <>
+                          <div className="aov-chart-wrap">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={revenueSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                                <CartesianGrid stroke="rgba(255,255,255,.08)" vertical={false} />
+                                <XAxis dataKey="label" stroke="var(--text-dim)" tick={{ fontSize: 10, fontFamily: "Space Mono, monospace" }} />
+                                <YAxis
+                                  stroke="var(--text-dim)"
+                                  tick={{ fontSize: 10, fontFamily: "Space Mono, monospace" }}
+                                  tickFormatter={(value) => {
+                                    const numeric = Number(value);
+                                    return numeric >= 1000 ? `$${Math.round(numeric / 1000)}k` : `$${numeric}`;
+                                  }}
+                                />
+                                <Tooltip content={<AdminRevenueTooltip />} />
+                                <Area type="monotone" dataKey="core" stackId="1" stroke="var(--gold)" fill="rgba(201,168,76,.28)" />
+                                <Area type="monotone" dataKey="community" stackId="1" stroke="var(--ice)" fill="rgba(137,196,225,.24)" />
+                                <Area type="monotone" dataKey="academy" stackId="1" stroke="var(--purple)" fill="rgba(155,111,255,.22)" />
+                                <Area type="monotone" dataKey="market" stackId="1" stroke="var(--green)" fill="rgba(45,212,160,.2)" />
+                                <Area type="monotone" dataKey="work" stackId="1" stroke="var(--blue)" fill="rgba(74,158,255,.18)" />
+                                <Area type="monotone" dataKey="cloud" stackId="1" stroke="var(--text-dim)" fill="rgba(90,122,150,.18)" />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="aov-chart-note">
+                            {revenueBreakdown?.note ?? "Revenue trend is stacked using the current live layer share until daily per-layer revenue telemetry is fully wired."}
+                          </div>
+                          <div className="aov-attribution">
+                            {revenueBreakdown?.layers.slice(0, 6).map((layer) => (
+                              <div key={layer.id} className="aov-attribution-row">
+                                <div className="aov-attribution-name">{layer.name}</div>
+                                <div className="aov-attribution-share">{layer.sharePct}% share</div>
+                                <div className="aov-attribution-value">{money(layer.amount)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
                     {/* OMEGA Cross-Layer Signals */}
                     <div className="aov-panel">
                       <div className="aov-head">
@@ -684,19 +873,19 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    {/* Recent Directives */}
+                    {/* Recent Activity Feed */}
                     <div className="aov-panel">
                       <div className="aov-head">
                         <div>
-                          <div className="aov-kicker">Recent Directives</div>
-                          <h2 className="aov-title">Latest sovereign control events</h2>
+                          <div className="aov-kicker">Recent Activity Feed</div>
+                          <h2 className="aov-title">Last 20 admin-relevant events</h2>
                         </div>
                       </div>
-                      {overview.recentActions.length === 0 ? (
-                        <div className="aov-empty">No admin directives recorded yet.</div>
+                      {activityFeed.length === 0 ? (
+                        <div className="aov-empty">No admin activity has been recorded yet.</div>
                       ) : (
                         <div className="aov-actions-list">
-                          {overview.recentActions.map((item) => (
+                          {activityFeed.map((item) => (
                             <div key={item.id} className="aov-row">
                               <div className="aov-date">{actionDate(item.createdAt)}</div>
                               <div>{item.summary}</div>

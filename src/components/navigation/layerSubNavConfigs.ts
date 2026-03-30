@@ -245,7 +245,7 @@ export const CORE_SUBNAV: LayerSubNavConfig = {
   layer: "core",
   accent: "var(--gold)",
   items: [
-    { id: "core-dashboard", label: "Control Center", to: "/dashboard" },
+    { id: "core-home", label: "User Home", to: "/home" },
     { id: "core-analytics", label: "Analytics", to: "/analytics" },
     { id: "core-search", label: "Search", to: "/search", badge: "K", badgeTone: "info" },
     { id: "core-activity", label: "Activity", to: "/activity" },

@@ -791,7 +791,7 @@ export default function OnboardingPage() {
     if (startedRef.current) return;
     startedRef.current = true;
     if (!token) return void navigate("/login", { replace: true });
-    if (user?.onboardingCompleted) return void navigate("/dashboard", { replace: true });
+    if (user?.onboardingCompleted) return void navigate("/home", { replace: true });
   }, [navigate, token, user]);
 
   function later(fn: () => void, delay: number) { const t = window.setTimeout(fn, delay); timersRef.current.push(t); }
@@ -859,7 +859,7 @@ export default function OnboardingPage() {
 
   function launch(current: Journey) {
     sessionStorage.setItem(OMEGA_WELCOME_KEY, JSON.stringify(welcomePayload(current)));
-    navigate(getOmegaProfileEntryPath(current.profileType, ROUTES[current.primaryLayer] ?? "/dashboard"), { replace: true });
+    navigate(getOmegaProfileEntryPath(current.profileType, ROUTES[current.primaryLayer] ?? "/home"), { replace: true });
   }
 
   async function beginActivation(current: Journey) {
@@ -892,7 +892,7 @@ export default function OnboardingPage() {
       updateUser({
         onboardingCompleted: true,
         onboardingPrimaryLayer: nextJourney.primaryLayer,
-        onboardingPrimaryPath: getOmegaProfileEntryPath(nextJourney.profileType, ROUTES[nextJourney.primaryLayer] ?? "/dashboard"),
+        onboardingPrimaryPath: getOmegaProfileEntryPath(nextJourney.profileType, ROUTES[nextJourney.primaryLayer] ?? "/home"),
         onboardingProfileType: nextJourney.profileType,
         onboardingAssignedSupervisor: nextJourney.supervisor,
         onboardingSelectedPlan: DEFAULT_ONBOARDING_PLAN,

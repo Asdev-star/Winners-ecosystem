@@ -83,9 +83,9 @@ interface ExchangeResponse {
 }
 
 function sanitizeNext(nextRaw: string | null): string {
-  if (!nextRaw) return "/dashboard";
-  if (!nextRaw.startsWith("/")) return "/dashboard";
-  if (nextRaw.startsWith("//")) return "/dashboard";
+  if (!nextRaw) return "/home";
+  if (!nextRaw.startsWith("/")) return "/home";
+  if (nextRaw.startsWith("//")) return "/home";
   return nextRaw;
 }
 

@@ -106,23 +106,25 @@ export function useLoopTracking() {
     return Math.round(total / finished.length);
   }, [loopHistory]);
 
+  const now = useMemo(() => Date.now(), []);
+
   const loopVelocity: LoopTrackingStats["loopVelocity"] = useMemo(() => {
     if (!currentLoop) return "stalled";
     const started = new Date(currentLoop.startedAt).getTime();
-    const daysSinceStart = (Date.now() - started) / (1000 * 60 * 60 * 24);
+    const daysSinceStart = (now - started) / (1000 * 60 * 60 * 24);
     const stagesCompleted = completedStages.length;
     if (stagesCompleted === 0 && daysSinceStart > 7) return "stalled";
     const stagesPerDay = stagesCompleted / Math.max(daysSinceStart, 1);
     if (stagesPerDay >= 0.5) return "fast";
     if (stagesPerDay >= 0.2) return "normal";
     return "slow";
-  }, [currentLoop, completedStages]);
+  }, [currentLoop, completedStages, now]);
 
   const daysSinceStart = useMemo(() => {
     if (!currentLoop) return null;
     const started = new Date(currentLoop.startedAt).getTime();
-    return Math.floor((Date.now() - started) / (1000 * 60 * 60 * 24));
-  }, [currentLoop]);
+    return Math.floor((now - started) / (1000 * 60 * 60 * 24));
+  }, [currentLoop, now]);
 
   const estimatedCompletion = useMemo(() => {
     if (!currentLoop || remainingStages.length === 0) return null;
@@ -134,10 +136,10 @@ export function useLoopTracking() {
     };
     const daysPerStage = velocityDaysPerStage[loopVelocity] ?? 5;
     const target = new Date(
-      Date.now() + remainingStages.length * daysPerStage * 24 * 60 * 60 * 1000
+      now + remainingStages.length * daysPerStage * 24 * 60 * 60 * 1000
     );
     return target.toLocaleDateString("en-GB", { month: "short", day: "numeric" });
-  }, [currentLoop, remainingStages, loopVelocity]);
+  }, [currentLoop, remainingStages, loopVelocity, now]);
 
   const allStageStatuses: StageStatus[] = useMemo(
     () =>

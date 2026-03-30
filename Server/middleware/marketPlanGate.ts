@@ -2,13 +2,34 @@
 // Server/middleware/marketPlanGate.ts
 
 import { type Response, type NextFunction } from 'express';
-import { authMiddleware, type AuthRequest } from './authMiddleware.js';
+import { type AccountPlan, type AuthRequest } from './authMiddleware.js';
 import db from '../db.js';
+
+function normalizePlan(plan: unknown): AccountPlan {
+  return plan === 'PRO' || plan === 'ENTERPRISE' ? plan : 'FREE';
+}
+
+async function resolvePlan(req: AuthRequest): Promise<AccountPlan> {
+  if (req.user.plan) {
+    return req.user.plan;
+  }
+
+  const tenant = await db.tenant.findUnique({
+    where: { id: req.user.tenantId },
+    select: { plan: true },
+  });
+
+  const plan = normalizePlan(tenant?.plan);
+  req.user.plan = plan;
+  return plan;
+}
 
 // Require Pro plan for a feature
 export function requirePro(feature: string) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!['PRO', 'ENTERPRISE'].includes(req.user.plan)) {
+    const plan = await resolvePlan(req);
+
+    if (!['PRO', 'ENTERPRISE'].includes(plan)) {
       return res.status(403).json({
         error: 'plan_required',
         requiredPlan: 'PRO',
@@ -24,7 +45,9 @@ export function requirePro(feature: string) {
 // Require Enterprise plan for a feature
 export function requireEnterprise(feature: string) {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (req.user.plan !== 'ENTERPRISE') {
+    const plan = await resolvePlan(req);
+
+    if (plan !== 'ENTERPRISE') {
       return res.status(403).json({
         error: 'plan_required',
         requiredPlan: 'ENTERPRISE',
@@ -40,7 +63,7 @@ export function requireEnterprise(feature: string) {
 export function productLimitMiddleware() {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { userId, tenantId } = req.user;
-    const plan = req.user.plan;
+    const plan = await resolvePlan(req);
 
     const limits: Record<string, number> = {
       FREE: 5,
@@ -71,7 +94,7 @@ export function productLimitMiddleware() {
 // Image upload limit middleware
 export function imageLimitMiddleware() {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const plan = req.user.plan;
+    const plan = await resolvePlan(req);
 
     const limits: Record<string, number> = {
       FREE: 3,

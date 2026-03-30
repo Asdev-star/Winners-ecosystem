@@ -4,7 +4,7 @@
 // Supports: text, images, PDFs, audio files across Claude/GPT-4o/Gemini/Ollama.
 
 import { useState, useCallback, useRef } from "react";
-import type { ModelId } from "../components/ai/ModelSelector";
+import type { ModelId } from "../config/models";
 import type { DroppedFile } from "../components/ai/FileDropZone";
 import { getAuthHeaders } from "../features/auth/authStore";
 
@@ -242,7 +242,6 @@ export function useMultimodalChat(options: MultimodalChatOptions = {}) {
         abortRef.current = null;
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isStreaming, attachedFiles, messages, currentModel, assistant]
   );
 

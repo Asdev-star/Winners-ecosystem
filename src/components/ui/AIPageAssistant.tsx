@@ -12,8 +12,8 @@ type TargetConfig = {
 
 const TARGETS: TargetConfig[] = [
   {
-    route: "/dashboard",
-    page: "Dashboard",
+    route: "/home",
+    page: "User Home",
     layer: "Core Intelligence",
     confidence: 92,
     recommendations: [
@@ -38,7 +38,7 @@ const TARGETS: TargetConfig[] = [
     ],
     actions: [
       { label: "Go Billing", to: "/billing" },
-      { label: "Go Dashboard", to: "/dashboard" },
+      { label: "Go Home", to: "/home" },
     ],
   },
   {

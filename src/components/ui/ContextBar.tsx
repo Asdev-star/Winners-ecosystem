@@ -20,13 +20,13 @@ interface ContextBarProps {
 }
 
 const LAYERS: LayerConfig[] = [
-  { key: "core",         label: "Core Engine",   shortLabel: "CORE",   href: "/dashboard",             status: "live"     },
+  { key: "core",         label: "Core Engine",   shortLabel: "CORE",   href: "/home",                  status: "live"     },
   { key: "community",   label: "Community",      shortLabel: "COMM",   href: "/community",             status: "live"     },
   { key: "academy",     label: "Academy",        shortLabel: "ACAD",   href: "/academy",               status: "live"     },
   { key: "market",      label: "Market",         shortLabel: "MKT",    href: "/market",                status: "building" },
   { key: "intelligence",label: "Intelligence",   shortLabel: "INTEL",  href: "/intelligence",          status: "live"     },
   { key: "work",        label: "Work",           shortLabel: "WORK",   href: "/work",                  status: "building" },
-  { key: "mobile",      label: "Mobile",         shortLabel: "MOB",    href: "/dashboard",             status: "building" },
+  { key: "mobile",      label: "Mobile",         shortLabel: "MOB",    href: "/home",                  status: "building" },
   { key: "cloud",       label: "Cloud",          shortLabel: "CLOUD",  href: "/cloud",                 status: "building" },
   { key: "aiplatform",  label: "AI Platform",    shortLabel: "AI PLT", href: "/intelligence/platform", status: "building" },
 ];

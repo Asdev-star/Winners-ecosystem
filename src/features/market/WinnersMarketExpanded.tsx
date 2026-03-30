@@ -64,77 +64,77 @@ const VERTICALS = [
     desc:"A full streaming platform for creators, educators, musicians, and entertainers. Live streams, VOD content, pay-per-view events, channel subscriptions, and tipping — all monetized through the ecosystem.",
     revenue:["Channel subscription 15% cut","Pay-per-view event fees","Super Chat / tipping 10% cut","Ad revenue sharing","VOD rental & purchase commission"],
     features:["Live streaming with chat","VOD upload + hosting","Pay-per-view events","Channel subscription system","Super Chat tipping","Creator analytics dashboard","Multi-quality streaming (480p/720p/1080p)","Replay archive + clip creation","Scheduled stream calendar"],
-    status:"planned", phase:"4C",
+    status:"live", phase:"4C", path:"/market/stream",
     stack:["Mux/Cloudflare Stream","HLS.js","WebRTC","Socket.io"],
   },
   {
     id:"trading", icon:"📈", label:"Winners Trading",
-    color:T.purple, badge:"V3 · Advanced",
+    color:T.purple, badge:"V3 · LIVE",
     tagline:"Stocks · Crypto · Forex · Copy Trading",
     desc:"An educational trading platform + paper trading simulator. Learn real market strategies, practice with virtual portfolios, follow top traders' moves, and eventually access real broker integrations. Knowledge before capital.",
     revenue:["Trading course subscriptions","Premium signals $49–$149/mo","Copy trading fee 10–20%","Data provider API resale","Broker referral commissions"],
     features:["Real-time market data (stocks, crypto, forex)","Paper trading simulator","Strategy backtesting engine","Copy trading — follow expert portfolios","Trading signals & alerts","Market analysis AI assistant","Risk management calculator","Community trading challenges","Broker API integration (Alpaca, Interactive Brokers)"],
-    status:"planned", phase:"4D",
+    status:"live", phase:"4D", path:"/market/trading",
     stack:["Alpaca API","Polygon.io","TradingView charts","WebSocket"],
   },
   {
     id:"bizplan", icon:"📋", label:"Business Launcher",
-    color:T.ice, badge:"V2 · Tools",
+    color:T.ice, badge:"V2 · LIVE",
     tagline:"Business Plans · Strategy · Launch Kits",
     desc:"Everything you need to start and grow a business — AI-powered business plan generator, market research tools, financial projections, pitch deck builder, and legal document templates. From idea to investor-ready in minutes.",
     revenue:["Business plan generation credits","Premium plan templates $29–$99","Investor pitch review service","Legal template subscriptions","Launch kit bundles $49–$199"],
     features:["AI business plan generator (full document)","Market size & competitor analysis","Financial projection builder","Pitch deck slide generator","Legal templates (NDA, contracts, MOUs)","Brand name & domain checker","Revenue model calculator","Startup cost estimator","Investor-ready export (PDF, PPTX, DOCX)"],
-    status:"planned", phase:"4E",
+    status:"live", phase:"4E", path:"/market/business-launcher",
     stack:["Claude API","jsPDF","Chart.js","OpenCorporates"],
   },
   {
     id:"cv", icon:"📄", label:"CV & Career Tools",
-    color:T.teal, badge:"V2 · Tools",
+    color:T.teal, badge:"V2 · LIVE",
     tagline:"CV Generator · Cover Letters · Portfolio",
     desc:"Professional CV and career document generation powered by AI. Build ATS-optimized resumes, custom cover letters, LinkedIn profiles, and professional portfolios in the Winners Ecosystem design language.",
     revenue:["CV generation credits","Premium templates $9–$29","Career coach service marketplace","LinkedIn optimization service","Bulk CV builder for agencies"],
     features:["AI CV generator (15+ professional templates)","ATS score checker + optimization","Cover letter AI generator","LinkedIn profile optimizer","Professional bio writer","Skills assessment + gap analysis","Portfolio website builder","Interview preparation AI coach","One-click export (PDF, DOCX, JSON)"],
-    status:"planned", phase:"4F",
+    status:"live", phase:"4F", path:"/market/cv-tools",
     stack:["Claude API","Puppeteer PDF","React-PDF","LinkedIn API"],
   },
   {
     id:"realestate", icon:"🏠", label:"Winners Property",
-    color:T.orange, badge:"V3 · Advanced",
+    color:T.orange, badge:"V3 · LIVE",
     tagline:"Real Estate · Listings · Investment",
     desc:"A property marketplace for African and diaspora markets. List properties for sale and rent, connect with real estate agents, access mortgage calculators, and discover investment opportunities — starting with East Africa.",
     revenue:["Property listing fees","Agent subscription plans","Mortgage referral commission","Investment deal flow fees","Premium listing placement"],
     features:["Property listings (buy/rent/invest)","Agent + developer profiles","Virtual tour integration","Mortgage + affordability calculator","Investment ROI calculator","Neighborhood analytics","Legal due diligence checklist","Property alert notifications","Map-based search (Mapbox)"],
-    status:"planned", phase:"4G",
+    status:"live", phase:"4G", path:"/market/property",
     stack:["Mapbox","Stripe","Cloudinary","Calendar API"],
   },
   {
     id:"events", icon:"🎟", label:"Winners Events",
-    color:T.pink, badge:"V2 · Expansion",
+    color:T.pink, badge:"V2 · LIVE",
     tagline:"Events · Tickets · NFT Passes",
     desc:"Create, host, and monetize online and physical events. Conference tickets, workshop registrations, webinar access, live event streaming, and blockchain-verified NFT tickets — all from one dashboard.",
     revenue:["Ticket sales 5–10% commission","Event creation subscription","Premium event features","Sponsorship marketplace","NFT ticket minting fees"],
     features:["Event creation + management","Ticket tiers (free, paid, VIP)","QR code ticket scanning","Live streaming integration","Attendee networking (matchmaking)","Event analytics dashboard","Sponsorship packages","NFT ticket minting","Calendar integration + reminders"],
-    status:"planned", phase:"4H",
+    status:"live", phase:"4H", path:"/market/events",
     stack:["Stripe","QRCode.js","Mux","Polygon blockchain"],
   },
   {
     id:"health", icon:"💪", label:"Winners Health",
-    color:"var(--green)", badge:"V3 · Advanced",
+    color:"var(--green)", badge:"V3 · LIVE",
     tagline:"Fitness · Nutrition · Mental Wellness",
     desc:"A wellness marketplace where certified coaches sell workout programs, nutrition plans, and mental health content. AI-powered workout tracking, health analytics, and telehealth booking — built for the African wellness market.",
     revenue:["Coach program sales 20% cut","Wellness subscription plans","Telehealth booking commission","Supplement referral sales","Corporate wellness packages"],
     features:["Coach marketplace (fitness, nutrition, mental health)","AI workout plan generator","Nutrition tracker + meal planner","Progress tracking + body metrics","Telehealth appointment booking","Mindfulness + meditation library","Group challenges + leaderboards","Wearable device sync (Apple Health, Fitbit)","Corporate wellness dashboard"],
-    status:"planned", phase:"4I",
+    status:"live", phase:"4I", path:"/market/health",
     stack:["HealthKit API","Google Fit","Stripe","Claude AI"],
   },
   {
     id:"fintech", icon:"🏦", label:"Winners Finance",
-    color:"var(--gold)", badge:"V3 · Advanced",
+    color:"var(--gold)", badge:"V3 · LIVE",
     tagline:"Payments · Savings · Micro-Loans",
     desc:"Embedded fintech for the ecosystem. Group savings (chamas), micro-investment pools, cross-border payment rails optimized for Africa, buy-now-pay-later for platform purchases, and financial literacy courses.",
     revenue:["Payment processing 1–2%","Savings pool management fee","Micro-loan interest 5–15%","BNPL service fee","Financial product referrals"],
     features:["Group savings (chama/investment clubs)","Cross-border payments (M-Pesa, Flutterwave)","Micro-investment pools","Buy-now-pay-later for ecosystem","Budget tracker + financial goals","Financial literacy courses","Credit score builder","Insurance marketplace","Remittance optimization engine"],
-    status:"planned", phase:"4J",
+    status:"live", phase:"4J", path:"/market/finance",
     stack:["M-Pesa API","Flutterwave","Stripe","Plaid"],
   },
 ];
@@ -579,14 +579,50 @@ For each slide: tell me WHAT to put on it + KEY MESSAGE to convey.`,
                         Open Marketing Hub →
                       </button>
                     )}
+                    {v.id==="streaming" && (
+                      <button onClick={()=>navigate("/market/stream")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(224,90,78,0.1)",border:`1px solid rgba(224,90,78,0.3)`,color:T.red,cursor:"pointer"}}>
+                        Open Stream Hub →
+                      </button>
+                    )}
+                    {v.id==="trading" && (
+                      <button onClick={()=>navigate("/market/trading")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(155,111,255,0.1)",border:`1px solid rgba(155,111,255,0.3)`,color:T.purple,cursor:"pointer"}}>
+                        Open Trading Hub →
+                      </button>
+                    )}
+                    {v.id==="realestate" && (
+                      <button onClick={()=>navigate("/market/property")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(201,168,76,0.12)",border:`1px solid ${T.gold}55`,color:T.gold,cursor:"pointer"}}>
+                        Open Property Hub →
+                      </button>
+                    )}
+                    {v.id==="events" && (
+                      <button onClick={()=>navigate("/market/events")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(155,111,255,0.1)",border:`1px solid rgba(155,111,255,0.3)`,color:T.purple,cursor:"pointer"}}>
+                        Open Events Hub →
+                      </button>
+                    )}
+                    {v.id==="health" && (
+                      <button onClick={()=>navigate("/market/health")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(45,212,160,0.1)",border:`1px solid rgba(45,212,160,0.3)`,color:T.green,cursor:"pointer"}}>
+                        Open Health Hub →
+                      </button>
+                    )}
+                    {v.id==="fintech" && (
+                      <button onClick={()=>navigate("/market/finance")}
+                        style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(201,168,76,0.12)",border:`1px solid ${T.gold}55`,color:T.gold,cursor:"pointer"}}>
+                        Open Finance Hub →
+                      </button>
+                    )}
                     {v.id==="commerce" && (
                       <button onClick={()=>navigate("/market/dropshipping")}
                         style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 14px",borderRadius:3,background:"rgba(45,212,160,0.1)",border:`1px solid rgba(45,212,160,0.3)`,color:T.green,cursor:"pointer"}}>
                         Dropshipping Hub →
                       </button>
                     )}
-                    <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 12px",borderRadius:3,background:"rgba(90,122,150,0.1)",border:`1px solid ${T.border}`,color:T.dim}}>
-                      ◌ Planned
+                    <span style={{fontFamily:"'Space Mono',monospace",fontSize:8,padding:"4px 12px",borderRadius:3,background:`${v.color}14`,border:`1px solid ${v.color}33`,color:v.color}}>
+                      ● Live Platform
                     </span>
                   </div>
                 </div>

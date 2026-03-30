@@ -232,7 +232,7 @@ export default function AdminLayout() {
         </div>
 
         <div className="adl-actions">
-          <button className="adl-button ghost" onClick={() => navigate("/dashboard")}>
+          <button className="adl-button ghost" onClick={() => navigate("/home")}>
             Exit Admin
           </button>
           <button className="adl-button" onClick={() => navigate("/admin/forge")}>

@@ -1,4 +1,4 @@
-'// Phase 4B: Winners Finance - Internal Settlement Rail
+// Phase 4B: Winners Finance - Internal Settlement Rail
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../auth/authStore";
 import ContextBar from "../../../components/ui/ContextBar";
@@ -182,4 +182,4 @@ export default function FinancePage() {
       )}
     </div>
   );
-}' 
+}

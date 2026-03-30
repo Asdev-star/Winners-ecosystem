@@ -1,6 +1,6 @@
 // server/middleware/authMiddleware.ts
 
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,12 +17,20 @@ export interface JwtPayload {
   exp?:       number;
 }
 
-// Extend Express Request so downstream handlers have access to req.user
+export type AccountPlan = "FREE" | "PRO" | "ENTERPRISE";
+
+export interface AuthenticatedUser extends JwtPayload {
+  plan?: AccountPlan;
+}
+
+export type AuthRequest = Request & {
+  user: AuthenticatedUser;
+};
+
+// Extend Express.User so req.user resolves cleanly across middleware and passport types.
 declare global {
   namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
+    interface User extends AuthenticatedUser {}
   }
 }
 
@@ -42,7 +50,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;
     req.user = decoded;
     next();
   } catch (err: unknown) {

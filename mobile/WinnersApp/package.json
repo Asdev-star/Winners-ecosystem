@@ -20,7 +20,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "postinstall": "node ./scripts/repair-rngh.cjs"
+    "postinstall": "node ./scripts/repair-rngh.cjs",
+    "eas-build-pre-build": "bash ./eas-hooks/prebuild-android.sh"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",

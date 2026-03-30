@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./features/auth/authStore";
+import { useSuperAdminAccess } from "./app/useSuperAdminAccess";
 import "./App.css";
 
 import MainLayout from "./components/layout/MainLayout";
@@ -86,6 +87,11 @@ import FinancePage from "./features/market/finance/FinancePage";
 import BusinessLauncherPage from "./features/market/BusinessLauncherPage";
 import CVToolsPage from "./features/market/CVToolsPage";
 import DigitalMarketingPage from "./features/market/DigitalMarketingPage";
+import WinnersStreamPage from "./features/market/WinnersStreamPage";
+import WinnersTradingPage from "./features/market/WinnersTradingPage";
+import WinnersEventsPage from "./features/market/WinnersEventsPage";
+import WinnersPropertyPage from "./features/market/WinnersPropertyPage";
+import WinnersHealthPage from "./features/market/WinnersHealthPage";
 import WorkPage from "./features/work/WorkPage";
 import FreelancerProfilePage from "./features/work/FreelancerProfilePage";
 import EscrowPage from "./features/work/EscrowPage";
@@ -100,7 +106,6 @@ import CloudUsagePage from "./features/cloud/CloudUsagePage";
 import APIMarketplacePage from "./features/cloud/APIMarketplacePage";
 import AIRevenueProductsPage from "./features/intelligence/AIRevenueProductsPage";
 import AdminLayout from "./features/admin/AdminLayout";
-import AdminOverviewPage from "./features/admin/AdminOverviewPage";
 import PlatformLaunchPage from "./features/admin/PlatformLaunchPage";
 import TenantListPage from "./features/admin/TenantListPage";
 import TenantDetailPage from "./features/admin/TenantDetailPage";
@@ -115,9 +120,30 @@ import {
   AdminPlatformLayerPage,
 } from "./features/admin/AdminRoutePages";
 
+function DashboardRealmRoute() {
+  const isRestoring = useAuthStore((state) => state.isRestoring);
+  const { hasAccess, isChecking } = useSuperAdminAccess();
+
+  if (isRestoring || isChecking) return null;
+  if (!hasAccess) return <Navigate to="/home" replace />;
+
+  return <DashboardPage />;
+}
+
+function AuthenticatedDefaultRoute() {
+  const user = useAuthStore((state) => state.user);
+  const isRestoring = useAuthStore((state) => state.isRestoring);
+  const { hasAccess, isChecking } = useSuperAdminAccess();
+
+  if (isRestoring) return null;
+  if (!user) return <Navigate to="/landing" replace />;
+  if (isChecking) return null;
+
+  return <Navigate to={hasAccess ? "/dashboard" : "/home"} replace />;
+}
+
 function App() {
   const restoreSession = useAuthStore((state) => state.restoreSession);
-  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     restoreSession();
@@ -131,7 +157,7 @@ function App() {
       <InstallPrompt />
       <div className="app-route-layer">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<AuthenticatedDefaultRoute />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/invite/accept" element={<AcceptInvitePage />} />
@@ -151,8 +177,8 @@ function App() {
               </SuperAdminRoute>
             }
           >
-            <Route index element={<Navigate to="overview" replace />} />
-            <Route path="overview" element={<AdminOverviewPage />} />
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="overview" element={<Navigate to="/dashboard" replace />} />
             <Route path="platform" element={<PlatformLaunchPage />} />
             <Route path="platform/:layerId" element={<AdminPlatformLayerPage />} />
             <Route path="tenants" element={<TenantListPage />} />
@@ -184,7 +210,7 @@ function App() {
             path="dashboard"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <DashboardRealmRoute />
               </ProtectedRoute>
             }
           />
@@ -324,6 +350,11 @@ function App() {
             <Route path="market/business-launcher" element={<LayerRouteGate layerId="market"><BusinessLauncherPage /></LayerRouteGate>} />
             <Route path="market/cv-tools" element={<LayerRouteGate layerId="market"><CVToolsPage /></LayerRouteGate>} />
             <Route path="market/digital-marketing" element={<LayerRouteGate layerId="market"><DigitalMarketingPage /></LayerRouteGate>} />
+            <Route path="market/stream" element={<LayerRouteGate layerId="market"><WinnersStreamPage /></LayerRouteGate>} />
+            <Route path="market/trading" element={<LayerRouteGate layerId="market"><WinnersTradingPage /></LayerRouteGate>} />
+            <Route path="market/events" element={<LayerRouteGate layerId="market"><WinnersEventsPage /></LayerRouteGate>} />
+            <Route path="market/property" element={<LayerRouteGate layerId="market"><WinnersPropertyPage /></LayerRouteGate>} />
+            <Route path="market/health" element={<LayerRouteGate layerId="market"><WinnersHealthPage /></LayerRouteGate>} />
             <Route path="market/marketing" element={<LayerRouteGate layerId="market"><DigitalMarketingPage /></LayerRouteGate>} />
             <Route path="work" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
             <Route path="work/jobs" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
@@ -345,7 +376,7 @@ function App() {
 
           <Route
             path="*"
-            element={<Navigate to={user ? "/dashboard" : "/landing"} replace />}
+            element={<AuthenticatedDefaultRoute />}
           />
         </Routes>
       </div>

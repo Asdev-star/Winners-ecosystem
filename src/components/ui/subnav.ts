@@ -86,7 +86,7 @@ export const INTELLIGENCE_SUBNAV: SubNavItem[] = [
 ];
 
 export const CORE_SUBNAV: SubNavItem[] = [
-  { id: "overview",     label: "Overview",     href: "/dashboard" },
+  { id: "home",         label: "User Home",    href: "/home" },
   { id: "team",         label: "Team",         href: "/team",                    badge: 0 },
   { id: "billing",      label: "Billing",      href: "/billing" },
   { id: "analytics",    label: "Analytics",    href: "/analytics" },

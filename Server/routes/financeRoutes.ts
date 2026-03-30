@@ -1,4 +1,4 @@
-'// Phase 4B: Winners Finance - Internal Settlement Rail
+// Phase 4B: Winners Finance - Internal Settlement Rail
 // Wallet, Transactions, P2P Transfers, Withdrawals
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -608,4 +608,4 @@ router.post("/chama/:id/leave", async (req: Request, res: Response) => {
   }
 });
 
-export default router; 
+export default router;

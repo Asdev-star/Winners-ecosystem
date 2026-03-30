@@ -47,9 +47,9 @@ function normalizeOrigin(raw: string): URL {
 }
 
 function sanitizeNextPath(nextPath?: string): string {
-  if (!nextPath) return "/dashboard";
-  if (!nextPath.startsWith("/")) return "/dashboard";
-  if (nextPath.startsWith("//")) return "/dashboard";
+  if (!nextPath) return "/home";
+  if (!nextPath.startsWith("/")) return "/home";
+  if (nextPath.startsWith("//")) return "/home";
   return nextPath;
 }
 

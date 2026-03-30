@@ -552,21 +552,21 @@ const css = `
 
 // ── CORE PLATFORM NAV ─────────────────────────────────────────────────────────
 const CORE_NAV = [
-  { path: "/dashboard",     icon: "⬡",  label: "Control Center", tag: null },
+  { path: "/home",          icon: "⌂",  label: "User Home",      tag: null },
   { path: "/analytics",     icon: "📊", label: "Analytics",      tag: null },
   { path: "/search",        icon: "🔍", label: "Smart Search",   tag: null },
   { path: "/activity",      icon: "📋", label: "Activity Log",   tag: null },
 ];
 
 const ADMIN_PLATFORM = {
-  path:   "/admin",
+  path:   "/dashboard",
   icon:   "⬡",
-  name:   "Core Engine",
-  desc:   "Operate · Directives · Security · OMEGA",
+  name:   "Admin Dashboard",
+  desc:   "Control Tower · FORGE · Admin Tools",
   status: "sovereign",
   tag:    "ADMIN ONLY",
   sub:    [
-    { path: "/admin/overview", label: "Overview" },
+    { path: "/dashboard", label: "Dashboard" },
     { path: "/admin/platform", label: "Platform" },
     { path: "/admin/tenants", label: "Tenants" },
     { path: "/admin/users", label: "Users" },
@@ -708,7 +708,7 @@ const WORKSPACE_NAV = [
 
 // Mobile bottom — most used
 const BOTTOM_NAV = [
-  { path: "/dashboard",    icon: "⬡",   label: "Home",      notif: false },
+  { path: "/home",         icon: "⌂",   label: "Home",      notif: false },
   { path: "/community",    icon: "🧑‍🤝‍🧑",  label: "Community", notif: false },
   { path: "/academy",      icon: "🎓",  label: "Learn",     notif: false },
   { path: "/work",         icon: "💼",  label: "Work",      notif: false },
@@ -774,7 +774,7 @@ export default function MainLayout() {
   const platformItems = hasSuperAdminAccess ? [ADMIN_PLATFORM, ...orderedPlatforms] : orderedPlatforms;
   const adminNavItems = hasSuperAdminAccess
     ? [
-        { path: "/admin/overview", label: "Overview" },
+        { path: "/dashboard", label: "Admin Dashboard" },
         { path: "/admin/platform", label: "Platform" },
         { path: "/admin/tenants", label: "Tenants" },
         { path: "/admin/users", label: "Users" },
@@ -785,7 +785,6 @@ export default function MainLayout() {
         { path: "/admin/security", label: "Security" },
         { path: "/admin/settings", label: "Settings" },
         { path: "/ops", label: "System Health" },
-        { path: "/admin", label: "Admin Control Tower" },
       ]
     : [];
   const shellPath = location.pathname;
@@ -802,7 +801,7 @@ export default function MainLayout() {
     : "??";
   const pageName = [...allNav]
     .sort((a, b) => b.path.length - a.path.length)
-    .find((n) => shellPath.startsWith(n.path))?.label ?? "Dashboard";
+    .find((n) => shellPath.startsWith(n.path))?.label ?? "Home";
   const layerSubNav = getLayerSubNavForPath(shellPath);
   const closeSidebar = () => setSidebarOpen(false);
 

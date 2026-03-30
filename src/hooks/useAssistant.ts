@@ -58,8 +58,9 @@ function getCurrentLayerFromPath(): { currentLayer: string; currentPage: string 
   if (path.startsWith("/community"))   return { currentLayer: "Community",    currentPage: "community" };
   if (path.startsWith("/analytics"))   return { currentLayer: "Core Engine",  currentPage: "analytics" };
   if (path.startsWith("/billing"))     return { currentLayer: "Core Engine",  currentPage: "billing" };
-  if (path.startsWith("/dashboard"))   return { currentLayer: "Core Engine",  currentPage: "dashboard" };
-  return { currentLayer: "Core Engine", currentPage: "dashboard" };
+  if (path.startsWith("/dashboard"))   return { currentLayer: "Core Engine",  currentPage: "admin-dashboard" };
+  if (path.startsWith("/home"))        return { currentLayer: "Core Engine",  currentPage: "home" };
+  return { currentLayer: "Core Engine", currentPage: "home" };
 }
 
 function getUserContext() {

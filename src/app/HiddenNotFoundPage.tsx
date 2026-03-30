@@ -70,8 +70,8 @@ export default function HiddenNotFoundPage() {
         <p className="hnf-copy">
           The page you requested could not be found.
         </p>
-        <Link className="hnf-link" to="/dashboard">
-          Return to dashboard
+        <Link className="hnf-link" to="/home">
+          Return to home
         </Link>
       </div>
     </div>

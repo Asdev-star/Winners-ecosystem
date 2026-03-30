@@ -199,6 +199,7 @@ export const useEcosystemStore = create<EcosystemStore>((set, get) => ({
 
 // Helper hook to get the assistant for a given route
 export function getAssistantForRoute(pathname: string): "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "nexus" | "herald" | "omega" {
+  if (pathname.includes("/dashboard")) return "forge";
   if (pathname.includes("/intelligence/omega")) return "omega";
   if (pathname.includes("/intelligence")) return "forge";
   if (pathname.includes("/community")) return "nova";
@@ -212,11 +213,12 @@ export function getAssistantForRoute(pathname: string): "aria" | "nova" | "sage"
 
 // Helper hook to get the page name from route
 export function getPageFromRoute(pathname: string): string {
-  if (pathname.includes("/dashboard")) return "dashboard";
+  if (pathname.includes("/dashboard")) return "admin-dashboard";
+  if (pathname.includes("/home")) return "home";
   if (pathname.includes("/community")) return "community";
   if (pathname.includes("/academy")) return "academy";
   if (pathname.includes("/market")) return "market";
   if (pathname.includes("/work")) return "work";
   if (pathname.includes("/intelligence")) return "intelligence";
-  return "dashboard";
+  return "home";
 }

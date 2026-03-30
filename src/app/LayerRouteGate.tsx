@@ -131,7 +131,7 @@ export default function LayerRouteGate({ layerId, children }: LayerRouteGateProp
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 24 }}>
           <Link
-            to={access?.code === "cloud_upgrade_required" ? "/billing" : "/dashboard"}
+            to={access?.code === "cloud_upgrade_required" ? "/billing" : "/home"}
             style={{
               textDecoration: "none",
               padding: "12px 18px",
@@ -145,7 +145,7 @@ export default function LayerRouteGate({ layerId, children }: LayerRouteGateProp
               fontWeight: 700,
             }}
           >
-            {access?.code === "cloud_upgrade_required" ? `Upgrade to ${access.upgradePlan ?? "PRO"}` : "Back to Dashboard"}
+            {access?.code === "cloud_upgrade_required" ? `Upgrade to ${access.upgradePlan ?? "PRO"}` : "Back to Home"}
           </Link>
           <Link
             to="/admin/platform"
