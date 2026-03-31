@@ -236,7 +236,7 @@ function getOverviewAppSources(): OverviewAppSource[] {
   apps.push({
     id: "ai-platform",
     name: "AI Platform",
-    phase: 9,
+    phase: 8,
     status: "in_progress",
     frontendPath: "/intelligence/platform",
     description: "Ollama, Whisper, ComfyUI, and HERALD multimodal infrastructure",
