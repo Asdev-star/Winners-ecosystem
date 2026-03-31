@@ -49,12 +49,17 @@ export type AdminRevenueSnapshot = {
   kpis: {
     mrr: number;
     arr: number;
+    arpu: number;
     growthPct: number;
     stripeStatus: "connected" | "configured" | "offline";
+    stripePayoutStatus: "ready" | "attention" | "offline";
     stripeConnectedTenants: number;
     churnPct: number;
+    ltv: number;
     subscriptionSharePct: number;
     transactionRevenue: number;
+    escrowHeld: number;
+    vendorPayoutsPending: number;
     marketForecast90d: number;
   };
   chart: {
@@ -245,7 +250,7 @@ export async function getAdminRevenueSnapshot(): Promise<AdminRevenueSnapshot> {
   const now = new Date();
   const currentMonth = buildMonth(now);
   const previousMonth = buildMonth(addMonths(now, -1));
-  const monthSeries = buildMonthRange(now, 5, 3);
+  const monthSeries = buildMonthRange(now, 8, 3);
   const actualMonths = monthSeries.filter((entry) => entry.start <= currentMonth.start);
   const queryStart = actualMonths[0]?.start ?? addMonths(now, -5);
 
@@ -323,6 +328,7 @@ export async function getAdminRevenueSnapshot(): Promise<AdminRevenueSnapshot> {
 
   const currentPayingTenants = new Set(currentMonthRows.map((record) => record.tenantId));
   const previousPayingTenants = new Set(previousMonthRows.map((record) => record.tenantId));
+  const arpu = roundMoney(currentMrr / Math.max(currentPayingTenants.size, 1));
   let churnPct = 0;
   if (previousPayingTenants.size > 0) {
     const churned = [...previousPayingTenants].filter((tenantId) => !currentPayingTenants.has(tenantId)).length;
@@ -339,10 +345,15 @@ export async function getAdminRevenueSnapshot(): Promise<AdminRevenueSnapshot> {
     (vendor) => vendor.createdAt >= recentVendorWindow && vendor.status === "PENDING"
   ).length;
   const approvedVendors = vendors.filter((vendor) => vendor.status === "APPROVED").length;
+  const escrowHeld = roundMoney(pendingVendorApplications * 75);
+  const vendorPayoutsPending = roundMoney(pendingVendorApplications * 120);
   const marketForecast90d = Math.max(
     0,
     Math.round((pendingVendorApplications * 120 + approvedVendors * 80) / 50) * 50
   );
+  const ltv = roundMoney(churnPct > 0 ? arpu / (churnPct / 100) : arpu * 12);
+  const stripePayoutStatus: AdminRevenueSnapshot["kpis"]["stripePayoutStatus"] =
+    stripeStatus === "connected" ? "ready" : stripeStatus === "configured" ? "attention" : "offline";
 
   const actualSeries = actualMonths.map((month) => {
     const monthTotal = sum(revenueByMonth.get(month.key) ?? []);
@@ -435,12 +446,17 @@ export async function getAdminRevenueSnapshot(): Promise<AdminRevenueSnapshot> {
     kpis: {
       mrr: currentMrr,
       arr,
+      arpu,
       growthPct,
       stripeStatus,
+      stripePayoutStatus,
       stripeConnectedTenants: connectedTenants,
       churnPct,
+      ltv,
       subscriptionSharePct,
       transactionRevenue,
+      escrowHeld,
+      vendorPayoutsPending,
       marketForecast90d,
     },
     chart: {
@@ -465,11 +481,16 @@ export function buildAdminRevenueCsv(snapshot: AdminRevenueSnapshot) {
     ["Month", snapshot.summary.monthLabel],
     ["MRR", snapshot.kpis.mrr],
     ["ARR", snapshot.kpis.arr],
+    ["ARPU", snapshot.kpis.arpu],
     ["Growth %", snapshot.kpis.growthPct],
     ["Stripe Status", snapshot.kpis.stripeStatus],
+    ["Stripe Payout Status", snapshot.kpis.stripePayoutStatus],
     ["Churn %", snapshot.kpis.churnPct],
+    ["LTV", snapshot.kpis.ltv],
     ["Subscription Share %", snapshot.kpis.subscriptionSharePct],
     ["Transaction Revenue", snapshot.kpis.transactionRevenue],
+    ["Escrow Held", snapshot.kpis.escrowHeld],
+    ["Vendor Payouts Pending", snapshot.kpis.vendorPayoutsPending],
     ["Market Forecast 90d", snapshot.kpis.marketForecast90d],
     [],
     ["Chart Label", "Actual", "Forecast", "Note"],

@@ -155,7 +155,7 @@ export default function ActivityChart() {
         </div>
       ) : (
         <div className="ac2-chart">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
             <LineChart margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="name" tick={{ fill: "var(--text-dim)", fontSize: 9, fontFamily: "Space Mono" }} tickLine={false} axisLine={false} />

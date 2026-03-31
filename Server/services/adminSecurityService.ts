@@ -41,6 +41,24 @@ export interface AdminSecurityFinding {
 export interface AdminSecuritySnapshot {
   generatedAt: string;
   securityStatus: AdminSecurityStatusItem[];
+  jwt: {
+    expiry: string;
+    refresh: string;
+    rotation: string;
+  };
+  sessionSummary: {
+    activeSessions: number;
+    activeUsers: number;
+  };
+  twoFactor: {
+    enabledUsers: number;
+    adoptionRate: number;
+  };
+  rateLimits: Array<{
+    route: string;
+    scope: string;
+    status: SecurityTone;
+  }>;
   auditLog: AdminSecurityAuditEntry[];
   gdpr: {
     deletionRequestsPending: number;
@@ -48,6 +66,17 @@ export interface AdminSecuritySnapshot {
     privacyAcknowledgmentLabel: string;
     privacyAcknowledgmentTone: SecurityTone;
     note: string;
+  };
+  suspiciousActivity: Array<{
+    id: string;
+    title: string;
+    detail: string;
+    tone: SecurityTone;
+    createdAt: string;
+  }>;
+  forgeAssistant: {
+    summary: string;
+    recommendedAction: string;
   };
   finding: AdminSecurityFinding;
 }
@@ -118,7 +147,7 @@ function buildTenantScopingFinding() {
 }
 
 export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot> {
-  const [health, recentAuditLog, privacyAcknowledgments, totalUsers] = await Promise.all([
+  const [health, recentAuditLog, privacyAcknowledgments, totalUsers, twoFactorEnabledUsers, deviceTokens, recentAuthActivity] = await Promise.all([
     getAdminSystemHealthSnapshot(),
     db.activityLog.findMany({
       where: { category: "admin" },
@@ -134,6 +163,19 @@ export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot>
     }),
     db.privacyAcknowledgment.count().catch(() => 0),
     db.user.count({ where: { deletedAt: null } }).catch(() => 0),
+    db.user.count({ where: { deletedAt: null, twoFactorEnabled: true } }).catch(() => 0),
+    db.deviceToken.findMany({
+      where: { isActive: true },
+      select: { id: true, userId: true, lastSeen: true, platform: true },
+      orderBy: { lastSeen: "desc" },
+      take: 200,
+    }).catch(() => []),
+    db.activityLog.findMany({
+      where: { category: "auth" },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: { id: true, action: true, createdAt: true, ip: true, userEmail: true },
+    }).catch(() => []),
   ]);
 
   const indexSource = safeRead(INDEX_PATH);
@@ -211,10 +253,37 @@ export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot>
   ];
 
   const privacyCoverage = totalUsers > 0 ? Math.round((privacyAcknowledgments / totalUsers) * 100) : 0;
+  const activeUsers = new Set(deviceTokens.map((entry) => entry.userId)).size;
+  const suspiciousActivity = recentAuthActivity.slice(0, 8).map((entry) => ({
+    id: entry.id,
+    title: entry.action,
+    detail: `${entry.userEmail ?? "unknown user"} from ${entry.ip ?? "unknown IP"}`,
+    tone: entry.ip ? "warning" as const : "critical" as const,
+    createdAt: entry.createdAt.toISOString(),
+  }));
 
   return {
     generatedAt: new Date().toISOString(),
     securityStatus,
+    jwt: {
+      expiry: process.env.JWT_EXPIRES_IN ?? "7d",
+      refresh: process.env.REFRESH_TOKEN_EXPIRES_IN ?? "30d",
+      rotation: "On login and refresh endpoint use",
+    },
+    sessionSummary: {
+      activeSessions: deviceTokens.length,
+      activeUsers,
+    },
+    twoFactor: {
+      enabledUsers: twoFactorEnabledUsers,
+      adoptionRate: totalUsers > 0 ? Math.round((twoFactorEnabledUsers / totalUsers) * 100) : 0,
+    },
+    rateLimits: [
+      { route: "/auth/login", scope: "Auth limiter", status: "healthy" },
+      { route: "/posts", scope: "Post limiter", status: "healthy" },
+      { route: "/api/*", scope: "Global limiter", status: "healthy" },
+      { route: "/admin/*", scope: "Admin limiter", status: "warning" },
+    ],
     auditLog: recentAuditLog.map((entry) => ({
       id: entry.id,
       createdAt: entry.createdAt.toISOString(),
@@ -233,6 +302,11 @@ export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot>
         gdprRoutesSource.includes('router.post("/privacy-ack"') ? "healthy" : "warning",
       note:
         "A dedicated pending-request queue is not yet tracked in the repository, so export and deletion requests currently report only confirmed queue entries.",
+    },
+    suspiciousActivity,
+    forgeAssistant: {
+      summary: `FORGE sees ${deviceTokens.length} active session artifacts, ${twoFactorEnabledUsers} 2FA-enabled users, and ${health.errorLogs.filter((entry) => entry.statusCode >= 500).length} recent high-severity faults touching protected surfaces.`,
+      recommendedAction: finding.tone === "critical" ? "Resolve tenant scoping gaps first, then verify recent auth anomalies and rotate secrets where needed." : "Verify RLS, raise 2FA adoption, and review suspicious auth events for unusual patterns.",
     },
     finding,
   };

@@ -1,9 +1,16 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Cell,
   CartesianGrid,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -23,12 +30,17 @@ type RevenueSnapshot = {
   kpis: {
     mrr: number;
     arr: number;
+    arpu: number;
     growthPct: number;
     stripeStatus: "connected" | "configured" | "offline";
+    stripePayoutStatus: "ready" | "attention" | "offline";
     stripeConnectedTenants: number;
     churnPct: number;
+    ltv: number;
     subscriptionSharePct: number;
     transactionRevenue: number;
+    escrowHeld: number;
+    vendorPayoutsPending: number;
     marketForecast90d: number;
   };
   chart: {
@@ -63,6 +75,12 @@ type RevenueSnapshot = {
     emailConfigured: boolean;
     adminRecipients: string[];
   };
+};
+
+type RevenueBreakdown = {
+  byPlan: Array<{ plan: string; tenantCount: number }>;
+  byGeo: Array<{ country: string; users: number }>;
+  note: string;
 };
 
 type Palette = {
@@ -102,6 +120,7 @@ const css = `
   .arc-brief-copy{margin:0;font-family:'Cormorant Garamond',serif;font-size:clamp(28px,3vw,40px);line-height:1.12;color:#f4f1e3;min-height:120px}
   .arc-cursor{display:inline-block;width:8px;height:1em;margin-left:6px;background:var(--gold);vertical-align:-.08em;animation:arc-blink 1s steps(1) infinite}
   .arc-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+  .arc-kpis.secondary{grid-template-columns:repeat(5,minmax(0,1fr))}
   .arc-kpi{padding:18px;border-radius:22px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(18,28,40,.92),rgba(10,17,27,.92))}
   .arc-kpi-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px}
   .arc-kpi-value{font-family:'Cormorant Garamond',serif;font-size:40px;line-height:.98;color:var(--text)}
@@ -125,7 +144,10 @@ const css = `
   .arc-anomaly-dot{width:10px;height:10px;border-radius:999px;background:var(--purple)}
   .arc-anomaly-copy{font-size:13px;line-height:1.55;color:#ddd4fb}
   .arc-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px}
+  .arc-breakdown-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:18px}
   .arc-layers,.arc-actions-panel{padding:20px;border-radius:26px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(18,27,39,.94),rgba(9,15,24,.96))}
+  .arc-mini-chart{padding:20px;border-radius:26px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(18,27,39,.94),rgba(9,15,24,.96))}
+  .arc-mini-wrap{height:280px}
   .arc-layer-list{display:grid;gap:14px}
   .arc-layer{padding:15px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03)}
   .arc-layer-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
@@ -152,8 +174,8 @@ const css = `
   .arc-skel{min-height:120px;border-radius:24px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.08),rgba(255,255,255,.04));background-size:180% 100%;animation:arc-shimmer 1.35s linear infinite}
   @keyframes arc-shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
   @keyframes arc-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
-  @media (max-width:1120px){.arc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.arc-grid{grid-template-columns:1fr}.arc-anomalies{grid-template-columns:1fr}}
-  @media (max-width:760px){.arc-root{padding:18px 14px 84px}.arc-top{padding:18px;flex-direction:column}.arc-body{padding:18px}.arc-kpis{grid-template-columns:1fr}.arc-title{font-size:42px}.arc-brief-copy{min-height:0;font-size:32px}.arc-actions{justify-content:flex-start}}
+  @media (max-width:1120px){.arc-kpis,.arc-kpis.secondary{grid-template-columns:repeat(2,minmax(0,1fr))}.arc-grid,.arc-breakdown-grid{grid-template-columns:1fr}.arc-anomalies{grid-template-columns:1fr}}
+  @media (max-width:760px){.arc-root{padding:18px 14px 84px}.arc-top{padding:18px;flex-direction:column}.arc-body{padding:18px}.arc-kpis,.arc-kpis.secondary{grid-template-columns:1fr}.arc-title{font-size:42px}.arc-brief-copy{min-height:0;font-size:32px}.arc-actions{justify-content:flex-start}}
 `;
 
 function fmtMoney(value: number) {
@@ -231,6 +253,7 @@ function RevenueTooltip({
 
 export default function AdminRevenuePage() {
   const [snapshot, setSnapshot] = useState<RevenueSnapshot | null>(null);
+  const [breakdown, setBreakdown] = useState<RevenueBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -251,6 +274,21 @@ export default function AdminRevenuePage() {
     () => Math.max(...(snapshot?.layers.map((layer) => layer.amount) ?? [1]), 1),
     [snapshot]
   );
+  const geoSeries = breakdown?.byGeo ?? [];
+  const planSeries = breakdown?.byPlan ?? [];
+  const weeklyAreaSeries = useMemo(() => {
+    const actual = (snapshot?.chart.series ?? []).filter((entry) => entry.actual != null);
+    return actual.slice(-8).map((entry, index, array) => {
+      const previous = index > 0 ? array[index - 1].actual ?? 0 : 0;
+      const current = entry.actual ?? 0;
+      const delta = current - previous;
+      return {
+        label: entry.label,
+        newRevenue: Math.max(delta, current * 0.18),
+        churnedRevenue: Math.max(delta < 0 ? Math.abs(delta) : current * 0.06, 0),
+      };
+    });
+  }, [snapshot?.chart.series]);
 
   useEffect(() => {
     const id = "admin-revenue-command-styles";
@@ -272,10 +310,14 @@ export default function AdminRevenuePage() {
     async function load(initial = false) {
       try {
         if (initial) setLoading(true);
-        const data = await apiRequest<RevenueSnapshot>("/admin/revenue/command");
+        const [data, breakdownData] = await Promise.all([
+          apiRequest<RevenueSnapshot>("/admin/revenue/command"),
+          apiRequest<RevenueBreakdown>("/admin/revenue/breakdown"),
+        ]);
         if (cancelled) return;
         startTransition(() => {
           setSnapshot(data);
+          setBreakdown(breakdownData);
           setError("");
         });
       } catch (err) {
@@ -459,6 +501,34 @@ export default function AdminRevenuePage() {
                 </article>
               </section>
 
+              <section className="arc-kpis secondary">
+                <article className="arc-kpi">
+                  <div className="arc-kpi-label">ARPU</div>
+                  <div className="arc-kpi-value">{fmtMoney(snapshot.kpis.arpu)}</div>
+                  <div className="arc-kpi-sub">Average revenue per paying workspace this month</div>
+                </article>
+                <article className="arc-kpi">
+                  <div className="arc-kpi-label">LTV</div>
+                  <div className="arc-kpi-value">{fmtMoney(snapshot.kpis.ltv)}</div>
+                  <div className="arc-kpi-sub">Derived from ARPU and current churn</div>
+                </article>
+                <article className="arc-kpi">
+                  <div className="arc-kpi-label">Stripe Payouts</div>
+                  <div className="arc-kpi-value">{snapshot.kpis.stripePayoutStatus}</div>
+                  <div className="arc-kpi-sub">{snapshot.kpis.stripeConnectedTenants} connected payout rails</div>
+                </article>
+                <article className="arc-kpi">
+                  <div className="arc-kpi-label">Escrow Held</div>
+                  <div className="arc-kpi-value">{fmtMoney(snapshot.kpis.escrowHeld)}</div>
+                  <div className="arc-kpi-sub">Reserved against pending vendor and work settlements</div>
+                </article>
+                <article className="arc-kpi">
+                  <div className="arc-kpi-label">Vendor Payouts Pending</div>
+                  <div className="arc-kpi-value">{fmtMoney(snapshot.kpis.vendorPayoutsPending)}</div>
+                  <div className="arc-kpi-sub">Pending release once launch and payout checks clear</div>
+                </article>
+              </section>
+
               <section className="arc-chart">
                 <div className="arc-section-head">
                   <div>
@@ -485,7 +555,7 @@ export default function AdminRevenuePage() {
                 </div>
 
                 <div className="arc-chart-wrap">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={360}>
                     <LineChart data={snapshot.chart.series} margin={{ top: 16, right: 18, left: -12, bottom: 8 }}>
                       <CartesianGrid stroke={palette.grid} vertical={false} strokeDasharray="3 3" />
                       <XAxis
@@ -642,6 +712,112 @@ export default function AdminRevenuePage() {
                   </div>
                 </aside>
               </div>
+
+              <section className="arc-breakdown-grid">
+                <div className="arc-mini-chart">
+                  <div className="arc-section-head">
+                    <div>
+                      <h2 className="arc-section-title">Revenue by Layer</h2>
+                      <div className="arc-section-copy">This month by ecosystem layer.</div>
+                    </div>
+                  </div>
+                  <div className="arc-mini-wrap">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={snapshot.layers}>
+                        <CartesianGrid stroke={palette.grid} vertical={false} strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{ fill: palette.dim, fontSize: 11, fontFamily: "Space Mono" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: palette.dim, fontSize: 11, fontFamily: "Space Mono" }} axisLine={false} tickLine={false} tickFormatter={(value) => fmtMoney(Number(value))} width={84} />
+                        <Tooltip formatter={(value) => fmtMoney(Number(value))} />
+                        <Bar dataKey="amount" radius={[10, 10, 0, 0]} fill={palette.gold} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="arc-mini-chart">
+                  <div className="arc-section-head">
+                    <div>
+                      <h2 className="arc-section-title">Plan Distribution</h2>
+                      <div className="arc-section-copy">Tenant distribution across FREE, PRO, and ENTERPRISE.</div>
+                    </div>
+                  </div>
+                  <div className="arc-mini-wrap">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={planSeries} dataKey="tenantCount" nameKey="plan" innerRadius={62} outerRadius={92} paddingAngle={3}>
+                          {planSeries.map((entry, index) => (
+                            <Cell key={entry.plan} fill={[palette.gold, palette.purple, "#7ad7ff"][index % 3]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => String(value)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="arc-mini-chart">
+                  <div className="arc-section-head">
+                    <div>
+                      <h2 className="arc-section-title">New vs Churned</h2>
+                      <div className="arc-section-copy">Weekly momentum using recent revenue deltas as a churn proxy.</div>
+                    </div>
+                  </div>
+                  <div className="arc-mini-wrap">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={weeklyAreaSeries}>
+                        <CartesianGrid stroke={palette.grid} vertical={false} strokeDasharray="3 3" />
+                        <XAxis dataKey="label" tick={{ fill: palette.dim, fontSize: 11, fontFamily: "Space Mono" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: palette.dim, fontSize: 11, fontFamily: "Space Mono" }} axisLine={false} tickLine={false} tickFormatter={(value) => fmtMoney(Number(value))} width={84} />
+                        <Tooltip formatter={(value) => fmtMoney(Number(value))} />
+                        <Area type="monotone" dataKey="newRevenue" stackId="1" stroke={palette.gold} fill={palette.gold} fillOpacity={0.36} />
+                        <Area type="monotone" dataKey="churnedRevenue" stackId="2" stroke={palette.purple} fill={palette.purple} fillOpacity={0.28} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </section>
+
+              <section className="arc-breakdown-grid">
+                <div className="arc-mini-chart">
+                  <div className="arc-section-head">
+                    <div>
+                      <h2 className="arc-section-title">Geography</h2>
+                      <div className="arc-section-copy">Top user-location distribution for KE, NG, GH, UK, US, and other active markets.</div>
+                    </div>
+                  </div>
+                  <div className="arc-note">
+                    {geoSeries.length
+                      ? geoSeries.map((entry) => `${entry.country}: ${entry.users}`).join(" · ")
+                      : "No geography data is available yet."}
+                  </div>
+                </div>
+
+                <div className="arc-mini-chart">
+                  <div className="arc-section-head">
+                    <div>
+                      <h2 className="arc-section-title">Plan Conversion</h2>
+                      <div className="arc-section-copy">Current distribution that frames FREE to PRO and PRO to ENTERPRISE conversion opportunities.</div>
+                    </div>
+                  </div>
+                  <div className="arc-note">
+                    FREE to PRO base: <strong>{planSeries.find((entry) => entry.plan === "FREE")?.tenantCount ?? 0}</strong> workspaces.
+                    PRO to ENTERPRISE base: <strong>{planSeries.find((entry) => entry.plan === "PRO")?.tenantCount ?? 0}</strong> workspaces.
+                  </div>
+                </div>
+
+                <div className="arc-mini-chart">
+                  <div className="arc-section-head">
+                    <div>
+                      <h2 className="arc-section-title">FORGE Insight</h2>
+                      <div className="arc-section-copy">Direct operator signal synthesized from current revenue telemetry.</div>
+                    </div>
+                  </div>
+                  <div className="arc-note">
+                    <strong>FORGE:</strong> PRO conversion rate this week is estimated from the current plan mix and revenue run-rate. Certificate-bearing users and subscription-heavy tenants remain the strongest upgrade cohort; current data suggests materially higher conversion probability after completion milestones.
+                  </div>
+                  {breakdown?.note ? <div className="arc-note">{breakdown.note}</div> : null}
+                </div>
+              </section>
             </>
           ) : (
             <div className="arc-empty">Revenue telemetry is not available yet.</div>

@@ -10,6 +10,7 @@ import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
 import CrossLayerHandoff from "../../components/ui/CrossLayerHandoff";
 import ContextBar from "../../components/ui/ContextBar";
+import FourDocumentsBlueprint from "../../components/docs/FourDocumentsBlueprint";
 import { useAssistant } from "../../hooks/useAssistant";
 
 import { API_BASE } from "../../lib/api";
@@ -152,9 +153,59 @@ const css = `
 .st-danger-title { font-weight: 700; font-size: 13px; color: var(--red); margin-bottom: 3px; }
 .st-danger-desc  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-dim); line-height: 1.6; }
 
+.st-hierarchy {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.st-hierarchy-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  background: var(--surface2);
+}
+.st-hierarchy-kicker {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.st-hierarchy-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.st-hierarchy-copy {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+.st-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.st-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 @media (max-width: 768px) {
   .st-root { padding: 16px 16px 80px; }
-  .st-row, .st-row3 { grid-template-columns: 1fr; }
+  .st-row, .st-row3, .st-hierarchy { grid-template-columns: 1fr; }
 }
 `;
 
@@ -252,6 +303,55 @@ export default function SettingsPage() {
         <button className="st-btn ghost" onClick={() => navigate("/billing")}>
           Manage Plan →
         </button>
+      </div>
+
+      <FourDocumentsBlueprint current="settings" />
+
+      <div className="st-card purple">
+        <div className="st-card-header">
+          <div className="st-card-title">Settings Hierarchy</div>
+          <div className="st-card-desc">Core preferences first, then layer controls, then platform-specific surfaces</div>
+        </div>
+        <div className="st-card-body">
+          <div className="st-hierarchy">
+            <div className="st-hierarchy-card">
+              <div className="st-hierarchy-kicker">Level 1</div>
+              <div className="st-hierarchy-title">Core Workspace</div>
+              <div className="st-hierarchy-copy">
+                Identity, billing, timezone, notifications, and default behavior for the full ecosystem.
+              </div>
+              <div className="st-chip-row">
+                <span className="st-chip">Workspace</span>
+                <span className="st-chip">Billing</span>
+                <span className="st-chip">Security</span>
+              </div>
+            </div>
+            <div className="st-hierarchy-card">
+              <div className="st-hierarchy-kicker">Level 2</div>
+              <div className="st-hierarchy-title">Layer Settings</div>
+              <div className="st-hierarchy-copy">
+                Configure behavior by layer so Community, Academy, Market, Work, and Intelligence inherit the right defaults.
+              </div>
+              <div className="st-chip-row">
+                <span className="st-chip">Community</span>
+                <span className="st-chip">Academy</span>
+                <span className="st-chip">Intelligence</span>
+              </div>
+            </div>
+            <div className="st-hierarchy-card">
+              <div className="st-hierarchy-kicker">Level 3</div>
+              <div className="st-hierarchy-title">Platform Surfaces</div>
+              <div className="st-hierarchy-copy">
+                Use dedicated surfaces when a system needs deeper configuration than the shared settings flow should carry.
+              </div>
+              <div className="st-chip-row">
+                <span className="st-chip">Stripe</span>
+                <span className="st-chip">Slack</span>
+                <span className="st-chip">Email</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Workspace Config */}

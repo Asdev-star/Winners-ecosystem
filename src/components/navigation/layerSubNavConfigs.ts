@@ -245,7 +245,8 @@ export const CORE_SUBNAV: LayerSubNavConfig = {
   layer: "core",
   accent: "var(--gold)",
   items: [
-    { id: "core-home", label: "User Home", to: "/home" },
+    { id: "core-home", label: "User Home", to: "/home", badge: "Entry", badgeTone: "info" },
+    { id: "core-settings", label: "Settings", to: "/settings", badge: "Hierarchy", badgeTone: "attention" },
     { id: "core-analytics", label: "Analytics", to: "/analytics" },
     { id: "core-search", label: "Search", to: "/search", badge: "K", badgeTone: "info" },
     { id: "core-activity", label: "Activity", to: "/activity" },
@@ -263,7 +264,8 @@ export const ADMIN_SUBNAV: LayerSubNavConfig = {
   layer: "core",
   accent: "var(--gold)",
   items: [
-    { id: "admin-overview", label: "Overview", to: "/admin/overview", aliases: ["/admin"] },
+    { id: "admin-overview", label: "Admin Dashboard", to: "/dashboard", aliases: ["/admin", "/admin/overview"] },
+    { id: "admin-core-settings", label: "Core Settings", to: "/settings/core", aliases: ["/admin/settings"], badge: "Root", badgeTone: "attention" },
     { id: "admin-launch", label: "Platform", to: "/admin/platform" },
     { id: "admin-tenants", label: "Tenants", to: "/admin/tenants" },
     { id: "admin-users", label: "Users", to: "/admin/users" },
@@ -272,7 +274,6 @@ export const ADMIN_SUBNAV: LayerSubNavConfig = {
     { id: "admin-health", label: "System Health", to: "/admin/health", aliases: ["/ops"] },
     { id: "admin-broadcast", label: "OMEGA Broadcast", to: "/admin/broadcast", badge: "Live", badgeTone: "attention" },
     { id: "admin-security", label: "Security", to: "/admin/security" },
-    { id: "admin-settings", label: "Settings", to: "/admin/settings" },
   ],
   smartAction: () => ({
     supervisor: "OMEGA",
@@ -283,6 +284,7 @@ export const ADMIN_SUBNAV: LayerSubNavConfig = {
 };
 
 export function getLayerSubNavForPath(pathname: string): LayerSubNavConfig {
+  if (pathname.startsWith("/settings/core")) return ADMIN_SUBNAV;
   if (pathname.startsWith("/admin") || pathname.startsWith("/ops")) return ADMIN_SUBNAV;
   if (pathname.startsWith("/community") || pathname.startsWith("/messages")) return COMMUNITY_SUBNAV;
   if (pathname.startsWith("/academy")) return ACADEMY_SUBNAV;

@@ -14,10 +14,14 @@ const LAYER_IDS = ["community", "academy", "market", "work", "cloud", "intellige
 type BroadcastPlan = (typeof PLAN_IDS)[number];
 export type BroadcastLayerId = (typeof LAYER_IDS)[number];
 export type BroadcastChannel = "in_app" | "push" | "email";
+export type BroadcastType = "platform_news" | "layer_launch" | "maintenance" | "milestone" | "forge_insight";
+export type BroadcastScheduleMode = "send_now" | "specific_time" | "next_omega";
+export type BroadcastSegment = "at_risk" | "platinum" | "inactive_7d";
 export type BroadcastAudience =
   | { kind: "all" }
   | { kind: "plan"; plan: BroadcastPlan }
-  | { kind: "layer"; layerId: BroadcastLayerId };
+  | { kind: "layer"; layerId: BroadcastLayerId }
+  | { kind: "segment"; segment: BroadcastSegment };
 
 type BroadcastRecipient = {
   id: string;
@@ -32,14 +36,20 @@ type BroadcastActivityRecord = {
   id: string;
   title: string;
   body: string;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  broadcastType: BroadcastType;
   createdAt: string;
   recipients: number;
   channels: BroadcastChannel[];
   audienceLabel: string;
   openRate: number | null;
   openRateLabel: string;
+  clickRate: number | null;
+  clickRateLabel: string;
   status: "sent" | "scheduled";
   scheduledFor: string | null;
+  scheduleMode: BroadcastScheduleMode;
 };
 
 type BroadcastPanelLayer = {
@@ -73,6 +83,19 @@ export type AdminBroadcastSendResult = {
   pushQueued: number;
   emailDelivered: number;
   emailSkipped: boolean;
+};
+
+export type AdminBroadcastComposeInput = {
+  actorTenantId: string;
+  audience: BroadcastAudience;
+  channels: BroadcastChannel[];
+  title?: string;
+  body: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  broadcastType?: BroadcastType;
+  scheduleMode?: BroadcastScheduleMode;
+  scheduleAt?: string | null;
 };
 
 function escapeHtml(value: string) {
@@ -120,11 +143,20 @@ function audienceLabel(audience: BroadcastAudience) {
     if (audience.plan === "PRO") return "PRO Users";
     return "Enterprise Users";
   }
+  if (audience.kind === "segment") {
+    if (audience.segment === "at_risk") return "At-Risk Users";
+    if (audience.segment === "platinum") return "Platinum Advocates";
+    return "Inactive (7d) Users";
+  }
   return `${layerLabel(audience.layerId)} Layer`;
 }
 
 function fallbackOpenRateLabel(openRate: number | null) {
   return typeof openRate === "number" ? `${openRate}% opened` : "Opens untracked";
+}
+
+function fallbackClickRateLabel(clickRate: number | null) {
+  return typeof clickRate === "number" ? `${clickRate}% CTA clicks` : "CTA clicks untracked";
 }
 
 function metadataRecord(value: unknown): Record<string, unknown> {
@@ -140,8 +172,8 @@ function metadataChannels(value: unknown): BroadcastChannel[] {
   );
 }
 
-function buildEmailHtml(input: { title: string; message: string; audience: string; channels: BroadcastChannel[] }) {
-  const body = escapeHtml(input.message).replace(/\r?\n/g, "<br />");
+function buildEmailHtml(input: { title: string; body: string; audience: string; channels: BroadcastChannel[]; ctaLabel?: string | null; ctaUrl?: string | null }) {
+  const body = escapeHtml(input.body).replace(/\r?\n/g, "<br />");
   return `<!doctype html>
 <html>
 <head>
@@ -163,8 +195,8 @@ function buildEmailHtml(input: { title: string; message: string; audience: strin
       <div style="padding:26px">
         <div style="font-size:15px;line-height:1.8;color:#E6EDF3">${body}</div>
         <div style="margin-top:28px">
-          <a href="${APP_URL}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#C9A84C;color:#081019;text-decoration:none;font-weight:700">
-            Open Winners Ecosystem
+          <a href="${escapeHtml(input.ctaUrl || APP_URL)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#C9A84C;color:#081019;text-decoration:none;font-weight:700">
+            ${escapeHtml(input.ctaLabel || "Open Winners Ecosystem")}
           </a>
         </div>
       </div>
@@ -253,11 +285,15 @@ function mapActivityRecord(log: {
   const status = log.action === "admin_broadcast_scheduled" ? "scheduled" : "sent";
   const recipients = typeof metadata.recipients === "number" ? metadata.recipients : 0;
   const openRate = typeof metadata.openRate === "number" ? metadata.openRate : null;
+  const clickRate = typeof metadata.clickRate === "number" ? metadata.clickRate : null;
 
   return {
     id: log.id,
     title: typeof metadata.title === "string" ? metadata.title : "OMEGA Broadcast",
     body: typeof metadata.message === "string" ? metadata.message : "",
+    ctaLabel: typeof metadata.ctaLabel === "string" ? metadata.ctaLabel : null,
+    ctaUrl: typeof metadata.ctaUrl === "string" ? metadata.ctaUrl : null,
+    broadcastType: typeof metadata.broadcastType === "string" ? metadata.broadcastType as BroadcastType : "platform_news",
     createdAt: log.createdAt.toISOString(),
     recipients,
     channels: metadataChannels(metadata.channels),
@@ -265,11 +301,19 @@ function mapActivityRecord(log: {
       typeof metadata.audienceLabel === "string" ? metadata.audienceLabel : "All Users",
     openRate,
     openRateLabel: fallbackOpenRateLabel(openRate),
+    clickRate,
+    clickRateLabel: fallbackClickRateLabel(clickRate),
     status,
     scheduledFor:
       typeof metadata.scheduleAt === "string" && metadata.scheduleAt.trim()
         ? metadata.scheduleAt
         : null,
+    scheduleMode:
+      typeof metadata.scheduleMode === "string" && ["send_now", "specific_time", "next_omega"].includes(metadata.scheduleMode)
+        ? metadata.scheduleMode as BroadcastScheduleMode
+        : status === "scheduled"
+          ? "specific_time"
+          : "send_now",
   };
 }
 
@@ -362,6 +406,37 @@ async function resolveRecipients(audience: BroadcastAudience): Promise<Broadcast
     );
   }
 
+  if (audience.kind === "segment") {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const where =
+      audience.segment === "at_risk"
+        ? { deletedAt: null, trustScore: { lte: 30 } }
+        : audience.segment === "platinum"
+          ? { deletedAt: null, trustScore: { gt: 85 } }
+          : { deletedAt: null, updatedAt: { lt: sevenDaysAgo } };
+
+    return db.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        tenantId: true,
+        tenant: { select: { name: true, plan: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }).then((rows) =>
+      rows.map((row) => ({
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        tenantId: row.tenantId,
+        tenantName: row.tenant.name,
+        plan: row.tenant.plan,
+      }))
+    );
+  }
+
   const memberships = await getLayerAudienceMembership();
   const ids = Array.from(memberships[audience.layerId]);
   if (ids.length === 0) return [];
@@ -422,27 +497,22 @@ function notificationLink(audience: BroadcastAudience) {
   return audience.kind === "layer" ? layerRoute(audience.layerId) : "/notifications";
 }
 
-export async function sendAdminBroadcast(input: {
-  actorTenantId: string;
-  audience: BroadcastAudience;
-  channels: BroadcastChannel[];
-  message: string;
-}): Promise<AdminBroadcastSendResult> {
-  const message = input.message.trim();
+export async function sendAdminBroadcast(input: AdminBroadcastComposeInput): Promise<AdminBroadcastSendResult> {
+  const message = input.body.trim();
   const recipients = await resolveRecipients(input.audience);
-  const title = deriveTitle(message);
+  const title = input.title?.trim() || deriveTitle(message);
   const targetLabel = audienceLabel(input.audience);
-  const link = notificationLink(input.audience);
+  const link = input.ctaUrl?.trim() || notificationLink(input.audience);
 
   let inAppCreated = 0;
   if (input.channels.includes("in_app") && recipients.length > 0) {
     const notificationRows = recipients.map((recipient) => ({
       tenantId: recipient.tenantId,
       userId: recipient.id,
-      type: NotificationType.SYSTEM,
-      title,
-      body: message,
-      link,
+              type: NotificationType.SYSTEM,
+              title,
+              body: message,
+              link,
     }));
 
     for (const batch of chunk(notificationRows, 250)) {
@@ -465,9 +535,9 @@ export async function sendAdminBroadcast(input: {
     await sendBulkNotification(
       recipients.map((recipient) => recipient.id),
       {
-        title,
-        body: message.length > 220 ? `${message.slice(0, 217).trimEnd()}...` : message,
-        url: link,
+                title,
+                body: message.length > 220 ? `${message.slice(0, 217).trimEnd()}...` : message,
+                url: link,
       }
     );
     pushQueued = recipients.length;
@@ -492,9 +562,11 @@ export async function sendAdminBroadcast(input: {
               subject,
               html: buildEmailHtml({
                 title,
-                message,
+                body: message,
                 audience: targetLabel,
                 channels: input.channels,
+                ctaLabel: input.ctaLabel,
+                ctaUrl: link,
               }),
             })
           )
@@ -510,6 +582,10 @@ export async function sendAdminBroadcast(input: {
         source: "admin_broadcast",
         metadata: {
           title,
+          ctaLabel: input.ctaLabel,
+          ctaUrl: link,
+          broadcastType: input.broadcastType ?? "platform_news",
+          scheduleMode: input.scheduleMode ?? "send_now",
           audienceLabel: targetLabel,
           recipientCount: emailRecipients.length,
           channels: input.channels,

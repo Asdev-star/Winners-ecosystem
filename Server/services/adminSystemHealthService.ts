@@ -10,7 +10,7 @@ const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const MIGRATIONS_DIR = path.join(ROOT_DIR, "prisma", "migrations");
 
 type ServiceTone = "healthy" | "warning" | "down" | "not_configured";
-type ErrorFilter = "all" | "5xx" | "4xx" | "ai" | "stripe";
+type ErrorFilter = "all" | "error" | "warn" | "info" | "ai" | "stripe";
 
 export interface SystemHealthServiceStatus {
   id: string;
@@ -51,6 +51,9 @@ export interface AdminSystemHealthSnapshot {
   rateLimiting: SystemHealthRateLimitStatus;
   database: SystemHealthDatabaseSnapshot;
   errorLogs: SystemHealthErrorLog[];
+  observability: {
+    sentryUrl: string | null;
+  };
 }
 
 function fmtMoney(value: number) {
@@ -180,9 +183,9 @@ function mapErrorFilter(path: string, statusCode: number): ErrorFilter {
   ) {
     return "ai";
   }
-  if (statusCode >= 500) return "5xx";
-  if (statusCode >= 400) return "4xx";
-  return "all";
+  if (statusCode >= 500) return "error";
+  if (statusCode >= 400) return "warn";
+  return "info";
 }
 
 async function fetchJsonWithTimeout(url: string, timeoutMs: number) {
@@ -275,7 +278,7 @@ export async function getAdminSystemHealthSnapshot(): Promise<AdminSystemHealthS
     },
     {
       id: "database",
-      label: "Database (PG)",
+      label: "PostgreSQL",
       tone: dbHealthy ? "healthy" : "down",
       statusLabel: dbHealthy ? "Healthy" : "Down",
       summary: dbHealthy ? "Primary PostgreSQL connection is available." : "PostgreSQL health checks are failing.",
@@ -295,13 +298,32 @@ export async function getAdminSystemHealthSnapshot(): Promise<AdminSystemHealthS
     },
     {
       id: "email",
-      label: "Email (Resend)",
+      label: "Resend Email",
       tone: process.env.RESEND_API_KEY ? "healthy" : "not_configured",
       statusLabel: process.env.RESEND_API_KEY ? "Healthy" : "Not Configured",
       summary: process.env.RESEND_API_KEY ? "Transactional email provider is configured." : "RESEND_API_KEY is not configured.",
       metrics: [`Sent today: ${emailsSentToday.toLocaleString()}`, `From: ${process.env.EMAIL_FROM ? "Configured" : "Default sender"}`],
     },
     stripeStatus,
+    {
+      id: "cloudinary",
+      label: "Cloudinary",
+      tone: process.env.CLOUDINARY_URL ? "healthy" : "not_configured",
+      statusLabel: process.env.CLOUDINARY_URL ? "Healthy" : "Not Configured",
+      summary: process.env.CLOUDINARY_URL ? "Cloud media storage and transformation are configured." : "Cloudinary credentials are not configured.",
+      metrics: [process.env.CLOUDINARY_URL ? "Upload pipeline ready" : "Media uploads limited to local/default flow"],
+    },
+    {
+      id: "fcm",
+      label: "Firebase FCM",
+      tone: process.env.FCM_SERVER_KEY || process.env.FIREBASE_PROJECT_ID ? "healthy" : "not_configured",
+      statusLabel: process.env.FCM_SERVER_KEY || process.env.FIREBASE_PROJECT_ID ? "Healthy" : "Not Configured",
+      summary: process.env.FCM_SERVER_KEY || process.env.FIREBASE_PROJECT_ID ? "Push delivery rails are configured." : "Firebase FCM is not configured.",
+      metrics: [
+        `Project: ${process.env.FIREBASE_PROJECT_ID ? "Configured" : "Missing"}`,
+        `Push key: ${process.env.FCM_SERVER_KEY ? "Configured" : "Missing"}`,
+      ],
+    },
     {
       id: "socket",
       label: "Socket.io",
@@ -312,11 +334,11 @@ export async function getAdminSystemHealthSnapshot(): Promise<AdminSystemHealthS
     },
     {
       id: "redis",
-      label: "Redis",
+      label: "Redis (cache)",
       tone: process.env.REDIS_URL ? "healthy" : "not_configured",
       statusLabel: process.env.REDIS_URL ? "Healthy" : "Not Configured",
       summary: process.env.REDIS_URL ? "Redis cache endpoint is configured." : "Optional cache layer is not configured.",
-      metrics: [process.env.REDIS_URL ? "Session cache ready" : "Optional for session cache"],
+      metrics: [process.env.REDIS_URL ? "Session cache ready" : "Optional for session cache", "Hit rate: telemetry pending"],
     },
   ];
 
@@ -349,6 +371,9 @@ export async function getAdminSystemHealthSnapshot(): Promise<AdminSystemHealthS
       latencyMs: entry.latencyMs,
       createdAt: entry.createdAt,
     })),
+    observability: {
+      sentryUrl: process.env.SENTRY_URL ?? null,
+    },
   };
 }
 

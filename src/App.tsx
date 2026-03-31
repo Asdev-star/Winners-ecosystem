@@ -178,6 +178,7 @@ function App() {
             }
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Navigate to="/dashboard" replace />} />
             <Route path="overview" element={<Navigate to="/dashboard" replace />} />
             <Route path="platform" element={<PlatformLaunchPage />} />
             <Route path="platform/:layerId" element={<AdminPlatformLayerPage />} />

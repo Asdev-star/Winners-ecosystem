@@ -544,7 +544,7 @@ export default function AdminUserDeepDivePage() {
               </section>
 
               <div className="uud-grid">
-                <section className="uud-card">
+                <section className="uud-card" id="timeline">
                   <div className="uud-section-head"><div><h2 className="uud-section-title">Cross-Layer Activity Timeline</h2><p className="uud-section-sub">Chronological actions across Community, Academy, Market, Work, and Intelligence.</p></div></div>
                   <div className="uud-timeline">
                     {orderedTimeline.length ? orderedTimeline.map((entry) => (
@@ -573,7 +573,7 @@ export default function AdminUserDeepDivePage() {
                 </section>
               </div>
 
-              <section className="uud-section">
+              <section className="uud-section" id="loops">
                 <div className="uud-section-head"><div><h2 className="uud-section-title">Agentic Loop History</h2><p className="uud-section-sub">Completed and in-progress loops, including stage and revenue impact.</p></div></div>
                 <div className="uud-loop-grid">
                   {user.loops.length ? user.loops.map((loop) => (

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
+import FourDocumentsBlueprint from "../../components/docs/FourDocumentsBlueprint";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
@@ -218,8 +219,16 @@ export function CoreSettingsPage() {
     >
       <div className="act-grid">
         <div className="act-card wide">
+          <FourDocumentsBlueprint current="core-settings" adminEnabled compact />
+        </div>
+        <div className="act-card wide">
           <div className="act-section-title">Connected Surfaces</div>
           <div className="act-command-grid">
+            <Link to="/dashboard" className="act-command">
+              <div className="act-command-icon">⬡</div>
+              <div className="act-command-title">Admin Dashboard</div>
+              <div className="act-command-desc">Return to the sovereign control tower for launches, health, revenue, and FORGE oversight.</div>
+            </Link>
             <Link to="/settings" className="act-command">
               <div className="act-command-icon">⚙</div>
               <div className="act-command-title">Workspace Settings</div>

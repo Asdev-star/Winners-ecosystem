@@ -97,6 +97,297 @@
 - `/admin/security`
 - `/ops` redirects to admin health
 
+### Canonical Document 1 - Admin Dashboard
+
+- Route: `/dashboard`
+- Primary file: `src/features/dashboard/DashboardPage.tsx`
+- Frontend behavior:
+  - Authenticated non-admin identities are redirected to `/home` by `DashboardRealmRoute` in `src/App.tsx`
+  - Sovereign admin routes under `/admin/*` remain hidden behind `SuperAdminRoute`
+- Backend guard path:
+  - `ADMIN_EMAILS` env var is parsed by `Server/middleware/superAdminMiddleware.ts`
+  - `concealedSuperAdminMiddleware` returns `404` instead of `401/403`
+  - `Server/routes/adminRoutes.ts` mounts admin endpoints behind the concealed middleware
+
+#### Document 1 layout architecture
+
+- Sticky header with Winners brand, `Admin Dashboard` label, `FORGE AI` action, notifications, admin identity, and `SUPERADMIN` badge
+- Sticky 240px left sidebar with:
+  - Overview
+  - Platform Control
+  - Tenants
+  - Users
+  - Revenue
+  - FORGE Intelligence
+  - System Health
+  - Broadcast
+  - Security
+- Sidebar ecosystem status summary with:
+  - live layers
+  - MRR
+  - total users
+  - system health
+- Main content area dedicated to the active admin page content
+
+#### Document 1 page 1 - Overview
+
+- The default admin surface is the morning-briefing overview
+- Data is driven from admin endpoints in `Server/routes/adminRoutes.ts`, including:
+  - `GET /api/v1/admin/overview`
+  - `GET /api/v1/admin/stats`
+  - `GET /api/v1/admin/loops/live`
+  - `POST /api/v1/admin/forge/briefing`
+- The overview currently renders:
+  - six KPI cards
+  - FORGE morning briefing
+  - platform layer status grid
+  - live agentic loop feed
+  - revenue trend and attribution
+  - cross-layer supervisor signals
+  - recent admin activity
+
+##### Platform layer status grid
+
+- The overview is intended to present a 3x3 layer matrix:
+  - Core Engine
+  - Community
+  - Academy
+  - Intelligence
+  - Market
+  - Work
+  - Mobile
+  - Cloud
+  - AI Platform
+- Target state language for the cards:
+  - `LIVE`
+  - `READY`
+  - `LOCKED`
+  - `BUILD`
+- Target action language for the cards:
+  - `Manage`
+  - `Launch ->`
+  - `View Deps`
+
+##### Revenue and activity modules
+
+- Revenue chart uses a 30-day Recharts area visualization with layer attribution.
+- Recent activity feed is intended to surface the last 20 admin-relevant events such as:
+  - PRO upgrades
+  - certificate completions
+  - vendor applications
+  - loop completions
+  - error spikes
+
+#### Document 1 page 2 - Platform Control
+
+- Route family:
+  - `/admin/platform`
+  - `/admin/platform/:layerId`
+- Purpose:
+  - sovereign launch control for each ecosystem layer
+- Expected admin actions per layer:
+  - run pre-launch checklist
+  - launch to users with typed confirmation phrase
+  - suspend with operator reason and user notification
+  - view post-launch metrics
+  - manage layer settings
+- Dependency chain represented by the control surface:
+  - `Core -> Community -> Academy -> Market -> Work -> Mobile`
+  - `Core -> Intelligence -> Cloud`
+
+#### Document 1 page 3 - Tenant Management
+
+- Primary route family:
+  - `/admin/tenants`
+  - `/admin/tenants/:id`
+- Core table responsibilities:
+  - workspace overview
+  - plan control
+  - lifecycle control
+  - impersonation
+  - tenant drill-down
+- Current tenant actions present in the admin tenants surface include:
+  - `Change Plan`
+  - `Impersonate Logged`
+  - `Suspend` or `Restore`
+  - `Delete`
+- Backend support exists for:
+  - search
+  - plan filter
+  - status filter
+  - tenant impersonation
+  - audit logging around impersonation and lifecycle changes
+- Impersonation behavior is intended to remain sovereign:
+  - non-admins receive `404`
+  - impersonation creates an admin audit entry
+  - impersonated sessions remain visibly marked in the UI
+
+#### Document 1 page 4 - User Management
+
+- Primary route family:
+  - `/admin/users`
+  - `/admin/users/:id`
+- The user list now renders the canonical admin table columns:
+  - name
+  - email
+  - plan
+  - trust score
+  - layers active
+  - last seen
+  - actions
+- Per-user actions now have backend support in `Server/routes/adminRoutes.ts` for:
+  - `Change Role`
+  - `Change Plan`
+  - `Reset 2FA`
+  - `Suspend` and `Restore`
+  - `Delete`
+  - `Send FORGE Message`
+  - `Reset Password`
+  - `Revoke Sessions`
+- Trust score monitoring now includes:
+  - at-risk highlighting below 30
+  - advocate highlighting above 85
+  - tier filtering for Bronze, Silver, Gold, and Platinum
+- Bulk admin actions currently present:
+  - select multiple users
+  - `Send Announcement`
+  - `Export CSV`
+  - `Change Plan`
+- User deep-dive payloads are now shaped server-side for:
+  - cross-layer timeline
+  - loop history
+  - AI usage summary
+  - moderation signals
+  - admin intervention controls
+
+#### Document 1 page 5 - Revenue Dashboard
+
+- Route:
+  - `/admin/revenue`
+- Revenue command now surfaces:
+  - MRR
+  - ARR
+  - ARPU
+  - churn
+  - LTV
+  - Stripe payout status
+  - escrow held
+  - vendor payouts pending
+- The dashboard currently visualizes:
+  - 12-month revenue line with forecast continuation
+  - monthly revenue by layer
+  - plan distribution
+  - recent new-vs-churned revenue momentum
+- Backend support exists for:
+  - `GET /api/v1/admin/revenue/command`
+  - `GET /api/v1/admin/revenue/breakdown`
+  - `GET /api/v1/admin/revenue/export/:format`
+  - `POST /api/v1/admin/revenue/report-email`
+- Geography and plan-conversion panels are currently driven from tenant/user distribution rather than fully attributed billing geography.
+
+#### Document 1 page 6 - FORGE Intelligence Panel
+
+- Route:
+  - `/admin/forge`
+- FORGE is the admin-facing sovereign supervisor with:
+  - full admin ecosystem context
+  - SSE chat streaming
+  - markdown/code-block responses
+  - suggested prompts aligned to operator priorities
+- The admin FORGE prompt in `Server/services/adminForgeService.ts` now explicitly injects:
+  - platform layer state
+  - tenant count
+  - user count
+  - MRR
+  - active loops
+  - system health
+  - launch queue
+  - highest-risk tenants
+  - highest-value users
+- Suggested prompts now include:
+  - `What should I prioritise this week?`
+  - `Why did MRR drop on Tuesday?`
+  - `Which users are most likely to churn?`
+  - `What's blocking Market launch?`
+
+#### Document 1 page 7 - System Health
+
+- Route:
+  - `/admin/health`
+- Service health coverage now includes:
+  - API Server
+  - PostgreSQL
+  - AI Platform
+  - Stripe
+  - Cloudinary
+  - Firebase FCM
+  - Resend Email
+  - Socket.io
+  - Redis (cache)
+- The error log panel now supports filtering by:
+  - severity
+  - route substring
+  - time range
+  - AI-specific faults
+  - Stripe-specific faults
+- The health response now carries an observability link slot for Sentry when `SENTRY_URL` is configured.
+
+#### Document 1 page 8 - Broadcast
+
+- Route:
+  - `/admin/broadcast`
+- The broadcast surface now supports typed composition fields for:
+  - title
+  - body
+  - CTA label
+  - CTA URL
+  - broadcast type
+- Targeting now covers:
+  - all users
+  - plan tier
+  - layer
+  - user segment
+- User segment targeting currently includes:
+  - at-risk users
+  - platinum advocates
+  - inactive 7-day users
+- Scheduling modes now include:
+  - send now
+  - specific time
+  - next OMEGA briefing
+- Broadcast history now carries:
+  - audience label
+  - open-rate label
+  - CTA click-rate label
+  - CTA metadata
+  - sent or scheduled state
+- Backend support now exists for:
+  - `GET /api/v1/admin/broadcast/panel`
+  - `POST /api/v1/admin/broadcast/send`
+  - `POST /api/v1/admin/broadcast/schedule`
+  - `POST /api/v1/admin/broadcast/draft`
+
+#### Document 1 page 9 - Security
+
+- Route:
+  - `/admin/security`
+- The security surface now exposes dedicated sections for:
+  - RLS policy status
+  - tenantId scoping audit
+  - JWT configuration
+  - active session summary
+  - 2FA adoption rate
+  - route-level rate-limit coverage
+  - GDPR queue visibility
+  - admin audit log
+  - suspicious activity feed
+  - FORGE security assistant guidance
+- The current implementation uses:
+  - `device_tokens` as the live session artifact source
+  - recent auth activity logs as the suspicious activity feed source
+  - repository/config inspection for JWT, limiter, middleware, and scoping checks
+- FORGE security scan is currently a refreshed advisory synthesis rather than a separate scanning engine or external scanner integration.
+
 ### Core protected surfaces
 
 - `/dashboard`

@@ -119,6 +119,8 @@ const css = `
   .ml-nav-tag.soon    { background: rgba(137,196,225,0.1); color: var(--ice); }
   .ml-nav-tag.new     { background: rgba(201,168,76,0.15); color: var(--gold); }
   .ml-nav-tag.beta    { background: rgba(155,111,255,0.12); color: var(--purple); }
+  .ml-nav-tag.entry   { background: rgba(45,212,160,0.14); color: var(--green); }
+  .ml-nav-tag.hierarchy { background: rgba(201,168,76,0.14); color: var(--gold); }
 
   /* Platform cards */
   .ml-platform-card {
@@ -552,7 +554,8 @@ const css = `
 
 // ── CORE PLATFORM NAV ─────────────────────────────────────────────────────────
 const CORE_NAV = [
-  { path: "/home",          icon: "⌂",  label: "User Home",      tag: null },
+  { path: "/home",          icon: "⌂",  label: "User Home",      tag: "entry" },
+  { path: "/settings",      icon: "⚙️", label: "Settings",       tag: "hierarchy" },
   { path: "/analytics",     icon: "📊", label: "Analytics",      tag: null },
   { path: "/search",        icon: "🔍", label: "Smart Search",   tag: null },
   { path: "/activity",      icon: "📋", label: "Activity Log",   tag: null },
@@ -567,6 +570,7 @@ const ADMIN_PLATFORM = {
   tag:    "ADMIN ONLY",
   sub:    [
     { path: "/dashboard", label: "Dashboard" },
+    { path: "/settings/core", label: "Core Settings" },
     { path: "/admin/platform", label: "Platform" },
     { path: "/admin/tenants", label: "Tenants" },
     { path: "/admin/users", label: "Users" },
@@ -575,9 +579,15 @@ const ADMIN_PLATFORM = {
     { path: "/admin/health", label: "System Health" },
     { path: "/admin/broadcast", label: "OMEGA Broadcast" },
     { path: "/admin/security", label: "Security" },
-    { path: "/admin/settings", label: "Settings" },
   ],
 };
+
+const FOUR_DOCUMENTS = [
+  { path: "/dashboard", icon: "⬡", label: "Admin Dashboard", tag: "admin" },
+  { path: "/settings/core", icon: "🧠", label: "Core Settings", tag: "admin" },
+  { path: "/home", icon: "⌂", label: "User Home", tag: "user" },
+  { path: "/settings", icon: "⚙️", label: "Settings", tag: "user" },
+];
 
 // ── ECOSYSTEM PLATFORMS (each will become its own app/site) ──────────────────
 const PLATFORMS = [
@@ -701,7 +711,6 @@ const WORKSPACE_NAV = [
   { path: "/team",          icon: "👥", label: "Team",           tag: null  },
   { path: "/notifications", icon: "🔔", label: "Notifications",  notif: true },
   { path: "/changelog",     icon: "🗞",  label: "What's New",     tag: "new" },
-  { path: "/settings",      icon: "⚙️", label: "Settings",       tag: null  },
   { path: "/2fa",           icon: "🔐", label: "Security",       tag: null  },
   { path: "/profile",       icon: "👤", label: "Profile",        tag: null  },
 ];
@@ -772,9 +781,13 @@ export default function MainLayout() {
     (left, right) => getOmegaSidebarRank(user?.onboardingProfileType, left.path) - getOmegaSidebarRank(user?.onboardingProfileType, right.path),
   );
   const platformItems = hasSuperAdminAccess ? [ADMIN_PLATFORM, ...orderedPlatforms] : orderedPlatforms;
+  const fourDocumentItems = hasSuperAdminAccess
+    ? FOUR_DOCUMENTS
+    : FOUR_DOCUMENTS.filter((item) => item.tag === "user");
   const adminNavItems = hasSuperAdminAccess
     ? [
         { path: "/dashboard", label: "Admin Dashboard" },
+        { path: "/settings/core", label: "Core Settings" },
         { path: "/admin/platform", label: "Platform" },
         { path: "/admin/tenants", label: "Tenants" },
         { path: "/admin/users", label: "Users" },
@@ -783,13 +796,13 @@ export default function MainLayout() {
         { path: "/admin/health", label: "System Health" },
         { path: "/admin/broadcast", label: "OMEGA Broadcast" },
         { path: "/admin/security", label: "Security" },
-        { path: "/admin/settings", label: "Settings" },
         { path: "/ops", label: "System Health" },
       ]
     : [];
   const shellPath = location.pathname;
   const allNav = [
     ...adminNavItems,
+    ...fourDocumentItems.map((item) => ({ path: item.path, label: item.label })),
     ...coreNavItems,
     ...TOOLS_NAV,
     ...WORKSPACE_NAV,
@@ -802,6 +815,9 @@ export default function MainLayout() {
   const pageName = [...allNav]
     .sort((a, b) => b.path.length - a.path.length)
     .find((n) => shellPath.startsWith(n.path))?.label ?? "Home";
+  const inAdminRealm = shellPath.startsWith("/settings/core");
+  const modeLabel = inAdminRealm ? "Admin Realm" : "User Realm";
+  const systemStatusLabel = inAdminRealm ? "Sovereign Controls Live" : "User Systems Live";
   const layerSubNav = getLayerSubNavForPath(shellPath);
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -887,6 +903,15 @@ export default function MainLayout() {
         </div>
 
         <nav className="ml-nav">
+          <div className="ml-nav-section">
+            <div className="ml-nav-section-header">
+              <span className="ml-nav-section-label">System Overview</span>
+            </div>
+            {fourDocumentItems.map((item) => <NavItem key={item.path} item={item} />)}
+          </div>
+
+          <div className="ml-divider" />
+
           {/* Core Platform */}
           <div className="ml-nav-section">
             <div className="ml-nav-section-header">
@@ -986,10 +1011,10 @@ export default function MainLayout() {
             </div>
           </div>
           <div className="ml-header-right">
-            <div className="ml-mode-chip">User Mode</div>
+            <div className="ml-mode-chip">{modeLabel}</div>
             <div className="ml-status">
               <div className="ml-status-dot" />
-              <span className="ml-status-text">All Systems Live</span>
+              <span className="ml-status-text">{systemStatusLabel}</span>
             </div>
             <ThemeToggle />
             <NotificationBell />

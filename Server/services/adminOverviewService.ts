@@ -1,8 +1,8 @@
 import db from "../db.js";
-import { AppRegistry, type AppRegistration } from "./appRegistry.js";
+import { AppRegistry } from "./appRegistry.js";
 import { getRecentAdminSignals, type AdminSignalEvent } from "./adminSignalService.js";
 
-type LayerDisplayStatus = "live" | "locked";
+type LayerDisplayStatus = "live" | "ready" | "locked" | "build";
 type ChecklistState = "done" | "attention" | "blocked";
 
 export interface LayerChecklistItem {
@@ -80,7 +80,7 @@ const LAYER_META: Record<string, Omit<OverviewLayer, "phase" | "frontendPath" | 
     status: "live",
     statusLabel: "Live",
     adminPath: "/admin/platform/core",
-    actionLabel: "Inspect layer",
+    actionLabel: "Manage",
     note: "Auth, billing, analytics, and sovereign controls are stable.",
     checklist: [
       { item: "JWT + tenant isolation verified", status: "done", required: true },
@@ -95,7 +95,7 @@ const LAYER_META: Record<string, Omit<OverviewLayer, "phase" | "frontendPath" | 
     status: "live",
     statusLabel: "Live",
     adminPath: "/admin/platform/community",
-    actionLabel: "Open signals",
+    actionLabel: "Manage",
     note: "Feed, groups, DMs, and NOVA skill detection are operating.",
     checklist: [
       { item: "Realtime post distribution active", status: "done", required: true },
@@ -110,7 +110,7 @@ const LAYER_META: Record<string, Omit<OverviewLayer, "phase" | "frontendPath" | 
     status: "live",
     statusLabel: "Live",
     adminPath: "/admin/platform/academy",
-    actionLabel: "Review learning",
+    actionLabel: "Manage",
     note: "Courses, learning paths, and certificates are issuing across tenants.",
     checklist: [
       { item: "Course publishing pipeline live", status: "done", required: true },
@@ -125,7 +125,7 @@ const LAYER_META: Record<string, Omit<OverviewLayer, "phase" | "frontendPath" | 
     status: "live",
     statusLabel: "Live",
     adminPath: "/admin/platform/intelligence",
-    actionLabel: "Inspect AI",
+    actionLabel: "Manage",
     note: "FORGE, OMEGA, and the supervisor fabric are connected cross-layer.",
     checklist: [
       { item: "Supervisor routes healthy", status: "done", required: true },
@@ -137,11 +137,11 @@ const LAYER_META: Record<string, Omit<OverviewLayer, "phase" | "frontendPath" | 
     id: "market",
     name: "Market",
     progress: 55,
-    status: "locked",
-    statusLabel: "Locked",
+    status: "ready",
+    statusLabel: "Ready",
     adminPath: "/admin/platform/market",
-    actionLabel: "Open checklist",
-    note: "Two launch blockers remain before the commerce layer can open.",
+    actionLabel: "Launch ->",
+    note: "Commerce launch is close, but checkout and payout proof still need sovereign clearance.",
     checklist: [
       { item: "Stripe Connect configured", status: "done", required: true },
       { item: "CheckoutPage vendor resolution bug fixed", status: "blocked", required: true },
@@ -155,7 +155,7 @@ const LAYER_META: Record<string, Omit<OverviewLayer, "phase" | "frontendPath" | 
     status: "locked",
     statusLabel: "Locked",
     adminPath: "/admin/platform/work",
-    actionLabel: "Open checklist",
+    actionLabel: "View Deps",
     note: "CIRCUIT matching is warming up, but escrow and contracts need launch polish.",
     checklist: [
       { item: "Freelancer profile flow live", status: "done", required: true },
@@ -170,7 +170,7 @@ const LAYER_META: Record<string, Omit<OverviewLayer, "phase" | "frontendPath" | 
     status: "locked",
     statusLabel: "Locked",
     adminPath: "/admin/platform/mobile",
-    actionLabel: "Open checklist",
+    actionLabel: "View Deps",
     note: "Mobile stays gated until the web command surface and core loops settle.",
     checklist: [
       { item: "Shared navigation contracts frozen", status: "attention", required: true },
@@ -185,12 +185,27 @@ const LAYER_META: Record<string, Omit<OverviewLayer, "phase" | "frontendPath" | 
     status: "locked",
     statusLabel: "Locked",
     adminPath: "/admin/platform/cloud",
-    actionLabel: "Open checklist",
+    actionLabel: "View Deps",
     note: "Developer APIs and automations exist, but public launch gates remain closed.",
     checklist: [
       { item: "API key issuance live", status: "done", required: true },
       { item: "Connector marketplace moderation", status: "attention", required: true },
       { item: "Public docs + onboarding pass", status: "blocked", required: true },
+    ],
+  },
+  "ai-platform": {
+    id: "ai-platform",
+    name: "AI Platform",
+    progress: 65,
+    status: "build",
+    statusLabel: "Build",
+    adminPath: "/intelligence/platform",
+    actionLabel: "Manage",
+    note: "HERALD is wiring multimodal infrastructure, routing, and local model services into the ecosystem fabric.",
+    checklist: [
+      { item: "FastAPI container responding", status: "done", required: true },
+      { item: "Model routing telemetry stabilized", status: "attention", required: true },
+      { item: "Multimodal surface QA complete", status: "attention", required: false },
     ],
   },
 };
@@ -199,15 +214,46 @@ function startOfDay(base = new Date()) {
   return new Date(base.getFullYear(), base.getMonth(), base.getDate());
 }
 
-function toLayer(app: AppRegistration): OverviewLayer {
+type OverviewAppSource = {
+  id: string;
+  name: string;
+  phase: number;
+  status: string;
+  frontendPath: string;
+  description: string;
+};
+
+function getOverviewAppSources(): OverviewAppSource[] {
+  const apps = AppRegistry.list().map((app) => ({
+    id: app.id,
+    name: app.name,
+    phase: app.phase,
+    status: app.status,
+    frontendPath: app.frontendPath,
+    description: app.description,
+  }));
+
+  apps.push({
+    id: "ai-platform",
+    name: "AI Platform",
+    phase: 9,
+    status: "in_progress",
+    frontendPath: "/intelligence/platform",
+    description: "Ollama, Whisper, ComfyUI, and HERALD multimodal infrastructure",
+  });
+
+  return apps;
+}
+
+function toLayer(app: OverviewAppSource): OverviewLayer {
   const meta = LAYER_META[app.id] ?? {
     id: app.id,
     name: app.name,
     progress: app.status === "live" ? 100 : 40,
-    status: app.status === "live" ? "live" : "locked",
-    statusLabel: app.status === "live" ? "Live" : "Locked",
+    status: app.status === "live" ? "live" : app.status === "in_progress" ? "build" : "locked",
+    statusLabel: app.status === "live" ? "Live" : app.status === "in_progress" ? "Build" : "Locked",
     adminPath: `/admin/platform/${app.id}`,
-    actionLabel: app.status === "live" ? "Inspect layer" : "Open checklist",
+    actionLabel: app.status === "live" ? "Manage" : app.status === "in_progress" ? "Manage" : "View Deps",
     note: app.description,
     checklist: [],
   };
@@ -226,7 +272,7 @@ export function getLayerChecklist(layerId: string): {
   issues: LayerChecklistItem[];
   checklist: LayerChecklistItem[];
 } | null {
-  const app = AppRegistry.get(layerId);
+  const app = getOverviewAppSources().find((entry) => entry.id === layerId);
   if (!app) return null;
 
   const layer = toLayer(app);
@@ -241,7 +287,7 @@ export function getLayerChecklist(layerId: string): {
 }
 
 export function getOverviewLayers(): OverviewLayer[] {
-  return AppRegistry.list()
+  return getOverviewAppSources()
     .sort((a, b) => a.phase - b.phase)
     .map(toLayer);
 }

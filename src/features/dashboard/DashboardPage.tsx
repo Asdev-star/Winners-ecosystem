@@ -12,11 +12,12 @@ import {
 import { API_BASE } from "../../lib/api";
 import { getAuthHeaders, useAuthStore } from "../auth/authStore";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
+import FourDocumentsBlueprint from "../../components/docs/FourDocumentsBlueprint";
 import NotificationBell from "../notifications/NotificationBell";
 import ThemeToggle from "../theme/ThemeToggle";
 
 type HealthTone = "ok" | "attention";
-type LayerStatus = "live" | "locked";
+type LayerStatus = "live" | "ready" | "locked" | "build";
 type ChecklistState = "done" | "attention" | "blocked";
 
 type AdminSignal = {
@@ -147,7 +148,10 @@ const css = `
   .aov{max-width:1200px;margin:0 auto;padding:24px 22px 80px;color:var(--text);font-family:'Syne',sans-serif}
   .aov-error{margin-bottom:16px;padding:14px 16px;border-radius:16px;border:1px solid rgba(224,90,78,.28);color:#ffcbc5;background:rgba(224,90,78,.08)}
   .aov-brief{margin-bottom:20px;padding:20px 22px;border-radius:22px;border:1px solid rgba(201,168,76,.18);border-left:6px solid var(--gold);background:radial-gradient(circle at left center,rgba(201,168,76,.12),transparent 30%),linear-gradient(135deg,rgba(20,28,40,.96),rgba(13,22,35,.98))}
+  .aov-brief-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
   .aov-kicker{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+  .aov-brief-head .aov-kicker{margin-bottom:0}
+  .aov-brief-time{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
   .aov-brief-copy{font-family:'Cormorant Garamond',serif;font-size:clamp(24px,2.4vw,36px);line-height:1.12;color:#f4f0df;min-height:96px}
   .aov-cursor{display:inline-block;width:8px;height:1em;margin-left:6px;background:var(--gold);vertical-align:-.08em;animation:aov-blink 1s steps(1) infinite}
   .aov-brief-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
@@ -171,7 +175,9 @@ const css = `
   .aov-layer-name{margin:0;font-size:14px;font-weight:800}
   .aov-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(255,255,255,.08)}
   .aov-pill.live{color:var(--green);border-color:rgba(45,212,160,.22);background:rgba(45,212,160,.08)}
+  .aov-pill.ready{color:var(--gold);border-color:rgba(201,168,76,.22);background:rgba(201,168,76,.08)}
   .aov-pill.locked{color:var(--gold);border-color:rgba(201,168,76,.22);background:rgba(201,168,76,.08)}
+  .aov-pill.build{color:var(--ice);border-color:rgba(137,196,225,.22);background:rgba(137,196,225,.08)}
   .aov-progress{margin-top:10px;height:8px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.08)}
   .aov-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(201,168,76,.96),rgba(137,196,225,.88))}
   .aov-layer-meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px;color:var(--text-dim);font-size:11px}
@@ -258,6 +264,8 @@ function actionDate(value: string) {
   if (diffDays === 1) return "Yesterday";
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
+
+const FORGE_BRIEFING_CADENCE = "Today, 06:00 UTC";
 
 async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { headers: getAuthHeaders() });
@@ -656,10 +664,15 @@ export default function DashboardPage() {
           <div className="aov">
             {error ? <div className="aov-error">{error}</div> : null}
 
+            <FourDocumentsBlueprint current="admin-dashboard" adminEnabled />
+
             {/* FORGE Morning Briefing */}
             {!dismissed ? (
               <section className="aov-brief">
-                <div className="aov-kicker">🧠 FORGE · Morning Briefing</div>
+                <div className="aov-brief-head">
+                  <div className="aov-kicker">🧠 FORGE · Morning Briefing</div>
+                  <div className="aov-brief-time">{FORGE_BRIEFING_CADENCE}</div>
+                </div>
                 <div className="aov-brief-copy">
                   "{briefing || "Preparing the sovereign daily briefing..."}"
                   {briefingStreaming ? <span className="aov-cursor" /> : null}
@@ -708,7 +721,7 @@ export default function DashboardPage() {
                     <div className="aov-kpi-label">🔄 Loop Completions</div>
                     <div className="aov-kpi-value">{(overview.kpis.loopComplete ?? overview.kpis.loopsToday).toLocaleString()}</div>
                     <div className={`aov-kpi-sub ${overview.kpis.loopsDeltaPct >= 0 ? "aov-positive" : "aov-attention"}`}>
-                      {pct(overview.kpis.loopsDeltaPct)} vs yesterday
+                      Agentic Loop cycles (90d)
                     </div>
                   </div>
                 </section>
@@ -803,7 +816,7 @@ export default function DashboardPage() {
                       ) : (
                         <>
                           <div className="aov-chart-wrap">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260}>
                               <AreaChart data={revenueSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                                 <CartesianGrid stroke="rgba(255,255,255,.08)" vertical={false} />
                                 <XAxis dataKey="label" stroke="var(--text-dim)" tick={{ fontSize: 10, fontFamily: "Space Mono, monospace" }} />

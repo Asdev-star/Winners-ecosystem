@@ -4,9 +4,12 @@ import { API_BASE } from "../../lib/api";
 import { getAuthHeaders } from "../auth/authStore";
 
 type BroadcastChannel = "in_app" | "push" | "email";
-type AudienceKind = "all" | "plan" | "layer";
+type AudienceKind = "all" | "plan" | "layer" | "segment";
 type LayerId = "community" | "academy" | "market" | "work" | "cloud" | "intelligence";
 type PlanTier = "FREE" | "PRO" | "ENTERPRISE";
+type SegmentId = "at_risk" | "platinum" | "inactive_7d";
+type BroadcastType = "platform_news" | "layer_launch" | "maintenance" | "milestone" | "forge_insight";
+type ScheduleMode = "send_now" | "specific_time" | "next_omega";
 
 type BroadcastSnapshot = {
   generatedAt: string;
@@ -29,13 +32,18 @@ type BroadcastSnapshot = {
     id: string;
     title: string;
     body: string;
+    ctaLabel: string | null;
+    ctaUrl: string | null;
+    broadcastType: BroadcastType;
     createdAt: string;
     recipients: number;
     channels: BroadcastChannel[];
     audienceLabel: string;
     openRateLabel: string;
+    clickRateLabel: string;
     status: "sent" | "scheduled";
     scheduledFor: string | null;
+    scheduleMode: ScheduleMode;
   }>;
 };
 
@@ -72,6 +80,7 @@ const css = `
   .aob-omega{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:18px;border:1px solid rgba(201,168,76,.22);background:linear-gradient(180deg, rgba(201,168,76,.14), rgba(201,168,76,.05));color:var(--text);font-weight:700}
   .aob-mark{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:rgba(201,168,76,.18);color:var(--gold);font-size:18px}
   .aob-select,.aob-textarea,.aob-schedule input{width:100%;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--text);font:inherit}
+  .aob-input{width:100%;min-height:44px;border-radius:16px;padding:0 14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--text);font:inherit}
   .aob-select{min-height:44px;border-radius:16px;padding:0 14px}
   .aob-textarea{min-height:220px;resize:vertical;border-radius:22px;padding:18px;line-height:1.75}
   .aob-toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-top:14px}
@@ -132,6 +141,14 @@ function previewTitle(message: string) {
   return firstLine?.slice(0, 88) || "OMEGA Broadcast";
 }
 
+const BROADCAST_TYPE_LABELS: Record<BroadcastType, string> = {
+  platform_news: "Platform News",
+  layer_launch: "Layer Launch Notification",
+  maintenance: "Maintenance Notice",
+  milestone: "Milestone Celebration",
+  forge_insight: "FORGE Insight",
+};
+
 export default function AdminBroadcastPage() {
   const [snapshot, setSnapshot] = useState<BroadcastSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -143,8 +160,14 @@ export default function AdminBroadcastPage() {
   const [audienceKind, setAudienceKind] = useState<AudienceKind>("all");
   const [plan, setPlan] = useState<PlanTier>("PRO");
   const [layerId, setLayerId] = useState<LayerId>("market");
+  const [segment, setSegment] = useState<SegmentId>("at_risk");
   const [channels, setChannels] = useState<BroadcastChannel[]>(["in_app", "push", "email"]);
+  const [broadcastType, setBroadcastType] = useState<BroadcastType>("platform_news");
+  const [title, setTitle] = useState("Market launch update");
   const [message, setMessage] = useState("Winners Market activates for users this Thursday.\nATLAS has already prepared the product intelligence.\nYour store directive is cleared for activation.\nVisit Market -> winnersempire.io/market");
+  const [ctaLabel, setCtaLabel] = useState("Open Market");
+  const [ctaUrl, setCtaUrl] = useState("https://winnersempire.io/market");
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("send_now");
   const [scheduleAt, setScheduleAt] = useState(defaultScheduleValue);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -195,14 +218,20 @@ export default function AdminBroadcastPage() {
     if (audienceKind === "plan") {
       return plan === "FREE" ? snapshot.audiences.free : plan === "PRO" ? snapshot.audiences.pro : snapshot.audiences.enterprise;
     }
+    if (audienceKind === "segment") {
+      if (segment === "at_risk") return Math.round(snapshot.audiences.allUsers * 0.18);
+      if (segment === "platinum") return Math.round(snapshot.audiences.allUsers * 0.08);
+      return Math.round(snapshot.audiences.allUsers * 0.22);
+    }
     return snapshot.layers.find((layer) => layer.id === layerId)?.count ?? 0;
-  }, [audienceKind, layerId, plan, snapshot]);
+  }, [audienceKind, layerId, plan, segment, snapshot]);
 
   const audienceLabel = useMemo(() => {
     if (audienceKind === "all") return "All Users";
     if (audienceKind === "plan") return plan === "FREE" ? "Free Users" : plan === "PRO" ? "PRO Users" : "Enterprise Users";
+    if (audienceKind === "segment") return segment === "at_risk" ? "At-Risk Users" : segment === "platinum" ? "Platinum Advocates" : "Inactive (7d) Users";
     return `${snapshot?.layers.find((layer) => layer.id === layerId)?.label ?? layerId} Layer`;
-  }, [audienceKind, layerId, plan, snapshot]);
+  }, [audienceKind, layerId, plan, segment, snapshot]);
 
   const allChannelsSelected = channels.length === 3;
 
@@ -239,13 +268,15 @@ export default function AdminBroadcastPage() {
       const res = await fetch(`${API_BASE}/admin/broadcast/draft`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ audienceKind, plan, layerId }),
+        body: JSON.stringify({ audienceKind, plan, layerId, segment }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error((body as { message?: string; error?: string }).message ?? (body as { error?: string }).error ?? "Failed to draft broadcast");
       }
-      setMessage(String((body as { message?: string }).message ?? ""));
+      const draft = String((body as { message?: string }).message ?? "");
+      setTitle(previewTitle(draft));
+      setMessage(draft);
       setPreviewOpen(true);
       setError("");
     } catch (err) {
@@ -261,7 +292,7 @@ export default function AdminBroadcastPage() {
       const res = await fetch(`${API_BASE}/admin/broadcast/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ audienceKind, plan, layerId, channels, message }),
+        body: JSON.stringify({ audienceKind, plan, layerId, segment, channels, title, body: message, ctaLabel, ctaUrl, broadcastType, scheduleMode }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -285,7 +316,7 @@ export default function AdminBroadcastPage() {
       const res = await fetch(`${API_BASE}/admin/broadcast/schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ audienceKind, plan, layerId, channels, message, scheduleAt }),
+        body: JSON.stringify({ audienceKind, plan, layerId, segment, channels, title, body: message, ctaLabel, ctaUrl, broadcastType, scheduleMode, scheduleAt }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -356,6 +387,7 @@ export default function AdminBroadcastPage() {
                       <button type="button" className={`aob-chip ${audienceKind === "all" ? "active" : ""}`} onClick={() => setAudienceKind("all")}>All Users</button>
                       <button type="button" className={`aob-chip ${audienceKind === "plan" ? "active" : ""}`} onClick={() => setAudienceKind("plan")}>Plan Tier</button>
                       <button type="button" className={`aob-chip ${audienceKind === "layer" ? "active" : ""}`} onClick={() => setAudienceKind("layer")}>Layer</button>
+                      <button type="button" className={`aob-chip ${audienceKind === "segment" ? "active" : ""}`} onClick={() => setAudienceKind("segment")}>User Segment</button>
                     </div>
                     {audienceKind === "plan" ? (
                       <select className="aob-select" value={plan} onChange={(event) => setPlan(event.target.value as PlanTier)}>
@@ -371,6 +403,31 @@ export default function AdminBroadcastPage() {
                         ))}
                       </select>
                     ) : null}
+                    {audienceKind === "segment" ? (
+                      <select className="aob-select" value={segment} onChange={(event) => setSegment(event.target.value as SegmentId)}>
+                        <option value="at_risk">At-Risk Users</option>
+                        <option value="platinum">Platinum Advocates</option>
+                        <option value="inactive_7d">Inactive (7d) Users</option>
+                      </select>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="aob-row">
+                  <div className="aob-key">Type</div>
+                  <div>
+                    <select className="aob-select" value={broadcastType} onChange={(event) => setBroadcastType(event.target.value as BroadcastType)}>
+                      {Object.entries(BROADCAST_TYPE_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="aob-row">
+                  <div className="aob-key">Title</div>
+                  <div>
+                    <input className="aob-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Broadcast title" />
                   </div>
                 </div>
 
@@ -390,6 +447,10 @@ export default function AdminBroadcastPage() {
                   <div className="aob-key">Message</div>
                   <div>
                     <textarea className="aob-textarea" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="FORGE will brief and draft this for you." />
+                    <div className="aob-row-actions" style={{ marginTop: 12 }}>
+                      <input className="aob-input" value={ctaLabel} onChange={(event) => setCtaLabel(event.target.value)} placeholder="CTA label" />
+                      <input className="aob-input" value={ctaUrl} onChange={(event) => setCtaUrl(event.target.value)} placeholder="CTA URL" />
+                    </div>
                     <div className="aob-toolbar">
                       <div className="aob-row-actions">
                         <button className="aob-btn ghost" type="button" onClick={() => void draftWithForge()} disabled={drafting}>{drafting ? "Briefing" : "Request FORGE Brief"}</button>
@@ -399,9 +460,14 @@ export default function AdminBroadcastPage() {
                     </div>
                     <div className="aob-row-actions" style={{ marginTop: 18 }}>
                       <div className="aob-schedule">
-                        <span className="aob-key" style={{ paddingTop: 0 }}>Directive Window</span>
-                        <input type="datetime-local" value={scheduleAt} onChange={(event) => setScheduleAt(event.target.value)} />
-                        <button className="aob-btn ghost" type="button" onClick={() => void scheduleBroadcast()} disabled={scheduling || !message.trim()}>{scheduling ? "Queueing" : "Queue Directive"}</button>
+                        <span className="aob-key" style={{ paddingTop: 0 }}>Schedule</span>
+                        <select className="aob-select" value={scheduleMode} onChange={(event) => setScheduleMode(event.target.value as ScheduleMode)}>
+                          <option value="send_now">Send Now</option>
+                          <option value="specific_time">Specific Time</option>
+                          <option value="next_omega">Next OMEGA Briefing</option>
+                        </select>
+                        {scheduleMode === "specific_time" ? <input type="datetime-local" value={scheduleAt} onChange={(event) => setScheduleAt(event.target.value)} /> : null}
+                        <button className="aob-btn ghost" type="button" onClick={() => void scheduleBroadcast()} disabled={scheduling || !message.trim()}>{scheduling ? "Queueing" : scheduleMode === "next_omega" ? "Queue for OMEGA" : "Queue Directive"}</button>
                       </div>
                       <button className="aob-btn" type="button" onClick={() => void sendNow()} disabled={sending || !message.trim()}>{sending ? "Issuing" : "Issue Now"}</button>
                     </div>
@@ -412,13 +478,15 @@ export default function AdminBroadcastPage() {
               {previewOpen && message.trim() ? (
                 <section className="aob-preview">
                   <div className="aob-kicker">Preview</div>
-                  <h2 className="aob-preview-title">{previewTitle(message)}</h2>
+                  <h2 className="aob-preview-title">{title || previewTitle(message)}</h2>
                   <div className="aob-meta">
                     <span className="aob-pill">{audienceLabel}</span>
                     <span className="aob-pill">{recipientCount.toLocaleString("en-US")} recipients</span>
+                    <span className="aob-pill">{BROADCAST_TYPE_LABELS[broadcastType]}</span>
                     {channels.map((channel) => <span key={channel} className="aob-pill">{CHANNEL_LABELS[channel]}</span>)}
                   </div>
                   <div className="aob-preview-body">{message}</div>
+                  {ctaLabel ? <div className="aob-preview-body" style={{ marginTop: 14 }}><strong>{ctaLabel}</strong>{ctaUrl ? ` -> ${ctaUrl}` : ""}</div> : null}
                 </section>
               ) : null}
             </div>

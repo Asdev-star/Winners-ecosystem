@@ -47,11 +47,11 @@ type ChatMessage = {
 };
 
 const DEFAULT_COMMANDS = [
-  "Which layer needs most attention",
-  "Show me everything blocking Market activation",
+  "What should I prioritise this week?",
+  "Why did MRR drop on Tuesday?",
+  "Which users are most likely to churn?",
+  "What's blocking Market launch?",
   "Generate tenant health report",
-  "Which tenant is most at risk of churning?",
-  "Generate a status report for this week",
   "Who are my top 10 most valuable users?",
   "What would double MRR in 90 days?",
   "Run a health check on all platform services",

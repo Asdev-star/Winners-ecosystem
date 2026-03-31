@@ -21,12 +21,41 @@ type SecuritySnapshot = {
     summary: string;
     action: string;
   }>;
+  jwt: {
+    expiry: string;
+    refresh: string;
+    rotation: string;
+  };
+  sessionSummary: {
+    activeSessions: number;
+    activeUsers: number;
+  };
+  twoFactor: {
+    enabledUsers: number;
+    adoptionRate: number;
+  };
+  rateLimits: Array<{
+    route: string;
+    scope: string;
+    status: SecurityTone;
+  }>;
   gdpr: {
     deletionRequestsPending: number;
     exportRequestsPending: number;
     privacyAcknowledgmentLabel: string;
     privacyAcknowledgmentTone: SecurityTone;
     note: string;
+  };
+  suspiciousActivity: Array<{
+    id: string;
+    title: string;
+    detail: string;
+    tone: SecurityTone;
+    createdAt: string;
+  }>;
+  forgeAssistant: {
+    summary: string;
+    recommendedAction: string;
   };
   finding: {
     tone: SecurityTone;
@@ -108,8 +137,10 @@ export default function AdminSecurityPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [showFix, setShowFix] = useState(false);
   const [showGdprNote, setShowGdprNote] = useState(false);
+  const [showForge, setShowForge] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
 
@@ -223,6 +254,20 @@ export default function AdminSecurityPage() {
     }
   }
 
+  async function scanSecurityIssues() {
+    setScanning(true);
+    try {
+      await refreshPanel();
+      setShowForge(true);
+      setNote("FORGE security scan refreshed.");
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run FORGE security scan");
+    } finally {
+      setScanning(false);
+    }
+  }
+
   if (loading && !snapshot) {
     return (
       <div className="asc-page">
@@ -254,6 +299,9 @@ export default function AdminSecurityPage() {
             <Link className="asc-link ghost" to="/admin/health">
               System Health
             </Link>
+            <button className="asc-btn ghost" onClick={() => void scanSecurityIssues()} disabled={scanning}>
+              {scanning ? "Scanning" : "Scan for Security Issues"}
+            </button>
             <button className="asc-btn" onClick={() => void refreshPanel()} disabled={refreshing}>
               {refreshing ? "Refreshing" : "Refresh"}
             </button>
@@ -318,6 +366,38 @@ export default function AdminSecurityPage() {
           <section className="asc-panel">
             <div className="asc-panel-head">
               <div>
+                <h2 className="asc-panel-title">Security Controls</h2>
+                <div className="asc-sub">JWT posture, active session visibility, 2FA adoption, and route throttling.</div>
+              </div>
+            </div>
+
+            <div className="asc-grid">
+              <div className="asc-gdpr-stat">
+                <div className="asc-stat-label">JWT expiry</div>
+                <div className="asc-status-title" style={{ marginTop: 10 }}>{snapshot?.jwt.expiry ?? "Unknown"}</div>
+                <div className="asc-status-summary">Refresh {snapshot?.jwt.refresh ?? "Unknown"} · Rotation {snapshot?.jwt.rotation ?? "Unknown"}</div>
+              </div>
+              <div className="asc-gdpr-stat">
+                <div className="asc-stat-label">Active sessions</div>
+                <div className="asc-stat-value">{snapshot?.sessionSummary.activeSessions ?? 0}</div>
+                <div className="asc-status-summary">{snapshot?.sessionSummary.activeUsers ?? 0} active users with current session artifacts</div>
+              </div>
+              <div className="asc-gdpr-stat">
+                <div className="asc-stat-label">2FA adoption rate</div>
+                <div className="asc-stat-value">{snapshot?.twoFactor.adoptionRate ?? 0}%</div>
+                <div className="asc-status-summary">{snapshot?.twoFactor.enabledUsers ?? 0} users currently have 2FA enabled</div>
+              </div>
+              <div className="asc-gdpr-stat">
+                <div className="asc-stat-label">Rate limit coverage</div>
+                <div className="asc-status-title" style={{ marginTop: 10 }}>{snapshot?.rateLimits.length ?? 0} routes tracked</div>
+                <div className="asc-status-summary">{(snapshot?.rateLimits ?? []).map((entry) => `${entry.route} (${entry.scope})`).join(" · ")}</div>
+              </div>
+            </div>
+          </section>
+
+          <section className="asc-panel">
+            <div className="asc-panel-head">
+              <div>
                 <h2 className="asc-panel-title">Admin Audit Log</h2>
                 <div className="asc-sub">Recorded admin actions from the immutable audit stream.</div>
               </div>
@@ -340,6 +420,31 @@ export default function AdminSecurityPage() {
               </div>
             ) : (
               <div className="asc-empty">No admin audit entries are available yet.</div>
+            )}
+          </section>
+
+          <section className="asc-panel">
+            <div className="asc-panel-head">
+              <div>
+                <h2 className="asc-panel-title">Suspicious Activity Feed</h2>
+                <div className="asc-sub">Login anomalies and unusual protected-surface activity pulled from recent auth logs.</div>
+              </div>
+            </div>
+
+            {snapshot?.suspiciousActivity.length ? (
+              <div className="asc-audit-list">
+                {snapshot.suspiciousActivity.map((entry) => (
+                  <div key={entry.id} className="asc-audit">
+                    <div className="asc-time">{formatDateTime(entry.createdAt)}</div>
+                    <div>
+                      <div className="asc-status-title">{entry.title}</div>
+                      <div className="asc-audit-meta">{entry.detail}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="asc-empty">No suspicious activity has been surfaced yet.</div>
             )}
           </section>
 
@@ -382,6 +487,23 @@ export default function AdminSecurityPage() {
               </div>
             ) : null}
           </section>
+
+          {(showForge || snapshot?.forgeAssistant) && snapshot ? (
+            <section className="asc-panel">
+              <div className="asc-panel-head">
+                <div>
+                  <h2 className="asc-panel-title">FORGE Security Assistant</h2>
+                  <div className="asc-sub">Data-driven operator guidance synthesized from configs, logs, and security posture.</div>
+                </div>
+              </div>
+              <div className="asc-code">
+                <div className="asc-mini">Scan Summary</div>
+                <div className="asc-sub" style={{ marginTop: 10 }}>{snapshot.forgeAssistant.summary}</div>
+                <div className="asc-mini" style={{ marginTop: 16 }}>Recommended Action</div>
+                <div className="asc-sub" style={{ marginTop: 10 }}>{snapshot.forgeAssistant.recommendedAction}</div>
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { API_BASE } from "../../lib/api";
 import { getAuthHeaders } from "../auth/authStore";
 
 type ServiceTone = "healthy" | "warning" | "down" | "not_configured";
-type ErrorFilter = "all" | "5xx" | "4xx" | "ai" | "stripe";
+type ErrorFilter = "all" | "error" | "warn" | "info" | "ai" | "stripe";
 
 type ServiceStatus = {
   id: string;
@@ -39,12 +39,16 @@ type HealthSnapshot = {
     latencyMs: number;
     createdAt: string;
   }>;
+  observability: {
+    sentryUrl: string | null;
+  };
 };
 
 const FILTERS: Array<{ id: ErrorFilter; label: string }> = [
   { id: "all", label: "All" },
-  { id: "5xx", label: "5xx" },
-  { id: "4xx", label: "4xx" },
+  { id: "error", label: "Error" },
+  { id: "warn", label: "Warn" },
+  { id: "info", label: "Info" },
   { id: "ai", label: "AI errors" },
   { id: "stripe", label: "Stripe errors" },
 ];
@@ -350,6 +354,14 @@ const css = `
     background:rgba(201,168,76,.12);
     color:var(--gold);
   }
+  .ash-input,.ash-select{
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:rgba(8,14,24,.92);
+    color:var(--text);
+    padding:10px 12px;
+    min-height:40px;
+  }
   .ash-log-list{
     display:grid;
     gap:10px;
@@ -474,6 +486,18 @@ function formatCount(value: number) {
   return value.toLocaleString("en-US");
 }
 
+const SERVICE_ENDPOINTS: Record<string, string> = {
+  api: "/health",
+  database: "/health/db",
+  ai: "/health/ai",
+  stripe: "/health/stripe",
+  cloudinary: "/health/cloudinary",
+  fcm: "/health/fcm",
+  email: "/health/email",
+  socket: "/health/ws",
+  redis: "/health/redis",
+};
+
 function formatRlsLabel(value: string | null) {
   if (!value) return "Never";
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -487,6 +511,8 @@ export default function AdminSystemHealthPage() {
   const [error, setError] = useState("");
   const [verificationNote, setVerificationNote] = useState("");
   const [filter, setFilter] = useState<ErrorFilter>("all");
+  const [routeFilter, setRouteFilter] = useState("");
+  const [timeRange, setTimeRange] = useState<"all" | "1h" | "24h" | "7d">("24h");
 
   useEffect(() => {
     let active = true;
@@ -536,16 +562,23 @@ export default function AdminSystemHealthPage() {
 
   const filteredLogs = useMemo(() => {
     if (!snapshot) return [];
-    if (filter === "all") return snapshot.errorLogs;
-    return snapshot.errorLogs.filter((entry) => entry.filter === filter || (filter === "5xx" && entry.statusCode >= 500) || (filter === "4xx" && entry.statusCode >= 400 && entry.statusCode < 500));
-  }, [filter, snapshot]);
+    const rangeMs =
+      timeRange === "1h" ? 60 * 60 * 1000 : timeRange === "24h" ? 24 * 60 * 60 * 1000 : timeRange === "7d" ? 7 * 24 * 60 * 60 * 1000 : null;
+    return snapshot.errorLogs.filter((entry) => {
+      const matchesSeverity = filter === "all" ? true : entry.filter === filter;
+      const matchesRoute = routeFilter ? entry.path.toLowerCase().includes(routeFilter.toLowerCase()) : true;
+      const matchesTime = rangeMs ? Date.now() - new Date(entry.createdAt).getTime() <= rangeMs : true;
+      return matchesSeverity && matchesRoute && matchesTime;
+    });
+  }, [filter, routeFilter, snapshot, timeRange]);
 
   const filterCounts = useMemo(() => {
     const logs = snapshot?.errorLogs ?? [];
     return {
       all: logs.length,
-      "5xx": logs.filter((entry) => entry.statusCode >= 500).length,
-      "4xx": logs.filter((entry) => entry.statusCode >= 400 && entry.statusCode < 500).length,
+      error: logs.filter((entry) => entry.filter === "error").length,
+      warn: logs.filter((entry) => entry.filter === "warn").length,
+      info: logs.filter((entry) => entry.filter === "info").length,
       ai: logs.filter((entry) => entry.filter === "ai").length,
       stripe: logs.filter((entry) => entry.filter === "stripe").length,
     } satisfies Record<ErrorFilter, number>;
@@ -624,6 +657,11 @@ export default function AdminSystemHealthPage() {
             <Link className="ash-link ghost" to="/admin/overview">
               Admin Overview
             </Link>
+            {snapshot?.observability.sentryUrl ? (
+              <a className="ash-link ghost" href={snapshot.observability.sentryUrl} target="_blank" rel="noreferrer">
+                Open Sentry
+              </a>
+            ) : null}
             <button className="ash-btn" onClick={() => void refreshPanel()} disabled={refreshing}>
               {refreshing ? "Refreshing" : "Refresh"}
             </button>
@@ -650,6 +688,9 @@ export default function AdminSystemHealthPage() {
                     <div className="ash-service-label">
                       <span className={`ash-dot ${service.tone}`} />
                       {service.label}
+                    </div>
+                    <div className="ash-panel-sub" style={{ marginTop: 6 }}>
+                      Endpoint {SERVICE_ENDPOINTS[service.id] ?? "/health"}
                     </div>
                     <div className="ash-service-summary">{service.summary}</div>
                   </div>
@@ -756,6 +797,18 @@ export default function AdminSystemHealthPage() {
                   {item.label} ({filterCounts[item.id]})
                 </button>
               ))}
+              <input
+                className="ash-input"
+                placeholder="Filter by route..."
+                value={routeFilter}
+                onChange={(event) => setRouteFilter(event.target.value)}
+              />
+              <select className="ash-select" value={timeRange} onChange={(event) => setTimeRange(event.target.value as "all" | "1h" | "24h" | "7d")}>
+                <option value="1h">Last 1h</option>
+                <option value="24h">Last 24h</option>
+                <option value="7d">Last 7d</option>
+                <option value="all">All time</option>
+              </select>
             </div>
 
             {filteredLogs.length === 0 ? (
