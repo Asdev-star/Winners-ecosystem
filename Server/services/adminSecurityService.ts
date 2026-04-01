@@ -50,6 +50,14 @@ export interface AdminSecuritySnapshot {
     activeSessions: number;
     activeUsers: number;
   };
+  sessions: Array<{
+    id: string;
+    userId: string;
+    userLabel: string;
+    platform: string;
+    lastSeen: string;
+    createdAt: string;
+  }>;
   twoFactor: {
     enabledUsers: number;
     adoptionRate: number;
@@ -66,7 +74,14 @@ export interface AdminSecuritySnapshot {
     privacyAcknowledgmentLabel: string;
     privacyAcknowledgmentTone: SecurityTone;
     note: string;
+    consentLogs: Array<{
+      id: string;
+      userId: string;
+      policyVersion: string;
+      acknowledgedAt: string;
+    }>;
   };
+  sensitiveActions: AdminSecurityAuditEntry[];
   suspiciousActivity: Array<{
     id: string;
     title: string;
@@ -147,7 +162,7 @@ function buildTenantScopingFinding() {
 }
 
 export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot> {
-  const [health, recentAuditLog, privacyAcknowledgments, totalUsers, twoFactorEnabledUsers, deviceTokens, recentAuthActivity] = await Promise.all([
+  const [health, recentAuditLog, privacyAcknowledgments, totalUsers, twoFactorEnabledUsers, deviceTokens, recentAuthActivity, recentConsentLogs, sensitiveActionRows] = await Promise.all([
     getAdminSystemHealthSnapshot(),
     db.activityLog.findMany({
       where: { category: "admin" },
@@ -166,7 +181,7 @@ export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot>
     db.user.count({ where: { deletedAt: null, twoFactorEnabled: true } }).catch(() => 0),
     db.deviceToken.findMany({
       where: { isActive: true },
-      select: { id: true, userId: true, lastSeen: true, platform: true },
+      select: { id: true, userId: true, lastSeen: true, createdAt: true, platform: true, user: { select: { email: true, name: true } } },
       orderBy: { lastSeen: "desc" },
       take: 200,
     }).catch(() => []),
@@ -175,6 +190,26 @@ export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot>
       orderBy: { createdAt: "desc" },
       take: 20,
       select: { id: true, action: true, createdAt: true, ip: true, userEmail: true },
+    }).catch(() => []),
+    db.privacyAcknowledgment.findMany({
+      orderBy: { acknowledgedAt: "desc" },
+      take: 10,
+      select: { id: true, userId: true, policyVersion: true, acknowledgedAt: true },
+    }).catch(() => []),
+    db.activityLog.findMany({
+      where: {
+        OR: [
+          { category: "auth" },
+          { category: "security" },
+          { action: { contains: "PASSWORD", mode: "insensitive" } },
+          { action: { contains: "DELETE", mode: "insensitive" } },
+          { action: { contains: "SUSPEND", mode: "insensitive" } },
+          { action: { contains: "2FA", mode: "insensitive" } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      select: { id: true, createdAt: true, userEmail: true, action: true, metadata: true },
     }).catch(() => []),
   ]);
 
@@ -274,6 +309,14 @@ export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot>
       activeSessions: deviceTokens.length,
       activeUsers,
     },
+    sessions: deviceTokens.slice(0, 20).map((entry) => ({
+      id: entry.id,
+      userId: entry.userId,
+      userLabel: entry.user.name || entry.user.email || entry.userId,
+      platform: entry.platform,
+      lastSeen: entry.lastSeen.toISOString(),
+      createdAt: entry.createdAt.toISOString(),
+    })),
     twoFactor: {
       enabledUsers: twoFactorEnabledUsers,
       adoptionRate: totalUsers > 0 ? Math.round((twoFactorEnabledUsers / totalUsers) * 100) : 0,
@@ -302,7 +345,20 @@ export async function getAdminSecuritySnapshot(): Promise<AdminSecuritySnapshot>
         gdprRoutesSource.includes('router.post("/privacy-ack"') ? "healthy" : "warning",
       note:
         "A dedicated pending-request queue is not yet tracked in the repository, so export and deletion requests currently report only confirmed queue entries.",
+      consentLogs: recentConsentLogs.map((entry) => ({
+        id: entry.id,
+        userId: entry.userId,
+        policyVersion: entry.policyVersion,
+        acknowledgedAt: entry.acknowledgedAt.toISOString(),
+      })),
     },
+    sensitiveActions: sensitiveActionRows.map((entry) => ({
+      id: entry.id,
+      createdAt: entry.createdAt.toISOString(),
+      actorEmail: entry.userEmail ?? "system@",
+      summary: metadataSummary(entry.metadata, entry.action),
+      action: entry.action,
+    })),
     suspiciousActivity,
     forgeAssistant: {
       summary: `FORGE sees ${deviceTokens.length} active session artifacts, ${twoFactorEnabledUsers} 2FA-enabled users, and ${health.errorLogs.filter((entry) => entry.statusCode >= 500).length} recent high-severity faults touching protected surfaces.`,

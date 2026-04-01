@@ -30,6 +30,14 @@ type SecuritySnapshot = {
     activeSessions: number;
     activeUsers: number;
   };
+  sessions: Array<{
+    id: string;
+    userId: string;
+    userLabel: string;
+    platform: string;
+    lastSeen: string;
+    createdAt: string;
+  }>;
   twoFactor: {
     enabledUsers: number;
     adoptionRate: number;
@@ -45,7 +53,20 @@ type SecuritySnapshot = {
     privacyAcknowledgmentLabel: string;
     privacyAcknowledgmentTone: SecurityTone;
     note: string;
+    consentLogs: Array<{
+      id: string;
+      userId: string;
+      policyVersion: string;
+      acknowledgedAt: string;
+    }>;
   };
+  sensitiveActions: Array<{
+    id: string;
+    createdAt: string;
+    actorEmail: string;
+    summary: string;
+    action: string;
+  }>;
   suspiciousActivity: Array<{
     id: string;
     title: string;
@@ -138,6 +159,7 @@ export default function AdminSecurityPage() {
   const [verifying, setVerifying] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [revokingSessionId, setRevokingSessionId] = useState("");
   const [showFix, setShowFix] = useState(false);
   const [showGdprNote, setShowGdprNote] = useState(false);
   const [showForge, setShowForge] = useState(false);
@@ -265,6 +287,30 @@ export default function AdminSecurityPage() {
       setError(err instanceof Error ? err.message : "Failed to run FORGE security scan");
     } finally {
       setScanning(false);
+    }
+  }
+
+  async function revokeSession(sessionId: string) {
+    setRevokingSessionId(sessionId);
+    try {
+      const res = await fetch(`${API_BASE}/admin/security/sessions/${sessionId}/revoke`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((body as { message?: string; error?: string }).message ?? (body as { error?: string }).error ?? "Failed to revoke session");
+      }
+      setNote("Session revoked.");
+      setError("");
+      await refreshPanel();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to revoke session");
+    } finally {
+      setRevokingSessionId("");
     }
   }
 
@@ -398,6 +444,36 @@ export default function AdminSecurityPage() {
           <section className="asc-panel">
             <div className="asc-panel-head">
               <div>
+                <h2 className="asc-panel-title">Active Sessions</h2>
+                <div className="asc-sub">Live session artifacts currently tracked for signed-in users. Revoke any one from the admin surface.</div>
+              </div>
+            </div>
+
+            {snapshot?.sessions.length ? (
+              <div className="asc-audit-list">
+                {snapshot.sessions.map((session) => (
+                  <div key={session.id} className="asc-audit">
+                    <div className="asc-time">{formatDateTime(session.lastSeen)}</div>
+                    <div>
+                      <div className="asc-status-title">{session.userLabel}</div>
+                      <div className="asc-audit-meta">Platform: {session.platform} · Created {formatDateTime(session.createdAt)}</div>
+                    </div>
+                    <div className="asc-row-actions">
+                      <button className="asc-btn ghost" onClick={() => void revokeSession(session.id)} disabled={revokingSessionId === session.id}>
+                        {revokingSessionId === session.id ? "Revoking" : "Revoke"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="asc-empty">No active session artifacts are available right now.</div>
+            )}
+          </section>
+
+          <section className="asc-panel">
+            <div className="asc-panel-head">
+              <div>
                 <h2 className="asc-panel-title">Admin Audit Log</h2>
                 <div className="asc-sub">Recorded admin actions from the immutable audit stream.</div>
               </div>
@@ -420,6 +496,31 @@ export default function AdminSecurityPage() {
               </div>
             ) : (
               <div className="asc-empty">No admin audit entries are available yet.</div>
+            )}
+          </section>
+
+          <section className="asc-panel">
+            <div className="asc-panel-head">
+              <div>
+                <h2 className="asc-panel-title">Sensitive User Actions</h2>
+                <div className="asc-sub">Password, auth, security, suspension, and deletion-adjacent actions across the platform.</div>
+              </div>
+            </div>
+
+            {snapshot?.sensitiveActions.length ? (
+              <div className="asc-audit-list">
+                {snapshot.sensitiveActions.slice(0, 12).map((entry) => (
+                  <div key={entry.id} className="asc-audit">
+                    <div className="asc-time">{formatDateTime(entry.createdAt)}</div>
+                    <div>
+                      <div className="asc-status-title">{entry.actorEmail}</div>
+                      <div className="asc-audit-meta">{entry.summary}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="asc-empty">No sensitive user actions have been recorded yet.</div>
             )}
           </section>
 
@@ -484,6 +585,15 @@ export default function AdminSecurityPage() {
               <div className="asc-code" style={{ marginTop: 14 }}>
                 <div className="asc-mini">GDPR Note</div>
                 <div className="asc-sub" style={{ marginTop: 10 }}>{snapshot.gdpr.note}</div>
+              </div>
+            ) : null}
+
+            {snapshot?.gdpr.consentLogs.length ? (
+              <div className="asc-code" style={{ marginTop: 14 }}>
+                <div className="asc-mini">Recent Consent Logs</div>
+                <div className="asc-sub" style={{ marginTop: 10 }}>
+                  {snapshot.gdpr.consentLogs.map((entry) => `${entry.userId} acknowledged v${entry.policyVersion} on ${formatDateTime(entry.acknowledgedAt)}`).join(" · ")}
+                </div>
               </div>
             ) : null}
           </section>

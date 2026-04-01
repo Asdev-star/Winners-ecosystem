@@ -15,6 +15,68 @@ const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
 
+type CircuitRecommendation = {
+  jobId: string;
+  score: number;
+  headline: string;
+  strengths: string[];
+  gaps: string[];
+  estimatedRate: string;
+};
+
+function normalizeSkill(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function rankJobsDeterministically(input: {
+  profileSkills: string[];
+  detectedSkills: string[];
+  certificates: string[];
+  openJobs: Array<{
+    id: string;
+    title: string;
+    category: string;
+    skills: string[];
+    experienceLevel: string;
+    budgetMin: number | null;
+    budgetMax: number | null;
+    currency: string;
+  }>;
+}): CircuitRecommendation[] {
+  const profileSkills = new Set(input.profileSkills.map(normalizeSkill));
+  const detectedSkills = new Set(input.detectedSkills.map(normalizeSkill));
+  const certificates = new Set(input.certificates.map(normalizeSkill));
+
+  return input.openJobs
+    .map((job) => {
+      const jobSkills = job.skills.map(normalizeSkill);
+      const matchedSkills = jobSkills.filter(
+        (skill) => profileSkills.has(skill) || detectedSkills.has(skill),
+      );
+      const missingSkills = jobSkills.filter((skill) => !matchedSkills.includes(skill));
+      const categoryBoost = certificates.has(normalizeSkill(job.category)) ? 8 : 0;
+      const matchRatio = jobSkills.length
+        ? matchedSkills.length / jobSkills.length
+        : 0.45;
+      const baseScore = Math.round(Math.min(96, 45 + matchRatio * 40 + categoryBoost));
+      const estimatedRate = job.budgetMax ?? job.budgetMin ?? 0;
+
+      return {
+        jobId: job.id,
+        score: baseScore,
+        headline:
+          matchedSkills.length > 0
+            ? `Strong overlap across ${matchedSkills.slice(0, 2).join(" and ")} with room to close the remaining gaps quickly.`
+            : "Promising strategic fit, but this role needs profile strengthening before it becomes a top-tier CIRCUIT match.",
+        strengths: matchedSkills.slice(0, 3),
+        gaps: missingSkills.slice(0, 2),
+        estimatedRate: `${job.currency} ${estimatedRate || "Negotiable"}`,
+      };
+    })
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 10);
+}
+
 // ─── JOB LISTINGS ─────────────────────────────────────────────────────────────
 
 // GET /work/jobs — list jobs with filters
@@ -507,7 +569,14 @@ router.patch("/applications/:id/status", async (req: Request, res: Response) => 
   try {
     const application = await db.jobApplication.findFirst({
       where:   { id: appId, tenantId },
-      include: { job: true },
+      include: {
+        job: true,
+        freelancer: {
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+        },
+      },
     });
     if (!application) return res.status(404).json({ message: "Application not found" });
     if (application.job.clientId !== userId) return res.status(403).json({ message: "Not your job" });
@@ -517,7 +586,97 @@ router.patch("/applications/:id/status", async (req: Request, res: Response) => 
       data:  { status },
     });
 
-    return res.json(updated);
+    let contract = null;
+
+    if (status === "HIRED") {
+      const existingContract = await db.contract.findFirst({
+        where: {
+          tenantId,
+          jobId: application.jobId,
+          freelancerId: application.freelancerId,
+          status: { not: "CANCELLED" },
+        },
+      });
+
+      if (!existingContract) {
+        const proposedAmount =
+          application.proposedRate ??
+          application.job.budgetMax ??
+          application.job.budgetMin ??
+          0;
+        const startDate = req.body.startDate ? new Date(req.body.startDate) : new Date();
+        const endDate = req.body.endDate ? new Date(req.body.endDate) : null;
+        const paymentType = String(req.body.paymentType ?? application.job.jobType ?? "fixed");
+        const milestoneInputs = Array.isArray(req.body.milestones)
+          ? req.body.milestones
+          : [
+              {
+                title: "Project delivery",
+                description: "Initial contract milestone created from hired application.",
+                amount: proposedAmount,
+                dueDate: endDate?.toISOString() ?? null,
+              },
+            ];
+
+        contract = await db.contract.create({
+          data: {
+            tenantId,
+            jobId: application.jobId,
+            clientId: userId,
+            freelancerId: application.freelancerId,
+            title: application.job.title,
+            description: application.job.description,
+            status: "ACTIVE",
+            startDate,
+            endDate,
+            paymentType,
+            amount: proposedAmount,
+            currency: application.job.currency,
+            platformFee: Number((proposedAmount * 0.1).toFixed(2)),
+            milestones: {
+              create: milestoneInputs.map((milestone: {
+                title?: string;
+                description?: string;
+                amount?: number;
+                dueDate?: string | null;
+              }) => ({
+                tenantId,
+                title: milestone.title?.trim() || "Project delivery",
+                description: milestone.description?.trim() || null,
+                amount: Number(milestone.amount ?? proposedAmount),
+                dueDate: milestone.dueDate ? new Date(milestone.dueDate) : null,
+              })),
+            },
+          },
+          include: {
+            milestones: true,
+            freelancer: {
+              include: { user: { select: { id: true, name: true, email: true } } },
+            },
+            client: { select: { id: true, name: true, email: true } },
+          },
+        });
+      } else {
+        contract = existingContract;
+      }
+
+      await Promise.all([
+        db.jobListing.update({
+          where: { id: application.jobId, tenantId },
+          data: { status: "IN_PROGRESS" },
+        }),
+        db.jobApplication.updateMany({
+          where: {
+            jobId: application.jobId,
+            id: { not: appId },
+            status: { in: ["PENDING", "SHORTLISTED", "INTERVIEWING", "OFFERED"] },
+          },
+          data: { status: "REJECTED" },
+        }),
+      ]);
+    }
+
+    return res.json({ application: updated, contract });
   } catch (error) {
     console.error("[work] Update application status error:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -679,17 +838,45 @@ Return a JSON array of the top 10 best matches with this exact structure:
 
 Only return valid JSON. No explanation text outside the array.`;
 
-    const response = await anthropic.messages.create({
-      model:      "claude-opus-4-5",
-      max_tokens: 2048,
-      messages:   [{ role: "user", content: prompt }],
-    });
+    let matches: CircuitRecommendation[] = [];
 
-    const rawText = response.content[0].type === "text" ? response.content[0].text : "[]";
-    const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-    const matches: unknown[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    if (process.env.ANTHROPIC_API_KEY) {
+      try {
+        const response = await anthropic.messages.create({
+          model:      "claude-opus-4-5",
+          max_tokens: 2048,
+          messages:   [{ role: "user", content: prompt }],
+        });
 
-    const enriched = (matches as { jobId: string; score: number; headline: string; strengths: string[]; gaps: string[]; estimatedRate: string }[]).map((m) => {
+        const rawText = response.content[0].type === "text" ? response.content[0].text : "[]";
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        matches = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      } catch (modelError) {
+        console.warn("[CIRCUIT] Falling back to deterministic ranking:", modelError);
+      }
+    }
+
+    if (!matches.length) {
+      matches = rankJobsDeterministically({
+        profileSkills: profile.skills,
+        detectedSkills: skills.map((skill) => skill.skill),
+        certificates: certificates
+          .map((certificate) => certificate.course?.category)
+          .filter((category): category is string => Boolean(category)),
+        openJobs: openJobs.map((job) => ({
+          id: job.id,
+          title: job.title,
+          category: job.category,
+          skills: job.skills,
+          experienceLevel: job.experienceLevel,
+          budgetMin: job.budgetMin,
+          budgetMax: job.budgetMax,
+          currency: job.currency,
+        })),
+      });
+    }
+
+    const enriched = matches.map((m) => {
       const job = openJobs.find((j) => j.id === m.jobId);
       return { ...m, job };
     }).filter((m) => m.job);

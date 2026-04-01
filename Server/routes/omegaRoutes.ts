@@ -5,12 +5,34 @@
 import { Request, Response, Router } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
-import Anthropic from "@anthropic-ai/sdk";
 import { callAnthropicAndParseJson } from "../services/aiService.js";
 
 const router = Router();
 const prisma = db;
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+type BriefingRecommendation = {
+  label: string;
+  url: string;
+  priority: "high" | "medium" | "low";
+};
+
+type BriefingResponse = {
+  briefing: string;
+  recommendations: BriefingRecommendation[];
+  generatedAt: string;
+  expiresAt: string;
+  cached: boolean;
+};
+
+type ResumptionCard = {
+  layer: "academy" | "community" | "market";
+  title: string;
+  sub: string;
+  pct?: number;
+  amount?: number;
+  url: string;
+  cta: string;
+};
 
 function metadataObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -196,6 +218,352 @@ function omegaCalibration(experienceLevel: string | null, incomeTarget: string |
   return `${experienceLine} ${revenueLine} ${marketLine}`;
 }
 
+function getTrustTier(score: number | null | undefined) {
+  const value = typeof score === "number" ? score : 0;
+  if (value >= 90) return "PLATINUM";
+  if (value >= 80) return "GOLD";
+  if (value >= 60) return "SILVER";
+  if (value >= 40) return "BRONZE";
+  return "STARTER";
+}
+
+function clampWords(input: string, maxWords: number) {
+  const words = input.trim().split(/\s+/);
+  if (words.length <= maxWords) return input.trim();
+  return `${words.slice(0, maxWords).join(" ").replace(/[.,;:!?-]*$/, "")}.`;
+}
+
+function safeJsonArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function firstNameFromFullName(name: string | null | undefined) {
+  return (name ?? "Winner").trim().split(/\s+/)[0] ?? "Winner";
+}
+
+async function countUnreadMessages(userId: string, tenantId: string) {
+  const memberships = await prisma.conversationParticipant.findMany({
+    where: { tenantId, userId },
+    select: { conversationId: true, lastReadAt: true },
+  });
+
+  if (!memberships.length) return 0;
+
+  const unreadCounts = await Promise.all(
+    memberships.map((membership) =>
+      prisma.message.count({
+        where: {
+          tenantId,
+          conversationId: membership.conversationId,
+          senderId: { not: userId },
+          deletedAt: null,
+          createdAt: { gt: membership.lastReadAt },
+        },
+      }),
+    ),
+  );
+
+  return unreadCounts.reduce((sum, count) => sum + count, 0);
+}
+
+async function findJobMatches(userId: string, tenantId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      primarySkills: true,
+      skills: true,
+      metadata: true,
+      trustScore: true,
+    },
+  });
+
+  const onboardingSignals = readOnboardingSignals(user?.metadata);
+  const candidateSkills = normalizeStringArray(
+    [
+      ...(user?.primarySkills ?? []),
+      ...(user?.skills ?? []),
+      ...onboardingSignals.topSkills,
+    ],
+    8,
+  );
+
+  if (!candidateSkills.length) return [];
+
+  const jobs = await prisma.jobListing.findMany({
+    where: {
+      tenantId,
+      status: "OPEN",
+      skills: { hasSome: candidateSkills.slice(0, 5) },
+    },
+    select: {
+      id: true,
+      title: true,
+      skills: true,
+      budgetMin: true,
+      budgetMax: true,
+      currency: true,
+      deadline: true,
+    },
+    orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+    take: 12,
+  });
+
+  return jobs
+    .map((job) => {
+      const overlap = job.skills.filter((skill) => candidateSkills.includes(skill)).length;
+      const matchScore = Math.min(96, 45 + overlap * 14 + Math.round((user?.trustScore ?? 50) / 6));
+      return { ...job, matchScore, overlap };
+    })
+    .filter((job) => job.matchScore >= 70)
+    .sort((left, right) => right.matchScore - left.matchScore)
+    .slice(0, 5);
+}
+
+async function generateOMEGABriefing(userId: string, tenantId: string): Promise<BriefingResponse> {
+  const [
+    user,
+    recentActivity,
+    certificates,
+    jobMatches,
+    loopProgress,
+    pendingOrders,
+    unreadMessages,
+    trustSnapshot,
+  ] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, trustScore: true, metadata: true },
+    }),
+    prisma.activityLog.findMany({
+      where: { tenantId, userId },
+      take: 20,
+      orderBy: { createdAt: "desc" },
+      select: { action: true, category: true, createdAt: true, metadata: true },
+    }),
+    prisma.certificate.findMany({
+      where: { tenantId, userId },
+      orderBy: { issuedAt: "desc" },
+      take: 5,
+      select: {
+        issuedAt: true,
+        course: { select: { title: true, slug: true } },
+      },
+    }),
+    findJobMatches(userId, tenantId),
+    prisma.agenticLoopProgress.findUnique({
+      where: { userId },
+      select: { stage: true, currentStage: true, coursesTaken: true, contractsWon: true },
+    }),
+    prisma.order.findMany({
+      where: { tenantId, userId, status: "PENDING" },
+      take: 5,
+      select: { id: true, status: true, total: true, createdAt: true },
+    }),
+    countUnreadMessages(userId, tenantId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { trustScore: true },
+    }),
+  ]);
+
+  const topMatch = jobMatches[0] ?? null;
+  const latestCertificate = certificates[0] ?? null;
+  const firstName = firstNameFromFullName(user?.name);
+  const fallbackBriefing = clampWords(
+    `${firstName}, ${latestCertificate ? `your ${latestCertificate.course.title} certificate is now strengthening your profile. ` : ""}${topMatch ? `${jobMatches.length} Work matches are ready and ${topMatch.title} is the strongest at ${topMatch.matchScore}% match. ` : ""}${unreadMessages > 0 ? `You also have ${unreadMessages} unread message${unreadMessages === 1 ? "" : "s"}. ` : ""}${pendingOrders.length > 0 ? `${pendingOrders.length} order${pendingOrders.length === 1 ? " is" : "s are"} still pending in Market. ` : ""}${typeof trustSnapshot?.trustScore === "number" ? `Your Trust Score is ${trustSnapshot.trustScore}, with the next tier within reach.` : ""}`,
+    80,
+  );
+
+  const fallbackRecommendations: BriefingRecommendation[] = [
+    topMatch
+      ? { label: `Review ${topMatch.title} (${topMatch.matchScore}% match)`, url: "/work/jobs", priority: "high" }
+      : { label: "Open your strongest layer and review today's best opportunity", url: "/intelligence", priority: "high" },
+    latestCertificate
+      ? { label: `Use ${latestCertificate.course.title} to unlock the next step`, url: `/academy/courses/${latestCertificate.course.slug}`, priority: "medium" }
+      : { label: "Continue your next Academy module", url: "/academy", priority: "medium" },
+    pendingOrders.length > 0
+      ? { label: "Resolve pending Market orders", url: "/market/orders", priority: "medium" }
+      : { label: "Check new messages and replies", url: "/community", priority: "low" },
+  ];
+
+  const prompt = `You are OMEGA, the master orchestrator of the Winners Ecosystem.
+Generate a personalized login briefing for ${user?.name ?? "this user"}.
+
+User context:
+- Recent activity: ${JSON.stringify(recentActivity.slice(0, 5))}
+- Certificates earned: ${certificates.map((certificate) => certificate.course.title).join(", ") || "none"}
+- Job matches ready: ${jobMatches.length} (highest: ${topMatch?.matchScore ?? 0}% for ${topMatch?.title ?? "none"})
+- Trust Score: ${trustSnapshot?.trustScore ?? user?.trustScore ?? 0} (tier: ${getTrustTier(trustSnapshot?.trustScore ?? user?.trustScore)})
+- Loop stage: ${loopProgress?.stage ?? 1} of 6 (${loopProgress?.currentStage ?? "starting"})
+- Pending orders: ${pendingOrders.length}
+- Unread messages: ${unreadMessages}
+
+Rules:
+- Be specific, not generic. Name actual courses, job titles, and amounts when available.
+- Give a maximum of 3 recommendations. Each must be actionable right now.
+- Use the user's first name once at the start.
+- Maximum 80 words in the main briefing text.
+- Return JSON only in this exact shape:
+{"briefing":"...","recommendations":[{"label":"...","url":"...","priority":"high"}]}`;
+
+  const aiResult = await callAnthropicAndParseJson<{ briefing?: string; recommendations?: BriefingRecommendation[] }>(
+    prompt,
+    { model: "claude-sonnet-4-6", max_tokens: 400 },
+    { briefing: fallbackBriefing, recommendations: fallbackRecommendations },
+  );
+
+  const briefing = clampWords(
+    typeof aiResult.briefing === "string" && aiResult.briefing.trim()
+      ? aiResult.briefing.trim()
+      : fallbackBriefing,
+    80,
+  );
+  const recommendations = safeJsonArray<BriefingRecommendation>(aiResult.recommendations)
+    .filter((item) => typeof item?.label === "string" && typeof item?.url === "string")
+    .slice(0, 3)
+    .map((item, index) => ({
+      label: item.label.trim(),
+      url: item.url.trim() || fallbackRecommendations[index]?.url || "/intelligence",
+      priority:
+        item.priority === "high" || item.priority === "medium" || item.priority === "low"
+          ? item.priority
+          : fallbackRecommendations[index]?.priority ?? "medium",
+    }));
+
+  const generatedAt = new Date();
+  const expiresAt = new Date(generatedAt.getTime() + 6 * 60 * 60 * 1000);
+
+  await prisma.oMEGABriefing.upsert({
+    where: { userId },
+    create: {
+      userId,
+      tenantId,
+      content: briefing,
+      highlights: recommendations,
+      topAction: recommendations[0] ?? {},
+      loopStatus: {
+        stage: loopProgress?.stage ?? 1,
+        currentStage: loopProgress?.currentStage ?? "starting",
+        trustScore: trustSnapshot?.trustScore ?? user?.trustScore ?? 0,
+      },
+      generatedAt,
+      expiresAt,
+    },
+    update: {
+      tenantId,
+      content: briefing,
+      highlights: recommendations,
+      topAction: recommendations[0] ?? {},
+      loopStatus: {
+        stage: loopProgress?.stage ?? 1,
+        currentStage: loopProgress?.currentStage ?? "starting",
+        trustScore: trustSnapshot?.trustScore ?? user?.trustScore ?? 0,
+      },
+      generatedAt,
+      expiresAt,
+      openedAt: null,
+      actedOnAt: null,
+    },
+  });
+
+  return {
+    briefing,
+    recommendations: recommendations.length ? recommendations : fallbackRecommendations,
+    generatedAt: generatedAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    cached: false,
+  };
+}
+
+async function getResumptionCards(userId: string, tenantId: string): Promise<ResumptionCard[]> {
+  const cards: ResumptionCard[] = [];
+
+  const lastCourse = await prisma.enrollment.findFirst({
+    where: { tenantId, userId, completedAt: null, status: "ACTIVE" },
+    include: {
+      course: { select: { title: true, slug: true } },
+      progress: {
+        orderBy: { updatedAt: "desc" },
+        take: 1,
+        include: {
+          lesson: {
+            select: {
+              order: true,
+              module: { select: { order: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  if (lastCourse) {
+    const [completedLessons, totalLessons] = await Promise.all([
+      prisma.lessonProgress.count({
+        where: { tenantId, enrollmentId: lastCourse.id, completed: true },
+      }),
+      prisma.lesson.count({
+        where: { tenantId, module: { courseId: lastCourse.courseId } },
+      }),
+    ]);
+    const latestProgress = lastCourse.progress[0];
+    const pct = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+    cards.push({
+      layer: "academy",
+      title: lastCourse.course.title,
+      sub: latestProgress
+        ? `Module ${latestProgress.lesson.module.order}, Lesson ${latestProgress.lesson.order}`
+        : "Resume your latest lesson",
+      pct,
+      url: `/academy/courses/${lastCourse.course.slug}`,
+      cta: "Continue",
+    });
+  }
+
+  const [unreadMessages, recentReplies] = await Promise.all([
+    countUnreadMessages(userId, tenantId),
+    prisma.comment.count({
+      where: {
+        tenantId,
+        authorId: { not: userId },
+        post: { authorId: userId },
+      },
+    }),
+  ]);
+
+  if (unreadMessages + recentReplies > 0) {
+    cards.push({
+      layer: "community",
+      title: `${unreadMessages + recentReplies} new interactions`,
+      sub: `${unreadMessages} messages - ${recentReplies} post replies`,
+      url: "/community",
+      cta: "View Replies",
+    });
+  }
+
+  const cart = await prisma.cart.findFirst({
+    where: { tenantId, userId, status: "ACTIVE" },
+    include: { items: { select: { price: true, quantity: true } } },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  if (cart?.items.length) {
+    const amount = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    cards.push({
+      layer: "market",
+      title: `Cart has ${cart.items.length} ${cart.items.length === 1 ? "item" : "items"}`,
+      sub: `$${amount.toFixed(2)} saved`,
+      amount,
+      url: "/market/cart",
+      cta: "Checkout",
+    });
+  }
+
+  return cards.slice(0, 3);
+}
+
 // GET /omega/analyze - Get comprehensive user analysis
 router.get(
   "/analyze",
@@ -339,110 +707,50 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const userId = req.user!.userId;
+      const tenantId = req.user!.tenantId;
+      const now = new Date();
 
-      // Get recent activity
-      const [user, recentPosts, recentEnrollments, newFollowers, skills] =
-        await Promise.all([
-          prisma.user.findUnique({ where: { id: userId }, select: { metadata: true } }),
-          prisma.post.findMany({
-            where: { authorId: userId },
-            orderBy: { createdAt: "desc" },
-            take: 5,
-            include: { _count: { select: { likes: true, comments: true } } },
-          }),
-          prisma.enrollment.findMany({
-            where: { userId },
-            orderBy: { createdAt: "desc" },
-            take: 3,
-            include: { course: true },
-          }),
-          prisma.follow.findMany({
-            where: { followingId: userId },
-            orderBy: { createdAt: "desc" },
-            take: 5,
-          }),
-          prisma.novaSkillDetection.findMany({
-            where: { userId },
-            orderBy: { confidence: "desc" },
-            take: 5,
-          }),
-        ]);
-
-      // Calculate metrics
-      const engagementThisWeek = recentPosts.reduce(
-        (sum, p) => sum + p._count.likes + p._count.comments,
-        0,
-      );
-      const daysSinceLastPost = recentPosts[0]
-        ? Math.floor(
-            (Date.now() - new Date(recentPosts[0].createdAt).getTime()) /
-              86400000,
-          )
-        : 99;
-      const onboardingSignals = readOnboardingSignals(user?.metadata);
-
-      // Generate personalized briefing
-      const prompt = `You are OMEGA, the Winners Ecosystem Master Orchestrator.
-
-Generate a personalized daily briefing for this user. Be warm, direct, and actionable.
-
-CURRENT STATUS:
-- Posts this week: ${recentPosts.length}
-- Total engagement: ${engagementThisWeek} interactions
-- Days since last post: ${daysSinceLastPost}
-- Top skills: ${skills.map(s => s.skill).join(", ") || "none"}
-- Active courses: ${recentEnrollments.length}
-- New followers: ${newFollowers.length}
-- Onboarding Experience Level: ${onboardingSignals.experienceLevel ?? "unknown"}
-- Onboarding Income Target: ${onboardingSignals.incomeTarget ?? "unknown"}
-- Onboarding Primary Layer: ${onboardingSignals.primaryLayer ?? "unknown"}
-- Onboarding Profile Type: ${onboardingSignals.profileType ?? "unknown"}
-- Building Focus: ${onboardingSignals.buildingFocus ?? "unknown"}
-- Market Focus: ${onboardingSignals.marketFocus.join(", ") || "unknown"}
-- Onboarding Top Skills: ${onboardingSignals.topSkills.join(", ") || "unknown"}
-- Market Currencies: ${onboardingSignals.marketSignals.currencies.join(", ")}
-- Payment Recommendations: ${onboardingSignals.marketSignals.paymentRecommendations.join(", ")}
-- Job Matching Pool: ${onboardingSignals.marketSignals.jobMatchingPool}
-- Community Suggestions: ${onboardingSignals.marketSignals.communitySuggestions.join(", ") || "none"}
-- Language Options: ${onboardingSignals.marketSignals.languageOptions.join(", ")}
-- Seasonal Signals: ${onboardingSignals.marketSignals.seasonalSignals.join(", ") || "none"}
-
-CALIBRATION:
-${omegaCalibration(onboardingSignals.experienceLevel, onboardingSignals.incomeTarget, onboardingSignals.marketFocus)}
-
-Generate a JSON response:
-{
-  "greeting": "personalized greeting based on their activity",
-  "highlights": ["3 key things to know today"],
-  "actionItems": ["3 specific actions to take today"],
-  "motivation": "one sentence of encouragement"
-}`;
-
-      // Stream the response
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-
-      const stream = await anthropic.messages.stream({
-        model: "claude-sonnet-4-6",
-        max_tokens: 600,
-        messages: [{ role: "user", content: prompt }],
+      const cached = await prisma.oMEGABriefing.findUnique({
+        where: { userId },
+        select: {
+          content: true,
+          highlights: true,
+          generatedAt: true,
+          expiresAt: true,
+        },
       });
 
-      for await (const chunk of stream) {
-        if (
-          chunk.type === "content_block_delta" &&
-          chunk.delta.type === "text_delta"
-        ) {
-          res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
-        }
+      if (cached && cached.expiresAt > now) {
+        return res.json({
+          briefing: cached.content,
+          recommendations: safeJsonArray<BriefingRecommendation>(cached.highlights).slice(0, 3),
+          generatedAt: cached.generatedAt.toISOString(),
+          expiresAt: cached.expiresAt.toISOString(),
+          cached: true,
+        } satisfies BriefingResponse);
       }
 
-      res.write("data: [DONE]\n\n");
-      res.end();
+      const briefing = await generateOMEGABriefing(userId, tenantId);
+      return res.json(briefing);
     } catch (error) {
       console.error("Omega briefing error:", error);
       res.status(500).json({ error: "Failed to generate briefing" });
+    }
+  },
+);
+
+router.get(
+  "/resumption",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.userId;
+      const tenantId = req.user!.tenantId;
+      const cards = await getResumptionCards(userId, tenantId);
+      res.json({ cards });
+    } catch (error) {
+      console.error("Omega resumption error:", error);
+      res.status(500).json({ error: "Failed to load resumption cards" });
     }
   },
 );

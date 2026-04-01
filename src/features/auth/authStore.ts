@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { API_BASE } from "../../lib/api";
-import { getOmegaProfileEntryPath } from "../onboarding/omegaProfileContext";
 import { OMEGA_WELCOME_KEY, type OmegaLaunchWelcome } from "../onboarding/omegaLaunchWelcome";
 
 export interface AuthUser {
@@ -330,6 +329,12 @@ export function hasRole(minimum: AuthUser["role"]): boolean {
 
 export function getPostLoginPath(user: AuthUser | null): string {
   if (!user) return "/login";
+  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const hasAdminEmail = user.email ? adminEmails.includes(user.email.toLowerCase()) : false;
+  if (user.role === "owner" || hasAdminEmail) return "/dashboard";
   if (user.onboardingCompleted === false) return "/onboarding";
-  return getOmegaProfileEntryPath(user.onboardingProfileType, user.onboardingPrimaryPath);
+  return "/home";
 }

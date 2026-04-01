@@ -6,6 +6,7 @@ import Stripe from 'stripe';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import db from '../db.js';
 import { emitAdminEvent } from '../services/adminEventService.js';
+import { pushTriggers } from '../services/fcmService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -20,8 +21,23 @@ async function getFreelancerStripeAccountId(freelancerProfileId: string): Promis
     where: { id: freelancerProfileId },
     include: { user: { select: { id: true } } },
   });
-  const user = profile?.user as any;
-  return user?.stripeAccountId ?? null;
+  if (!profile?.user?.id) return null;
+
+  const wallet = await db.userWallet.findFirst({
+    where: { userId: profile.user.id },
+    select: { stripeAccountId: true },
+  });
+
+  return wallet?.stripeAccountId ?? null;
+}
+
+async function getFreelancerProfileIdForUser(userId: string, tenantId: string): Promise<string | null> {
+  const profile = await db.freelancerProfile.findFirst({
+    where: { userId, tenantId },
+    select: { id: true },
+  });
+
+  return profile?.id ?? null;
 }
 
 router.post('/fund', async (req: Request, res: Response) => {
@@ -64,8 +80,18 @@ router.get('/', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
+    const freelancerProfile = await db.freelancerProfile.findFirst({
+      where: { userId, tenantId },
+      select: { id: true },
+    });
     const escrows = await db.escrowPayment.findMany({
-      where: { tenantId, OR: [{ clientId: userId }, { freelancerId: userId }] },
+      where: {
+        tenantId,
+        OR: [
+          { clientId: userId },
+          ...(freelancerProfile ? [{ freelancerId: freelancerProfile.id }] : []),
+        ],
+      },
       include: { contract: { select: { title: true, clientId: true, amount: true } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -80,6 +106,7 @@ router.get('/:contractId', async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
   const userId = req.user!.userId;
   try {
+    const freelancerProfileId = await getFreelancerProfileIdForUser(userId, tenantId);
     const escrow = await db.escrowPayment.findFirst({
       where: { contractId: req.params.contractId as string, tenantId },
       include: {
@@ -89,7 +116,7 @@ router.get('/:contractId', async (req: Request, res: Response) => {
       },
     });
     if (!escrow) return res.status(404).json({ error: 'Escrow not found' });
-    const isParticipant = escrow.clientId === userId || escrow.freelancerId === userId;
+    const isParticipant = escrow.clientId === userId || escrow.freelancerId === freelancerProfileId;
     if (!isParticipant) return res.status(403).json({ error: 'Not authorised' });
     return res.json(escrow);
   } catch (error) {
@@ -111,6 +138,11 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
     const releaseAmount = Number(amount) || escrow.amount;
     const platformFee = releaseAmount * 0.10;
     const freelancerPayout = releaseAmount - platformFee;
+    const freelancerProfile = await db.freelancerProfile.findUnique({
+      where: { id: escrow.freelancerId },
+      include: { user: { select: { id: true } } },
+    });
+    const freelancerUserId = freelancerProfile?.user?.id;
     const stripeAccountId = await getFreelancerStripeAccountId(escrow.freelancerId);
     let transferId: string | undefined;
     if (stripeAccountId) {
@@ -127,9 +159,53 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
     if (milestoneId) {
       await db.contractMilestone.update({ where: { id: milestoneId }, data: { status: 'PAID', paidAt: new Date() } });
     }
+    const milestoneStatus = await db.contractMilestone.findMany({
+      where: { contractId: escrow.contractId },
+      select: { status: true },
+    });
+    if (milestoneStatus.length > 0 && milestoneStatus.every((entry) => entry.status === 'PAID')) {
+      await db.contract.update({
+        where: { id: escrow.contractId },
+        data: { status: 'COMPLETED', completedAt: new Date() },
+      });
+    }
+    if (freelancerUserId) {
+      const wallet = await db.userWallet.upsert({
+        where: { userId_tenantId: { userId: freelancerUserId, tenantId } },
+        create: {
+          userId: freelancerUserId,
+          tenantId,
+          currency: escrow.currency,
+          balance: freelancerPayout,
+          available: freelancerPayout,
+          totalEarned: freelancerPayout,
+        },
+        update: {
+          balance: { increment: freelancerPayout },
+          available: { increment: freelancerPayout },
+          totalEarned: { increment: freelancerPayout },
+        },
+      });
+      await db.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          type: 'earned',
+          amount: releaseAmount,
+          fee: platformFee,
+          netAmount: freelancerPayout,
+          currency: escrow.currency,
+          status: 'completed',
+          description: `Escrow release for contract ${escrow.contractId}`,
+          reference: transferId ?? escrow.stripePaymentId ?? escrow.id,
+          relatedUserId: escrow.clientId,
+          metadata: { escrowId: escrow.id, milestoneId: milestoneId ?? null },
+        },
+      });
+      void pushTriggers.escrowReleased(freelancerUserId, freelancerPayout);
+    }
     await db.notification.create({
       data: {
-        tenantId, userId: escrow.freelancerId,
+        tenantId, userId: freelancerUserId ?? escrow.clientId,
         type: 'SYSTEM', title: 'Payment Released',
         body: `$${freelancerPayout.toFixed(2)} has been released to your account.`,
         entityId: escrow.id,
@@ -148,15 +224,24 @@ router.post('/dispute/:escrowId', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
+    const freelancerProfileId = await getFreelancerProfileIdForUser(userId, tenantId);
     const escrow = await db.escrowPayment.findFirst({ where: { id: req.params.escrowId as string, tenantId } });
     if (!escrow) return res.status(404).json({ error: 'Escrow not found' });
-    const isParticipant = escrow.clientId === userId || escrow.freelancerId === userId;
+    const isParticipant = escrow.clientId === userId || escrow.freelancerId === freelancerProfileId;
     if (!isParticipant) return res.status(403).json({ error: 'Not authorised' });
     if (escrow.status === 'RELEASED' || escrow.status === 'REFUNDED') {
       return res.status(400).json({ error: 'Cannot dispute a completed escrow' });
     }
     await db.escrowPayment.update({ where: { id: escrow.id }, data: { status: 'DISPUTED' } });
-    const otherPartyId = escrow.clientId === userId ? escrow.freelancerId : escrow.clientId;
+    const freelancerProfile = await db.freelancerProfile.findUnique({
+      where: { id: escrow.freelancerId },
+      include: { user: { select: { id: true } } },
+    });
+    const otherPartyId =
+      escrow.clientId === userId
+        ? freelancerProfile?.user?.id ?? null
+        : escrow.clientId;
+    if (otherPartyId) {
     await db.notification.create({
       data: {
         tenantId, userId: otherPartyId,
@@ -166,6 +251,7 @@ router.post('/dispute/:escrowId', async (req: Request, res: Response) => {
         entityType: 'escrow',
       },
     });
+    }
     const disputeUser = await db.user.findFirst({
       where: { id: userId },
       select: {

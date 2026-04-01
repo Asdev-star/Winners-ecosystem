@@ -25,6 +25,7 @@ export type MarketStackParamList = {
   OrderDetail: { orderId: string };
   VendorDashboard: undefined;
   DropshippingHub: undefined;
+  Wallet: undefined;
 };
 
 export type WorkStackParamList = {

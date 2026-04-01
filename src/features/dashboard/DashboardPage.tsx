@@ -1,20 +1,18 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { NavLink, useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
 import { getAuthHeaders, useAuthStore } from "../auth/authStore";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 import FourDocumentsBlueprint from "../../components/docs/FourDocumentsBlueprint";
 import NotificationBell from "../notifications/NotificationBell";
 import ThemeToggle from "../theme/ThemeToggle";
+import AdminKPIRow from "./components/AdminKPIRow";
+import ForgeIntelligencePanel from "./components/ForgeIntelligencePanel";
+import PlatformStatusGrid from "./components/PlatformStatusGrid";
+import BroadcastComposer from "./components/BroadcastComposer";
+import RevenueBreakdownChart from "./components/RevenueBreakdownChart";
+import SystemHealthPanel from "./components/SystemHealthPanel";
+import SecurityAuditPanel from "./components/SecurityAuditPanel";
 
 type HealthTone = "ok" | "attention";
 type LayerStatus = "live" | "ready" | "locked" | "build";
@@ -300,32 +298,6 @@ const LAYER_CHROME: Record<string, { icon: string; supervisor: string }> = {
 
 function layerChrome(name: string) {
   return LAYER_CHROME[name] ?? { icon: "⬡", supervisor: "OMEGA" };
-}
-
-function AdminRevenueTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ name?: string; value?: number }>;
-  label?: string | number;
-}) {
-  if (!active || !payload?.length) return null;
-
-  return (
-    <div style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,.08)", background: "rgba(8,13,22,.96)", padding: "12px 14px", boxShadow: "0 18px 38px rgba(0,0,0,.34)" }}>
-      <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 8 }}>
-        {label}
-      </div>
-      {payload.map((entry) => (
-        <div key={entry.name} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 13, color: "var(--text)", marginTop: 6 }}>
-          <span>{entry.name}</span>
-          <strong>{money(entry.value ?? 0)}</strong>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export default function DashboardPage() {
@@ -665,248 +637,55 @@ export default function DashboardPage() {
             {error ? <div className="aov-error">{error}</div> : null}
 
             <FourDocumentsBlueprint current="admin-dashboard" adminEnabled />
-
             {/* FORGE Morning Briefing */}
-            {!dismissed ? (
-              <section className="aov-brief">
-                <div className="aov-brief-head">
-                  <div className="aov-kicker">🧠 FORGE · Morning Briefing</div>
-                  <div className="aov-brief-time">{FORGE_BRIEFING_CADENCE}</div>
-                </div>
-                <div className="aov-brief-copy">
-                  "{briefing || "Preparing the sovereign daily briefing..."}"
-                  {briefingStreaming ? <span className="aov-cursor" /> : null}
-                </div>
-                <div className="aov-brief-actions">
-                  <Link className="aov-link" to="/admin/forge">Ask FORGE →</Link>
-                  <Link className="aov-link ghost" to="/admin/forge">View Full Analysis</Link>
-                  <button className="aov-btn ghost" onClick={() => navigate("/admin/broadcast")}>Schedule Briefing</button>
-                  <button className="aov-btn ghost" onClick={dismissBriefing}>Dismiss</button>
-                </div>
-              </section>
-            ) : null}
+            <ForgeIntelligencePanel
+              briefing={briefing}
+              briefingStreaming={briefingStreaming}
+              cadenceLabel={FORGE_BRIEFING_CADENCE}
+              dismissed={dismissed}
+              onDismiss={dismissBriefing}
+              onSchedule={() => navigate("/admin/broadcast")}
+            />
 
             {overview ? (
               <>
-                {/* KPI Row — 6 Cards */}
-                <section className="aov-kpis">
-                  <div className="aov-kpi">
-                    <div className="aov-kpi-label">👥 Total Users</div>
-                    <div className="aov-kpi-value">{overview.kpis.users.toLocaleString()}</div>
-                    <div className="aov-kpi-sub">{overview.kpis.activeUsers.toLocaleString()} active (7d)</div>
-                  </div>
-                  <div className="aov-kpi">
-                    <div className="aov-kpi-label">💰 MRR</div>
-                    <div className="aov-kpi-value">{money(overview.kpis.mrr)}</div>
-                    <div className={`aov-kpi-sub ${overview.kpis.mrrDeltaPct >= 0 ? "aov-positive" : "aov-attention"}`}>
-                      {overview.kpis.mrrDeltaPct > 0 ? "↑" : "↓"} {pct(overview.kpis.mrrDeltaPct)} vs last month
-                    </div>
-                  </div>
-                  <div className="aov-kpi">
-                    <div className="aov-kpi-label">⬡ Active Layers</div>
-                    <div className="aov-kpi-value">{overview.kpis.liveLayers}/9</div>
-                    <div className="aov-kpi-sub">platform layers live</div>
-                  </div>
-                  <div className="aov-kpi">
-                    <div className="aov-kpi-label">✨ New (30d)</div>
-                    <div className="aov-kpi-value">{(overview.kpis.newUsers30d ?? 0).toLocaleString()}</div>
-                    <div className="aov-kpi-sub">user registrations</div>
-                  </div>
-                  <div className="aov-kpi">
-                    <div className="aov-kpi-label">⭐ Trust Score Avg</div>
-                    <div className="aov-kpi-value">{overview.kpis.avgTrustScore ?? "—"}</div>
-                    <div className="aov-kpi-sub">across all users</div>
-                  </div>
-                  <div className="aov-kpi">
-                    <div className="aov-kpi-label">🔄 Loop Completions</div>
-                    <div className="aov-kpi-value">{(overview.kpis.loopComplete ?? overview.kpis.loopsToday).toLocaleString()}</div>
-                    <div className={`aov-kpi-sub ${overview.kpis.loopsDeltaPct >= 0 ? "aov-positive" : "aov-attention"}`}>
-                      Agentic Loop cycles (90d)
-                    </div>
-                  </div>
-                </section>
+                <AdminKPIRow kpis={overview.kpis} money={money} pct={pct} />
 
                 <section className="aov-grid">
                   <div className="aov-stack">
 
-                    {/* Platform Layer Status Grid — 3×3 */}
-                    <div className="aov-panel">
-                      <div className="aov-head">
-                        <div>
-                          <div className="aov-kicker">Platform Layer Status Grid</div>
-                          <h2 className="aov-title">Nine-layer activation matrix</h2>
-                        </div>
-                        {nextLocked ? (
-                          <button className="aov-mini-link" onClick={() => void openChecklist(nextLocked)}>
-                            Review Next Activation
-                          </button>
-                        ) : null}
-                      </div>
-                      <div className="aov-layers">
-                        {overview.layers.map((layer) => (
-                          <button key={layer.id} type="button" className="aov-layer" onClick={() => handleLayer(layer)}>
-                            <div className="aov-layer-head">
-                              <h3 className="aov-layer-name">{layerChrome(layer.name).icon} {layer.name}</h3>
-                              <span className={`aov-pill ${layer.status}`}>{layer.statusLabel}</span>
-                            </div>
-                            <div className="aov-progress">
-                              <div className="aov-fill" style={{ width: `${layer.progress}%` }} />
-                            </div>
-                            <div className="aov-layer-meta">
-                              <span>{layer.progress}% complete</span>
-                              <span>{layer.actionLabel}</span>
-                            </div>
-                            <div className="aov-layer-supervisor">{layerChrome(layer.name).supervisor}</div>
-                            <div className="aov-layer-note">{layer.note}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <PlatformStatusGrid
+                      layers={overview.layers}
+                      nextLocked={nextLocked}
+                      onReviewNext={() => nextLocked && void openChecklist(nextLocked)}
+                      onSelectLayer={handleLayer}
+                      getLayerChrome={layerChrome}
+                    />
 
-                    {/* Agentic Loop Live Feed */}
-                    <div className="aov-panel">
-                      <div className="aov-head">
-                        <div>
-                          <div className="aov-kicker">Agentic Loop Live Feed</div>
-                          <h2 className="aov-title">Active loops first, completed below</h2>
-                        </div>
-                        <button className="aov-mini-link" onClick={() => void refresh()} disabled={refreshing}>
-                          {refreshing ? "Refreshing..." : "Refresh"}
-                        </button>
-                      </div>
-                      {loopFeed.length === 0 ? (
-                        <div className="aov-empty">No live loop activity yet.</div>
-                      ) : (
-                        <div className="aov-feed">
-                          {loopFeed.map((entry) => (
-                            <div key={entry.id} className={`aov-item loop ${entry.status}`}>
-                              <div className="aov-item-top">
-                                <div className="aov-item-title">
-                                  {entry.status === "active" ? "[LIVE]" : "[DONE]"} {entry.userName}
-                                </div>
-                                <div className="aov-time">{relativeTime(entry.updatedAt)}</div>
-                              </div>
-                              <div className="aov-copy">{entry.summary}</div>
-                              <div className="aov-meta">
-                                <span className="aov-chip">{entry.stageLabel}</span>
-                                <span className="aov-chip">{entry.tenantName}</span>
-                                {entry.revenueImpact > 0 ? (
-                                  <span className="aov-chip">{money(entry.revenueImpact)} unlocked</span>
-                                ) : null}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <BroadcastComposer
+                      loopFeed={loopFeed}
+                      refreshing={refreshing}
+                      onRefresh={() => void refresh()}
+                      relativeTime={relativeTime}
+                      money={money}
+                    />
                   </div>
 
                   <div className="aov-stack">
-                    {/* Revenue Chart + Layer Attribution */}
-                    <div className="aov-panel">
-                      <div className="aov-head">
-                        <div>
-                          <div className="aov-kicker">Revenue Chart + Layer Attribution</div>
-                          <h2 className="aov-title">MRR trend with current layer share overlay</h2>
-                        </div>
-                        <Link className="aov-mini-link" to="/admin/revenue">Open Revenue</Link>
-                      </div>
-                      {revenueSeries.length === 0 ? (
-                        <div className="aov-empty">Revenue attribution is still calibrating.</div>
-                      ) : (
-                        <>
-                          <div className="aov-chart-wrap">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260}>
-                              <AreaChart data={revenueSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                                <CartesianGrid stroke="rgba(255,255,255,.08)" vertical={false} />
-                                <XAxis dataKey="label" stroke="var(--text-dim)" tick={{ fontSize: 10, fontFamily: "Space Mono, monospace" }} />
-                                <YAxis
-                                  stroke="var(--text-dim)"
-                                  tick={{ fontSize: 10, fontFamily: "Space Mono, monospace" }}
-                                  tickFormatter={(value) => {
-                                    const numeric = Number(value);
-                                    return numeric >= 1000 ? `$${Math.round(numeric / 1000)}k` : `$${numeric}`;
-                                  }}
-                                />
-                                <Tooltip content={<AdminRevenueTooltip />} />
-                                <Area type="monotone" dataKey="core" stackId="1" stroke="var(--gold)" fill="rgba(201,168,76,.28)" />
-                                <Area type="monotone" dataKey="community" stackId="1" stroke="var(--ice)" fill="rgba(137,196,225,.24)" />
-                                <Area type="monotone" dataKey="academy" stackId="1" stroke="var(--purple)" fill="rgba(155,111,255,.22)" />
-                                <Area type="monotone" dataKey="market" stackId="1" stroke="var(--green)" fill="rgba(45,212,160,.2)" />
-                                <Area type="monotone" dataKey="work" stackId="1" stroke="var(--blue)" fill="rgba(74,158,255,.18)" />
-                                <Area type="monotone" dataKey="cloud" stackId="1" stroke="var(--text-dim)" fill="rgba(90,122,150,.18)" />
-                              </AreaChart>
-                            </ResponsiveContainer>
-                          </div>
-                          <div className="aov-chart-note">
-                            {revenueBreakdown?.note ?? "Revenue trend is stacked using the current live layer share until daily per-layer revenue telemetry is fully wired."}
-                          </div>
-                          <div className="aov-attribution">
-                            {revenueBreakdown?.layers.slice(0, 6).map((layer) => (
-                              <div key={layer.id} className="aov-attribution-row">
-                                <div className="aov-attribution-name">{layer.name}</div>
-                                <div className="aov-attribution-share">{layer.sharePct}% share</div>
-                                <div className="aov-attribution-value">{money(layer.amount)}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <RevenueBreakdownChart
+                      revenueSeries={revenueSeries}
+                      note={revenueBreakdown?.note}
+                      layers={revenueBreakdown?.layers ?? []}
+                      money={money}
+                    />
 
-                    {/* OMEGA Cross-Layer Signals */}
-                    <div className="aov-panel">
-                      <div className="aov-head">
-                        <div>
-                          <div className="aov-kicker">OMEGA Cross-Layer Signals</div>
-                          <h2 className="aov-title">Last five supervisor handoffs</h2>
-                        </div>
-                      </div>
-                      {signals.length === 0 ? (
-                        <div className="aov-empty">No ecosystem signals have fired yet.</div>
-                      ) : (
-                        <div className="aov-feed">
-                          {signals.map((signal) => (
-                            <button key={signal.id} type="button" className="aov-item" onClick={() => navigate(signal.adminPath)}>
-                              <div className="aov-item-top">
-                                <div className="aov-item-title">{signal.supervisorEmoji}</div>
-                                <div className="aov-time">{relativeTime(signal.createdAt)}</div>
-                              </div>
-                              <div className="aov-copy">
-                                <strong style={{ color: "var(--text)" }}>{signal.title}</strong>
-                                <div style={{ marginTop: 6 }}>{signal.message}</div>
-                              </div>
-                              <div className="aov-meta">
-                                <span className="aov-chip">{signal.layerName}</span>
-                                <span className="aov-chip">{signal.supervisor}</span>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <SystemHealthPanel
+                      signals={signals}
+                      relativeTime={relativeTime}
+                      onOpenSignal={(path) => navigate(path)}
+                    />
 
-                    {/* Recent Activity Feed */}
-                    <div className="aov-panel">
-                      <div className="aov-head">
-                        <div>
-                          <div className="aov-kicker">Recent Activity Feed</div>
-                          <h2 className="aov-title">Last 20 admin-relevant events</h2>
-                        </div>
-                      </div>
-                      {activityFeed.length === 0 ? (
-                        <div className="aov-empty">No admin activity has been recorded yet.</div>
-                      ) : (
-                        <div className="aov-actions-list">
-                          {activityFeed.map((item) => (
-                            <div key={item.id} className="aov-row">
-                              <div className="aov-date">{actionDate(item.createdAt)}</div>
-                              <div>{item.summary}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <SecurityAuditPanel activityFeed={activityFeed} actionDate={actionDate} />
                   </div>
                 </section>
               </>

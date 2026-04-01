@@ -249,6 +249,82 @@ export async function sendWeeklyRevenueSummary(tenantId: string, to: string[]) {
   });
 }
 
+export async function sendOrderConfirmationEmail(
+  tenantId: string,
+  to: string,
+  order: {
+    id: string;
+    orderNumber: string;
+    total: number;
+    currency: string;
+    items: Array<{ name: string; quantity: number; price: number }>;
+  }
+) {
+  const tenant = await getTenantInfo(tenantId);
+  const totalStr = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: order.currency.toUpperCase(),
+  }).format(order.total);
+
+  const body = `
+    <div style="background:#0D1117;border:1px solid #1E2A38;border-radius:6px;padding:24px;margin-bottom:24px">
+      <div style="font-family:monospace;font-size:10px;color:#5A6878;margin-bottom:8px">ORDER CONFIRMED</div>
+      <div style="font-size:24px;font-weight:700;color:#E8EDF2;margin-bottom:4px">Order #${order.orderNumber}</div>
+      <div style="font-family:monospace;font-size:11px;color:#5A6878">Thank you for your purchase! Your order is being processed.</div>
+    </div>
+
+    ${sectionTitle("Order Summary")}
+    <table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:11px">
+      <tr style="color:#5A6878;border-bottom:1px solid #1E2A38">
+        <td style="padding:6px 4px">Item</td>
+        <td style="padding:6px 4px;text-align:center">Qty</td>
+        <td style="padding:6px 4px;text-align:right">Price</td>
+      </tr>
+      ${order.items
+        .map(
+          (item) => `
+        <tr style="border-bottom:1px solid #0D1117">
+          <td style="padding:10px 4px;color:#E8EDF2;font-weight:700">${item.name}</td>
+          <td style="padding:10px 4px;text-align:center;color:#E8EDF2">${item.quantity}</td>
+          <td style="padding:10px 4px;text-align:right;color:#E8EDF2">${new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: order.currency.toUpperCase(),
+          }).format(item.price)}</td>
+        </tr>`
+        )
+        .join("")}
+      <tr>
+        <td colspan="2" style="padding:16px 4px;color:#5A6878;font-weight:700">TOTAL</td>
+        <td style="padding:16px 4px;text-align:right;color:#C9A84C;font-weight:700;font-size:16px">${totalStr}</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:24px;text-align:center">
+      <a href="${APP_URL}/market/orders/${order.id}" style="display:inline-block;background:#C9A84C;color:#080B10;text-decoration:none;padding:12px 28px;border-radius:4px;font-weight:700;font-size:13px">
+        Track Your Order
+      </a>
+    </div>`;
+
+  return sendTrackedEmail({
+    tenantId,
+    action: "Order confirmation sent",
+    source: "order_confirmation",
+    to: [to],
+    subject: `Order Confirmation - #${order.orderNumber} - ${tenant?.name ?? "Workspace"}`,
+    html: baseTemplate(
+      "Order Confirmed",
+      "We've received your order and it's being processed.",
+      body
+    ),
+    metadata: {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      total: order.total,
+      tenantName: tenant?.name ?? "Workspace",
+    },
+  });
+}
+
 export async function sendMonthlyFullReport(tenantId: string, to: string[]) {
   const [revenue, activity, team, tenant] = await Promise.all([
     getRevenueData(tenantId, 30),

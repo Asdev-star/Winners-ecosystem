@@ -10,6 +10,25 @@ function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!); }
 
 const router = Router();
 
+function slugifyStoreName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+async function createVendorOnboardingLink(accountId: string) {
+  const stripe = getStripe();
+  return stripe.accountLinks.create({
+    account: accountId,
+    refresh_url: (process.env.APP_URL || '') + '/market/vendor/onboard',
+    return_url: (process.env.APP_URL || '') + '/market/vendor/dashboard',
+    type: 'account_onboarding',
+  });
+}
+
 // GET /vendors - List all vendors (public marketplace)
 router.get("/", async (req: Request, res: Response) => {
   try {
@@ -111,6 +130,99 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
   } catch (error) {
     console.error("[vendorRoutes] Error creating vendor:", error);
     res.status(500).json({ error: "Failed to create vendor" });
+  }
+});
+
+router.post('/apply', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  const email = req.user!.email;
+  const { businessName, businessType, country } = req.body;
+
+  if (!businessName?.trim()) {
+    return res.status(400).json({ error: 'Business name is required' });
+  }
+
+  try {
+    const stripe = getStripe();
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country: country || 'KE',
+      email,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+      business_type: businessType || undefined,
+      metadata: {
+        userId,
+        tenantId,
+      },
+    });
+
+    const baseSlug = slugifyStoreName(businessName);
+    let storeSlug = baseSlug || `vendor-${userId.slice(0, 8)}`;
+    let suffix = 1;
+
+    while (await db.vendor.findUnique({ where: { storeSlug } })) {
+      suffix += 1;
+      storeSlug = `${baseSlug || `vendor-${userId.slice(0, 8)}`}-${suffix}`;
+    }
+
+    const existingVendor = await db.vendor.findFirst({
+      where: { userId, tenantId },
+    });
+
+    const vendor = existingVendor
+      ? await db.vendor.update({
+          where: { id: existingVendor.id, tenantId },
+          data: {
+            storeName: businessName.trim(),
+            storeSlug,
+            stripeAccountId: account.id,
+            status: 'PENDING',
+            payoutMethod: 'stripe_connect',
+          },
+        })
+      : await db.vendor.create({
+          data: {
+            userId,
+            tenantId,
+            storeName: businessName.trim(),
+            storeSlug,
+            stripeAccountId: account.id,
+            status: 'PENDING',
+            payoutMethod: 'stripe_connect',
+          },
+        });
+
+    const link = await createVendorOnboardingLink(account.id);
+
+    recordAdminSignal({
+      kind: "atlas:vendor_applied",
+      supervisor: "ATLAS",
+      supervisorEmoji: "ATLAS -> OMEGA",
+      layerId: "market",
+      layerName: "Market",
+      adminPath: "/admin/platform/market",
+      title: `${vendor.storeName} started vendor onboarding`,
+      message: `${businessName.trim()} opened Stripe Connect onboarding and is awaiting market approval.`,
+      metadata: {
+        vendorId: vendor.id,
+        storeName: vendor.storeName,
+        storeSlug: vendor.storeSlug,
+        stripeAccountId: account.id,
+      },
+    });
+
+    return res.json({
+      vendor,
+      onboardingUrl: link.url,
+      stripeAccountId: account.id,
+    });
+  } catch (error) {
+    console.error('[vendor] Apply error:', error);
+    return res.status(500).json({ error: 'Failed to start vendor onboarding' });
   }
 });
 
@@ -243,12 +355,7 @@ router.post('/onboard', authMiddleware, async (req: Request, res: Response) => {
       capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
     });
     await db.vendor.updateMany({ where: { userId, tenantId }, data: { stripeAccountId: account.id } as any });
-    const link = await stripe.accountLinks.create({
-      account: account.id,
-      refresh_url: (process.env.APP_URL || '') + '/market/vendor/onboard',
-      return_url: (process.env.APP_URL || '') + '/market/vendor/dashboard',
-      type: 'account_onboarding',
-    });
+    const link = await createVendorOnboardingLink(account.id);
     return res.json({ onboardingUrl: link.url });
   } catch (error) {
     console.error('[vendor] Onboard error:', error);

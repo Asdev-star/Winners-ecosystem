@@ -9,6 +9,7 @@ import AssistantPanel from "../../components/ui/AssistantPanel";
 import "./CheckoutPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
+const MARKET_SESSION_KEY = "winners_market_session_id";
 
 interface CartItem {
   id: string;
@@ -74,16 +75,37 @@ export default function CheckoutPage() {
     fetchCart();
   }, [token]);
 
+  function getMarketSessionId() {
+    if (typeof window === "undefined") return "";
+    const existing = window.localStorage.getItem(MARKET_SESSION_KEY);
+    if (existing) return existing;
+    const created =
+      window.crypto?.randomUUID?.() ??
+      `market-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem(MARKET_SESSION_KEY, created);
+    return created;
+  }
+
+  function buildMarketHeaders() {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-session-id": getMarketSessionId(),
+    };
+
+    if (user?.tenantId) {
+      headers["x-tenant-id"] = user.tenantId;
+    }
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
   async function fetchCart() {
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`${API_BASE}/cart`, { headers });
+      const res = await fetch(`${API_BASE}/cart`, { headers: buildMarketHeaders() });
       if (!res.ok) throw new Error("Failed to load cart");
       const data = await res.json();
       setCart(data.cart || data);
@@ -124,16 +146,9 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`${API_BASE}/orders/checkout-session`, {
+      const res = await fetch(`${API_BASE}/orders/checkout`, {
         method: "POST",
-        headers,
+        headers: buildMarketHeaders(),
         body: JSON.stringify({
           cartId:          cart.id,
           shippingName:    shipping.name,

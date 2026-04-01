@@ -10,6 +10,7 @@ import ProtectedRoute from "./app/ProtectedRoute";
 import SuperAdminRoute from "./app/SuperAdminRoute";
 import LayerRouteGate from "./app/LayerRouteGate";
 import LayerThemeBridge from "./app/LayerThemeBridge";
+import HiddenNotFoundPage from "./app/HiddenNotFoundPage";
 import AIBackdrop from "./components/ui/AIBackdrop";
 import InstallPrompt from "./features/mobile/InstallPrompt";
 
@@ -125,7 +126,7 @@ function DashboardRealmRoute() {
   const { hasAccess, isChecking } = useSuperAdminAccess();
 
   if (isRestoring || isChecking) return null;
-  if (!hasAccess) return <Navigate to="/home" replace />;
+  if (!hasAccess) return <HiddenNotFoundPage />;
 
   return <DashboardPage />;
 }
@@ -138,6 +139,7 @@ function AuthenticatedDefaultRoute() {
   if (isRestoring) return null;
   if (!user) return <Navigate to="/landing" replace />;
   if (isChecking) return null;
+  if (user.onboardingCompleted === false) return <Navigate to="/onboarding" replace />;
 
   return <Navigate to={hasAccess ? "/dashboard" : "/home"} replace />;
 }
@@ -233,6 +235,12 @@ function App() {
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="home" element={<UserHomePage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings/community" element={<SettingsPage />} />
+            <Route path="settings/academy" element={<SettingsPage />} />
+            <Route path="settings/market" element={<SettingsPage />} />
+            <Route path="settings/work" element={<SettingsPage />} />
+            <Route path="settings/intelligence" element={<SettingsPage />} />
+            <Route path="settings/account" element={<SettingsPage />} />
             <Route
               path="settings/core"
               element={

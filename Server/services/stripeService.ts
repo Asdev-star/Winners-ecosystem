@@ -3,6 +3,7 @@
 import Stripe from "stripe";
 import db from "../db.js";
 import { notifyNewRevenue, notifyPlanUpgraded } from "./slackService.js";
+import { sendOrderConfirmationEmail } from "./emailService.js";
 import { emitAdminEvent } from "./adminEventService.js";
 
 function getStripe(): Stripe {
@@ -298,7 +299,7 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
       const orderTenantId = session.metadata?.tenantId;
       if (orderId && orderTenantId) {
         try {
-          await db.order.update({
+          const order = await db.order.update({
             where: {
               id_tenantId: { id: orderId, tenantId: orderTenantId },
             },
@@ -307,7 +308,46 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
               paymentStatus: "PAID",
               stripePaymentIntentId: (session.payment_intent as string) ?? undefined,
             },
+            include: {
+              items: {
+                include: {
+                  product: {
+                    select: {
+                      id: true,
+                      allowBackorder: true,
+                    },
+                  },
+                },
+              },
+              user: true,
+            },
           });
+
+          // Handle Inventory Management on purchase
+          for (const item of order.items) {
+            if (!item.product.allowBackorder) {
+              await db.product.update({
+                where: { id: item.productId },
+                data: { stockQuantity: { decrement: item.quantity } },
+              });
+            }
+          }
+
+          if (order.user?.email) {
+            await sendOrderConfirmationEmail(orderTenantId, order.user.email, {
+              id: order.id,
+              orderNumber: order.orderNumber,
+              total: order.total,
+              currency: order.currency,
+              items: order.items.map((item) => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+              })),
+            }).catch((err) =>
+              console.error("[stripeService] error sending order confirmation email:", err)
+            );
+          }
         } catch (e) {
           console.error("[stripeService] market order update error:", e);
         }

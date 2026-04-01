@@ -12,6 +12,7 @@ import CourseDetailScreen from "../screens/academy/CourseDetailScreen";
 import LessonScreen from "../screens/academy/LessonScreen";
 import MyLearningScreen from "../screens/academy/MyLearningScreen";
 import MarketScreen from "../screens/market/MarketScreen";
+import WalletScreen from "../screens/market/WalletScreen";
 import ProductDetailScreen from "../screens/market/ProductDetailScreen";
 import CartScreen from "../screens/market/CartScreen";
 import CheckoutScreen from "../screens/market/CheckoutScreen";
@@ -55,14 +56,22 @@ type HeaderNavigation = {
     | {
         getParent?: () =>
           | {
-              navigate: (screen: keyof Pick<RootStackParamList, "Profile" | "Notifications">) => void;
+              navigate: (
+                screen: keyof Pick<
+                  RootStackParamList,
+                  "Profile" | "Notifications"
+                >,
+              ) => void;
             }
           | undefined;
       }
     | undefined;
 };
 
-function openRootScreen(navigation: HeaderNavigation, screen: keyof Pick<RootStackParamList, "Profile" | "Notifications">) {
+function openRootScreen(
+  navigation: HeaderNavigation,
+  screen: keyof Pick<RootStackParamList, "Profile" | "Notifications">,
+) {
   const rootNavigation = navigation.getParent()?.getParent?.();
   rootNavigation?.navigate(screen);
 }
@@ -85,12 +94,19 @@ function CommunityNavigator() {
       screenOptions={({ navigation, route }) => ({
         contentStyle: { backgroundColor: colors.bg },
         headerShown: route.name === "CreatePost" ? false : undefined,
-        header: route.name === "CreatePost" ? undefined : () => renderHeader(navigation, COMMUNITY_TITLES[route.name]),
+        header:
+          route.name === "CreatePost"
+            ? undefined
+            : () => renderHeader(navigation, COMMUNITY_TITLES[route.name]),
       })}
     >
       <CommunityStack.Screen name="Feed" component={FeedScreen} />
       <CommunityStack.Screen name="PostDetail" component={PostScreen} />
-      <CommunityStack.Screen name="CreatePost" component={CreatePostScreen} options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+      <CommunityStack.Screen
+        name="CreatePost"
+        component={CreatePostScreen}
+        options={{ presentation: "modal", animation: "slide_from_bottom" }}
+      />
       <CommunityStack.Screen name="Groups" component={GroupsScreen} />
       <CommunityStack.Screen name="GroupDetail" component={GroupDetailScreen} />
       <CommunityStack.Screen name="UserProfile" component={UserProfileScreen} />
@@ -104,7 +120,10 @@ function AcademyNavigator() {
       screenOptions={({ navigation, route }) => ({
         contentStyle: { backgroundColor: colors.bg },
         headerShown: route.name === "CoursePlayer" ? false : undefined,
-        header: route.name === "CoursePlayer" ? undefined : () => renderHeader(navigation, ACADEMY_TITLES[route.name]),
+        header:
+          route.name === "CoursePlayer"
+            ? undefined
+            : () => renderHeader(navigation, ACADEMY_TITLES[route.name]),
       })}
     >
       <AcademyStack.Screen name="Home" component={CoursesScreen} />
@@ -132,11 +151,16 @@ function MarketNavigator() {
       screenOptions={({ navigation, route }) => ({
         contentStyle: { backgroundColor: colors.bg },
         headerShown: MARKET_LOCAL_HEADER_ROUTES.has(route.name),
-        header: MARKET_LOCAL_HEADER_ROUTES.has(route.name) ? undefined : () => renderHeader(navigation, MARKET_TITLES[route.name]),
+        header: MARKET_LOCAL_HEADER_ROUTES.has(route.name)
+          ? undefined
+          : () => renderHeader(navigation, MARKET_TITLES[route.name]),
       })}
     >
       <MarketStack.Screen name="Home" component={MarketScreen} />
-      <MarketStack.Screen name="ProductDetail" component={ProductDetailScreen} />
+      <MarketStack.Screen
+        name="ProductDetail"
+        component={ProductDetailScreen}
+      />
       <MarketStack.Screen name="Cart" component={CartScreen} />
       <MarketStack.Screen name="Checkout" component={CheckoutScreen} />
       <MarketStack.Screen
@@ -172,6 +196,7 @@ function MarketNavigator() {
           />
         )}
       />
+      <MarketStack.Screen name="Wallet" component={WalletScreen} />
     </MarketStack.Navigator>
   );
 }
@@ -182,14 +207,23 @@ function WorkNavigator() {
       screenOptions={({ navigation, route }) => ({
         contentStyle: { backgroundColor: colors.bg },
         headerShown: route.name === "ContractDetail" ? false : undefined,
-        header: route.name === "ContractDetail" ? undefined : () => renderHeader(navigation, WORK_TITLES[route.name]),
+        header:
+          route.name === "ContractDetail"
+            ? undefined
+            : () => renderHeader(navigation, WORK_TITLES[route.name]),
       })}
     >
       <WorkStack.Screen name="Home" component={JobsScreen} />
       <WorkStack.Screen name="JobDetail" component={JobDetailScreen} />
       <WorkStack.Screen name="Apply" component={ApplyScreen} />
-      <WorkStack.Screen name="ContractDetail" component={ContractDetailScreen} />
-      <WorkStack.Screen name="FreelancerProfile" component={FreelancerProfileScreen} />
+      <WorkStack.Screen
+        name="ContractDetail"
+        component={ContractDetailScreen}
+      />
+      <WorkStack.Screen
+        name="FreelancerProfile"
+        component={FreelancerProfileScreen}
+      />
     </WorkStack.Navigator>
   );
 }
@@ -237,6 +271,7 @@ const MARKET_TITLES: Record<keyof MarketStackParamList, string> = {
   OrderDetail: "Order",
   VendorDashboard: "Vendor",
   DropshippingHub: "Dropshipping",
+  Wallet: "Wallet",
 };
 
 const WORK_TITLES: Record<keyof WorkStackParamList, string> = {
@@ -256,7 +291,11 @@ const AI_TITLES: Record<keyof AIStackParamList, string> = {
   OMEGABriefing: "OMEGA",
 };
 
-const MARKET_LOCAL_HEADER_ROUTES = new Set<keyof MarketStackParamList>(["ProductDetail", "Cart", "Checkout"]);
+const MARKET_LOCAL_HEADER_ROUTES = new Set<keyof MarketStackParamList>([
+  "ProductDetail",
+  "Cart",
+  "Checkout",
+]);
 
 export const TabNavigator = () => {
   const platformStatus = useEcosystemStore((state) => state.platformStatus);
@@ -269,11 +308,21 @@ export const TabNavigator = () => {
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
-      {platformStatus.community === "live" ? <Tab.Screen name="Community" component={CommunityNavigator} /> : null}
-      {platformStatus.academy === "live" ? <Tab.Screen name="Academy" component={AcademyNavigator} /> : null}
-      {platformStatus.market === "live" ? <Tab.Screen name="Market" component={MarketNavigator} /> : null}
-      {platformStatus.work === "live" ? <Tab.Screen name="Work" component={WorkNavigator} /> : null}
-      {platformStatus.ai === "live" ? <Tab.Screen name="AI" component={AINavigator} /> : null}
+      {platformStatus.community === "live" ? (
+        <Tab.Screen name="Community" component={CommunityNavigator} />
+      ) : null}
+      {platformStatus.academy === "live" ? (
+        <Tab.Screen name="Academy" component={AcademyNavigator} />
+      ) : null}
+      {platformStatus.market === "live" ? (
+        <Tab.Screen name="Market" component={MarketNavigator} />
+      ) : null}
+      {platformStatus.work === "live" ? (
+        <Tab.Screen name="Work" component={WorkNavigator} />
+      ) : null}
+      {platformStatus.ai === "live" ? (
+        <Tab.Screen name="AI" component={AINavigator} />
+      ) : null}
     </Tab.Navigator>
   );
 };

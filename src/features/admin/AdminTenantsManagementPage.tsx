@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
 import { getAuthHeaders, useAuthStore } from "../auth/authStore";
+import TenantTable from "../dashboard/components/TenantTable";
 
 type AdminTenantStatus = "active" | "suspended";
 
@@ -453,69 +454,18 @@ export default function AdminTenantsManagementPage() {
             <div className="tmg-empty">Loading tenant command surface...</div>
           ) : (
             <div className="tmg-table-wrap">
-              <table className="tmg-table">
-                <thead>
-                  <tr>
-                    <th>Workspace Name</th>
-                    <th>Owner</th>
-                    <th>Plan</th>
-                    <th>MRR</th>
-                    <th>Users</th>
-                    <th>Last Active</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.tenants.length ?? 0) === 0 ? (
-                    <tr>
-                      <td colSpan={7}>
-                        <div className="tmg-empty">No tenants matched the current filters.</div>
-                      </td>
-                    </tr>
-                  ) : (
-                    data?.tenants.map((tenant) => {
-                      const users = tenant.userCount ?? tenant._count?.users ?? 0;
-                      const busy = actionTenantId === tenant.id;
-
-                      return (
-                        <tr key={tenant.id}>
-                          <td>
-                            <div className="tmg-name">{tenant.name}</div>
-                            <div className="tmg-subcopy">Created {fmtDate(tenant.createdAt)}</div>
-                          </td>
-                          <td>
-                            <div>{tenant.owner?.name ?? "No owner found"}</div>
-                            <div className="tmg-subcopy">{tenant.owner?.email ?? tenant.id}</div>
-                          </td>
-                          <td>
-                            <span className={`tmg-badge ${tenant.plan.toLowerCase()}`}>{tenant.plan}</span>
-                          </td>
-                          <td>
-                            <div>{fmtMoney(tenant.monthlyRevenue)}</div>
-                            <div className="tmg-subcopy">Lifetime {fmtMoney(tenant.totalRevenue)}</div>
-                          </td>
-                          <td>{users}</td>
-                          <td>
-                            <div>{fmtRelativeDay(tenant.lastActivityAt)}</div>
-                            <div className={`tmg-status ${tenant.status}`}>{tenant.statusLabel}</div>
-                          </td>
-                          <td>
-                            <div className="tmg-row-actions">
-                              <button className="tmg-btn ghost" onClick={() => navigate(`/admin/tenants/${tenant.id}`)}>View</button>
-                              <button className="tmg-btn ghost" onClick={() => openPlanModal(tenant)}>Change Plan</button>
-                              <button className="tmg-btn ghost" onClick={() => void handleImpersonate(tenant)}>Impersonate Logged</button>
-                              <button className="tmg-btn ghost" onClick={() => void toggleTenantStatus(tenant)} disabled={busy}>
-                                {tenant.status === "suspended" ? "Restore" : "Suspend"}
-                              </button>
-                              <button className="tmg-btn danger" onClick={() => void archiveTenant(tenant)} disabled={busy}>Delete</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+              <TenantTable
+                tenants={data?.tenants ?? []}
+                actionTenantId={actionTenantId}
+                fmtDate={fmtDate}
+                fmtMoney={fmtMoney}
+                fmtRelativeDay={fmtRelativeDay}
+                onView={(tenantId) => navigate(`/admin/tenants/${tenantId}`)}
+                onChangePlan={openPlanModal}
+                onImpersonate={(tenant) => void handleImpersonate(tenant)}
+                onToggleStatus={(tenant) => void toggleTenantStatus(tenant)}
+                onDelete={(tenant) => void archiveTenant(tenant)}
+              />
               <div className="tmg-pagination">
                 <span>{data?.total ?? 0} tenants · Page {data?.page ?? 1} of {data?.pages ?? 1}</span>
                 <div className="tmg-actions">

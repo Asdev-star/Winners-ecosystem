@@ -172,7 +172,7 @@ const LAYER_POLICIES: Record<string, LayerLaunchPolicy> = {
     launchActionLabel: "Activate for users ->",
     launchSummary: "This directive activates Winners Market for users, activates ATLAS, and starts market-aware OMEGA briefings.",
     confirmationText: "ACTIVATE MARKET",
-    forgeDirective: "Fix CheckoutPage vendor resolution, clear Stripe Connect payout proof, seed launch inventory, then activate for users.",
+    forgeDirective: "Confirm the multi-vendor checkout path, record Stripe Connect payout proof, seed launch inventory, then activate for users.",
     defaultNote: "No user can enter Market until the sovereign activation directive is completed from admin.",
     impactPreview: (usersNotifiedCount) => [
       {
@@ -377,9 +377,14 @@ async function marketChecks(): Promise<PreLaunchCheck[]> {
     db.vendorPayout.count({ where: { stripeTransferId: { not: null } } }),
   ]);
 
-  const checkoutRouteFixed = includesAll("Server/routes/orderRoutes.ts", [
-    "const vendorId = cart.items[0]?.product?.vendor?.id;",
-    'if (!vendorId) return res.status(400).json({ error: "Could not determine vendor for this cart" });',
+  const multiVendorCheckoutReady = includesAll("Server/routes/checkoutRoutes.ts", [
+    "router.post('/create-payment-intents'",
+    "const vendorGroups = items.reduce<Record<string, CartItem[]>>",
+    "transfer_data = { destination: vendor.stripeAccountId }",
+    "router.post('/confirm'",
+  ]) && includesAll("mobile/WinnersApp/src/screens/market/CheckoutScreen.tsx", [
+    "\"/checkout/create-payment-intents\"",
+    "\"/checkout/confirm\"",
   ]);
   const atlasRouteWired =
     includesAll("src/App.tsx", ['path="market/vendor"', "VendorDashboard"]) &&
@@ -389,22 +394,22 @@ async function marketChecks(): Promise<PreLaunchCheck[]> {
     ...dependencyChecks("market"),
     {
       category: "frontend",
-      label: "Fix CheckoutPage vendor resolution bug",
-      status: checkoutRouteFixed ? "pass" : "fail",
-      detail: checkoutRouteFixed
-        ? "Checkout session now resolves vendor ownership from the cart's product records."
-        : "Checkout still needs vendor ownership resolution before launch can proceed.",
-      link: "Server/routes/orderRoutes.ts",
+      label: "Multi-vendor checkout + mobile confirm flow wired",
+      status: multiVendorCheckoutReady ? "pass" : "fail",
+      detail: multiVendorCheckoutReady
+        ? "Backend payment-intent fan-out and the mobile confirm flow are both present."
+        : "Launch still needs the multi-vendor checkout stack fully wired across backend and mobile.",
+      link: "Server/routes/checkoutRoutes.ts",
       hoursEstimate: 4,
     },
     {
       category: "payments",
-      label: "Stripe Connect configured + one vendor payout tested",
+      label: "Stripe Connect configured + one vendor payout recorded",
       status: vendorsWithStripe > 0 && testedVendorPayouts > 0 ? "pass" : "fail",
       detail:
         vendorsWithStripe > 0 && testedVendorPayouts > 0
-          ? `${vendorsWithStripe} vendor account(s) are connected and ${testedVendorPayouts} payout test record(s) exist.`
-          : `Need at least one connected vendor and one tested payout. Current state: ${vendorsWithStripe} connected vendor(s), ${testedVendorPayouts} payout test(s).`,
+          ? `${vendorsWithStripe} vendor account(s) are connected and ${testedVendorPayouts} payout record(s) exist.`
+          : `Need at least one connected vendor and one recorded payout. Current state: ${vendorsWithStripe} connected vendor(s), ${testedVendorPayouts} payout record(s).`,
       link: "Server/routes/vendorRoutes.ts",
       hoursEstimate: 3,
     },
@@ -443,7 +448,12 @@ async function workChecks(): Promise<PreLaunchCheck[]> {
   const hasEscrowModel = schemaText.includes("model EscrowPayment") && schemaText.includes("releasedAt");
   const circuitRouteExists = includesAll("Server/routes/workRoutes.ts", [
     'router.get("/circuit/recommendations"',
-    '"score": 85',
+    "rankJobsDeterministically",
+  ]);
+  const hireToContractFlowReady = includesAll("Server/routes/workRoutes.ts", [
+    'if (status === "HIRED")',
+    "await db.contract.create({",
+    'data: { status: "IN_PROGRESS" }',
   ]);
 
   return [
@@ -475,6 +485,15 @@ async function workChecks(): Promise<PreLaunchCheck[]> {
         circuitRouteExists && openJobs > 0 && availableFreelancers > 0
           ? `CIRCUIT scoring route exists with ${openJobs} open job(s) and ${availableFreelancers} freelancer profile(s) available for test scoring.`
           : "Launch requires the CIRCUIT scoring route plus at least one open job and one freelancer profile for validation.",
+      link: "Server/routes/workRoutes.ts",
+    },
+    {
+      category: "backend",
+      label: "Hire action creates contract + milestones automatically",
+      status: hireToContractFlowReady ? "pass" : "fail",
+      detail: hireToContractFlowReady
+        ? "Hiring an application now creates the contract, seeds milestones, and moves the job into progress."
+        : "The hire-to-contract automation path is not fully wired yet.",
       link: "Server/routes/workRoutes.ts",
     },
     {

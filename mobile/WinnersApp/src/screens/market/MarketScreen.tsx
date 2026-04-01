@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AccessibilityInfo,
+  ActivityIndicator,
   FlatList,
   Pressable,
   ScrollView,
@@ -16,7 +17,14 @@ import Badge from "../../components/ui/Badge";
 import EcosystemContextBar from "../../components/shared/EcosystemContextBar";
 import { MarketStackParamList } from "../../navigation/types";
 import { useMarketStore, type MarketProduct } from "../../stores/marketStore";
-import { colors, radius, spacing, touch, typography, withAlpha } from "../../theme/tokens";
+import {
+  colors,
+  radius,
+  spacing,
+  touch,
+  typography,
+  withAlpha,
+} from "../../theme/tokens";
 
 type Props = NativeStackScreenProps<MarketStackParamList, "Home">;
 
@@ -30,10 +38,19 @@ export default function MarketScreen({ navigation }: Props) {
   const products = useMarketStore((state) => state.products);
   const cartItems = useMarketStore((state) => state.cartItems);
   const wishlist = useMarketStore((state) => state.wishlist);
+  const isLoading = useMarketStore((state) => state.isLoading);
+  const error = useMarketStore((state) => state.error);
   const addToCart = useMarketStore((state) => state.addToCart);
   const toggleWishlist = useMarketStore((state) => state.toggleWishlist);
+  const fetchProducts = useMarketStore((state) => state.fetchProducts);
+  const fetchCart = useMarketStore((state) => state.fetchCart);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+
+  useEffect(() => {
+    fetchProducts();
+    fetchCart();
+  }, [fetchProducts, fetchCart]);
 
   const cartCount = useMemo(
     () => cartItems.reduce((total, item) => total + item.quantity, 0),
@@ -43,8 +60,11 @@ export default function MarketScreen({ navigation }: Props) {
   const filteredProducts = useMemo(
     () =>
       products.filter((product) => {
-        const matchesCategory = category === "All" || product.category === category;
-        const matchesSearch = `${product.name} ${product.vendorName}`.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory =
+          category === "All" || product.category === category;
+        const matchesSearch = `${product.name} ${product.vendorName}`
+          .toLowerCase()
+          .includes(search.toLowerCase());
         return matchesCategory && matchesSearch;
       }),
     [category, products, search],
@@ -52,15 +72,30 @@ export default function MarketScreen({ navigation }: Props) {
 
   const recommended = useMemo(() => products.slice(0, 3), [products]);
 
-  const onAddToCart = (product: MarketProduct) => {
-    addToCart(product.id);
-    const nextCount = cartCount + 1;
-    void AccessibilityInfo.announceForAccessibility(`Added, cart has ${nextCount} items`);
-  };
+  const onAddToCart = useCallback(
+    async (product: MarketProduct) => {
+      try {
+        await addToCart(product.id);
+        const nextCount = cartCount + 1;
+        void AccessibilityInfo.announceForAccessibility(
+          `Added, cart has ${nextCount} items`,
+        );
+      } catch {
+        void AccessibilityInfo.announceForAccessibility(
+          "Failed to add to cart",
+        );
+      }
+    },
+    [addToCart, cartCount],
+  );
 
   const header = (
     <View style={styles.headerStack}>
-      <EcosystemContextBar accent="gold" label="ATLAS" context="3 trending products are climbing fast across mobile traffic and repeat-buyer signals." />
+      <EcosystemContextBar
+        accent="gold"
+        label="ATLAS"
+        context="3 trending products are climbing fast across mobile traffic and repeat-buyer signals."
+      />
 
       <View style={styles.searchWrap}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -75,7 +110,11 @@ export default function MarketScreen({ navigation }: Props) {
         />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.horizontalRow}
+      >
         {CATEGORY_CHIPS.map((chip) => {
           const selected = chip === category;
 
@@ -91,42 +130,86 @@ export default function MarketScreen({ navigation }: Props) {
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{chip}</Text>
+              <Text
+                style={[styles.chipText, selected && styles.chipTextSelected]}
+              >
+                {chip}
+              </Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
-      <Text style={styles.sectionLabel}>Recommended</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalRow}>
-        {recommended.map((product) => (
-          <Card key={product.id} accent="gold" style={styles.recommendedCard}>
-            <View style={styles.productImage}>
-              <Text style={styles.imageText}>Image</Text>
-            </View>
-            <View style={styles.rowBetween}>
-              <Badge label={`ATLAS ${product.atlasScore}`} variant="gold" />
-              <Badge label={product.vendorType} variant="dim" />
-            </View>
-            <Text numberOfLines={2} style={styles.productName}>
-              {product.name}
-            </Text>
-            <Text accessibilityLabel={formatPrice(product.price)} style={styles.price}>
-              {formatPrice(product.price)}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${product.name}`}
-              onPress={() => navigation.navigate("ProductDetail", { productId: product.id })}
-              style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
-            >
-              <Text style={styles.secondaryButtonText}>View product</Text>
-            </Pressable>
-          </Card>
-        ))}
-      </ScrollView>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.gold} />
+          <Text style={styles.loadingText}>Loading products...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable
+            onPress={() => fetchProducts()}
+            style={({ pressed }) => [
+              styles.retryButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.sectionLabel}>Recommended</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalRow}
+          >
+            {recommended.map((product) => (
+              <Card
+                key={product.id}
+                accent="gold"
+                style={styles.recommendedCard}
+              >
+                <View style={styles.productImage}>
+                  <Text style={styles.imageText}>Image</Text>
+                </View>
+                <View style={styles.rowBetween}>
+                  <Badge label={`ATLAS ${product.atlasScore}`} variant="gold" />
+                  <Badge label={product.vendorType} variant="dim" />
+                </View>
+                <Text numberOfLines={2} style={styles.productName}>
+                  {product.name}
+                </Text>
+                <Text
+                  accessibilityLabel={formatPrice(product.price)}
+                  style={styles.price}
+                >
+                  {formatPrice(product.price)}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${product.name}`}
+                  onPress={() =>
+                    navigation.navigate("ProductDetail", {
+                      productId: product.id,
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Text style={styles.secondaryButtonText}>View product</Text>
+                </Pressable>
+              </Card>
+            ))}
+          </ScrollView>
 
-      <Text style={styles.sectionLabel}>All Products</Text>
+          <Text style={styles.sectionLabel}>All Products</Text>
+        </>
+      )}
     </View>
   );
 
@@ -146,15 +229,23 @@ export default function MarketScreen({ navigation }: Props) {
               accessibilityLabel={`${item.name}, ${formatPrice(item.price)}, ${item.rating} stars`}
               accessibilityHint="Opens the product detail screen."
               onLongPress={() => toggleWishlist(item.id)}
-              onPress={() => navigation.navigate("ProductDetail", { productId: item.id })}
+              onPress={() =>
+                navigation.navigate("ProductDetail", { productId: item.id })
+              }
             >
-              <View accessibilityLabel={item.images[0]} style={styles.gridImage}>
+              <View
+                accessibilityLabel={item.images[0]}
+                style={styles.gridImage}
+              >
                 <Text style={styles.imageText}>Image</Text>
               </View>
               <Text numberOfLines={2} style={styles.gridName}>
                 {item.name}
               </Text>
-              <Text accessibilityLabel={formatPrice(item.price)} style={styles.price}>
+              <Text
+                accessibilityLabel={formatPrice(item.price)}
+                style={styles.price}
+              >
                 {formatPrice(item.price)}
               </Text>
               <Text style={styles.meta}>
@@ -162,7 +253,9 @@ export default function MarketScreen({ navigation }: Props) {
               </Text>
               <View style={styles.gridBadges}>
                 <Badge label={item.vendorType} variant="dim" />
-                {wishlist.includes(item.id) ? <Badge label="Saved" variant="purple" /> : null}
+                {wishlist.includes(item.id) ? (
+                  <Badge label="Saved" variant="purple" />
+                ) : null}
               </View>
             </Pressable>
             <Pressable
@@ -175,7 +268,10 @@ export default function MarketScreen({ navigation }: Props) {
                 });
               }}
               onPress={() => onAddToCart(item)}
-              style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                pressed && styles.pressed,
+              ]}
             >
               <Text style={styles.primaryButtonText}>Add Cart</Text>
             </Pressable>
@@ -183,15 +279,32 @@ export default function MarketScreen({ navigation }: Props) {
         )}
       />
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Open cart, ${cartCount} items`}
-        accessibilityHint="Opens your shopping cart."
-        onPress={() => navigation.navigate("Cart")}
-        style={({ pressed }) => [styles.cartButton, pressed && styles.pressed]}
-      >
-        <Text style={styles.cartButtonText}>Cart ({cartCount})</Text>
-      </Pressable>
+      <View style={styles.bottomButtons}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open wallet"
+          accessibilityHint="Opens your wallet."
+          onPress={() => navigation.navigate("Wallet")}
+          style={({ pressed }) => [
+            styles.walletButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.walletButtonText}>💰 Wallet</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open cart, ${cartCount} items`}
+          accessibilityHint="Opens your shopping cart."
+          onPress={() => navigation.navigate("Cart")}
+          style={({ pressed }) => [
+            styles.cartButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.cartButtonText}>Cart ({cartCount})</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -350,11 +463,30 @@ const styles = StyleSheet.create({
     color: colors.bg,
     ...typography.labelLg,
   },
-  cartButton: {
+  bottomButtons: {
     position: "absolute",
     left: spacing.md,
     right: spacing.md,
     bottom: spacing.md,
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  walletButton: {
+    flex: 1,
+    minHeight: touch.comfortable,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  walletButtonText: {
+    color: colors.gold,
+    ...typography.labelLg,
+  },
+  cartButton: {
+    flex: 2,
     minHeight: touch.comfortable,
     borderRadius: radius.md,
     backgroundColor: colors.gold,
@@ -367,5 +499,38 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.78,
+  },
+  loadingContainer: {
+    padding: spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  loadingText: {
+    color: colors.textDim,
+    ...typography.bodyMd,
+  },
+  errorContainer: {
+    padding: spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  errorText: {
+    color: colors.red,
+    ...typography.bodyMd,
+    textAlign: "center",
+  },
+  retryButton: {
+    minHeight: touch.minimum,
+    borderRadius: radius.md,
+    backgroundColor: colors.gold,
+    paddingHorizontal: spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  retryButtonText: {
+    color: colors.bg,
+    ...typography.labelLg,
   },
 });

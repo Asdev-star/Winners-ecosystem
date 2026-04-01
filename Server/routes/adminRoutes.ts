@@ -37,6 +37,12 @@ import {
 } from "../services/adminBroadcastService.js";
 import { getAdminSecuritySnapshot } from "../services/adminSecurityService.js";
 import {
+  buildAdminCoreSettingsAskResponse,
+  getAdminCoreSettingsAutoMode,
+  getAdminCoreSettingsRecommendation,
+  getAdminCoreSettingsSnapshot,
+} from "../services/adminCoreSettingsService.js";
+import {
   getAdminSystemHealthSnapshot,
   markRlsVerificationNow,
 } from "../services/adminSystemHealthService.js";
@@ -570,6 +576,91 @@ router.get("/forge/alerts", async (_req, res) => {
   try {
     const snapshot = await getAdminForgeSnapshot();
     return res.json({ alerts: snapshot.alerts, tasks: snapshot.tasks });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+// --- CORE SETTINGS (EXPERIMENTAL) ---
+router.get("/settings/core", async (_req, res) => {
+  try {
+    const snapshot = await getAdminCoreSettingsSnapshot();
+    return res.json(snapshot);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/settings/core/recommendations/:id/apply", async (req, res) => {
+  try {
+    const recommendation = getAdminCoreSettingsRecommendation(req.params.id);
+    if (!recommendation) return res.status(404).json({ message: "Recommendation not found" });
+
+    await recordAdminAction({
+      actor: getAdminActor(req),
+      action: "ADMIN_FORGE_SETTINGS_RECOMMENDATION_APPLIED",
+      summary: `Applied FORGE recommendation: ${recommendation.title}`,
+      metadata: { recommendationId: recommendation.id, category: recommendation.category },
+    });
+
+    return res.json({ ok: true, recommendation });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/settings/core/recommendations/:id/dismiss", async (req, res) => {
+  try {
+    const recommendation = getAdminCoreSettingsRecommendation(req.params.id);
+    if (!recommendation) return res.status(404).json({ message: "Recommendation not found" });
+
+    await recordAdminAction({
+      actor: getAdminActor(req),
+      action: "ADMIN_FORGE_SETTINGS_RECOMMENDATION_DISMISSED",
+      summary: `Dismissed FORGE recommendation: ${recommendation.title}`,
+      metadata: { recommendationId: recommendation.id, category: recommendation.category },
+    });
+
+    return res.json({ ok: true, recommendation });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/settings/core/auto", async (req, res) => {
+  try {
+    const { modeKey, enabled } = req.body ?? {};
+    if (typeof modeKey !== "string" || typeof enabled !== "boolean") {
+      return res.status(400).json({ message: "modeKey and enabled are required" });
+    }
+    const mode = getAdminCoreSettingsAutoMode(modeKey);
+    if (!mode) return res.status(404).json({ message: "Auto mode not found" });
+
+    await recordAdminAction({
+      actor: getAdminActor(req),
+      action: "ADMIN_FORGE_SETTINGS_AUTO_MODE_SET",
+      summary: `Set auto-mode ${modeKey} to ${enabled ? "ON" : "OFF"}`,
+      metadata: { modeKey, enabled },
+    });
+
+    return res.json({ ok: true, modeKey, enabled });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/settings/core/ask", async (req, res) => {
+  try {
+    const question = String(req.body?.question ?? "").trim();
+    if (!question) return res.status(400).json({ message: "question is required" });
+    const answer = await buildAdminCoreSettingsAskResponse(question);
+    await recordAdminAction({
+      actor: getAdminActor(req),
+      action: "ADMIN_FORGE_SETTINGS_ASKED",
+      summary: "Asked FORGE about core settings",
+      metadata: { question },
+    });
+    return res.json({ question, answer });
   } catch (err) {
     return res.status(500).json({ message: errorMessage(err) });
   }
@@ -1641,6 +1732,34 @@ router.get("/security/audit", async (_req, res) => {
   try {
     const snapshot = await getAdminSecuritySnapshot();
     return res.json(snapshot);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.get("/security/sessions", async (_req, res) => {
+  try {
+    const snapshot = await getAdminSecuritySnapshot();
+    return res.json(snapshot.sessions);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/security/sessions/:id/revoke", async (req, res) => {
+  try {
+    const session = await db.deviceToken.update({
+      where: { id: req.params.id },
+      data: { isActive: false },
+      select: { id: true, userId: true, token: true, user: { select: { email: true } } },
+    });
+    await recordAdminAction({
+      actor: getAdminActor(req),
+      action: "ADMIN_SESSION_REVOKED",
+      summary: `Revoked active session for ${session.user.email}`,
+      metadata: { sessionId: session.id, targetUserId: session.userId, token: session.token },
+    });
+    return res.json({ message: "Session revoked", sessionId: session.id });
   } catch (err) {
     return res.status(500).json({ message: errorMessage(err) });
   }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
 import { getAuthHeaders } from "../auth/authStore";
+import UserTable from "../dashboard/components/UserTable";
 
 type QuickFilter = "all" | "active7d" | "new30d" | "lowtrust" | "flagged" | "admins";
 type TrustTier = "all" | "bronze" | "silver" | "gold" | "platinum";
@@ -391,82 +392,25 @@ export default function AdminUserManagementPage() {
             <div className="umg-empty">Loading user control surface...</div>
           ) : (
             <div className="umg-table-wrap">
-              <table className="umg-table">
-                <thead>
-                  <tr>
-                    <th><input className="umg-check" type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} /></th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Plan</th>
-                    <th>Trust Score</th>
-                    <th>Layers Active</th>
-                    <th>Last Seen</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={8}>
-                        <div className="umg-empty">No users matched the current filters.</div>
-                      </td>
-                    </tr>
-                  ) : (
-                    displayedUsers.map((user) => {
-                      const tone = trustTone(user.trustScore);
-                      const rowClass = user.trustScore < 30 ? "umg-row-risk" : user.trustScore > 85 ? "umg-row-advocate" : "";
-                      return (
-                        <tr key={user.id} className={rowClass}>
-                          <td>
-                            <input className="umg-check" type="checkbox" checked={selectedIds.includes(user.id)} onChange={() => toggleSelection(user.id)} />
-                          </td>
-                          <td>
-                            <div className="umg-name">{user.name}</div>
-                            <div className="umg-subcopy">{user.tenant.name}</div>
-                          </td>
-                          <td>
-                            <div>{user.email}</div>
-                            <div className="umg-subcopy">{user.role}</div>
-                          </td>
-                          <td>
-                            <span className={`umg-plan ${user.plan.toLowerCase()}`}>{user.plan}</span>
-                          </td>
-                          <td>
-                            <div className={`umg-trust ${tone.className}`}>{user.trustScore}</div>
-                            <div className="umg-subcopy">{tone.label}</div>
-                            <div className="umg-badges">
-                              {user.active7d ? <span className="umg-badge">Active 7d</span> : null}
-                              {user.isFlagged ? <span className="umg-badge">Flagged</span> : null}
-                              {user.completedFirstLoop ? <span className="umg-badge">Loop complete</span> : null}
-                            </div>
-                          </td>
-                          <td>
-                            <div>{user.layersActive}</div>
-                            <div className="umg-subcopy">{user.twoFactorEnabled ? "2FA enabled" : "2FA off"}</div>
-                          </td>
-                          <td>
-                            <div>{fmtDateTime(user.lastSeen)}</div>
-                            <div className="umg-subcopy">Joined {new Date(user.createdAt).toLocaleDateString()}</div>
-                          </td>
-                          <td>
-                            <div className="umg-row-actions">
-                              <button className="umg-btn ghost" onClick={() => navigate(`/admin/users/${user.id}`)}>View Profile</button>
-                              <button className="umg-btn ghost" disabled={actioning === user.id} onClick={() => void changeRole(user)}>Change Role</button>
-                              <button className="umg-btn ghost" disabled={actioning === user.id} onClick={() => void changePlan(user)}>Change Plan</button>
-                              <button className="umg-btn ghost" disabled={actioning === user.id} onClick={() => void reset2FA(user)}>Reset 2FA</button>
-                              <button className="umg-btn ghost" disabled={actioning === user.id} onClick={() => navigate(`/admin/users/${user.id}#timeline`)}>View Activity Log</button>
-                              <button className="umg-btn ghost" disabled={actioning === user.id} onClick={() => navigate(`/admin/users/${user.id}#loops`)}>View Loop Progress</button>
-                              <button className="umg-btn" onClick={() => navigate(`/admin/users/${user.id}#actions`)}>Send Message</button>
-                              <button className="umg-btn ghost" disabled={actioning === user.id} onClick={() => void updateStatus(user)}>{user.isSuspended ? "Restore" : "Suspend"}</button>
-                              <button className="umg-btn danger" disabled={actioning === user.id} onClick={() => void deleteUser(user)}>Delete</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+              <UserTable
+                users={displayedUsers}
+                selectedIds={selectedIds}
+                allVisibleSelected={allVisibleSelected}
+                actioning={actioning}
+                trustTone={trustTone}
+                fmtDateTime={fmtDateTime}
+                onToggleAllVisible={toggleAllVisible}
+                onToggleSelection={toggleSelection}
+                onViewProfile={(userId) => navigate(`/admin/users/${userId}`)}
+                onChangeRole={(user) => void changeRole(user)}
+                onChangePlan={(user) => void changePlan(user)}
+                onReset2FA={(user) => void reset2FA(user)}
+                onViewActivity={(userId) => navigate(`/admin/users/${userId}#timeline`)}
+                onViewLoops={(userId) => navigate(`/admin/users/${userId}#loops`)}
+                onSendMessage={(userId) => navigate(`/admin/users/${userId}#actions`)}
+                onUpdateStatus={(user) => void updateStatus(user)}
+                onDelete={(user) => void deleteUser(user)}
+              />
               <div className="umg-pagination">
                 <span>{data?.total ?? 0} users · Page {data?.page ?? 1} of {data?.pages ?? 1}</span>
                 <div className="umg-actions">

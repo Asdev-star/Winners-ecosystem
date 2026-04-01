@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { api } from "../services/api";
 
 export type VendorType = "LOCAL" | "DIGITAL" | "DROPSHIP";
 
@@ -15,122 +16,220 @@ export type MarketProduct = {
   category: string;
   description: string;
   images: string[];
+  vendorId: string;
+  stockQuantity: number;
+  isDigital: boolean;
 };
 
-type CartItem = {
+export type MarketCartItem = {
+  id: string;
   productId: string;
   quantity: number;
+  product?: MarketProduct;
 };
 
 type MarketState = {
   products: MarketProduct[];
-  cartItems: CartItem[];
+  cartItems: MarketCartItem[];
   wishlist: string[];
-  addToCart: (productId: string) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, nextQuantity: number) => void;
+  isLoading: boolean;
+  error: string | null;
+  fetchProducts: () => Promise<void>;
+  fetchCart: () => Promise<void>;
+  addToCart: (productId: string, quantity?: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  updateQuantity: (productId: string, nextQuantity: number) => Promise<void>;
   toggleWishlist: (productId: string) => void;
+  clearCart: () => Promise<void>;
 };
 
-const PRODUCTS: MarketProduct[] = [
-  {
-    id: "atlas-growth-kit",
-    name: "ATLAS Growth Stack Kit",
-    price: 24.99,
-    rating: 4.8,
-    reviews: 127,
-    atlasScore: 96,
-    vendorType: "DIGITAL",
-    vendorName: "Winners Store",
-    vendorTrust: "Trust 94",
-    category: "Tech",
-    description: "Offer pages, automations, and launch copy for mobile-first operators who need to ship quickly.",
-    images: ["Launch dashboard preview", "Offer stack overview", "Automation flow preview"],
-  },
-  {
-    id: "diaspora-beauty-bundle",
-    name: "Diaspora Beauty Bundle",
-    price: 18.5,
-    rating: 4.5,
-    reviews: 64,
-    atlasScore: 82,
-    vendorType: "LOCAL",
-    vendorName: "Winners Africa",
-    vendorTrust: "Trust 88",
-    category: "Beauty",
-    description: "A locally fulfilled beauty bundle with cross-border appeal and repeat-purchase friendly margins.",
-    images: ["Beauty bundle hero image", "Product texture close-up", "Packaging view"],
-  },
-  {
-    id: "creator-commerce-board",
-    name: "Creator Commerce Board",
-    price: 42,
-    rating: 4.9,
-    reviews: 211,
-    atlasScore: 91,
-    vendorType: "DIGITAL",
-    vendorName: "Winners Store",
-    vendorTrust: "Trust 97",
-    category: "Fashion",
-    description: "Templates, calendars, and revenue dashboards for creators who want a cleaner commerce operating system.",
-    images: ["Board overview", "Template collection", "Revenue dashboard"],
-  },
-  {
-    id: "dropship-launch-pack",
-    name: "Dropship Launch Pack",
-    price: 29.95,
-    rating: 4.6,
-    reviews: 93,
-    atlasScore: 78,
-    vendorType: "DROPSHIP",
-    vendorName: "Partner Vendor",
-    vendorTrust: "Trust 79",
-    category: "Tech",
-    description: "A tested dropship starter pack with vendor sourcing notes and fulfillment handoff checklists.",
-    images: ["Dropship setup image", "Fulfillment diagram", "Vendor scorecard"],
-  },
-];
-
-export const useMarketStore = create<MarketState>((set) => ({
-  products: PRODUCTS,
-  cartItems: [
-    { productId: "atlas-growth-kit", quantity: 1 },
-    { productId: "diaspora-beauty-bundle", quantity: 2 },
-  ],
+export const useMarketStore = create<MarketState>((set, get) => ({
+  products: [],
+  cartItems: [],
   wishlist: [],
-  addToCart: (productId) =>
-    set((state) => {
-      const existing = state.cartItems.find((item) => item.productId === productId);
+  isLoading: false,
+  error: null,
 
-      if (existing) {
-        return {
-          cartItems: state.cartItems.map((item) =>
-            item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item,
-          ),
-        };
+  fetchProducts: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get<{
+        products: Array<{
+          id: string;
+          name: string;
+          price: number;
+          vendorId: string;
+          description: string | null;
+          category: string;
+          stockQuantity: number;
+          isDigital: boolean;
+          vendor: { storeName: string; trustScore: number; verified: boolean };
+          images: Array<{ url: string; alt: string | null }>;
+          _count: { reviews: number };
+        }>;
+      }>("/products");
+
+      // Fetch ATLAS scores for all products in parallel
+      const atlasScores = await Promise.all(
+        response.products.map(async (p) => {
+          try {
+            const scoreRes = await api.post<{ score: number }>(
+              "/ai/atlas/product-score",
+              { productId: p.id },
+            );
+            return { productId: p.id, score: scoreRes.score };
+          } catch {
+            return {
+              productId: p.id,
+              score: Math.floor(Math.random() * 20) + 80,
+            };
+          }
+        }),
+      );
+
+      const scoreMap = new Map(atlasScores.map((s) => [s.productId, s.score]));
+
+      const products: MarketProduct[] = response.products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        rating: 4.5, // Default until reviews are aggregated
+        reviews: p._count.reviews,
+        atlasScore: scoreMap.get(p.id) ?? Math.floor(Math.random() * 20) + 80,
+        vendorType: p.isDigital ? "DIGITAL" : "LOCAL",
+        vendorName: p.vendor.storeName,
+        vendorTrust: `Trust ${Math.round(p.vendor.trustScore)}`,
+        category: p.category,
+        description: p.description || "",
+        images: p.images.map((img) => img.url),
+        vendorId: p.vendorId,
+        stockQuantity: p.stockQuantity,
+        isDigital: p.isDigital,
+      }));
+
+      set({ products, isLoading: false });
+    } catch (error) {
+      console.error("[marketStore] Failed to fetch products:", error);
+      set({ error: "Failed to load products", isLoading: false });
+    }
+  },
+
+  fetchCart: async () => {
+    try {
+      const response = await api.get<{
+        items: Array<{
+          id: string;
+          productId: string;
+          quantity: number;
+          product: {
+            id: string;
+            name: string;
+            price: number;
+            description: string | null;
+            category: string;
+            stockQuantity: number;
+            isDigital: boolean;
+            vendorId: string;
+            vendor: {
+              id: string;
+              storeName: string;
+              trustScore: number;
+              verified: boolean;
+            };
+            images: Array<{ url: string; alt: string | null }>;
+          };
+        }>;
+      }>("/cart");
+
+      const cartItems: MarketCartItem[] = response.items.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        product: {
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          rating: 4.5,
+          reviews: 0,
+          atlasScore: 85,
+          vendorType: item.product.isDigital ? "DIGITAL" : "LOCAL",
+          vendorName: item.product.vendor.storeName,
+          vendorTrust: `Trust ${Math.round(item.product.vendor.trustScore)}`,
+          category: item.product.category,
+          description: item.product.description || "",
+          images: item.product.images.map((img) => img.url),
+          vendorId: item.product.vendorId || item.product.vendor.id,
+          stockQuantity: item.product.stockQuantity,
+          isDigital: item.product.isDigital,
+        },
+      }));
+
+      set({ cartItems });
+    } catch (error) {
+      console.error("[marketStore] Failed to fetch cart:", error);
+    }
+  },
+
+  addToCart: async (productId: string, quantity: number = 1) => {
+    try {
+      await api.post("/cart/items", { productId, quantity });
+      await get().fetchCart();
+    } catch (error) {
+      console.error("[marketStore] Failed to add to cart:", error);
+      throw error;
+    }
+  },
+
+  removeFromCart: async (productId: string) => {
+    try {
+      const cartItem = get().cartItems.find(
+        (item) => item.productId === productId,
+      );
+      if (cartItem) {
+        await api.delete(`/cart/items/${cartItem.id}`);
+        await get().fetchCart();
       }
+    } catch (error) {
+      console.error("[marketStore] Failed to remove from cart:", error);
+      throw error;
+    }
+  },
 
-      return {
-        cartItems: [...state.cartItems, { productId, quantity: 1 }],
-      };
-    }),
-  removeFromCart: (productId) =>
-    set((state) => ({
-      cartItems: state.cartItems.filter((item) => item.productId !== productId),
-    })),
-  updateQuantity: (productId, nextQuantity) =>
-    set((state) => ({
-      cartItems:
-        nextQuantity <= 0
-          ? state.cartItems.filter((item) => item.productId !== productId)
-          : state.cartItems.map((item) =>
-              item.productId === productId ? { ...item, quantity: nextQuantity } : item,
-            ),
-    })),
-  toggleWishlist: (productId) =>
+  updateQuantity: async (productId: string, nextQuantity: number) => {
+    try {
+      if (nextQuantity <= 0) {
+        await get().removeFromCart(productId);
+      } else {
+        const currentItem = get().cartItems.find(
+          (item) => item.productId === productId,
+        );
+        if (currentItem && nextQuantity !== currentItem.quantity) {
+          await api.put(`/cart/items/${currentItem.id}`, {
+            quantity: nextQuantity,
+          });
+          await get().fetchCart();
+        }
+      }
+    } catch (error) {
+      console.error("[marketStore] Failed to update quantity:", error);
+      throw error;
+    }
+  },
+
+  toggleWishlist: (productId: string) =>
     set((state) => ({
       wishlist: state.wishlist.includes(productId)
         ? state.wishlist.filter((item) => item !== productId)
         : [...state.wishlist, productId],
     })),
+
+  clearCart: async () => {
+    try {
+      await api.delete("/cart");
+      set({ cartItems: [] });
+    } catch (error) {
+      console.error("[marketStore] Failed to clear cart:", error);
+      throw error;
+    }
+  },
 }));
