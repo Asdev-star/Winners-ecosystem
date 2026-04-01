@@ -3,7 +3,7 @@
 // NOVA Intelligence · Ice-Blue Identity · Agentic Loop · Social Architecture
 // Design: CSS variables only · zero hardcoded hex · Syne + Space Mono + Cormorant Garamond
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
@@ -50,7 +50,10 @@ const css = `
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
+.cm-page-intro { margin-bottom: 18px; }
 .cm-page-title {
   font-family: 'Cormorant Garamond', serif;
   font-size: 28px;
@@ -76,6 +79,52 @@ const css = `
   border-radius: 20px;
   border: 1px solid rgba(45,212,160,0.18);
 }
+.cm-page-subtitle {
+  margin: 4px 0 0;
+  max-width: 620px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+.cm-action-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+.cm-rail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.cm-rail-btn:hover {
+  border-color: rgba(137,196,225,0.28);
+  background: rgba(137,196,225,0.06);
+  transform: translateY(-1px);
+}
+.cm-rail-btn.primary {
+  border-color: transparent;
+  background: var(--ice);
+  color: var(--bg);
+}
+.cm-rail-btn.primary:hover { background: rgba(137,196,225,0.86); }
+.cm-rail-btn.secondary {
+  color: var(--gold);
+  border-color: rgba(201,168,76,0.18);
+}
+.cm-rail-btn.secondary:hover { background: rgba(201,168,76,0.08); }
 .cm-live-dot {
   width: 5px; height: 5px;
   border-radius: 50%;
@@ -238,6 +287,26 @@ const css = `
   overflow: hidden;
   transition: border-color 0.2s;
 }
+.cm-compose-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.cm-compose-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.cm-compose-note {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .cm-compose::before {
   content: '';
   position: absolute;
@@ -320,19 +389,23 @@ const css = `
   gap: 4px;
 }
 .cm-tool-btn {
-  width: 30px; height: 30px;
-  border-radius: 7px;
-  border: none;
-  background: none;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(137,196,225,0.04);
   color: var(--text-dim);
   cursor: pointer;
-  font-size: 15px;
+  font-size: 12px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   transition: all 0.15s;
 }
-.cm-tool-btn:hover { background: rgba(137,196,225,0.08); color: var(--ice); }
+.cm-tool-btn:hover { background: rgba(137,196,225,0.08); color: var(--ice); border-color: rgba(137,196,225,0.16); }
+.cm-tool-btn.accent { color: var(--gold); background: rgba(201,168,76,0.06); }
 .cm-tag-input {
   flex: 1;
   background: transparent;
@@ -382,6 +455,31 @@ const css = `
   font-size: 9px;
   color: var(--text-dim);
   letter-spacing: 0.04em;
+}
+.cm-compose-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.cm-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(137,196,225,0.04);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cm-preset-btn:hover {
+  background: rgba(137,196,225,0.08);
+  border-color: rgba(137,196,225,0.2);
 }
 
 /* ── SKELETON LOADER ── */
@@ -651,6 +749,7 @@ const css = `
   gap: 2px;
   padding: 8px 12px;
   border-top: 1px solid rgba(137,196,225,0.06);
+  flex-wrap: wrap;
 }
 .cm-action-btn {
   display: flex;
@@ -1164,6 +1263,28 @@ const css = `
   text-transform: uppercase;
 }
 .cm-group-join:hover { background: rgba(137,196,225,0.07); border-color: rgba(137,196,225,0.4); }
+.cm-sidebar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.cm-sidebar-btn {
+  flex: 1;
+  min-width: 130px;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(137,196,225,0.14);
+  background: rgba(137,196,225,0.06);
+  color: var(--ice);
+  text-decoration: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.15s;
+}
+.cm-sidebar-btn:hover { background: rgba(137,196,225,0.12); }
 
 /* ── ONLINE PRESENCE ── */
 .cm-online-row {
@@ -1237,6 +1358,10 @@ const css = `
   .cm-compose { padding: 12px; }
   .cm-page-title { font-size: 22px; }
   .cm-shortcut { display: none; }
+  .cm-compose-footer,
+  .cm-compose-right,
+  .cm-compose-tools { flex-wrap: wrap; }
+  .cm-tag-input { width: 100%; }
 }
 `;
 
@@ -1567,6 +1692,7 @@ export default function CommunityPage() {
   const token = useAuthStore((s) => s.token);
   const user  = useAuthStore((s) => s.user);
   const { isOnline, onlineCount } = usePresence();
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Feed state
   const [posts, setPosts]         = useState<Post[]>([]);
@@ -1611,6 +1737,18 @@ export default function CommunityPage() {
     () => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }),
     [token],
   );
+
+  const focusComposer = useCallback(() => {
+    composerRef.current?.focus();
+  }, []);
+
+  const useComposerPrompt = useCallback((nextContent: string, nextTags = "") => {
+    setContent((prev) => (prev.trim().length > 0 ? prev : nextContent));
+    if (nextTags) {
+      setTags((prev) => (prev.trim().length > 0 ? prev : nextTags));
+    }
+    requestAnimationFrame(() => composerRef.current?.focus());
+  }, []);
 
   const refreshCommunityIntelligence = useCallback(async () => {
     try {
@@ -2023,14 +2161,33 @@ export default function CommunityPage() {
         <div className="cm-feed">
 
           {/* Header */}
-          <div className="cm-page-header">
-            <h1 className="cm-page-title">
-              Winners <em>Community</em>
-            </h1>
-            <AIInsightBanner page="community" assistant="nova" />
-            <div className="cm-page-live">
-              <div className="cm-live-dot" />
-              Live
+          <div className="cm-page-intro">
+            <div className="cm-page-header">
+              <h1 className="cm-page-title">
+                Winners <em>Community</em>
+              </h1>
+              <AIInsightBanner page="community" assistant="nova" />
+              <div className="cm-page-live">
+                <div className="cm-live-dot" />
+                Live
+              </div>
+            </div>
+            <p className="cm-page-subtitle">
+              Share what you are building, find collaborators faster, and let NOVA turn activity into useful next steps.
+            </p>
+            <div className="cm-action-rail">
+              <button className="cm-rail-btn primary" onClick={focusComposer}>
+                Write a post
+              </button>
+              <a className="cm-rail-btn" href="/community/groups">
+                Browse groups
+              </a>
+              <a className="cm-rail-btn" href="/messages">
+                Open messages
+              </a>
+              <a className="cm-rail-btn secondary" href="/community/spaces">
+                Join live spaces
+              </a>
             </div>
           </div>
 
@@ -2108,12 +2265,17 @@ export default function CommunityPage() {
 
           {/* Main Composer */}
           <div className="cm-compose">
+            <div className="cm-compose-headline">
+              <div className="cm-compose-title">Start a post</div>
+              <div className="cm-compose-note">Clear updates usually get better replies</div>
+            </div>
             <div className="cm-compose-top">
               <div className="cm-avatar">
                 <div className={`cm-avatar-ring ${tier}`} />
                 {initials(user?.name ?? "")}
               </div>
               <textarea
+                ref={composerRef}
                 className="cm-compose-input"
                 placeholder={feedTab === "nova" ? "Share a skill, a build, a lesson — NOVA is watching." : "What are you building today?"}
                 value={content}
@@ -2129,9 +2291,15 @@ export default function CommunityPage() {
                     setContent((prev: string) => prev + (prev ? " " : "") + transcript);
                   }} 
                 />
-                <button className="cm-tool-btn" title="Image">📷</button>
-                <button className="cm-tool-btn" title="Thread">🧵</button>
-                <button className="cm-tool-btn" title="Schedule">📅</button>
+                <button className="cm-tool-btn" title="Add image context" onClick={() => useComposerPrompt("Sharing a visual update: ")}>
+                  📷 Photo
+                </button>
+                <button className="cm-tool-btn" title="Turn this into a thread" onClick={() => useComposerPrompt("Thread:\n1. ")}>
+                  🧵 Thread
+                </button>
+                <button className="cm-tool-btn accent" title="Prepare a scheduled update" onClick={() => useComposerPrompt("Scheduled update for later today: ")}>
+                  📅 Schedule
+                </button>
               </div>
               <input
                 className="cm-tag-input"
@@ -2155,6 +2323,20 @@ export default function CommunityPage() {
                   {posting ? "Posting…" : "Post →"}
                 </button>
               </div>
+            </div>
+            <div className="cm-compose-presets">
+              <button className="cm-preset-btn" onClick={() => useComposerPrompt("Looking for feedback on this build: ", "feedback,buildinpublic")}>
+                Ask for feedback
+              </button>
+              <button className="cm-preset-btn" onClick={() => useComposerPrompt("Small win today: ", "wins,progress")}>
+                Share a win
+              </button>
+              <button className="cm-preset-btn" onClick={() => useComposerPrompt("Looking for collaborators on: ", "collaboration")}>
+                Find collaborators
+              </button>
+              <button className="cm-preset-btn" onClick={() => setTags("AfricanTech")}>
+                Use trending tag
+              </button>
             </div>
           </div>
 
@@ -2293,7 +2475,7 @@ export default function CommunityPage() {
                               key={r}
                               className="cm-reaction-opt"
                               onClick={() => {
-                                handleLike(post.id);
+                                handleReaction(post.id, r);
                                 setActiveReactionPicker(null);
                               }}
                             >
@@ -2309,7 +2491,7 @@ export default function CommunityPage() {
                         onMouseLeave={() => setActiveReactionPicker(null)}
                       >
                         <span className="like-icon">{isLiked ? "❤️" : "🤍"}</span>
-                        {likeCount > 0 && likeCount}
+                        Like {likeCount > 0 ? likeCount : ""}
                       </button>
                     </div>
 
@@ -2317,7 +2499,7 @@ export default function CommunityPage() {
                       className="cm-action-btn"
                       onClick={() => toggleComments(post.id)}
                     >
-                      💬 {commentCount > 0 && commentCount}
+                      💬 Comment {commentCount > 0 ? commentCount : ""}
                     </button>
 
                     <button
@@ -2333,12 +2515,12 @@ export default function CommunityPage() {
                       onClick={() => toggleSave(post.id)}
                       title={isSaved ? "Saved" : "Save post"}
                     >
-                      {isSaved ? "🔖" : "🔖"}
+                      {isSaved ? "🔖 Saved" : "🔖 Save"}
                     </button>
 
                     {isOwnPost && (
                       <button className="cm-action-btn delete" onClick={() => handleDelete(post.id)}>
-                        🗑
+                        🗑 Delete
                       </button>
                     )}
                   </div>
@@ -2487,6 +2669,10 @@ export default function CommunityPage() {
               </div>
             ))}
             <button className="cm-group-join">+ Join a Group</button>
+            <div className="cm-sidebar-actions">
+              <a className="cm-sidebar-btn" href="/community/groups">Open groups</a>
+              <a className="cm-sidebar-btn" href="/community/spaces">Live spaces</a>
+            </div>
           </div>
 
         </div>

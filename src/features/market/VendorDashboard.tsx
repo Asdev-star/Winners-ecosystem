@@ -8,6 +8,7 @@ import { useAuthStore } from '../../features/auth/authStore';
 import AssistantPanel from '../../components/ui/AssistantPanel';
 import OmegaProfileAssignmentCard from '../../components/ui/OmegaProfileAssignmentCard';
 import AtlasContextBar from './atlas/AtlasContextBar';
+import ATLASPanel from './components/ATLASPanel';
 
 const styles = {
   container: {
@@ -376,6 +377,17 @@ export default function VendorDashboard() {
       </div>
 
       <OmegaProfileAssignmentCard layer="market" />
+
+      <ATLASPanel
+        platformContext={{
+          activeProducts: totalProducts,
+          lowStockProducts: lowStockCount,
+          pendingOrders: orders.filter((order) => order.status === 'pending').length,
+          totalRevenue,
+          totalSales,
+          currentTab: activeTab,
+        }}
+      />
 
       {/* ATLAS AI Assistant */}
       <div style={{ marginBottom: '24px' }}>

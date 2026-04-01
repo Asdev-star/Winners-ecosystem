@@ -12,6 +12,66 @@ const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
 
+router.get("/feed/intelligence", async (req: Request, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const userId = req.user!.userId;
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+    const limit = Math.min(
+      20,
+      Math.max(1, parseInt(String(req.query.limit ?? "10"), 10) || 10),
+    );
+
+    const where = {
+      tenantId,
+      deletedAt: null,
+    } as const;
+
+    const [posts, total] = await Promise.all([
+      db.post.findMany({
+        where,
+        orderBy: [{ engagementScore: "desc" }, { createdAt: "desc" }],
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          author: { select: { id: true, name: true, email: true } },
+          _count: { select: { likes: true, comments: true } },
+          likes: { where: { userId }, select: { id: true, userId: true } },
+          tags: { include: { tag: true } },
+          novaSkills: {
+            select: { skill: true, confidence: true, category: true },
+            orderBy: { confidence: "desc" },
+            take: 4,
+          },
+        },
+      }),
+      db.post.count({ where }),
+    ]);
+
+    return res.json({
+      posts: posts.map((post) => ({
+        ...post,
+        likeCount: post._count.likes,
+        commentCount: post._count.comments,
+        liked: post.likes.length > 0,
+        tags: post.tags.map((tag) => tag.tag.name),
+        skillDetections: post.novaSkills.map((skill) => ({
+          skillName: skill.skill,
+          confidence: Math.max(0, Math.min(1, skill.confidence / 100)),
+          category: skill.category ?? "technical",
+        })),
+      })),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      hasMore: page * limit < total,
+    });
+  } catch (error) {
+    console.error("Intelligence feed error:", error);
+    return res.status(500).json({ error: "Failed to fetch intelligence feed" });
+  }
+});
+
 // ============================================
 // NOVA SKILL DETECTION - Claude API Powered
 // ============================================

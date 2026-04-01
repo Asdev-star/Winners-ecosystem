@@ -4,7 +4,6 @@
 import { Router, Request, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import db from '../db.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -16,19 +15,34 @@ You are analytical, commercial, and data-driven.
 Always provide actionable, specific intelligence — never generic advice.
 African market context: Kenya, Nigeria, Ghana, South Africa, diaspora in UK/US/Canada.`;
 
+function writeStreamHeaders(res: Response) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+}
+
 router.post('/research', async (req: Request, res: Response) => {
-  const { niche, context } = req.body;
+  const { niche, platformContext } = req.body;
   if (!niche) return res.status(400).json({ error: 'niche is required' });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'ATLAS research is not configured' });
+  }
   try {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    writeStreamHeaders(res);
 
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
-      system: ATLAS_SYSTEM + '\nReturn structured JSON with: winningProducts (array of 5 with name, estimatedMargin, supplierRecommendation, targetAudience, africanMarketFit), bestSupplier, pricingStrategy (object with optimal, premium, anchor, breakeven prices), demandForecast (string), atlasConclusion (string).',
-      messages: [{ role: 'user', content: `Research niche: ${niche}\n\nContext: ${JSON.stringify(context || {})}` }],
+      system: `${ATLAS_SYSTEM}
+Always return structured product research in JSON with:
+- winningProducts: exactly 5 products, each with name, estimatedMargin, supplierRecommendation, targetAudience, africanMarketFit
+- bestSupplier
+- pricingStrategy
+- demandForecast
+- atlasConclusion
+Do not wrap the JSON in markdown fences.`,
+      messages: [{ role: 'user', content: `Research this niche: ${niche}\n\nContext: ${JSON.stringify(platformContext || {})}` }],
     });
 
     for await (const chunk of stream) {

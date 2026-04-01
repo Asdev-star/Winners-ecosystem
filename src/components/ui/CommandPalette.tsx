@@ -31,7 +31,7 @@ const NAVIGATION_COMMANDS: CommandResult[] = [
   { id: "nav-analytics", type: "navigation", label: "Creator Analytics", href: "/community/analytics", icon: "📊", layer: "community" },
   { id: "nav-academy", type: "navigation", label: "Explore Courses", href: "/academy", icon: "🎓", layer: "academy" },
   { id: "nav-learning", type: "navigation", label: "My Learning", href: "/academy/my-learning", icon: "📚", layer: "academy" },
-  { id: "nav-certificates", type: "navigation", label: "Certificates", href: "/academy/certificates", icon: "🏆", layer: "academy" },
+  { id: "nav-certificates", type: "navigation", label: "Certificates", href: "/academy/my-learning", icon: "🏆", layer: "academy" },
   { id: "nav-market", type: "navigation", label: "Marketplace", href: "/market", icon: "🛒", layer: "market" },
   { id: "nav-work", type: "navigation", label: "Find Work", href: "/work", icon: "💼", layer: "work" },
   { id: "nav-intelligence", type: "navigation", label: "AI Intelligence", href: "/intelligence", icon: "🤖", layer: "intelligence" },
@@ -43,9 +43,9 @@ const NAVIGATION_COMMANDS: CommandResult[] = [
 
 const QUICK_ACTIONS: CommandResult[] = [
   { id: "action-post", type: "action", label: "New post in Community", href: "/community/create", icon: "✏️" },
-  { id: "action-course", type: "action", label: "Create a new course", href: "/academy/create", icon: "🎬" },
+  { id: "action-course", type: "action", label: "Create a new course", href: "/academy/instructor/create", icon: "🎬" },
   { id: "action-job", type: "action", label: "Apply to a job", href: "/work", icon: "📝" },
-  { id: "action-product", type: "action", label: "Add product to store", href: "/market/vendor/products/new", icon: "📦" },
+  { id: "action-product", type: "action", label: "Add product to store", href: "/market/vendor", icon: "📦" },
 ];
 
 export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {

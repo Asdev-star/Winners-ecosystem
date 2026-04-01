@@ -81,7 +81,11 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       
       // Fetch live spaces
       const spacesData = await authFetch("/api/v1/spaces?status=LIVE");
-      const liveSpaces = Array.isArray(spacesData) ? spacesData : [];
+      const liveSpaces = Array.isArray(spacesData)
+        ? spacesData
+        : Array.isArray(spacesData?.spaces)
+          ? spacesData.spaces
+          : [];
       
       // Fetch live broadcasts
       const broadcastsData = await authFetch("/api/v1/studio/streams/live");
@@ -103,7 +107,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
           title: s.title,
           type: "space" as const,
           host: s.host || { id: "", name: "Unknown" },
-          participants: s.participantCount || 0,
+          participants: s.participantCount || s._count?.participants || 0,
           startedAt: s.startedAt || new Date().toISOString(),
           status: s.status || "LIVE",
         })),

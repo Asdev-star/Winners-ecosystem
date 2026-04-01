@@ -12,16 +12,22 @@ type Props = {
 const OfflineBanner = ({ isOnline, isSyncing = false, onSync, pendingCount = 0 }: Props) => {
   if (isOnline && !pendingCount && !isSyncing) return null;
 
+  const badgeLabel = !isOnline ? "OFFLINE" : isSyncing ? "SYNCING" : "QUEUED";
+  const message = !isOnline
+    ? "Offline mode enabled. Actions will sync when you reconnect."
+    : isSyncing
+      ? "Syncing queued activity..."
+      : `${pendingCount} queued action${pendingCount === 1 ? "" : "s"} ready to sync.`;
+
   return (
-    <View style={[styles.container, isOnline ? styles.online : styles.offline]}>
+    <View
+      accessibilityLiveRegion="polite"
+      style={[styles.container, isOnline ? styles.online : styles.offline]}
+    >
       <View style={styles.messageRow}>
-        <Text style={styles.badge}>OFF</Text>
-        <Text style={styles.text}>
-          {!isOnline
-            ? "Offline mode enabled. Actions will sync when you reconnect."
-            : isSyncing
-              ? "Syncing queued activity..."
-              : `${pendingCount} queued action${pendingCount === 1 ? "" : "s"} ready to sync.`}
+        <Text style={styles.badge}>{badgeLabel}</Text>
+        <Text accessibilityLabel={message} style={styles.text}>
+          {message}
         </Text>
       </View>
 
@@ -86,6 +92,7 @@ const styles = StyleSheet.create({
   badge: {
     color: colors.text,
     ...typography.labelLg,
+    minWidth: 52,
   },
   actionIcon: {
     color: colors.text,

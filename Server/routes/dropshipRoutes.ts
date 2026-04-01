@@ -4,8 +4,19 @@ import { Router, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requirePro } from "../middleware/marketPlanGate.js";
 import db from "../db.js";
+import {
+  autoFulfillDropOrder,
+  importProductFromPrintful,
+  syncSupplierCatalog,
+} from "../services/supplierService.js";
 
 const router = Router();
+
+type SupportedSupplier = "printful" | "gelato" | "cj";
+
+function isSupportedSupplier(value: string): value is SupportedSupplier {
+  return ["printful", "gelato", "cj"].includes(value);
+}
 
 // GET /api/v1/dropship/catalog - Requires PRO plan
 router.get("/catalog", authMiddleware, requirePro('Dropshipping'), async (req, res) => {
@@ -81,6 +92,47 @@ router.post("/import", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/v1/dropship/suppliers/:supplier/sync
+router.post("/suppliers/:supplier/sync", authMiddleware, requirePro("Dropshipping"), async (req, res) => {
+  try {
+    const supplier = Array.isArray(req.params.supplier) ? req.params.supplier[0] : req.params.supplier;
+    if (!isSupportedSupplier(String(supplier))) {
+      return res.status(400).json({ error: "Unsupported supplier", supported: ["printful", "gelato", "cj"] });
+    }
+
+    const tenantId = req.user.tenantId;
+    const limit = Number(req.body?.limit ?? req.query.limit ?? 24);
+    const result = await syncSupplierCatalog({
+      tenantId,
+      supplier: supplier as SupportedSupplier,
+      limit,
+    });
+
+    res.json({
+      message: `${result.supplier} catalog synced`,
+      supplier: result.supplier,
+      syncedCount: result.syncedCount,
+      products: result.products,
+    });
+  } catch (error) {
+    console.error("[dropshipRoutes] Error syncing supplier catalog:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to sync supplier catalog" });
+  }
+});
+
+// POST /api/v1/dropship/suppliers/printful/import/:productId
+router.post("/suppliers/printful/import/:productId", authMiddleware, requirePro("Dropshipping"), async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId;
+    const productId = Array.isArray(req.params.productId) ? req.params.productId[0] : req.params.productId;
+    const product = await importProductFromPrintful(String(productId), tenantId);
+    res.json({ message: "Printful product imported into supplier catalog", product });
+  } catch (error) {
+    console.error("[dropshipRoutes] Error importing Printful product:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to import Printful product" });
+  }
+});
+
 // GET /api/v1/dropship/orders — fulfillment queue
 router.get("/orders", authMiddleware, async (req, res) => {
   try {
@@ -109,23 +161,67 @@ router.get("/orders", authMiddleware, async (req, res) => {
 // POST /api/v1/dropship/orders/:id/fulfill
 router.post("/orders/:id/fulfill", authMiddleware, async (req, res) => {
   try {
-    const { trackingNumber } = req.body;
+    const tenantId = req.user.tenantId;
+    const orderItemId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const result = await autoFulfillDropOrder({
+      orderItemId,
+      tenantId,
+    });
+
+    res.json({ message: "Order sent to supplier", result });
+  } catch (error) {
+    console.error("[dropshipRoutes] Error fulfilling:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to record fulfillment" });
+  }
+});
+
+// GET /api/v1/dropship/orders/:id/track
+router.get("/orders/:id/track", authMiddleware, async (req, res) => {
+  try {
     const tenantId = req.user.tenantId;
     const orderItemId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
-    await db.orderItem.update({
-      where: { id_tenantId: { id: orderItemId, tenantId } },
-      data: {
-        fulfillmentStatus: "sent_to_supplier",
-        trackingNumber: trackingNumber || null,
-        fulfilledAt: new Date()
-      }
+    const orderItem = await db.orderItem.findFirst({
+      where: { id: orderItemId, tenantId },
+      include: {
+        order: {
+          select: {
+            orderNumber: true,
+            status: true,
+            shippingName: true,
+          },
+        },
+        product: {
+          select: {
+            name: true,
+            supplierProduct: {
+              include: {
+                supplier: {
+                  select: { name: true, contactEmail: true, website: true },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
-    res.json({ message: "Fulfillment recorded" });
+    if (!orderItem) {
+      return res.status(404).json({ error: "Dropship order item not found" });
+    }
+
+    res.json({
+      id: orderItem.id,
+      fulfillmentStatus: orderItem.fulfillmentStatus ?? "pending",
+      trackingNumber: orderItem.trackingNumber,
+      fulfilledAt: orderItem.fulfilledAt,
+      order: orderItem.order,
+      product: orderItem.product,
+      supplier: orderItem.product.supplierProduct?.supplier ?? null,
+    });
   } catch (error) {
-    console.error("[dropshipRoutes] Error fulfilling:", error);
-    res.status(500).json({ error: "Failed to record fulfillment" });
+    console.error("[dropshipRoutes] Error tracking order:", error);
+    res.status(500).json({ error: "Failed to track order" });
   }
 });
 

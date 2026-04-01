@@ -28,11 +28,11 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
       where,
       include: {
         host: { select: { id: true, name: true } },
-        _count: { select: { participants: true } },
+        _count: { select: { participants: true, speakers: true } },
       },
       orderBy: { createdAt: "desc" },
     });
-    res.json(spaces);
+    res.json({ spaces });
   } catch (error) {
     console.error("Error fetching live spaces:", error);
     res.status(500).json({ error: "Failed to fetch live spaces" });
@@ -49,6 +49,7 @@ router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
         host: { select: { id: true, name: true } },
         participants: true,
         speakers: true,
+        _count: { select: { participants: true, speakers: true } },
       },
     });
     if (!space) {
@@ -124,14 +125,24 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
 router.post("/:id/join", authMiddleware, async (req: Request, res: Response) => {
   try {
     const spaceId = String(req.params.id);
-    await db.liveSpaceParticipant.create({
-      data: {
+    const participant = await db.liveSpaceParticipant.upsert({
+      where: {
+        spaceId_userId: {
+          spaceId,
+          userId: req.user!.userId,
+        },
+      },
+      update: {
+        role: "LISTENER",
+        leftAt: null,
+      },
+      create: {
         spaceId,
         userId: req.user!.userId,
         role: "LISTENER",
       },
     });
-    res.json({ success: true });
+    res.json({ success: true, participant });
   } catch (error) {
     console.error("Error joining live space:", error);
     res.status(500).json({ error: "Failed to join live space" });

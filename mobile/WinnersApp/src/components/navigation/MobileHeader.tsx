@@ -4,7 +4,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../stores/authStore";
 import { useEcosystemStore } from "../../stores/ecosystemStore";
 import { useQAStore } from "../../stores/qaStore";
-import { colors, radius, spacing, touch, typography, withAlpha } from "../../theme/tokens";
+import {
+  colors,
+  radius,
+  spacing,
+  touch,
+  typography,
+  withAlpha,
+} from "../../theme/tokens";
+import AccessibilityButton from "../shared/AccessibilityButton";
 
 type Props = {
   title: string;
@@ -16,6 +24,7 @@ type Props = {
 
 const BACK_ICON = "\u2039";
 const NOTIFICATION_ICON = "\u{1F514}";
+const MAX_BADGE_COUNT = 99;
 
 function initialsFromName(name?: string | null) {
   if (!name) return "ME";
@@ -36,8 +45,14 @@ export default function MobileHeader({
 }: Props) {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
-  const unreadNotifications = useEcosystemStore((state) => state.unreadNotifications);
+  const unreadNotifications = useEcosystemStore(
+    (state) => state.unreadNotifications,
+  );
   const markNavigationStart = useQAStore((state) => state.markNavigationStart);
+  const unreadBadgeLabel =
+    unreadNotifications > MAX_BADGE_COUNT
+      ? `${MAX_BADGE_COUNT}+`
+      : `${unreadNotifications}`;
 
   return (
     <View style={[styles.wrap, { paddingTop: insets.top }]}>
@@ -48,11 +63,15 @@ export default function MobileHeader({
               accessibilityRole="button"
               accessibilityLabel="Back"
               accessibilityHint="Returns to the previous screen."
+              hitSlop={8}
               onPress={() => {
                 markNavigationStart("Back");
                 onBackPress?.();
               }}
-              style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.backButton,
+                pressed && styles.pressed,
+              ]}
             >
               <Text style={styles.backIcon}>{BACK_ICON}</Text>
               <Text style={styles.backText}>Back</Text>
@@ -62,40 +81,53 @@ export default function MobileHeader({
           )}
         </View>
 
-        <Text numberOfLines={1} style={styles.title}>
+        <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>
           {title}
         </Text>
 
         <View style={styles.actions}>
+          <AccessibilityButton />
+
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ""}`}
             accessibilityHint="Opens notifications and clears the unread indicator."
+            accessibilityState={{ busy: unreadNotifications > 0 }}
+            hitSlop={8}
             onPress={() => {
               markNavigationStart("Notifications");
               onNotificationsPress?.();
             }}
-            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.iconButton,
+              pressed && styles.pressed,
+            ]}
           >
             <Text style={styles.iconText}>{NOTIFICATION_ICON}</Text>
             {unreadNotifications > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadNotifications}</Text>
+              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadBadgeLabel}</Text>
               </View>
             ) : null}
           </Pressable>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Profile"
+            accessibilityLabel={`Profile, ${user?.name ?? "current user"}`}
             accessibilityHint="Opens your profile shortcut."
+            hitSlop={8}
             onPress={() => {
               markNavigationStart("Profile");
               onAvatarPress?.();
             }}
-            style={({ pressed }) => [styles.avatarButton, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.avatarButton,
+              pressed && styles.pressed,
+            ]}
           >
-            <Text style={styles.avatarText}>{initialsFromName(user?.name)}</Text>
+            <Text style={styles.avatarText}>
+              {initialsFromName(user?.name)}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -132,6 +164,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.xs,
   },
   backIcon: {
     color: colors.text,
@@ -151,7 +185,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    minWidth: 88,
+    minWidth: 132,
     justifyContent: "flex-end",
   },
   iconButton: {
@@ -161,6 +195,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+    backgroundColor: withAlpha("surface2", 0.48),
   },
   iconText: {
     fontSize: 18,
@@ -187,6 +222,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: withAlpha("surface2", 0.48),
   },
   avatarText: {
     width: 32,

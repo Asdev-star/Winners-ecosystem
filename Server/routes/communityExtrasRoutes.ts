@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import postRoutes from "./postRoutes.js";
 
 const router = Router();
 
@@ -53,9 +54,10 @@ router.get("/posts/saved", authMiddleware, async (req: Request, res: Response) =
       orderBy: { createdAt: "desc" },
     });
 
-    return res.json(savedPosts.map((savedPost) => savedPost.post));
+    const saved = savedPosts.map((savedPost) => savedPost.post);
+    return res.json({ saved });
   } catch (error) {
-    if (isMissingTable(error)) return res.json([]);
+    if (isMissingTable(error)) return res.json({ saved: [] });
     console.error("Error fetching saved posts:", error);
     return res.status(500).json({ error: "Failed to fetch saved posts" });
   }
@@ -72,12 +74,11 @@ router.post("/posts/:postId/save", authMiddleware, async (req: Request, res: Res
       },
     });
 
-    if (existing) {
-      await db.savedPost.delete({ where: { id: existing.id } });
-      return res.json({ saved: false });
+    if (!existing) {
+      await db.savedPost.create({
+        data: { tenantId: req.user!.tenantId, userId, postId },
+      });
     }
-
-    await db.savedPost.create({ data: { tenantId: req.user!.tenantId, userId, postId } });
     return res.json({ saved: true });
   } catch (error) {
     if (isMissingTable(error)) return res.json({ saved: false, error: "Table not ready" });
@@ -85,6 +86,88 @@ router.post("/posts/:postId/save", authMiddleware, async (req: Request, res: Res
     return res.status(500).json({ error: "Failed to toggle save" });
   }
 });
+
+router.delete("/posts/:postId/save", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const postId = String(req.params.postId);
+
+    const existing = await db.savedPost.findUnique({
+      where: {
+        userId_postId: { userId, postId },
+      },
+    });
+
+    if (existing) {
+      await db.savedPost.delete({ where: { id: existing.id } });
+    }
+
+    return res.json({ saved: false });
+  } catch (error) {
+    if (isMissingTable(error)) return res.json({ saved: false, error: "Table not ready" });
+    console.error("Error removing saved post:", error);
+    return res.status(500).json({ error: "Failed to remove saved post" });
+  }
+});
+
+router.post("/posts/:postId/quote", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const userId = req.user!.userId;
+    const postId = String(req.params.postId);
+    const commentary =
+      typeof req.body?.commentary === "string" ? req.body.commentary.trim() : "";
+
+    const originalPost = await db.post.findFirst({
+      where: { id: postId, tenantId, deletedAt: null },
+      include: {
+        author: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    if (!originalPost) {
+      return res.status(404).json({ error: "Original post not found" });
+    }
+
+    const quotedPost = await db.post.create({
+      data: {
+        tenantId,
+        authorId: userId,
+        content:
+          commentary || `Quoted a post from ${originalPost.author.name}`,
+        quotedPostId: originalPost.id,
+      },
+      include: {
+        author: { select: { id: true, name: true, email: true } },
+        _count: { select: { likes: true, comments: true } },
+        tags: { include: { tag: true } },
+      },
+    });
+
+    return res.status(201).json({
+      post: {
+        ...quotedPost,
+        likeCount: quotedPost._count.likes,
+        commentCount: quotedPost._count.comments,
+        liked: false,
+        tags: quotedPost.tags.map((tag) => tag.tag.name),
+        quotedPost: {
+          id: originalPost.id,
+          content: originalPost.content,
+          author: originalPost.author,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Error quote-sharing post:", error);
+    return res.status(500).json({ error: "Failed to quote post" });
+  }
+});
+
+// Alias the core post routes into the unified /community namespace used by the clients.
+router.use("/posts", postRoutes);
 
 router.get("/feed-preferences", authMiddleware, async (req: Request, res: Response) => {
   try {

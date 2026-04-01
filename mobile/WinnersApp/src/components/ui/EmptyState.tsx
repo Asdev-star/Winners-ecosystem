@@ -46,7 +46,13 @@ export default function EmptyState({
           {theme.label.split(" ")[0]} can suggest the next best move instead of leaving this surface empty.
         </Text>
         {onCta ? (
-          <Pressable style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]} onPress={onCta}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={ctaLabel ?? `Open ${theme.label.split(" ")[0]}`}
+            accessibilityHint={body}
+            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+            onPress={onCta}
+          >
             <Text style={styles.ctaText}>{ctaLabel ?? `Open ${theme.label.split(" ")[0]}`}</Text>
           </Pressable>
         ) : null}

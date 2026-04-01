@@ -183,11 +183,20 @@ router.post('/create-payment-intents', async (req: AuthRequest, res: Response) =
 // POST /api/v1/checkout/confirm
 router.post('/confirm', async (req: AuthRequest, res: Response) => {
   try {
-    const { paymentIntentIds, vendorGroups } = req.body as {
+    const { paymentIntentIds, shippingAddress, vendorGroups } = req.body as {
       paymentIntentIds: string[];
+      shippingAddress?: {
+        fullName?: string;
+        addressLine?: string;
+        city?: string;
+        region?: string;
+        postalCode?: string;
+        country?: string;
+        phone?: string;
+      };
       vendorGroups: Array<{
         vendorId: string;
-        items: Array<{ productId: string; quantity: number; price: number }>;
+        items: Array<{ productId: string; quantity: number; price: number; title?: string }>;
       }>;
     };
     const { userId, tenantId } = req.user;
@@ -211,13 +220,23 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
           vendorId: group.vendorId,
           orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
           status: 'CONFIRMED',
+          paymentStatus: 'PAID',
+          paymentMethod: 'STRIPE',
           subtotal,
           total: subtotal,
+          currency: 'USD',
+          shippingName: shippingAddress?.fullName ?? '',
+          shippingAddress: shippingAddress?.addressLine ?? '',
+          shippingCity: shippingAddress?.city ?? '',
+          shippingState: shippingAddress?.region ?? '',
+          shippingZip: shippingAddress?.postalCode ?? '',
+          shippingCountry: shippingAddress?.country ?? '',
+          shippingPhone: shippingAddress?.phone ?? '',
           items: {
             create: group.items.map(item => ({
               tenantId,
               productId: item.productId,
-              name: 'Product',
+              name: item.title || 'Product',
               quantity: item.quantity,
               price: item.price,
               total: item.price * item.quantity

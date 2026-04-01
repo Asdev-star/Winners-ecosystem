@@ -31,58 +31,58 @@ export const COMMUNITY_SUBNAV: SubNavItem[] = [
 export const ACADEMY_SUBNAV: SubNavItem[] = [
   { id: "explore",      label: "Explore",      href: "/academy" },
   { id: "my-learning",  label: "My Learning",  href: "/academy/my-learning", badge: 0 },
-  { id: "certificates", label: "Certificates", href: "/academy/certificates" },
+  { id: "certificates", label: "Certificates", href: "/academy/my-learning" },
   { id: "paths",        label: "Paths",        href: "/academy/paths",       badgeType: "new" },
   { id: "teach",        label: "Teach",        href: "/academy/instructor" },
-  { id: "cohorts",      label: "Cohorts",      href: "/academy/cohorts" },
+  { id: "cohorts",      label: "Cohorts",      href: "/academy/study-groups" },
 ];
 
 export const MARKET_SUBNAV_BUYER: SubNavItem[] = [
   { id: "shop",     label: "Shop",      href: "/market" },
-  { id: "trending", label: "Trending",  href: "/market/trending" },
+  { id: "trending", label: "Trending",  href: "/market" },
   { id: "stream",   label: "Stream",    href: "/market/stream" },
   { id: "events",   label: "Events",    href: "/market/events" },
-  { id: "services", label: "Services",  href: "/market/services" },
-  { id: "career",   label: "CV Tools",  href: "/market/career" },
-  { id: "business", label: "Biz Tools", href: "/market/business" },
+  { id: "services", label: "Services",  href: "/market" },
+  { id: "career",   label: "CV Tools",  href: "/market/cv-tools" },
+  { id: "business", label: "Biz Tools", href: "/market/business-launcher" },
   { id: "trading",  label: "Trading",   href: "/market/trading" },
 ];
 
 export const MARKET_SUBNAV_SELLER: SubNavItem[] = [
-  { id: "store",        label: "My Store",     href: "/market/store" },
-  { id: "products",     label: "Products",     href: "/market/products" },
+  { id: "store",        label: "My Store",     href: "/market/vendor" },
+  { id: "products",     label: "Products",     href: "/market/vendor" },
   { id: "orders",       label: "Orders",       href: "/market/orders",       badge: 0 },
-  { id: "analytics",    label: "Analytics",    href: "/market/analytics" },
+  { id: "analytics",    label: "Analytics",    href: "/market/vendor" },
   { id: "dropshipping", label: "Dropshipping", href: "/market/dropshipping", badgeType: "new" },
-  { id: "tools",        label: "Tools",        href: "/market/tools" },
+  { id: "tools",        label: "Tools",        href: "/market/vendor" },
 ];
 
 export const WORK_SUBNAV_FREELANCER: SubNavItem[] = [
   { id: "find",      label: "Find Work",    href: "/work",               shortcut: "j" },
-  { id: "applied",   label: "Applications", href: "/work/applications",  badge: 0 },
+  { id: "applied",   label: "Applications", href: "/work",               badge: 0 },
   { id: "contracts", label: "Contracts",    href: "/work/contracts",     badge: 0 },
   { id: "profile",   label: "Profile",      href: "/work/profile" },
-  { id: "portfolio", label: "Portfolio",    href: "/work/portfolio" },
-  { id: "earnings",  label: "Earnings",     href: "/work/earnings" },
+  { id: "portfolio", label: "Portfolio",    href: "/work/profile" },
+  { id: "earnings",  label: "Earnings",     href: "/work/escrow" },
 ];
 
 export const WORK_SUBNAV_EMPLOYER: SubNavItem[] = [
-  { id: "post",       label: "Post a Job",    href: "/work/post" },
-  { id: "listings",   label: "My Listings",   href: "/work/listings",   badge: 0 },
-  { id: "applicants", label: "Applicants",    href: "/work/applicants", badge: 0 },
+  { id: "post",       label: "Post a Job",    href: "/work" },
+  { id: "listings",   label: "My Listings",   href: "/work",            badge: 0 },
+  { id: "applicants", label: "Applicants",    href: "/work",            badge: 0 },
   { id: "contracts",  label: "Contracts",     href: "/work/contracts" },
-  { id: "payments",   label: "Payments",      href: "/work/payments" },
-  { id: "talent",     label: "Talent Search", href: "/work/talent" },
+  { id: "payments",   label: "Payments",      href: "/work/escrow" },
+  { id: "talent",     label: "Talent Search", href: "/work/freelancers" },
 ];
 
 export const INTELLIGENCE_SUBNAV: SubNavItem[] = [
   { id: "overview",  label: "Overview",     href: "/intelligence" },
   { id: "aria",      label: "Aria Chat",    href: "/intelligence/aria" },
-  { id: "agents",    label: "Agents",       href: "/intelligence/agents" },
+  { id: "agents",    label: "Agents",       href: "/intelligence/agents/omega" },
   { id: "loop",      label: "Loop Tracker", href: "/intelligence/loop",    badgeType: "new" },
-  { id: "skills",    label: "Skills Graph", href: "/intelligence/skills" },
+  { id: "skills",    label: "Skills Graph", href: "/intelligence/analytics" },
   { id: "reports",   label: "Reports",      href: "/intelligence/reports", badge: 0 },
-  { id: "api",       label: "API",          href: "/intelligence/api" },
+  { id: "api",       label: "API",          href: "/intelligence/platform" },
 ];
 
 export const CORE_SUBNAV: SubNavItem[] = [
@@ -90,6 +90,6 @@ export const CORE_SUBNAV: SubNavItem[] = [
   { id: "team",         label: "Team",         href: "/team",                    badge: 0 },
   { id: "billing",      label: "Billing",      href: "/billing" },
   { id: "analytics",    label: "Analytics",    href: "/analytics" },
-  { id: "integrations", label: "Integrations", href: "/settings/integrations" },
-  { id: "security",     label: "Security",     href: "/settings/security" },
+  { id: "integrations", label: "Integrations", href: "/settings" },
+  { id: "security",     label: "Security",     href: "/settings" },
 ];
