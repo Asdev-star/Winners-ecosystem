@@ -5,6 +5,7 @@ import db from "../db.js";
 import { getStripeStats } from "./stripeService.js";
 import { getTelemetrySnapshot } from "./requestTelemetryService.js";
 import { getWebSocketStats } from "./wsService.js";
+import { verifyRlsPolicies } from "./rlsVerificationService.js";
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const MIGRATIONS_DIR = path.join(ROOT_DIR, "prisma", "migrations");
@@ -378,8 +379,10 @@ export async function getAdminSystemHealthSnapshot(): Promise<AdminSystemHealthS
 }
 
 export async function markRlsVerificationNow() {
+  const verification = await verifyRlsPolicies();
+
   return {
-    verifiedAt: new Date().toISOString(),
+    ...verification,
     label: formatDayLabel(new Date()),
   };
 }

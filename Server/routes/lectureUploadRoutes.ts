@@ -17,6 +17,8 @@ interface CreateUploadBody {
 
 interface UploadVideoBody {
   videoData: string;
+  cloudinaryUrl?: string;
+  durationSecs?: number;
 }
 
 // Helper to extract Cloudinary public_id from URL
@@ -90,10 +92,10 @@ router.post("/:id/upload", authMiddleware, async (req: Request, res: Response): 
     }
 
     const id = String(req.params.id);
-    const { videoData } = req.body as UploadVideoBody;
+    const { videoData, cloudinaryUrl, durationSecs } = req.body as UploadVideoBody;
 
-    if (!videoData) {
-      res.status(400).json({ error: "Video data is required" });
+    if (!videoData && !cloudinaryUrl) {
+      res.status(400).json({ error: "Video data or cloudinaryUrl is required" });
       return;
     }
 
@@ -111,23 +113,31 @@ router.post("/:id/upload", authMiddleware, async (req: Request, res: Response): 
       return;
     }
 
-    // Upload to Cloudinary
-    const folder = `winners-academy/${user.tenantId}/lectures`;
-    const uploadResult = await uploadVideo(videoData, {
-      folder,
-      resourceType: "video",
-      eager: [
-        { streaming_attachment: true },
-        { format: "m3u8", resource_type: "video" }
-      ]
-    });
+    let secureUrl = cloudinaryUrl;
+    let uploadDuration = typeof durationSecs === "number" ? durationSecs : undefined;
+
+    if (!secureUrl) {
+      // Upload to Cloudinary from raw video data when the client cannot do direct upload.
+      const folder = `winners-academy/${user.tenantId}/lectures`;
+      const uploadResult = await uploadVideo(videoData, {
+        folder,
+        resourceType: "video",
+        eager: [
+          { streaming_attachment: true },
+          { format: "m3u8", resource_type: "video" }
+        ]
+      });
+
+      secureUrl = uploadResult.secureUrl;
+      uploadDuration = Math.round(uploadResult.duration || 0);
+    }
 
     // Update the lecture upload with Cloudinary URL
     const updatedUpload = await prisma.lectureUpload.update({
       where: { id },
       data: {
-        fileUrl: uploadResult.secureUrl,
-        durationSecs: Math.round(uploadResult.duration || 0),
+        fileUrl: secureUrl,
+        durationSecs: uploadDuration ?? null,
         status: "complete"
       }
     });

@@ -1,7 +1,7 @@
 // src/features/community/CommunityPage.tsx
 // Phase 2 — Community Layer V2.0
 // NOVA Intelligence · Ice-Blue Identity · Agentic Loop · Social Architecture
-// Design: CSS variables only · zero hardcoded hex · Syne + Space Mono + Cormorant Garamond
+// Design: CSS variables only · zero hardcoded hex · Syne + Space Mono
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuthStore } from "../auth/authStore";
@@ -55,9 +55,9 @@ const css = `
 }
 .cm-page-intro { margin-bottom: 18px; }
 .cm-page-title {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Syne', sans-serif;
   font-size: 28px;
-  font-weight: 300;
+  font-weight: 800;
   color: var(--text);
   letter-spacing: -0.01em;
 }
@@ -141,7 +141,7 @@ const css = `
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 3px solid var(--ice);
-  border-radius: 0 10px 10px 0;
+  border-radius: 14px;
   padding: 12px 16px;
   margin-bottom: 20px;
   display: flex;

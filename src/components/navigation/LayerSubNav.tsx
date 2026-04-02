@@ -16,8 +16,8 @@ const css = `
     align-items: center;
     gap: 10px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: rgba(13, 24, 38, 0.86);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
@@ -41,7 +41,7 @@ const css = `
     border: 1px solid transparent;
     background: transparent;
     color: var(--text-dim);
-    border-radius: 6px;
+    border-radius: 12px;
     padding: 8px 12px 8px 18px;
     font-family: "Space Mono", monospace;
     font-size: 10px;
@@ -120,7 +120,7 @@ const css = `
   .lsn-smart {
     min-width: 236px;
     border: 1px solid color-mix(in srgb, var(--lsn-accent) 35%, var(--border));
-    border-radius: 6px;
+    border-radius: 16px;
     background: color-mix(in srgb, var(--lsn-accent) 14%, var(--surface));
     color: var(--text);
     padding: 7px 10px;
@@ -166,7 +166,7 @@ const css = `
   .lsn-subrow {
     margin-top: 8px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 14px;
     background: color-mix(in srgb, var(--surface2) 80%, transparent);
     padding: 6px;
     display: flex;
@@ -177,7 +177,7 @@ const css = `
 
   .lsn-subitem {
     border: 1px solid transparent;
-    border-radius: 5px;
+    border-radius: 999px;
     background: transparent;
     color: var(--text-dim);
     padding: 7px 9px;
@@ -266,7 +266,7 @@ const css = `
       right: 12px;
       bottom: 68px;
       z-index: 52;
-      border-radius: 7px;
+      border-radius: 14px;
       border: 1px solid color-mix(in srgb, var(--lsn-accent) 36%, var(--border));
       background: rgba(13, 24, 38, 0.94);
       backdrop-filter: blur(12px);

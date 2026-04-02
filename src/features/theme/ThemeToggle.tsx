@@ -5,7 +5,7 @@ import { useThemeStore, applyTheme } from "./themeStore";
 
 const componentCss = `
   .tt-btn {
-    width: 34px; height: 34px; border-radius: 4px;
+    width: 40px; height: 40px; border-radius: 12px;
     background: transparent; border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.15s; font-size: 16px;

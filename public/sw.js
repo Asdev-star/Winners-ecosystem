@@ -121,14 +121,23 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  const data = event.data?.json() ?? {};
+  const raw = event.data?.json() ?? {};
+  const payload = raw?.notification
+    ? {
+        title: raw.notification.title,
+        body: raw.notification.body,
+        url: raw.fcmOptions?.link || raw.data?.url || raw.url,
+        actions: raw.notification.actions || raw.data?.actions,
+      }
+    : raw;
+
   event.waitUntil(
-    self.registration.showNotification(data.title || "Winners", {
-      body: data.body,
+    self.registration.showNotification(payload.title || "Winners", {
+      body: payload.body,
       icon: "/icons/icon-192.png",
       badge: "/icons/badge-72.png",
-      data: { url: data.url || "/" },
-      actions: data.actions || [],
+      data: { url: payload.url || "/" },
+      actions: payload.actions || [],
       vibrate: [200, 100, 200],
     }),
   );
@@ -137,7 +146,21 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url || "/";
-  event.waitUntil(clients.openWindow(url));
+  event.waitUntil((async () => {
+    const windowClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windowClients) {
+      if ("focus" in client) {
+        client.postMessage({ type: "PUSH_NOTIFICATION_CLICK", url });
+        await client.focus();
+        if ("navigate" in client) {
+          await client.navigate(url);
+        }
+        return;
+      }
+    }
+
+    await clients.openWindow(url);
+  })());
 });
 
 function getApiCacheRule(pathname) {

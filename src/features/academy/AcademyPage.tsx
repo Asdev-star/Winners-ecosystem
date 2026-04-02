@@ -109,12 +109,12 @@ export default function AcademyPage() {
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <h1 style={{
-            fontFamily: 'Cormorant Garamond, serif',
-            fontSize: 42,
-            fontWeight: 600,
+            fontFamily: 'Syne, sans-serif',
+            fontSize: 40,
+            fontWeight: 800,
             color: 'var(--gold)',
             marginBottom: 8,
-            letterSpacing: '-0.5px'
+            letterSpacing: '-0.04em'
           }}>
             Winners Academy
           </h1>
@@ -122,8 +122,8 @@ export default function AcademyPage() {
           <button
             onClick={() => navigate("/academy/my-learning")}
             style={{
-              padding: "10px 14px",
-              borderRadius: 6,
+              padding: "10px 16px",
+              borderRadius: 14,
               border: "1px solid var(--border)",
               background: "var(--surface2)",
               color: "var(--text)",
@@ -157,7 +157,7 @@ export default function AcademyPage() {
           style={{
             width: '100%',
             padding: '12px 16px',
-            borderRadius: 6,
+            borderRadius: 14,
             border: '1px solid var(--border)',
             background: 'var(--surface2)',
             color: 'var(--text)',
@@ -176,7 +176,7 @@ export default function AcademyPage() {
             onClick={() => setSelectedCategory(cat)}
             style={{
               padding: '6px 14px',
-              borderRadius: 20,
+              borderRadius: 999,
               border: selectedCategory === cat ? '1px solid var(--gold)' : '1px solid var(--border)',
               background: selectedCategory === cat ? 'rgba(201,168,76,0.12)' : 'var(--surface2)',
               color: selectedCategory === cat ? 'var(--gold)' : 'var(--text-dim)',
@@ -214,7 +214,7 @@ export default function AcademyPage() {
             <div key={course.id} style={{
               background: 'var(--surface)',
               border: '1px solid var(--border)',
-              borderRadius: 6,
+              borderRadius: 18,
               position: 'relative',
               overflow: 'hidden',
               cursor: 'pointer',

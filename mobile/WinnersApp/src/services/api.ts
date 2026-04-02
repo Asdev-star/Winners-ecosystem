@@ -111,6 +111,8 @@ export const api = {
     request<T>(endpoint, { method: "POST", data, token }),
   put: <T>(endpoint: string, data: unknown, token?: string | null) =>
     request<T>(endpoint, { method: "PUT", data, token }),
+  patch: <T>(endpoint: string, data: unknown, token?: string | null) =>
+    request<T>(endpoint, { method: "PATCH", data, token }),
   delete: <T>(endpoint: string, token?: string | null) =>
     request<T>(endpoint, { method: "DELETE", token }),
   invalidateCache: (bucket: CacheBucket, endpoint: string) => cache.invalidate(`${bucket}:${endpoint}`),

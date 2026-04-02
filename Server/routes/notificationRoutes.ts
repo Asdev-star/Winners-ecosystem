@@ -1,254 +1,361 @@
-// server/routes/notificationRoutes.ts
-
-import { Router, Request, Response } from "express";
+import { NotificationType } from "@prisma/client";
+import { Router, type Request, type Response } from "express";
+import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
-import db from "../db.js";
+import {
+  deactivateDeviceToken,
+  registerDeviceToken,
+  sendPushNotification,
+} from "../services/fcmService.js";
 
 const router = Router();
 router.use(authMiddleware);
 router.use(enforceTenant);
 
-interface NotificationItem {
+type ClientNotificationType = "anomaly" | "team" | "billing" | "system" | "revenue";
+
+const notificationTypeMap: Record<NotificationType, ClientNotificationType> = {
+  LIKE: "team",
+  COMMENT: "team",
+  FOLLOW: "team",
+  MENTION: "team",
+  SKILL_DETECTED: "system",
+  OPPORTUNITY_MATCH: "revenue",
+  TRUST_SCORE_UPDATE: "system",
+  CHALLENGE_COMPLETE: "system",
+  LOOP_ADVANCE: "system",
+  SYSTEM: "system",
+};
+
+const requestTypeMap: Record<string, NotificationType> = {
+  anomaly: NotificationType.SYSTEM,
+  billing: NotificationType.SYSTEM,
+  comment: NotificationType.COMMENT,
+  follow: NotificationType.FOLLOW,
+  like: NotificationType.LIKE,
+  mention: NotificationType.MENTION,
+  opportunity_match: NotificationType.OPPORTUNITY_MATCH,
+  revenue: NotificationType.OPPORTUNITY_MATCH,
+  skill_detected: NotificationType.SKILL_DETECTED,
+  system: NotificationType.SYSTEM,
+  team: NotificationType.MENTION,
+  trust_score_update: NotificationType.TRUST_SCORE_UPDATE,
+};
+
+function toClientNotification(notification: {
   id: string;
-  type: string;
+  type: NotificationType;
   title: string;
   body: string;
   read: boolean;
-  createdAt: string;
-  link: string;
+  createdAt: Date;
+  link: string | null;
+}) {
+  return {
+    id: notification.id,
+    type: notificationTypeMap[notification.type] ?? "system",
+    title: notification.title,
+    body: notification.body,
+    read: notification.read,
+    createdAt: notification.createdAt.toISOString(),
+    link: notification.link ?? undefined,
+  };
 }
 
-// In-memory store per tenant (replace with DB table in production)
-const notifStore: Record<string, NotificationItem[]> = {};
-
-function getTenantNotifs(tenantId: string) {
-  if (!notifStore[tenantId]) {
-    // Seed with initial notifications based on real data
-    notifStore[tenantId] = [
-      { id: "n1", type: "system",  title: "Welcome to Winners Ecosystem", body: "Your workspace is set up and ready. Explore the dashboard to get started.", read: false, createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),         link: "/" },
-      { id: "n2", type: "revenue", title: "30-day revenue report ready",   body: "Your analytics data for the last 30 days has been processed and is ready to view.", read: false, createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),         link: "/analytics" },
-      { id: "n3", type: "team",    title: "Team set up successfully",       body: "4 members have been added to your workspace: Demo User, Alice, Bob, and Carol.", read: false, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),      link: "/team" },
-      { id: "n4", type: "billing", title: "Pro plan activated",             body: "Your workspace is on the Pro plan. Enjoy unlimited analytics and all export formats.", read: true, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),    link: "/billing" },
-      { id: "n5", type: "anomaly", title: "Revenue anomaly detected",       body: "3 unusual revenue days were detected in the last 30 days. Check your analytics.", read: true, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),    link: "/analytics" },
-    ];
+function resolveNotificationType(value: unknown): NotificationType {
+  if (typeof value !== "string") {
+    return NotificationType.SYSTEM;
   }
-  return notifStore[tenantId];
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return NotificationType.SYSTEM;
+  }
+
+  if (normalized in requestTypeMap) {
+    return requestTypeMap[normalized];
+  }
+
+  const enumKey = normalized.toUpperCase() as keyof typeof NotificationType;
+  return NotificationType[enumKey] ?? NotificationType.SYSTEM;
 }
 
-// GET /notifications
+function sanitizePreferencePatch(input: Record<string, unknown>) {
+  const allowedKeys = [
+    "enabled",
+    "communityPosts",
+    "communityLikes",
+    "communityComments",
+    "academyEnrollment",
+    "academyCertificate",
+    "marketOrderUpdate",
+    "workApplication",
+    "workContractUpdate",
+    "trustScoreChange",
+    "systemAnnouncements",
+  ] as const;
+
+  const nextPatch: Partial<Record<(typeof allowedKeys)[number], boolean>> = {};
+
+  for (const key of allowedKeys) {
+    if (typeof input[key] === "boolean") {
+      nextPatch[key] = input[key] as boolean;
+    }
+  }
+
+  return nextPatch;
+}
+
 router.get("/", async (req: Request, res: Response) => {
-  const notifs = getTenantNotifs(req.user!.tenantId);
-  return res.json({ notifications: notifs, total: notifs.length, unread: notifs.filter((n) => !n.read).length });
+  const { userId, tenantId } = req.user!;
+
+  try {
+    const notifications = await db.notification.findMany({
+      where: { userId, tenantId },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    const payload = notifications.map(toClientNotification);
+
+    return res.json({
+      notifications: payload,
+      total: payload.length,
+      unread: payload.filter((notification) => !notification.read).length,
+    });
+  } catch (error) {
+    console.error("[notifications] Fetch error:", error);
+    return res.status(500).json({ error: "Failed to fetch notifications" });
+  }
 });
 
 router.post("/device-token", async (req: Request, res: Response) => {
-  const { token, platform } = req.body ?? {};
+  const { token, platform, userAgent } = req.body ?? {};
+  const { userId, tenantId } = req.user!;
 
-  if (!token) {
+  if (typeof token !== "string" || !token.trim()) {
     return res.status(400).json({ error: "Token required" });
   }
 
-  const userAgentHeader = req.headers["user-agent"];
-  const userAgent = Array.isArray(userAgentHeader) ? userAgentHeader.join("; ") : userAgentHeader || "";
-
-  await db.deviceToken.upsert({
-    where: { token },
-    update: {
-      isActive: true,
-      lastSeen: new Date(),
-      platform: platform || "web",
-      tenantId: req.user!.tenantId,
-      userAgent,
-      userId: req.user!.userId,
-    },
-    create: {
-      token,
-      platform: platform || "web",
-      userId: req.user!.userId,
-      tenantId: req.user!.tenantId,
-      userAgent,
-    },
-  });
-
-  return res.json({ success: true });
-});
-
-// PATCH /notifications/:id/read
-router.patch("/:id/read", async (req: Request, res: Response) => {
-  const notifs = getTenantNotifs(req.user!.tenantId);
-  const n = notifs.find((n) => n.id === req.params.id);
-  if (n) n.read = true;
-  return res.json({ message: "Marked as read" });
-});
-
-// PATCH /notifications/read-all
-router.patch("/read-all", async (req: Request, res: Response) => {
-  const notifs = getTenantNotifs(req.user!.tenantId);
-  notifs.forEach((n) => { n.read = true; });
-  return res.json({ message: "All marked as read" });
-});
-
-// DELETE /notifications/:id
-router.delete("/:id", async (req: Request, res: Response) => {
-  const tenantId = req.user!.tenantId;
-  notifStore[tenantId] = getTenantNotifs(tenantId).filter((n) => n.id !== req.params.id);
-  return res.json({ message: "Deleted" });
-});
-
-// DELETE /notifications
-router.delete("/", async (req: Request, res: Response) => {
-  notifStore[req.user!.tenantId] = [];
-  return res.json({ message: "All cleared" });
-});
-
-// POST /notifications (create — used internally by other services)
-router.post("/", async (req: Request, res: Response) => {
-  const { type, title, body, link } = req.body;
-  const notifs = getTenantNotifs(req.user!.tenantId);
-  const newNotif = { id: `n_${Date.now()}`, type, title, body, read: false, createdAt: new Date().toISOString(), link };
-  notifs.unshift(newNotif);
-  return res.status(201).json(newNotif);
-});
-
-// ─── PUSH NOTIFICATIONS — FIREBASE FCM ──────────────────────────────────────────
-
-// POST /notifications/push/register — Register push subscription
-router.post("/push/register", async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-  const tenantId = req.user!.tenantId;
-  const { endpoint, keys } = req.body ?? {};
-
-  if (!endpoint || !keys?.p256dh || !keys?.auth) {
-    return res.status(400).json({ error: "endpoint, keys.p256dh, and keys.auth are required" });
-  }
-
   try {
-    // Store in DeviceToken table (reuse for push subscriptions)
-    const deviceToken = await db.deviceToken.upsert({
-      where: { token: endpoint },
-      update: {
-        isActive: true,
-        lastSeen: new Date(),
-        platform: "web-push",
-        tenantId,
-        userId,
-        userAgent: JSON.stringify({ keys }),
-      },
-      create: {
-        token: endpoint,
-        platform: "web-push",
-        userId,
-        tenantId,
-        userAgent: JSON.stringify({ keys }),
-      },
-    });
+    const userAgentHeader = req.headers["user-agent"];
+    const requestUserAgent = Array.isArray(userAgentHeader)
+      ? userAgentHeader.join("; ")
+      : userAgentHeader || undefined;
 
-    res.status(201).json({
-      success: true,
-      subscription: {
-        id: deviceToken.id,
-        endpoint: deviceToken.token,
-        keys: JSON.parse(deviceToken.userAgent || "{}"),
-        createdAt: deviceToken.createdAt.toISOString(),
-      },
-    });
-  } catch (err) {
-    console.error("[Push] Registration error:", err);
-    res.status(500).json({ error: "Failed to register push subscription" });
-  }
-});
-
-// DELETE /notifications/push/unregister — Unregister push subscription
-router.delete("/push/unregister", async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-
-  try {
-    await db.deviceToken.updateMany({
-      where: {
-        userId,
-        platform: "web-push",
-      },
-      data: { isActive: false },
-    });
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("[Push] Unregister error:", err);
-    res.status(500).json({ error: "Failed to unregister push subscription" });
-  }
-});
-
-// GET /notifications/preferences — Get user notification preferences
-router.get("/preferences", async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-
-  try {
-    // For now, return default preferences
-    // In production, create a NotificationPreference model in Prisma
-    const defaultPrefs = {
+    await registerDeviceToken(
       userId,
-      enabled: true,
-      communityPosts: true,
-      communityLikes: true,
-      communityComments: true,
-      academyEnrollment: true,
-      academyCertificate: true,
-      marketOrderUpdate: true,
-      workApplication: true,
-      workContractUpdate: true,
-      trustScoreChange: true,
-      systemAnnouncements: true,
-    };
+      tenantId,
+      token.trim(),
+      typeof platform === "string" && platform.trim() ? platform.trim() : "web",
+      typeof userAgent === "string" && userAgent.trim() ? userAgent.trim() : requestUserAgent,
+    );
 
-    res.json({ preferences: defaultPrefs });
-  } catch (err) {
-    console.error("[Preferences] Fetch error:", err);
-    res.status(500).json({ error: "Failed to fetch preferences" });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("[notifications] Device token registration error:", error);
+    return res.status(500).json({ error: "Failed to register notification token" });
   }
 });
 
-// PATCH /notifications/preferences — Update notification preferences
+router.delete("/device-token", async (req: Request, res: Response) => {
+  const { token } = req.body ?? {};
+
+  if (typeof token !== "string" || !token.trim()) {
+    return res.status(400).json({ error: "Token required" });
+  }
+
+  try {
+    await deactivateDeviceToken(token.trim());
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("[notifications] Device token deactivation error:", error);
+    return res.status(500).json({ error: "Failed to unregister notification token" });
+  }
+});
+
+router.patch("/:id/read", async (req: Request, res: Response) => {
+  const { userId, tenantId } = req.user!;
+  const notificationId = String(req.params.id ?? "");
+
+  try {
+    await db.notification.updateMany({
+      where: { id: notificationId, userId, tenantId },
+      data: { read: true },
+    });
+
+    return res.json({ message: "Marked as read" });
+  } catch (error) {
+    console.error("[notifications] Mark read error:", error);
+    return res.status(500).json({ error: "Failed to update notification" });
+  }
+});
+
+router.patch("/read-all", async (req: Request, res: Response) => {
+  const { userId, tenantId } = req.user!;
+
+  try {
+    await db.notification.updateMany({
+      where: { userId, tenantId, read: false },
+      data: { read: true },
+    });
+
+    return res.json({ message: "All marked as read" });
+  } catch (error) {
+    console.error("[notifications] Read-all error:", error);
+    return res.status(500).json({ error: "Failed to update notifications" });
+  }
+});
+
+router.delete("/:id", async (req: Request, res: Response) => {
+  const { userId, tenantId } = req.user!;
+  const notificationId = String(req.params.id ?? "");
+
+  try {
+    await db.notification.deleteMany({
+      where: { id: notificationId, userId, tenantId },
+    });
+
+    return res.json({ message: "Deleted" });
+  } catch (error) {
+    console.error("[notifications] Delete error:", error);
+    return res.status(500).json({ error: "Failed to delete notification" });
+  }
+});
+
+router.delete("/", async (req: Request, res: Response) => {
+  const { userId, tenantId } = req.user!;
+
+  try {
+    await db.notification.deleteMany({
+      where: { userId, tenantId },
+    });
+
+    return res.json({ message: "All cleared" });
+  } catch (error) {
+    console.error("[notifications] Clear-all error:", error);
+    return res.status(500).json({ error: "Failed to clear notifications" });
+  }
+});
+
+router.post("/", async (req: Request, res: Response) => {
+  const { userId: currentUserId, tenantId } = req.user!;
+  const { title, body, link, type, userId, entityId, entityType, actorId, sendPush } = req.body ?? {};
+
+  if (typeof title !== "string" || !title.trim() || typeof body !== "string" || !body.trim()) {
+    return res.status(400).json({ error: "title and body are required" });
+  }
+
+  const targetUserId = typeof userId === "string" && userId.trim() ? userId.trim() : currentUserId;
+
+  try {
+    const notification = await db.notification.create({
+      data: {
+        tenantId,
+        userId: targetUserId,
+        actorId: typeof actorId === "string" && actorId.trim() ? actorId.trim() : null,
+        type: resolveNotificationType(type),
+        title: title.trim(),
+        body: body.trim(),
+        link: typeof link === "string" && link.trim() ? link.trim() : null,
+        entityId: typeof entityId === "string" && entityId.trim() ? entityId.trim() : null,
+        entityType: typeof entityType === "string" && entityType.trim() ? entityType.trim() : null,
+      },
+    });
+
+    if (sendPush !== false) {
+      await sendPushNotification(targetUserId, {
+        title: notification.title,
+        body: notification.body,
+        url: notification.link ?? "/notifications",
+        data: {
+          notificationId: notification.id,
+          type: notification.type,
+        },
+        priority: "high",
+      });
+    }
+
+    return res.status(201).json(toClientNotification(notification));
+  } catch (error) {
+    console.error("[notifications] Create error:", error);
+    return res.status(500).json({ error: "Failed to create notification" });
+  }
+});
+
+router.get("/preferences", async (req: Request, res: Response) => {
+  const { userId } = req.user!;
+
+  try {
+    const preferences = await db.notificationPreference.upsert({
+      where: { userId },
+      update: {},
+      create: { userId },
+    });
+
+    return res.json({ preferences });
+  } catch (error) {
+    console.error("[notifications] Preference fetch error:", error);
+    return res.status(500).json({ error: "Failed to fetch preferences" });
+  }
+});
+
 router.patch("/preferences", async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
-  const updates = req.body ?? {};
+  const { userId } = req.user!;
+  const patch = sanitizePreferencePatch(req.body ?? {});
 
   try {
-    // For now, just acknowledge the update
-    // In production, save to NotificationPreference table
-    res.json({ preferences: { userId, ...updates }, success: true });
-  } catch (err) {
-    console.error("[Preferences] Update error:", err);
-    res.status(500).json({ error: "Failed to update preferences" });
+    const preferences = await db.notificationPreference.upsert({
+      where: { userId },
+      update: patch,
+      create: {
+        userId,
+        ...patch,
+      },
+    });
+
+    return res.json({ success: true, preferences });
+  } catch (error) {
+    console.error("[notifications] Preference update error:", error);
+    return res.status(500).json({ error: "Failed to update preferences" });
   }
 });
 
-// POST /notifications/push/test — Send test notification
 router.post("/push/test", async (req: Request, res: Response) => {
-  const userId = req.user!.userId;
+  const { userId, tenantId } = req.user!;
 
   try {
-    // Create a test notification
-    const testNotif = {
-      id: `test_${Date.now()}`,
-      type: "system",
-      title: "🎉 Test Notification",
-      body: "Your push notifications are working correctly!",
-      read: false,
-      createdAt: new Date().toISOString(),
-      link: "/notifications",
-    };
+    const notification = await db.notification.create({
+      data: {
+        tenantId,
+        userId,
+        type: NotificationType.SYSTEM,
+        title: "Test notification",
+        body: "Firebase push notifications are active for this device.",
+        link: "/notifications",
+        entityType: "push_test",
+      },
+    });
 
-    const notifs = getTenantNotifs(req.user!.tenantId);
-    notifs.unshift(testNotif);
+    await sendPushNotification(userId, {
+      title: notification.title,
+      body: notification.body,
+      url: notification.link ?? "/notifications",
+      data: {
+        notificationId: notification.id,
+        type: notification.type,
+      },
+      priority: "high",
+    });
 
-    // In production, send via Firebase Cloud Messaging here
-    // await firebaseAdmin.messaging().send({...})
-
-    res.json({ success: true, notification: testNotif });
-  } catch (err) {
-    console.error("[Push] Test error:", err);
-    res.status(500).json({ error: "Failed to send test notification" });
+    return res.json({
+      success: true,
+      notification: toClientNotification(notification),
+    });
+  } catch (error) {
+    console.error("[notifications] Push test error:", error);
+    return res.status(500).json({ error: "Failed to send test notification" });
   }
 });
 

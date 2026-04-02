@@ -18,9 +18,9 @@ interface SectionWrapperProps {
 export default function SectionWrapper({
   children,
   maxWidth = 1280,
-  paddingX = 32,
-  paddingY = 48,
-  gap = 48,
+  paddingX = 24,
+  paddingY = 32,
+  gap = 32,
   className,
   as: Tag = "section",
   style,

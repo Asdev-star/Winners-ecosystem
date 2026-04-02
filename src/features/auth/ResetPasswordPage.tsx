@@ -44,7 +44,7 @@ const css = `
   .rp-card {
     background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%);
     border: 1px solid rgba(137,196,225,0.12);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 44px;
     width: 100%; max-width: 420px;
     position: relative; z-index: 1;
@@ -55,7 +55,7 @@ const css = `
     content: '';
     position: absolute; top: 0; left: 0; right: 0; height: 2px;
     background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    border-radius: 16px 16px 0 0;
+    border-radius: 20px 20px 0 0;
     opacity: 0.8;
   }
 
@@ -81,7 +81,7 @@ const css = `
     width: 100%;
     background: rgba(137,196,225,0.04);
     border: 1px solid rgba(137,196,225,0.12);
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 13px 16px;
     font-family: 'Space Mono', monospace; font-size: 13px; color: var(--text);
     outline: none; transition: border-color 0.15s, box-shadow 0.15s;
@@ -103,7 +103,7 @@ const css = `
   .rp-field { margin-bottom: 4px; }
 
   .rp-btn {
-    width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 8px;
+    width: 100%; background: var(--gold); color: var(--bg); border: none; border-radius: 14px;
     padding: 14px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
     cursor: pointer; transition: opacity 0.15s, transform 0.15s; margin-top: 8px;
   }
@@ -119,7 +119,7 @@ const css = `
   }
   .rp-back:hover { color: var(--ice); }
 
-  .rp-alert { border-radius: 8px; padding: 12px 16px; font-family: 'Space Mono', monospace; font-size: 11px; margin-bottom: 20px; line-height: 1.6; }
+  .rp-alert { border-radius: 14px; padding: 12px 16px; font-family: 'Space Mono', monospace; font-size: 11px; margin-bottom: 20px; line-height: 1.6; }
   .rp-alert.error   { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2);  color: var(--red); }
   .rp-alert.success { background: rgba(74,222,128,0.08);  border: 1px solid rgba(74,222,128,0.2);   color: var(--green); }
   .rp-alert.warning { background: rgba(201,168,76,0.08);  border: 1px solid rgba(201,168,76,0.2);   color: var(--gold); }

@@ -35,6 +35,23 @@ export interface MultimodalChatOptions {
   onError?: (error: string) => void;
 }
 
+function toBackendModel(model: ModelId) {
+  if (model.startsWith("claude")) return "claude";
+  if (model.startsWith("gpt-4o")) return "gpt4o";
+  if (model.startsWith("gemini")) return "gemini";
+  return "ollama";
+}
+
+function fileToBlob(file: DroppedFile) {
+  const [, base64Data] = file.data.includes(",") ? file.data.split(",", 2) : ["", file.data];
+  const binary = atob(base64Data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: file.mimeType });
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function useMultimodalChat(options: MultimodalChatOptions = {}) {
@@ -184,6 +201,54 @@ export function useMultimodalChat(options: MultimodalChatOptions = {}) {
     onComplete?.(finalMsg);
   };
 
+  const multimodalRequest = async (
+    userContent: string,
+    files: DroppedFile[],
+    assistantMsgId: string,
+  ) => {
+    const formData = new FormData();
+    formData.append("message", userContent);
+    formData.append("model", toBackendModel(currentModel));
+    formData.append("assistant", assistant);
+
+    for (const file of files) {
+      formData.append("file", fileToBlob(file), file.name);
+    }
+
+    const headers = getAuthHeaders();
+    delete headers["Content-Type"];
+
+    const res = await fetch(`${API}/api/v1/ai-platform/multimodal`, {
+      method: "POST",
+      headers,
+      signal: abortRef.current?.signal,
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+
+    const data = await res.json();
+    const content = data.response ?? data.analysis ?? data.text ?? data.message ?? "";
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === assistantMsgId
+          ? { ...m, content, streaming: false }
+          : m
+      )
+    );
+
+    const finalMsg: ChatMessage = {
+      id: assistantMsgId,
+      role: "assistant",
+      content,
+      model: currentModel,
+      timestamp: new Date(),
+      streaming: false,
+    };
+    onComplete?.(finalMsg);
+  };
+
   // ── Send ────────────────────────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (userText: string, extraFiles?: DroppedFile[]) => {
@@ -221,7 +286,11 @@ export function useMultimodalChat(options: MultimodalChatOptions = {}) {
       try {
         const headers = getAuthHeaders();
         if (headers.Authorization) {
-          await liveStream(userText, files, history, assistantMsgId);
+          if (files.length > 0) {
+            await multimodalRequest(userText, files, assistantMsgId);
+          } else {
+            await liveStream(userText, files, history, assistantMsgId);
+          }
         } else {
           // No auth - show error instead of mock
           throw new Error("Authentication required. Please log in to use the AI chat.");

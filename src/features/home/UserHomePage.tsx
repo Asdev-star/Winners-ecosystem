@@ -71,7 +71,6 @@ const HOME_NAV: HomeNavItem[] = [
   { label: "Community", path: "/community" },
   { label: "Academy", path: "/academy" },
   { label: "Market", path: "/market" },
-  { label: "Work", path: "/work" },
   { label: "AI", path: "/intelligence" },
 ];
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AccessibilityInfo,
   FlatList,
@@ -69,17 +69,39 @@ export default function FeedScreen({ navigation }: Props) {
   const appendPosts = useCommunityStore((state) => state.appendPosts);
   const togglePostLike = useCommunityStore((state) => state.togglePostLike);
   const [offlineState, setOfflineState] = useState(offline.getSnapshot());
+  const [onlineUsers, setOnlineUsers] = useState<Array<{ userId: string; userName: string; joinedAt: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastImageTap, setLastImageTap] = useState(0);
 
-  useEffect(() => offline.subscribe(setOfflineState), []);
+  useEffect(() => {
+    const unsubscribe = offline.subscribe(setOfflineState);
+    return unsubscribe;
+  }, []);
+
+  const refreshPresence = useCallback(async () => {
+    try {
+      const data = await api.get<{ onlineUsers?: Array<{ userId: string; userName: string; joinedAt: number }> }>("/posts/online");
+      setOnlineUsers(data.onlineUsers ?? []);
+    } catch {
+      setOnlineUsers([]);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 650);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    void refreshPresence();
+    const interval = setInterval(() => {
+      void refreshPresence();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refreshPresence]);
 
   const feedPosts = useMemo(() => posts, [posts]);
 
@@ -126,6 +148,24 @@ export default function FeedScreen({ navigation }: Props) {
         label="NOVA"
         context="Today's signal: founder accountability, diaspora introductions, and creator collaboration are driving the strongest replies."
       />
+      <View style={styles.presenceCard}>
+        <View style={styles.presenceHeader}>
+          <Text style={styles.presenceTitle}>Live now</Text>
+          <Text style={styles.presenceCount}>{`${onlineUsers.length} active`}</Text>
+        </View>
+        <View style={styles.presenceAvatars}>
+          {onlineUsers.slice(0, 4).map((user) => (
+            <View key={user.userId} style={styles.presenceAvatar} accessibilityLabel={`${user.userName} is online`}>
+              <Text style={styles.presenceAvatarText}>{user.userName.slice(0, 1).toUpperCase()}</Text>
+            </View>
+          ))}
+          {onlineUsers.length > 4 ? (
+            <View style={styles.presenceAvatarOverflow}>
+              <Text style={styles.presenceAvatarOverflowText}>+{onlineUsers.length - 4}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
       <OfflineBanner
         isOnline={offlineState.isOnline}
         isSyncing={offlineState.isSyncing}
@@ -320,6 +360,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     gap: spacing.sm,
+  },
+  presenceCard: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  presenceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  presenceTitle: {
+    color: colors.text,
+    ...typography.labelLg,
+  },
+  presenceCount: {
+    color: colors.green,
+    ...typography.bodySm,
+    fontWeight: "700",
+  },
+  presenceAvatars: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  presenceAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
+    backgroundColor: withAlpha("green", 0.16),
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: withAlpha("green", 0.28),
+  },
+  presenceAvatarText: {
+    color: colors.green,
+    ...typography.labelLg,
+  },
+  presenceAvatarOverflow: {
+    minWidth: 32,
+    height: 32,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface2,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  presenceAvatarOverflowText: {
+    color: colors.textDim,
+    ...typography.bodySm,
+    fontWeight: "700",
   },
   loadingWrap: {
     paddingHorizontal: spacing.md,

@@ -9,7 +9,7 @@
   - Micro-interactions on all elements
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
   /* ── GOLD — Pure shining gold, like logo ── */
@@ -1107,9 +1107,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .display-heading {
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 300;
-  font-style: italic;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .section-title {
@@ -1129,4 +1129,26 @@ h1, h2, h3, h4, h5, h6 {
 
 .mono {
   font-family: 'Space Mono', monospace;
+}
+
+/* Design regulation overrides */
+body {
+  line-height: 1.5;
+  font-family: 'Syne', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+p, li {
+  line-height: 1.5;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }

@@ -50,7 +50,7 @@ const css = `
   .fp-card {
     background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%);
     border: 1px solid rgba(137,196,225,0.12);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 44px;
     width: 100%;
     max-width: 420px;
@@ -66,7 +66,7 @@ const css = `
     top: 0; left: 0; right: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--gold), transparent);
-    border-radius: 16px 16px 0 0;
+    border-radius: 20px 20px 0 0;
     opacity: 0.8;
   }
 
@@ -122,7 +122,7 @@ const css = `
     width: 100%;
     background: rgba(137,196,225,0.04);
     border: 1px solid rgba(137,196,225,0.12);
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 13px 16px;
     font-family: 'Space Mono', monospace;
     font-size: 13px;
@@ -145,7 +145,7 @@ const css = `
     background: var(--gold);
     color: var(--bg);
     border: none;
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 14px;
     font-family: 'Syne', sans-serif;
     font-size: 14px;
@@ -182,7 +182,7 @@ const css = `
   .fp-back:hover { color: var(--ice); }
 
   .fp-alert {
-    border-radius: 8px;
+    border-radius: 14px;
     padding: 12px 16px;
     font-family: 'Space Mono', monospace;
     font-size: 11px;

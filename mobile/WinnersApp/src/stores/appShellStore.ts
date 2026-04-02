@@ -32,6 +32,7 @@ type AppShellState = {
   threads: MessageThread[];
   preferences: Record<PreferenceKey, boolean>;
   cacheSizeMb: number;
+  addNotification: (notification: AppNotification) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   togglePreference: (key: PreferenceKey) => void;
@@ -118,6 +119,11 @@ export const useAppShellStore = create<AppShellState>((set) => ({
     largeText: false,
   },
   cacheSizeMb: 148,
+
+  addNotification: (notification) =>
+    set((state) => ({
+      notifications: [notification, ...state.notifications].slice(0, 30),
+    })),
 
   markNotificationRead: (id) =>
     set((state) => ({

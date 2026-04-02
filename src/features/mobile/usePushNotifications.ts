@@ -4,6 +4,7 @@ import { deleteToken, getMessaging, getToken, isSupported, onMessage, type Messa
 import { toast } from "react-hot-toast";
 import { API_BASE } from "../../lib/api";
 import { useAuthStore } from "../auth/authStore";
+import { useNotificationStore, type Notification } from "../notifications/notificationStore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -82,7 +83,7 @@ async function registerDeviceToken(authToken: string, deviceToken: string) {
 }
 
 async function unregisterDeviceToken(authToken: string, deviceToken: string) {
-  await fetch(`${API_BASE}/push-tokens/register`, {
+  const response = await fetch(`${API_BASE}/notifications/device-token`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${authToken}`,
@@ -90,6 +91,11 @@ async function unregisterDeviceToken(authToken: string, deviceToken: string) {
     },
     body: JSON.stringify({ token: deviceToken }),
   });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error ?? "Failed to unregister notification token.");
+  }
 }
 
 function showToast(title: string, body: string) {
@@ -108,6 +114,27 @@ function getForegroundMessage(payload: MessagePayload) {
   return {
     title: payload.notification?.title || payload.data?.title || "Winners",
     body: payload.notification?.body || payload.data?.body || "",
+  };
+}
+
+function buildForegroundNotification(payload: MessagePayload): Notification {
+  const { title, body } = getForegroundMessage(payload);
+  const link = payload.data?.url || payload.fcmOptions?.link || "/notifications";
+  const type = payload.data?.type;
+
+  const normalizedType: Notification["type"] =
+    type === "anomaly" || type === "team" || type === "billing" || type === "revenue" || type === "system"
+      ? type
+      : "system";
+
+  return {
+    id: payload.data?.notificationId || `push:${title}:${body}:${Date.now()}`,
+    type: normalizedType,
+    title,
+    body,
+    read: false,
+    createdAt: new Date().toISOString(),
+    link,
   };
 }
 
@@ -138,6 +165,7 @@ export async function requestPushPermission(authToken: string) {
 export const usePushNotifications = () => {
   const token = useAuthStore((state) => state.token);
   const currentTokenRef = useRef<string | null>(null);
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   const [supported, setSupported] = useState(() => canUsePushApis() && hasFirebaseConfig());
   const [permission, setPermission] = useState<NotificationPermission>(
@@ -301,6 +329,7 @@ export const usePushNotifications = () => {
 
       detach = onMessage(messaging, (payload) => {
         const { title, body } = getForegroundMessage(payload);
+        addNotification(buildForegroundNotification(payload));
         showToast(title, body);
       });
     });
@@ -309,7 +338,7 @@ export const usePushNotifications = () => {
       active = false;
       detach?.();
     };
-  }, [permission, supported]);
+  }, [addNotification, permission, supported]);
 
   return {
     supported,

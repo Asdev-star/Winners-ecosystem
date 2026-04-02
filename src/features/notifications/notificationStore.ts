@@ -29,6 +29,7 @@ interface NotificationState {
   markAllAsRead:      () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
   clearAll:           () => Promise<void>;
+  addNotification:    (notification: Notification) => void;
 }
 
 export const useNotificationStore = create<NotificationState>()(persist((set) => ({
@@ -88,6 +89,20 @@ export const useNotificationStore = create<NotificationState>()(persist((set) =>
     try {
       await fetch(`${API_BASE}/notifications`, { method: "DELETE", headers: getAuthHeaders() });
     } catch { /* optimistic */ }
+  },
+
+  addNotification: (notification) => {
+    set((state) => {
+      const existing = state.notifications.find((item) => item.id === notification.id);
+      const notifications = existing
+        ? state.notifications.map((item) => (item.id === notification.id ? notification : item))
+        : [notification, ...state.notifications];
+
+      return {
+        notifications,
+        unreadCount: notifications.filter((item) => !item.read).length,
+      };
+    });
   },
 }), {
   name: "winners-notification-history",

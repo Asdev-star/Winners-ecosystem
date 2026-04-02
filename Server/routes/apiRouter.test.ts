@@ -47,6 +47,8 @@ describe("apiRouter wiring contract", () => {
       "router.use(\"/registry\", registryRoutes);",
       "router.use(\"/academy\", academyRoutes);",
       "router.use(\"/chat\", chatRoutes);",
+      "router.use(\"/ai-platform\", aiPlatformRoutes);",
+      "router.use(\"/push-tokens\", notificationTokenRoutes);",
     ];
 
     requiredMounts.forEach((mountLine) => {

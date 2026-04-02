@@ -72,12 +72,12 @@ export default function EmptyState({
         }
         
         .empty-state__title {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: 'Syne', sans-serif;
           font-size: 28px;
-          font-weight: 300;
+          font-weight: 800;
           color: var(--text);
           margin: 0 0 12px;
-          line-height: 1.2;
+          line-height: 1.1;
         }
         
         .empty-state__description {
@@ -121,7 +121,7 @@ export default function EmptyState({
           background: ${config.color};
           color: var(--bg);
           border: none;
-          border-radius: 6px;
+          border-radius: 999px;
           font-family: 'Syne', sans-serif;
           font-size: 14px;
           font-weight: 600;
@@ -143,7 +143,7 @@ export default function EmptyState({
           background: transparent;
           color: var(--text);
           border: 1px solid var(--border);
-          border-radius: 6px;
+          border-radius: 999px;
           font-family: 'Syne', sans-serif;
           font-size: 14px;
           font-weight: 600;

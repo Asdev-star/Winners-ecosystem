@@ -144,7 +144,7 @@ function VerticalCard({v, isActive, onClick}: {v: any, isActive: boolean, onClic
     <div onClick={onClick} style={{
       background: isActive ? `${v.color}0C` : T.surface,
       border:`1px solid ${isActive ? v.color+"55" : T.border}`,
-      borderRadius:8, padding:"18px 20px", cursor:"pointer",
+      borderRadius:16, padding:"18px 20px", cursor:"pointer",
       transition:"all 0.22s", position:"relative", overflow:"hidden",
       transform: isActive ? "translateY(-2px)" : "none",
       boxShadow: isActive ? `0 8px 32px ${v.color}18` : "none",
@@ -204,7 +204,7 @@ export default function MarketPage() {
           <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 8, letterSpacing: "0.18em", color: T.gold }}>● MARKET LIVE</span>
         </div>
 
-        <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(36px, 6vw, 64px)", fontWeight: 300, lineHeight: 1.1, marginBottom: 14 }}>
+        <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: "clamp(36px, 6vw, 64px)", fontWeight: 800, lineHeight: 1.05, marginBottom: 14, letterSpacing: "-0.04em" }}>
           {viewMode === 'dashboard' ? (
             <>Not a market.<br /><em style={{ fontStyle: "italic", color: T.gold }}>An economic empire.</em></>
           ) : (
@@ -214,24 +214,24 @@ export default function MarketPage() {
         
         <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 24 }}>
           {viewMode === 'detail' && (
-            <button 
+            <button
               onClick={() => navigate('/market')}
-              style={{ background: T.surface2, border: `1px solid ${T.border}`, padding: '8px 20px', borderRadius: 6, color: T.gold, cursor: 'pointer', fontFamily: 'Space Mono', fontSize: 11, textTransform: 'uppercase' }}
+              style={{ background: T.surface2, border: `1px solid ${T.border}`, padding: '10px 20px', borderRadius: 14, color: T.gold, cursor: 'pointer', fontFamily: 'Space Mono', fontSize: 11, textTransform: 'uppercase' }}
             >
               ← Market Dashboard
             </button>
           )}
           {activeVertical === 'commerce' && (
-            <div style={{ display: 'flex', background: T.surface2, borderRadius: 6, padding: 4, border: `1px solid ${T.border}` }}>
+            <div style={{ display: 'flex', background: T.surface2, borderRadius: 14, padding: 4, border: `1px solid ${T.border}` }}>
               <button 
                 onClick={() => setCommerceSubView('marketplace')}
-                style={{ background: commerceSubView === 'marketplace' ? T.surface3 : 'transparent', border: 'none', padding: '6px 16px', borderRadius: 4, color: commerceSubView === 'marketplace' ? T.gold : T.dim, cursor: 'pointer', fontSize: 11 }}
+                style={{ background: commerceSubView === 'marketplace' ? T.surface3 : 'transparent', border: 'none', padding: '8px 16px', borderRadius: 12, color: commerceSubView === 'marketplace' ? T.gold : T.dim, cursor: 'pointer', fontSize: 11 }}
               >
                 Marketplace
               </button>
               <button 
                 onClick={() => setCommerceSubView('dropshipping')}
-                style={{ background: commerceSubView === 'dropshipping' ? T.surface3 : 'transparent', border: 'none', padding: '6px 16px', borderRadius: 4, color: commerceSubView === 'dropshipping' ? T.gold : T.dim, cursor: 'pointer', fontSize: 11 }}
+                style={{ background: commerceSubView === 'dropshipping' ? T.surface3 : 'transparent', border: 'none', padding: '8px 16px', borderRadius: 12, color: commerceSubView === 'dropshipping' ? T.gold : T.dim, cursor: 'pointer', fontSize: 11 }}
               >
                 Dropshipping
               </button>
@@ -261,27 +261,27 @@ export default function MarketPage() {
             {activeVertical === 'commerce' && commerceSubView === 'dropshipping' ? (
               <WinnersDropshipping />
             ) : (
-              <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 10, padding: 40, textAlign: 'center' }}>
+              <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 18, padding: 40, textAlign: 'center' }}>
                 <div style={{ fontSize: 64, marginBottom: 24 }}>{currentV?.icon}</div>
-                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, color: T.gold, marginBottom: 16 }}>
+                <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, color: T.gold, marginBottom: 16, letterSpacing: "-0.03em" }}>
                   {currentV?.label} Experience
                 </h2>
                 <p style={{ color: T.dim, maxWidth: 600, margin: '0 auto 32px', lineHeight: 1.6 }}>
                   {currentV?.desc}
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, textAlign: 'left' }}>
-                  <div style={{ background: T.surface2, padding: 20, borderRadius: 8, border: `1px solid ${T.border}` }}>
+                  <div style={{ background: T.surface2, padding: 20, borderRadius: 14, border: `1px solid ${T.border}` }}>
                     <h4 style={{ color: T.gold, fontSize: 12, fontFamily: 'Space Mono', marginBottom: 12 }}>REVENUE MODELS</h4>
                     {currentV?.revenue.map(r => <div key={r} style={{ fontSize: 13, marginBottom: 8 }}>• {r}</div>)}
                   </div>
-                  <div style={{ background: T.surface2, padding: 20, borderRadius: 8, border: `1px solid ${T.border}` }}>
+                  <div style={{ background: T.surface2, padding: 20, borderRadius: 14, border: `1px solid ${T.border}` }}>
                     <h4 style={{ color: T.green, fontSize: 12, fontFamily: 'Space Mono', marginBottom: 12 }}>CORE FEATURES</h4>
                     {currentV?.features.slice(0, 4).map(f => <div key={f} style={{ fontSize: 13, marginBottom: 8 }}>• {f}</div>)}
                   </div>
                 </div>
                 <button 
                   onClick={() => navigate(currentV?.path || '/market')}
-                  style={{ marginTop: 40, background: T.gold, border: 'none', padding: '12px 32px', borderRadius: 6, color: T.bg, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ marginTop: 40, background: T.gold, border: 'none', padding: '12px 32px', borderRadius: 14, color: T.bg, fontWeight: 700, cursor: 'pointer' }}
                 >
                   Enter {currentV?.label} Portal
                 </button>

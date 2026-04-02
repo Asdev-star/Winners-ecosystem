@@ -9,7 +9,7 @@ const css = `
   .nb-wrap { position: relative; }
 
   .nb-btn {
-    width: 34px; height: 34px; border-radius: 4px;
+    width: 40px; height: 40px; border-radius: 12px;
     background: transparent; border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.15s; position: relative;
@@ -20,7 +20,7 @@ const css = `
 
   .nb-badge {
     position: absolute; top: -5px; right: -5px;
-    width: 17px; height: 17px; border-radius: 50%;
+    width: 17px; height: 17px; border-radius: 999px;
     background: var(--red); color: white;
     font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
@@ -31,7 +31,7 @@ const css = `
   .nb-dropdown {
     position: absolute; top: calc(100% + 8px); right: 0;
     width: 340px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 6px;
+    border: 1px solid var(--border); border-radius: 18px;
     overflow: hidden; z-index: 200;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     animation: nb-drop 0.15s ease;

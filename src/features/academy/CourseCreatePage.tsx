@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAcademyStore } from "./academyStore";
 import ImageUploader from "./components/ImageUploader";
+import VideoUploader from "./components/VideoUploader";
 
 const CATEGORIES = [
   "Digital Marketing",
@@ -551,16 +552,14 @@ export default function CourseCreatePage() {
               </div>
 
               <div className="form-field">
-                <label className="form-label">Preview Video URL</label>
-                <input
-                  type="url"
-                  name="previewVideo"
-                  className="form-input"
+                <VideoUploader
                   value={formData.previewVideo}
-                  onChange={handleChange}
-                  placeholder="https://youtube.com/watch?v=..."
+                  onChange={(url) => setFormData((prev) => ({ ...prev, previewVideo: url }))}
+                  label="Preview Video"
                 />
-                <div className="form-hint">YouTube or Vimeo URL for course preview</div>
+                <div className="form-hint" style={{ marginTop: 10 }}>
+                  Upload a Cloudinary-hosted course trailer or introduction video.
+                </div>
               </div>
             </div>
           </div>

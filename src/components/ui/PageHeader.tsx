@@ -29,20 +29,20 @@ const eyebrowStyle: CSSProperties = {
 };
 
 const titleStyle: CSSProperties = {
-  fontFamily: "'Cormorant Garamond', serif",
-  fontSize: "clamp(32px, 5vw, 64px)",
-  fontWeight: 300,
-  letterSpacing: "-0.02em",
+  fontFamily: "'Syne', sans-serif",
+  fontSize: "clamp(30px, 4.5vw, 52px)",
+  fontWeight: 800,
+  letterSpacing: "-0.04em",
   color: "var(--text)",
   margin: 0,
-  lineHeight: 0.95,
+  lineHeight: 1.05,
 };
 
 const subtitleStyle: CSSProperties = {
   fontFamily: "'Syne', sans-serif",
   fontSize: 14,
-  lineHeight: 1.7,
-  color: "var(--text-mid)",
+  lineHeight: 1.5,
+  color: "var(--text-dim)",
   marginTop: 10,
 };
 

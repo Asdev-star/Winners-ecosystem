@@ -418,30 +418,271 @@ router.get("/azure/config", (_req: Request, res: Response) => {
 // POST /sso/saml - Configure SAML IdP
 router.post("/saml", authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { idpEntityId, idpSsoUrl, idpCertificate, attributeMapping } = req.body;
+    const { idpEntityId, idpSsoUrl, idpCertificate, attributeMapping, spEntityId } = req.body;
 
     if (!idpEntityId || !idpSsoUrl || !idpCertificate) {
       return res.status(400).json({ message: "idpEntityId, idpSsoUrl, and idpCertificate are required" });
     }
 
-    // Store SAML configuration in tenant settings
-    // In production, this would update tenant config in database
     const tenantId = req.user!.tenantId;
 
-    // TODO: Save to database
-    // await db.tenant.update({
-    //   where: { id: tenantId },
-    //   data: { samlConfig: { idpEntityId, idpSsoUrl, idpCertificate, attributeMapping } }
-    // });
+    await db.sSOConfig.upsert({
+      where: { tenantId },
+      update: {
+        provider: "saml",
+        entityId: idpEntityId,
+        ssoUrl: idpSsoUrl,
+        certificate: idpCertificate,
+        clientId: spEntityId || null,
+        active: true,
+      },
+      create: {
+        tenantId,
+        provider: "saml",
+        entityId: idpEntityId,
+        ssoUrl: idpSsoUrl,
+        certificate: idpCertificate,
+        clientId: spEntityId || null,
+        active: true,
+      },
+    });
 
     res.json({
       message: "SAML IdP configuration saved",
       tenantId,
-      status: "pending_verification",
+      status: "active",
     });
   } catch (error) {
     console.error("SAML config error:", error);
     res.status(500).json({ message: "Failed to save SAML configuration" });
+  }
+});
+
+// GET /sso/saml/metadata - Get SP metadata for SAML IdP
+router.get("/saml/metadata", (_req: Request, res: Response) => {
+  const entityId = process.env.SAML_SP_ENTITY_ID || "winners-ecosystem-sp";
+  const acsUrl = process.env.SAML_ACS_URL || "https://api.winnersempire.io/api/v1/sso/saml/acs";
+  
+  const metadata = `<?xml version="1.0" encoding="UTF-8"?>
+<md:EntityDescriptor entityID="${entityId}" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata">
+  <md:SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="${acsUrl}" index="0" isDefault="true"/>
+  </md:SPSSODescriptor>
+</md:EntityDescriptor>`;
+
+  res.type("application/xml").send(metadata);
+});
+
+// POST /sso/saml/acs - SAML Assertion Consumer Service
+router.post("/saml/acs", async (req: Request, res: Response) => {
+  try {
+    const { SAMLResponse, RelayState } = req.body;
+
+    if (!SAMLResponse) {
+      return res.status(400).json({ message: "SAMLResponse is required" });
+    }
+
+    // In production, parse and validate SAML response
+    // For now, return placeholder for demo
+    res.json({
+      message: "SAML ACS endpoint ready",
+      note: "SAML response parsing requires additional implementation",
+    });
+  } catch (error) {
+    console.error("SAML ACS error:", error);
+    res.status(500).json({ message: "Failed to process SAML response" });
+  }
+});
+
+// GET /sso/saml/status - Get SAML configuration status
+router.get("/saml/status", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const config = await db.sSOConfig.findFirst({
+      where: { tenantId, provider: "saml" },
+    });
+
+    if (!config) {
+      return res.json({ configured: false, message: "No SAML configuration found" });
+    }
+
+    res.json({
+      configured: true,
+      entityId: config.entityId,
+      ssoUrl: config.ssoUrl,
+      active: config.active,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
+    });
+  } catch (error) {
+    console.error("SAML status error:", error);
+    res.status(500).json({ message: "Failed to get SAML status" });
+  }
+});
+
+// DELETE /sso/saml - Remove SAML configuration
+router.delete("/saml", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    await db.sSOConfig.deleteMany({
+      where: { tenantId, provider: "saml" },
+    });
+
+    res.json({ message: "SAML configuration removed" });
+  } catch (error) {
+    console.error("SAML delete error:", error);
+    res.status(500).json({ message: "Failed to remove SAML configuration" });
+  }
+});
+
+// GET /sso/okta/config - Check Okta configuration
+router.get("/okta/config", (_req: Request, res: Response) => {
+  const domain = process.env.OKTA_DOMAIN;
+  const clientId = process.env.OKTA_CLIENT_ID;
+  const redirectUri = process.env.OKTA_REDIRECT_URI;
+
+  if (!domain || !clientId) {
+    return res.json({ enabled: false, message: "Okta not configured" });
+  }
+
+  const authUrl = `https://${domain}/oauth2/v1/authorize`;
+  const scope = encodeURIComponent("openid profile email");
+  const redirect = encodeURIComponent(redirectUri || "");
+
+  res.json({
+    enabled: true,
+    authUrl: `${authUrl}?client_id=${clientId}&response_type=code&scope=${scope}&redirect_uri=${redirect}`,
+  });
+});
+
+// POST /sso/okta/callback - Okta OAuth callback
+router.post("/okta/callback", async (req: Request, res: Response) => {
+  try {
+    const { code, state } = req.body;
+    const domain = process.env.OKTA_DOMAIN;
+    const clientId = process.env.OKTA_CLIENT_ID;
+    const clientSecret = process.env.OKTA_CLIENT_SECRET;
+    const redirectUri = process.env.OKTA_REDIRECT_URI;
+
+    if (!code) {
+      return res.status(400).json({ message: "Authorization code required" });
+    }
+
+    if (!domain || !clientId || !clientSecret) {
+      return res.status(500).json({ message: "Okta not configured" });
+    }
+
+    const tokenRes = await fetch(`https://${domain}/oauth2/v1/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_id: clientId,
+        client_secret: clientSecret!,
+        redirect_uri: redirectUri || "",
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      throw new Error("Failed to exchange authorization code");
+    }
+
+    const tokens = await tokenRes.json();
+
+    const userInfoRes = await fetch(`https://${domain}/oauth2/v1/userinfo`, {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+
+    const userInfo = await userInfoRes.json();
+
+    res.json({
+      success: true,
+      user: {
+        email: userInfo.email,
+        name: userInfo.name,
+        subject: userInfo.sub,
+      },
+    });
+  } catch (error) {
+    console.error("Okta callback error:", error);
+    res.status(500).json({ message: "Failed to process Okta callback" });
+  }
+});
+
+// GET /sso/azuread/config - Check Azure AD configuration
+router.get("/azuread/config", (_req: Request, res: Response) => {
+  const tenantId = process.env.AZURE_TENANT_ID;
+  const clientId = process.env.AZURE_CLIENT_ID;
+  const redirectUri = process.env.AZURE_REDIRECT_URI;
+
+  if (!tenantId || !clientId) {
+    return res.json({ enabled: false, message: "Azure AD not configured" });
+  }
+
+  const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`;
+  const scope = encodeURIComponent("openid profile email User.Read");
+  const redirect = encodeURIComponent(redirectUri || "");
+
+  res.json({
+    enabled: true,
+    authUrl: `${authUrl}?client_id=${clientId}&response_type=code&scope=${scope}&redirect_uri=${redirect}`,
+  });
+});
+
+// POST /sso/azuread/callback - Azure AD OAuth callback
+router.post("/azuread/callback", async (req: Request, res: Response) => {
+  try {
+    const { code, state } = req.body;
+    const tenantId = process.env.AZURE_TENANT_ID;
+    const clientId = process.env.AZURE_CLIENT_ID;
+    const clientSecret = process.env.AZURE_CLIENT_SECRET;
+    const redirectUri = process.env.AZURE_REDIRECT_URI;
+
+    if (!code) {
+      return res.status(400).json({ message: "Authorization code required" });
+    }
+
+    if (!tenantId || !clientId || !clientSecret) {
+      return res.status(500).json({ message: "Azure AD not configured" });
+    }
+
+    const tokenRes = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        client_id: clientId,
+        client_secret: clientSecret!,
+        redirect_uri: redirectUri || "",
+        scope: "openid profile email User.Read",
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      throw new Error("Failed to exchange authorization code");
+    }
+
+    const tokens = await tokenRes.json();
+
+    const graphRes = await fetch("https://graph.microsoft.com/v1.0/me", {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+
+    const userInfo = await graphRes.json();
+
+    res.json({
+      success: true,
+      user: {
+        email: userInfo.mail || userInfo.userPrincipalName,
+        name: userInfo.displayName,
+        subject: userInfo.id,
+      },
+    });
+  } catch (error) {
+    console.error("Azure AD callback error:", error);
+    res.status(500).json({ message: "Failed to process Azure AD callback" });
   }
 });
 

@@ -326,7 +326,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           max-width: 640px;
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 12px;
+          border-radius: 18px;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
           overflow: hidden;
           animation: cmdSlide 0.2s ease;
@@ -357,7 +357,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           color: var(--text-dim);
           background: var(--surface2);
           padding: 4px 8px;
-          border-radius: 6px;
+          border-radius: 12px;
         }
 
         .cmd-input {
@@ -411,7 +411,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           align-items: center;
           gap: 12px;
           padding: 10px 12px;
-          border-radius: 8px;
+          border-radius: 14px;
           cursor: pointer;
           transition: background 0.15s;
         }
@@ -509,7 +509,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           font-family: 'Space Mono', monospace;
           font-size: 9px;
           padding: 2px 8px;
-          border-radius: 4px;
+          border-radius: 999px;
           background: var(--surface);
           color: var(--text-dim);
         }

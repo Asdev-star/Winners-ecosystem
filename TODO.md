@@ -4,32 +4,32 @@ From PROJECT_STATE_CURRENT.md V10.0 Critical Pending Actions (Prioritized)
 
 ## Priority 1 - Security Fix (Immediate)
 
-- [ ] Verify/fix tenantId scoping on postRoutes.ts update/delete
+- [x] Verify/fix tenantId scoping on postRoutes.ts update/delete
 
 ## Priority 2 - Wire Intelligence Routes (1 day)
 
-- [ ] Add /intelligence & /intelligence/aria routes to src/App.tsx
-- [ ] Add Intelligence nav item to src/components/layout/MainLayout.tsx
-- [ ] Confirm chatRoutes.ts mounted in Server/index.ts
+- [x] Add /intelligence & /intelligence/aria routes to src/App.tsx
+- [x] Add Intelligence nav item to src/components/layout/MainLayout.tsx
+- [x] Confirm chatRoutes.ts mounted in Server/index.ts
 
 ## Priority 3 - Phase 4A Market Commerce Hub (1-2 weeks)
 
-- [ ] Complete Stripe checkout flow across CheckoutPage.tsx, checkoutRoutes.ts, stripeRoutes.ts, and stripeService.ts
-- [ ] Create order confirmation experience plus transactional email notifications via orderRoutes.ts and emailService.ts
-- [ ] Finalize inventory updates on purchase and order status transitions
+- [x] Complete Stripe checkout flow across CheckoutPage.tsx, checkoutRoutes.ts, stripeRoutes.ts, and stripeService.ts
+- [x] Create order confirmation experience plus transactional email notifications via orderRoutes.ts and emailService.ts
+- [x] Finalize inventory updates on purchase and order status transitions
 - [x] Build vendor payout tracking system using Vendor, VendorPayout, and VendorDashboard surfaces
-- [ ] Implement product reviews UI and submission flow for ProductPage.tsx / OrdersPage.tsx
-- [ ] Complete dropshipping hub and live supplier sync coverage for 6 suppliers
+- [x] Implement product reviews UI and submission flow for ProductPage.tsx / OrdersPage.tsx
+- [x] Complete dropshipping hub and live supplier sync coverage for 6 suppliers
 
 ## Priority 4 - Phase 5b Work Escrow Platform (2 weeks)
 
-- [ ] Complete job listing CRUD API routes in workRoutes.ts
-- [ ] Create job board UI with filters in WorkPage.tsx
-- [ ] Finish freelancer profile system across profile routes, Prisma models, and FreelancerProfilePage.tsx
-- [ ] Implement contract management system for offers, milestones, signatures, and status tracking
-- [ ] Build escrow payment integration across escrowRoutes.ts with Stripe + Flutterwave
-- [ ] Create work review and rating system for clients and freelancers
-- [ ] Finalize job application workflow and CIRCUIT AI matching
+- [x] Complete job listing CRUD API routes in workRoutes.ts
+- [x] Create job board UI with filters in WorkPage.tsx
+- [x] Finish freelancer profile system across profile routes, Prisma models, and FreelancerProfilePage.tsx
+- [x] Implement contract management system for offers, milestones, signatures, and status tracking
+- [x] Build escrow payment integration across escrowRoutes.ts with Stripe + Flutterwave
+- [x] Create work review and rating system for clients and freelancers
+- [x] Finalize job application workflow and CIRCUIT AI matching
 
 ## Phase 6 - Expand Work Layer
 
@@ -82,6 +82,8 @@ From PROJECT_STATE_CURRENT.md V10.0 Critical Pending Actions (Prioritized)
 ✅ **White-label Licensing** - Sub-tenant provisioning, custom branding, enterprise SSO foundation
 ✅ **Cloud 8Connector OAuth2 Flow** - M-Pesa, Stripe, HubSpot, Google Workspace, Slack connectors seeded
 ✅ **Cloud 8CloudDashboardPage.tsx** - Developer portal live at /cloud with overview stats
+✅ **Push Notifications Click-to-Dismiss** - Web & app notifications auto-mark as read on click
+✅ **Enterprise SSO** - SAML, Okta, and Azure AD endpoints in ssoRoutes.ts with database persistence
 
 ### FILES CREATED/MODIFIED
 
@@ -93,10 +95,13 @@ From PROJECT_STATE_CURRENT.md V10.0 Critical Pending Actions (Prioritized)
 - `Server/routes/biometricRoutes.ts` - Biometric authentication API
 - `Server/routes/pluginRoutes.ts` - Added revenue sharing and payout endpoints
 - `Server/routes/whitelabelRoutes.ts` - White-label licensing and sub-tenant provisioning
+- `Server/routes/ssoRoutes.ts` - Added enterprise SSO endpoints (SAML, Okta, Azure AD)
+- `src/components/ui/RealtimeNotifications.tsx` - Mark notifications as read on click
+- `mobile/WinnersApp/App.tsx` - Show clickable alert for push notifications
+- `mobile/WinnersApp/src/services/api.ts` - Added patch method
 
 ### REMAINING TODO
 
-- Enterprise SSO implementation (SAML, Okta, Azure AD) - requires additional Prisma models
 - Firebase Admin SDK integration for production push notifications
 - Production database migrations for new models (notificationPreference, challenge, webAuthnCredential)
 

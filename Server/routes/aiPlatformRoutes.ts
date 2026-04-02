@@ -40,7 +40,11 @@ async function forwardToAIPlatform(endpoint: string, method: string, body?: unkn
       headers: { "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
     });
-    return await response.json() as AIPlatformResponse;
+    const payload = await response.json().catch(async () => ({ error: await response.text() }));
+    if (!response.ok) {
+      throw new Error((payload as AIPlatformResponse).error || `AI platform ${response.status}`);
+    }
+    return payload as AIPlatformResponse;
   } catch (error) {
     console.error("[aiPlatformRoutes] Forward error:", error);
     throw error;

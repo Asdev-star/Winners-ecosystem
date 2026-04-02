@@ -30,7 +30,7 @@ const baseStyle: CSSProperties = {
   position: "relative",
   background: "var(--surface)",
   border: "1px solid var(--border)",
-  borderRadius: 6,
+  borderRadius: 18,
   overflow: "hidden",
   transition: "all 200ms ease",
 };
@@ -40,7 +40,7 @@ const headerTitleStyle: CSSProperties = {
   fontWeight: 700,
   color: "var(--text)",
   marginBottom: 4,
-  lineHeight: 1.3,
+  lineHeight: 1.4,
 };
 
 const headerSubtitleStyle: CSSProperties = {
@@ -77,32 +77,32 @@ export default function Card({
       }}
     >
       {accent !== "none" && (
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 2,
-            background: accentGradient[accent],
-          }}
-        />
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: accentGradient[accent],
+        }}
+      />
       )}
 
       {ai && (
         <div
           aria-hidden="true"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            bottom: 0,
-            width: 2,
-            background: "var(--purple)",
-            opacity: 0.9,
-          }}
-        />
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: 2,
+          background: "var(--purple)",
+          opacity: 0.9,
+        }}
+      />
       )}
 
       {(title || subtitle) && (
@@ -117,7 +117,7 @@ export default function Card({
         </header>
       )}
 
-      <div style={{ padding: compact ? "16px" : "24px" }}>{children}</div>
+      <div style={{ padding: compact ? "16px" : "24px", lineHeight: 1.5 }}>{children}</div>
     </Component>
   );
 }

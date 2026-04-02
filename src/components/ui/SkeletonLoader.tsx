@@ -108,7 +108,7 @@ export function CardSkeleton() {
         .card-skeleton {
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 6px;
+          border-radius: 18px;
           padding: 20px;
           position: relative;
           overflow: hidden;
@@ -262,7 +262,7 @@ export function ChartSkeleton() {
         .chart-skeleton {
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 6px;
+          border-radius: 18px;
           padding: 24px;
           position: relative;
           overflow: hidden;

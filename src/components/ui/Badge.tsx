@@ -64,7 +64,7 @@ export default function Badge({
         fontSize: variantFontSize[variant],
         letterSpacing: "0.12em",
         textTransform: uppercase ? "uppercase" : "none",
-        borderRadius: variant === "trust" ? 12 : 4,
+        borderRadius: 999,
         padding: variant === "trust" || variant === "plan" ? "4px 10px" : "3px 8px",
         color,
         border: `1px solid color-mix(in srgb, ${color} 28%, transparent)`,

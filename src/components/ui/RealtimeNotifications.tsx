@@ -1,7 +1,9 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { toast } from "react-hot-toast";
 import { useAuthStore } from "../../features/auth/authStore";
-import { useNotificationStore } from "../../features/notifications/notificationStore";
+import { useNotificationStore, type Notification } from "../../features/notifications/notificationStore";
+import { getAuthHeaders } from "../../features/auth/authStore";
+import { API_BASE } from "../../lib/api";
 import {
   Sparkles,
   MessageSquare,
@@ -47,10 +49,29 @@ export default function RealtimeNotifications() {
 
     const showToast = (event: RealtimeEvent) => {
       lastToastAtRef.current = Date.now();
-      toast(event.message, {
+      const toastId = toast(event.message, {
         icon: event.icon,
         duration: event.duration ?? 4500,
-        onClick: event.path ? () => navigate(event.path as string) : undefined,
+        onClick: event.path
+          ? async () => {
+              if (event.key.startsWith("NEW_POST:") || event.key.startsWith("NEW_LIKE:") || event.key.startsWith("NEW_COMMENT:") || event.key.startsWith("NEW_FOLLOW:")) {
+                const match = event.key.match(/:(.+)$/);
+                if (match) {
+                  try {
+                    await fetch(`${API_BASE}/notifications`, { headers: getAuthHeaders() });
+                    const res = await fetch(`${API_BASE}/notifications`, { headers: getAuthHeaders() });
+                    const data = await res.json();
+                    const notifs = data.notifications ?? [];
+                    const matched = notifs.find((n: Notification) => n.title?.includes(match[1]) || n.body?.includes(match[1]));
+                    if (matched?.id) {
+                      await fetch(`${API_BASE}/notifications/${matched.id}/read`, { method: "PATCH", headers: getAuthHeaders() });
+                    }
+                  } catch {}
+                }
+              }
+              navigate(event.path as string);
+            }
+          : undefined,
       });
     };
 

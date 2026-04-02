@@ -1,12 +1,47 @@
 // src/features/landing/LandingPage.tsx
 // Phase: Cross-cutting · Layer: Core Engine / Public Face
 // Updated: Complete brand alignment with Winners Ecosystem Digital Sovereign Infrastructure
+// Now with customizable theming and content via config
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { defaultConfig, LandingPageConfig } from "../../config/landingConfig";
 
-const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap');
+interface LandingPageProps {
+  config?: Partial<LandingPageConfig>;
+}
+
+const generateCSS = (config: LandingPageConfig) => `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold:    ${config.theme.primary};
+    --gold2:   ${config.theme.primaryHover};
+    --gold3:   ${config.theme.accent};
+    --gold-dim: ${config.theme.accentDim};
+    --blue:    ${config.theme.secondary};
+    --blue2:   ${config.theme.secondary};
+    --ice:     ${config.theme.secondary};
+    --green:   #2dd4a0;
+    --purple:  #9b6fff;
+    --red:     #ef4444;
+    --bg:      ${config.theme.background};
+    --surface: ${config.theme.surface};
+    --surface2:${config.theme.surface2};
+    --border:  ${config.theme.border};
+    --border2: rgba(30,50,72,0.6);
+    --text:    ${config.theme.text};
+    --text-dim:${config.theme.textDim};
+    --text-faint: ${config.theme.textFaint};
+  }
+
+  html { scroll-behavior: smooth; }
+  body { background: ${config.theme.background}; }
+
+  .lp {
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -179,7 +214,7 @@ const css = `
   }
 
   .lp-hero-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Syne', sans-serif;
     font-size: clamp(56px, 9vw, 120px);
     font-weight: 300; line-height: 0.9;
     letter-spacing: -0.02em; color: var(--text);
@@ -189,7 +224,7 @@ const css = `
   .lp-hero-title em { font-style: italic; color: var(--gold); }
 
   .lp-hero-sub {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Syne', sans-serif;
     font-size: clamp(24px, 3.5vw, 48px);
     font-weight: 300; font-style: italic;
     color: #b9e3f5; line-height: 1.1; margin-bottom: 32px;
@@ -237,7 +272,7 @@ const css = `
   }
   .lp-metric:last-child { border-right: none; }
   .lp-metric-value {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Syne', sans-serif;
     font-size: 36px; font-weight: 600; color: var(--gold); line-height: 1;
     margin-bottom: 5px;
   }
@@ -287,7 +322,7 @@ const css = `
     color: var(--ice); margin-bottom: 20px;
   }
   .lp-os-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Syne', sans-serif;
     font-size: clamp(28px, 4.5vw, 58px);
     font-weight: 300; color: var(--text); line-height: 1.1;
     margin-bottom: 20px;
@@ -385,7 +420,7 @@ const css = `
     align-items: center;
   }
   .lp-company-mission {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Syne', sans-serif;
     font-size: 32px;
     font-style: italic;
     color: var(--gold);
@@ -467,7 +502,7 @@ const css = `
     color: var(--gold); margin-bottom: 14px;
   }
   .lp-section-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Syne', sans-serif;
     font-size: clamp(32px, 4vw, 56px);
     font-weight: 300; color: var(--text); line-height: 1.05;
     margin-bottom: 14px;
@@ -566,7 +601,7 @@ const css = `
     max-width: 100px;
   }
   .lp-loop-arrow {
-    font-family: 'Cormorant Garamond', serif; font-size: 22px;
+    font-family: 'Syne', sans-serif; font-size: 22px;
     color: var(--gold3); padding: 0 4px;
     transform: translateY(-10px);
   }
@@ -597,7 +632,7 @@ const css = `
   .lp-feature:hover { background: var(--surface2); }
   .lp-feature:hover::before { opacity: 1; }
   .lp-feature-num {
-    font-family: 'Cormorant Garamond', serif; font-size: 48px;
+    font-family: 'Syne', sans-serif; font-size: 48px;
     font-weight: 300; color: var(--text-faint); margin-bottom: 14px; line-height: 1;
   }
   .lp-feature-icon { font-size: 22px; margin-bottom: 12px; }
@@ -680,7 +715,7 @@ const css = `
     white-space: nowrap;
   }
   .lp-plan-name {
-    font-family: 'Cormorant Garamond', serif; font-size: 28px;
+    font-family: 'Syne', sans-serif; font-size: 28px;
     font-weight: 400; color: var(--text); margin-bottom: 6px;
   }
   .lp-plan-tagline {
@@ -689,7 +724,7 @@ const css = `
   }
   .lp-plan-price-row { display: flex; align-items: baseline; gap: 4px; margin-bottom: 6px; }
   .lp-plan-currency { font-size: 18px; color: var(--gold); font-weight: 600; margin-top: 4px; }
-  .lp-plan-price { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 600; color: var(--text); line-height: 1; }
+  .lp-plan-price { font-family: 'Syne', sans-serif; font-size: 52px; font-weight: 800; color: var(--text); line-height: 1; }
   .lp-plan-period {
     font-family: 'Space Mono', monospace; font-size: 10px;
     color: var(--text-dim); margin-bottom: 28px;
@@ -773,7 +808,7 @@ const css = `
   }
   .lp-faq-question:hover { color: var(--gold); }
   .lp-faq-icon {
-    font-family: 'Cormorant Garamond', serif; font-size: 24px;
+    font-family: 'Syne', sans-serif; font-size: 24px;
     color: var(--gold); flex-shrink: 0; transition: transform 0.25s; line-height: 1;
   }
   .lp-faq-icon.open { transform: rotate(45deg); }
@@ -800,7 +835,7 @@ const css = `
     pointer-events: none;
   }
   .lp-cta-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Syne', sans-serif;
     font-size: clamp(36px, 5.5vw, 72px);
     font-weight: 300; color: var(--text); line-height: 1.05; margin-bottom: 16px;
   }
@@ -810,7 +845,7 @@ const css = `
     color: var(--text-dim); letter-spacing: 0.12em; margin-bottom: 44px;
   }
   .lp-cta-tagline {
-    font-family: 'Cormorant Garamond', serif; font-size: 20px;
+    font-family: 'Syne', sans-serif; font-size: 20px;
     font-style: italic; color: var(--ice); margin-top: 28px;
   }
 
@@ -861,6 +896,21 @@ const css = `
     color: var(--text-dim); text-decoration: none; transition: color 0.2s;
   }
   .lp-footer-legal a:hover { color: var(--gold); }
+  .lp-footer-social { display: flex; gap: 12px; margin-top: 16px; }
+  .lp-social-link {
+    width: 36px; height: 36px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 14px;
+    text-decoration: none; transition: all 0.2s;
+  }
+  .lp-social-link:hover {
+    border-color: var(--gold); color: var(--gold);
+    transform: translateY(-2px);
+  }
+  .lp-contact-info { margin-top: 16px; font-size: 12px; color: var(--text-dim); line-height: 1.8; }
+  .lp-contact-info a { color: var(--gold); text-decoration: none; }
+  .lp-contact-info a:hover { text-decoration: underline; }
 
   /* ═══════════════════════════════════════════
      DIVIDER
@@ -991,154 +1041,155 @@ const css = `
   }
   .lp-intel-divider { width: 1px; height: 40px; background: var(--border); }
   @media (max-width: 768px) { .lp-intel-strip { gap: 20px; padding: 16px 24px; } .lp-intel-divider { display: none; } }
+
+  /* ═══════════════════════════════════════════
+     TRUSTED BY SECTION
+  ═══════════════════════════════════════════ */
+  .lp-trusted {
+    padding: 48px 48px; text-align: center;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .lp-trusted-label {
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 24px;
+  }
+  .lp-trusted-logos {
+    display: flex; align-items: center; justify-content: center;
+    gap: 48px; flex-wrap: wrap; opacity: 0.7;
+  }
+  .lp-trusted-logo {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+    color: var(--text-dim); letter-spacing: -0.5px;
+    transition: opacity 0.2s;
+  }
+  .lp-trusted-logo:hover { opacity: 1; }
+  @media (max-width: 600px) { .lp-trusted { padding: 32px 24px; } .lp-trusted-logos { gap: 24px; } }
+
+  /* ═══════════════════════════════════════════
+     TESTIMONIALS
+  ═══════════════════════════════════════════ */
+  .lp-testimonials {
+    padding: 100px 48px;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--surface2) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .lp-testimonials-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 28px; max-width: 1200px; margin: 48px auto 0;
+  }
+  .lp-testimonial {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 28px;
+    transition: all 0.3s ease;
+  }
+  .lp-testimonial:hover {
+    transform: translateY(-4px);
+    border-color: var(--gold3);
+  }
+  .lp-testimonial-quote {
+    font-size: 14px; color: var(--text-dim); line-height: 1.8;
+    margin-bottom: 20px; font-style: italic;
+  }
+  .lp-testimonial-author {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .lp-testimonial-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--blue));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: var(--bg); font-size: 14px;
+  }
+  .lp-testimonial-name {
+    font-size: 13px; font-weight: 700; color: var(--text);
+  }
+  .lp-testimonial-role {
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    color: var(--text-dim); letter-spacing: 0.05em;
+  }
+  @media (max-width: 900px) { .lp-testimonials-grid { grid-template-columns: 1fr; } }
+
+  /* Regulation overrides: simplify landing composition */
+  .lp-nav,
+  .lp-hero,
+  .lp-trusted,
+  .lp-testimonials,
+  .lp-footer {
+    border-color: var(--border);
+  }
+
+  .lp-nav-btn,
+  .lp-btn-primary,
+  .lp-btn-ghost,
+  .lp-plan-btn,
+  .lp-faq-question {
+    border-radius: 999px;
+    min-height: 44px;
+  }
+
+  .lp-hero-title,
+  .lp-section-title,
+  .lp-cta-title,
+  .lp-panel-title {
+    font-family: 'Syne', sans-serif !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.04em;
+    line-height: 1.02;
+  }
+
+  .lp-hero-sub,
+  .lp-section-desc,
+  .lp-panel-desc,
+  .lp-testimonial-quote,
+  .lp-footer-tagline {
+    line-height: 1.5;
+  }
+
+  .lp-platform-card,
+  .lp-plan,
+  .lp-testimonial,
+  .lp-faq-item,
+  .lp-service-item {
+    border-radius: 18px;
+  }
+
+  .lp-nav,
+  .lp-context-bar,
+  .lp-hero,
+  .lp-os-band,
+  .lp-how-it-works,
+  .lp-company-section,
+  .lp-arch,
+  .lp-section,
+  .lp-loop-section,
+  .lp-features-section,
+  .lp-progress-band,
+  .lp-pricing-section,
+  .lp-testimonials,
+  .lp-cta-band,
+  .lp-footer {
+    padding-inline: clamp(16px, 4vw, 48px);
+  }
 `;
-
-// ─── DATA ────────────────────────────────────────────────────────────────────
-
-const PLATFORMS = [
-  {
-    icon: "⬡", name: "Core Engine", phase: "Phase 1", status: "live", pct: 92,
-    desc: "The control tower. Multi-tenant auth, billing, analytics, 2FA, RBAC, SSO, and the 52-route API gateway powering every platform layer.",
-    tags: ["Auth & 2FA", "Billing", "Analytics", "52 API Routes"],
-  },
-  {
-    icon: "🧑‍🤝‍🧑", name: "Winners Community", phase: "Phase 2", status: "live", pct: 80,
-    desc: "Full social platform. Posts, groups, DMs, live spaces, studio, creator economy, skill endorsements, and NOVA AI skill detection powering the Agentic Loop.",
-    tags: ["Social Feed", "Live Spaces", "Creator Economy", "NOVA AI"],
-  },
-  {
-    icon: "🎓", name: "Winners Academy", phase: "Phase 3", status: "live", pct: 72,
-    desc: "Complete learning platform. Courses, instructor dashboard, learning paths, study groups, live sessions, certificates, and SAGE AI tutor.",
-    tags: ["Courses", "Certificates", "SAGE AI Tutor", "Live Sessions"],
-  },
-  {
-    icon: "🛒", name: "Winners Market", phase: "Phase 4", status: "soon", pct: 55,
-    desc: "10-vertical commerce engine. Vendor stores, cart, orders, dropshipping, digital marketing, CV tools, and business launcher — with ATLAS AI.",
-    tags: ["10 Verticals", "Dropshipping", "Vendor Stores", "ATLAS AI"],
-  },
-  {
-    icon: "🤖", name: "Winners Intelligence", phase: "Phase 5", status: "live", pct: 75,
-    desc: "9 AI supervisors live. OMEGA orchestrates the Agentic Loop. Token-by-token streaming, multi-turn memory, SSE — all 9 assistants active.",
-    tags: ["9 Supervisors", "OMEGA Dashboard", "Streaming AI", "Agentic Loop"],
-  },
-  {
-    icon: "💼", name: "Winners Work", phase: "Phase 6", status: "soon", pct: 35,
-    desc: "Freelance marketplace. Job board, freelancer profiles, applications, contracts, and AI-powered CIRCUIT matching — escrow integration building.",
-    tags: ["Job Board", "Freelancers", "CIRCUIT AI", "Contracts"],
-  },
-  {
-    icon: "☁️", name: "Winners Cloud", phase: "Phase 8", status: "soon", pct: 40,
-    desc: "Developer infrastructure. API keys, connector marketplace, webhook subscriptions, automations, AI agents builder, and DNS management.",
-    tags: ["API Keys", "Connectors", "Webhooks", "NEXUS AI"],
-  },
-  {
-    icon: "🧬", name: "AI Platform", phase: "Phase 9", status: "soon", pct: 60,
-    desc: "Universal multimodal AI service. FastAPI + Ollama (Llama 3.1, DeepSeek, Qwen), faster-whisper offline STT, and ComfyUI image generation.",
-    tags: ["Ollama Local", "Whisper STT", "ComfyUI", "HERALD AI"],
-  },
-  {
-    icon: "📱", name: "Mobile App", phase: "Phase 7", status: "soon", pct: 25,
-    desc: "PWA ready today. React Native super app in progress — community, learning, commerce, and all 9 AI supervisors in one mobile experience.",
-    tags: ["PWA Ready", "React Native", "Push Notifications", "Offline AI"],
-  },
-];
-
-const FEATURES = [
-  { num: "01", icon: "🧠", title: "AI Intelligence Core", desc: "Claude-powered analytics surfaces insights, detects anomalies, and generates strategic recommendations across every ecosystem layer — automatically." },
-  { num: "02", icon: "🏗", title: "Multi-Tenant Architecture", desc: "Full workspace isolation with role-based access. Every platform layer shares one identity system. One login, every product, zero data leakage." },
-  { num: "03", icon: "💳", title: "Unified Billing Engine", desc: "One billing system governs all platforms. Subscriptions, marketplace commissions, course revenue, and AI credits — managed from a single control panel." },
-  { num: "04", icon: "🔗", title: "API-First Design", desc: "Every layer exposes clean, versioned APIs. Future developers and partners can build on Winners Ecosystem. You stop being a product. You become infrastructure." },
-  { num: "05", icon: "🔐", title: "Enterprise Security", desc: "2FA (TOTP + Email OTP + backup codes), audit logs, encrypted storage, rate limiting, and GDPR compliance built into the core. Security is the foundation." },
-  { num: "06", icon: "📊", title: "Data Dominance", desc: "Every interaction tracked. Revenue, engagement, retention, and cohort analytics available across all platforms in one unified intelligence dashboard." },
-];
-
-const AGENTIC_LOOP = [
-  { icon: "🧑‍🤝‍🧑", label: "Post in Community" },
-  { icon: "🤖", label: "AI Analyses Skills" },
-  { icon: "🎓", label: "Course Recommended" },
-  { icon: "📜", label: "Certificate Earned" },
-  { icon: "💼", label: "Job Matched" },
-  { icon: "🛒", label: "Sell in Market" },
-  { icon: "📈", label: "Revenue Grows" },
-];
-
-const PLANS = [
-  {
-    name: "Starter", tagline: "Explore the ecosystem", price: "0", period: "Free forever",
-    features: [
-      { label: "Winners Community access", yes: true },
-      { label: "1 workspace", yes: true },
-      { label: "Basic analytics (30 days)", yes: true },
-      { label: "Academy courses (free tier)", yes: true },
-      { label: "AI recommendations", yes: false },
-      { label: "Winners Market storefront", yes: false },
-      { label: "Custom domain", yes: false },
-    ],
-    cta: "Get Started Free",
-  },
-  {
-    name: "Pro", tagline: "Build your business", price: "29", period: "/ month",
-    featured: true,
-    features: [
-      { label: "All Starter features", yes: true },
-      { label: "Unlimited workspaces", yes: true },
-      { label: "Advanced analytics + AI insights", yes: true },
-      { label: "All Academy courses", yes: true },
-      { label: "Winners Market storefront", yes: true },
-      { label: "AI recommendations + automation", yes: true },
-      { label: "Priority support", yes: true },
-    ],
-    cta: "Start Pro Trial",
-  },
-  {
-    name: "Enterprise", tagline: "Full ecosystem control", price: "99", period: "/ month",
-    features: [
-      { label: "All Pro features", yes: true },
-      { label: "White-label ecosystem", yes: true },
-      { label: "API access + developer SDK", yes: true },
-      { label: "SSO + advanced RBAC", yes: true },
-      { label: "Custom AI agents (per tenant)", yes: true },
-      { label: "Dedicated support + SLA", yes: true },
-      { label: "Enterprise billing integration", yes: true },
-    ],
-    cta: "Contact Sales",
-  },
-];
-
-const FAQS = [
-  {
-    q: "What exactly is Winners Ecosystem?",
-    a: "Winners Ecosystem is a Digital Sovereign Infrastructure — a Central Digital Operating System that hosts, governs, and intelligently orchestrates six platform products: Community, Academy, Market, Work, Intelligence, and a Developer Cloud. One login gives you access to all of them. Every layer shares identity, billing, and AI."
-  },
-  {
-    q: "How does the AI Agentic Loop work?",
-    a: "The AI core monitors your activity across all platforms. Post in Community → AI detects skills → recommends a course in Academy → you earn a certificate → AI matches you to a job in Winners Work → you earn and spend in the Market. The ecosystem feeds itself and compounds your growth automatically."
-  },
-  {
-    q: "What is live right now?",
-    a: "Core Engine (92%) — auth, billing, analytics, 2FA, RBAC, 52 API routes live. Community (80%) — social feed, groups, DMs, live spaces, creator studio, skill endorsements, NOVA AI live. Academy (72%) — courses, instructor dashboard, learning paths, study groups, live sessions, certificates, SAGE AI tutor live. Intelligence (75%) — all 9 AI supervisors (OMEGA, ARIA, NOVA, SAGE, ATLAS, FORGE, CIRCUIT, NEXUS, HERALD) streaming live, OMEGA Dashboard wired. Market (55%) — vendor stores, cart, orders, dropshipping, business launcher, CV tools, digital marketing built. Work (35%) — job board, freelancer profiles, applications, and contracts built. Cloud (40%) — API keys, connectors, webhooks, automations, agents pages built. AI Platform (60%) — FastAPI multimodal service containerised."
-  },
-  {
-    q: "Can I use just one platform layer?",
-    a: "Yes. Each layer is a standalone product. Community works without Academy. Market works without Work. All platforms share your identity and data, but none require the others to function."
-  },
-  {
-    q: "How does multi-tenant isolation work?",
-    a: "Each workspace is fully isolated with role-based permissions (Owner, Admin, Member, Viewer). Teams collaborate without data leakage. An enterprise can run multiple isolated workspaces under one billing account — each with custom permissions and branding."
-  },
-  {
-    q: "When will the mobile app launch?",
-    a: "A React Native super app is planned for Phase 7 — covering community, learning, commerce, and AI assistant in one mobile experience. A PWA version will ship before native apps to get mobile access faster."
-  },
-];
-
-const STATUS_MAP: Record<string, string> = {
-  live: "live", soon: "building", building: "building", planned: "planned"
-};
 
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
 
-export default function LandingPage() {
+export default function LandingPage({ config: userConfig }: LandingPageProps = {}) {
+  const config = useMemo(() => {
+    const merged = { ...defaultConfig };
+    if (userConfig) {
+      Object.assign(merged.theme, userConfig.theme || {});
+      Object.assign(merged.branding, userConfig.branding || {});
+      Object.assign(merged.nav, userConfig.nav || {});
+      Object.assign(merged.sections, userConfig.sections || {});
+      Object.assign(merged.hero, userConfig.hero || {});
+      Object.assign(merged.footer, userConfig.footer || {});
+    }
+    return merged;
+  }, [userConfig]);
+
   const navigate  = useNavigate();
   const [openFaq, setOpenFaq]     = useState<number | null>(null);
   const [scrolled, setScrolled]   = useState(false);
@@ -1146,13 +1197,14 @@ export default function LandingPage() {
   const progressRef = useRef<HTMLDivElement>(null);
   const [barsVisible, setBarsVisible] = useState(false);
 
+  const css = useMemo(() => generateCSS(config), [config]);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Animate progress bars when section enters viewport
   useEffect(() => {
     if (!progressRef.current) return;
     const obs = new IntersectionObserver(
@@ -1166,6 +1218,10 @@ export default function LandingPage() {
   const scrollTo = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
+  const StatusMap: Record<string, string> = {
+    live: "live", soon: "building", building: "building", planned: "planned"
+  };
+
   return (
     <>
       <style>{css}</style>
@@ -1173,108 +1229,103 @@ export default function LandingPage() {
         <div className="lp-grid-bg" />
 
         {/* ── NAV ── */}
+        {config.sections.hero !== false && (
         <nav className={`lp-nav${scrolled ? " scrolled" : ""}`}>
           <a href="/" className="lp-nav-brand">
-            {!logoError ? (
-              <img src="/logo.jpg" alt="Winners Ecosystem"
+            {!logoError && config.branding.logo ? (
+              <img src={config.branding.logo} alt={config.branding.name}
                 className="lp-nav-logo"
                 onError={() => setLogoError(true)} />
             ) : (
-              <div className="lp-nav-logo-fallback">W</div>
+              <div className="lp-nav-logo-fallback">{config.branding.logoFallback || "W"}</div>
             )}
             <div className="lp-nav-wordmark">
-              <div className="lp-nav-name">Winners Ecosystem</div>
-              <div className="lp-nav-sub">Digital Sovereign Infrastructure</div>
+              <div className="lp-nav-name">{config.branding.name}</div>
+              <div className="lp-nav-sub">{config.branding.tagline}</div>
             </div>
           </a>
 
           <ul className="lp-nav-links">
-            <li><a href="#company"   onClick={e => { e.preventDefault(); scrollTo("company"); }}>Company</a></li>
-            <li><a href="#platforms" onClick={e => { e.preventDefault(); scrollTo("platforms"); }}>Platforms</a></li>
-            <li><a href="#build"     onClick={e => { e.preventDefault(); scrollTo("build"); }}>Build Status</a></li>
-            <li><a href="#pricing"   onClick={e => { e.preventDefault(); scrollTo("pricing"); }}>Pricing</a></li>
-            <li><a href="#faq"       onClick={e => { e.preventDefault(); scrollTo("faq"); }}>FAQ</a></li>
+            {config.nav.links.map((link, i) => (
+              <li key={i}><a href={link.href} onClick={e => { e.preventDefault(); scrollTo(link.href.replace("#", "")); }}>{link.label}</a></li>
+            ))}
           </ul>
 
           <div className="lp-nav-right">
-            <div className="lp-nav-status">
-              <div className="lp-nav-status-dot" />
-              Core Engine Live
-            </div>
-            <button className="lp-nav-btn" onClick={() => navigate("/login")}>
-              Enter →
+            {config.nav.showStatus && (
+              <div className="lp-nav-status">
+                <div className="lp-nav-status-dot" />
+                {config.nav.statusText}
+              </div>
+            )}
+            <button className="lp-nav-btn" onClick={() => navigate(config.nav.ctaLink)}>
+              {config.nav.ctaText}
             </button>
           </div>
         </nav>
+        )}
 
         {/* ── ECOSYSTEM CONTEXT BAR ── */}
-        <div className="lp-context-bar" style={{ marginTop: 64 }}>
+        {config.sections.contextBar && (
+        <div className="lp-context-bar" style={{ marginTop: config.sections.hero !== false ? 64 : 0 }}>
           <div className="lp-context-inner">
             <div className="lp-context-label">Ecosystem</div>
-            {PLATFORMS.map(p => (
+            {config.platforms.items.map(p => (
               <div className="lp-context-item" key={p.name}>
-                <div className={`lp-context-dot ${STATUS_MAP[p.status]}`} />
+                <div className={`lp-context-dot ${StatusMap[p.status]}`} />
                 <span className="lp-context-name">{p.name}</span>
                 <span className="lp-context-pct">{p.pct}%</span>
               </div>
             ))}
           </div>
         </div>
+        )}
 
         {/* ── HERO ── */}
+        {config.sections.hero && (
         <section className="lp-hero">
           <div className="lp-hero-glow" />
           <div className="lp-hero-glow2" />
 
           <div className="lp-hero-eyebrow">
-            Digital Sovereign Infrastructure · 6 Layers Active · 9 AI Supervisors Live
+            {config.hero.eyebrow}
           </div>
 
-          {!logoError ? (
-            <img src="/logo.jpg" alt="Winners Ecosystem"
+          {!logoError && config.branding.logo ? (
+            <img src={config.branding.logo} alt={config.branding.name}
               className="lp-hero-logo"
               onError={() => setLogoError(true)} />
           ) : (
-            <div className="lp-hero-logo-fallback">⬡</div>
+            <div className="lp-hero-logo-fallback">{config.branding.logoFallback || "⬡"}</div>
           )}
 
           <h1 className="lp-hero-title">
-            One <em>Ecosystem</em>
+            {config.hero.title.split(config.hero.titleHighlight).map((part, i, arr) => (
+              <>{part}{i < arr.length - 1 && <em>{config.hero.titleHighlight}</em>}</>
+            ))}
           </h1>
-          <div className="lp-hero-sub">Nine Platforms. Nine Supervisors. One Intelligence.</div>
+          <div className="lp-hero-sub">{config.hero.subtitle}</div>
 
           <p className="lp-hero-desc">
-            A Central Digital Operating System that owns, hosts, governs, and intelligently
-            orchestrates multiple platform-products — Community, Learning, Commerce, Work, and AI —
-            all unified under one identity, one billing engine, and one AI core.
+            {config.hero.description}
           </p>
 
           <div className="lp-hero-actions">
-            <button className="lp-btn-primary" onClick={() => navigate("/login")}>
-              Join the Ecosystem
+            <button className="lp-btn-primary" onClick={() => navigate(config.nav.ctaLink)}>
+              {config.hero.ctaPrimary}
             </button>
-            <button className="lp-btn-ghost" onClick={() => scrollTo("platforms")}>
-              Explore Platforms →
+            <button className="lp-btn-ghost" onClick={() => scrollTo("how-it-works")}>
+              {config.hero.ctaSecondary}
             </button>
           </div>
 
           <div className="lp-hero-metrics">
-            <div className="lp-metric">
-              <div className="lp-metric-value">9</div>
-              <div className="lp-metric-label">Platform Layers</div>
-            </div>
-            <div className="lp-metric">
-              <div className="lp-metric-value">9</div>
-              <div className="lp-metric-label">AI Supervisors</div>
-            </div>
-            <div className="lp-metric">
-              <div className="lp-metric-value">48</div>
-              <div className="lp-metric-label">API Routes</div>
-            </div>
-            <div className="lp-metric">
-              <div className="lp-metric-value">150+</div>
-              <div className="lp-metric-label">DB Models</div>
-            </div>
+            {config.hero.metrics.map((m, i) => (
+              <div className="lp-metric" key={i}>
+                <div className="lp-metric-value">{m.value}</div>
+                <div className="lp-metric-label">{m.label}</div>
+              </div>
+            ))}
           </div>
 
           <div className="lp-scroll-hint">
@@ -1282,114 +1333,89 @@ export default function LandingPage() {
             <span>Scroll to explore</span>
           </div>
         </section>
+        )}
 
-        {/* ── ECOSYSTEM OS BAND ── */}
-        <div className="lp-os-band">
-          <div className="lp-os-label">The Core Concept</div>
-          <h2 className="lp-os-title">
-            Not a website. Not a SaaS.<br /><em>A Digital Operating System.</em>
-          </h2>
-          <p className="lp-os-desc">
-            Winners Ecosystem is infrastructure. Every platform layer — Community, Academy, Market,
-            Work, Intelligence — runs on the same brain. One account. One billing system. One AI core
-            that connects them all and makes them smarter together than they are apart.
-          </p>
-          <div className="lp-os-pillars">
-            <span className="lp-os-pill blue">🧑‍🤝‍🧑 Connect</span>
-            <span className="lp-os-pill gold">🎓 Learn</span>
-            <span className="lp-os-pill green">💰 Earn</span>
-            <span className="lp-os-pill blue">🛒 Sell</span>
-            <span className="lp-os-pill purple">🤖 Automate</span>
-            <span className="lp-os-pill gold">🌍 Scale</span>
+        {/* ── TRUSTED BY ── */}
+        {config.sections.trustedBy && (
+        <div className="lp-trusted">
+          <div className="lp-trusted-label">{config.trustedBy.label}</div>
+          <div className="lp-trusted-logos">
+            {config.trustedBy.companies.map((c, i) => (
+              <span key={i} className="lp-trusted-logo">{c}</span>
+            ))}
           </div>
         </div>
+        )}
+
+        {/* ── ECOSYSTEM OS BAND ── */}
+        {config.sections.ecosystemBand && (
+        <div className="lp-os-band">
+          <div className="lp-os-label">{config.ecosystemBand.label}</div>
+          <h2 className="lp-os-title">
+            {config.ecosystemBand.title.split(config.ecosystemBand.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.ecosystemBand.titleHighlight}</em>}</>))}
+          </h2>
+          <p className="lp-os-desc">{config.ecosystemBand.description}</p>
+          <div className="lp-os-pillars">
+            {config.ecosystemBand.pillars.map((pill, i) => (
+              <span key={i} className={`lp-os-pill ${pill.color}`}>{pill.icon} {pill.label}</span>
+            ))}
+          </div>
+        </div>
+        )}
 
         {/* ── HOW IT WORKS ── */}
+        {config.sections.howItWorks && (
         <section className="lp-how-it-works" id="how-it-works">
-          <div className="lp-section-eyebrow">The Journey</div>
-          <h2 className="lp-section-title">How to <em>Sovereign</em></h2>
+          <div className="lp-section-eyebrow">{config.howItWorks.eyebrow}</div>
+          <h2 className="lp-section-title">How to <em>{config.howItWorks.titleHighlight}</em></h2>
           <p className="lp-section-desc" style={{ margin: '0 auto' }}>
-            The Winners Ecosystem doesn't just host your data—it guides your growth through the Agentic Loop.
+            {config.howItWorks.description}
           </p>
           
           <div className="lp-how-grid">
-            <div className="lp-how-step">
-              <div className="lp-how-num">01</div>
-              <div className="lp-how-title">Join & Post</div>
-              <div className="lp-how-desc">
-                Create your account and start sharing in the Community. NOVA AI passively monitors your signal to detect latent skills and interests.
+            {config.howItWorks.steps.map((step, i) => (
+              <div className="lp-how-step" key={i}>
+                <div className="lp-how-num">{step.num}</div>
+                <div className="lp-how-title">{step.title}</div>
+                <div className="lp-how-desc">{step.description}</div>
               </div>
-            </div>
-            <div className="lp-how-step">
-              <div className="lp-how-num">02</div>
-              <div className="lp-how-title">Learn & Prove</div>
-              <div className="lp-how-desc">
-                SAGE AI recommends specific Academy modules to sharpen your detected skills. Earn verified certificates that compound your Trust Score.
-              </div>
-            </div>
-            <div className="lp-how-step">
-              <div className="lp-how-num">03</div>
-              <div className="lp-how-title">Unlock & Earn</div>
-              <div className="lp-how-desc">
-                As your Trust Score grows, OMEGA unlocks commercial surfaces in Work and Market, matching you to high-leverage opportunities automatically.
-              </div>
-            </div>
+            ))}
           </div>
         </section>
+        )}
 
         {/* ── THE COMPANY & SERVICES ── */}
+        {config.sections.company && (
         <section className="lp-company-section" id="company">
           <div className="lp-company-grid">
             <div className="lp-company-content">
-              <div className="lp-section-eyebrow">The Company</div>
-              <h2 className="lp-section-title">Winners <em>Empire</em></h2>
-              <p className="lp-company-mission">
-                "To build the world's first truly integrated Digital Sovereign Infrastructure that empowers creators, entrepreneurs, and digital businesses to own their growth."
-              </p>
+              <div className="lp-section-eyebrow">{config.company.eyebrow}</div>
+              <h2 className="lp-section-title">{config.company.title.split(config.company.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.company.titleHighlight}</em>}</>))}</h2>
+              <p className="lp-company-mission">{config.company.mission}</p>
               <div className="lp-company-body">
-                <p style={{ marginBottom: 20 }}>
-                  Winners Ecosystem is not just a collection of apps; it's a strategic engine designed to eliminate the friction between learning, creating, and earning. Founded on the principle of Digital Sovereignty, we provide the infrastructure that allows users to escape fragmented tools and enter a unified, AI-orchestrated environment.
-                </p>
-                <p>
-                  Our company focuses on long-term sustainability, transparent building, and the relentless pursuit of an "Agentic Loop" where human potential is maximized by intelligent automation.
-                </p>
+                <p style={{ marginBottom: 20 }}>{config.company.description.split('. ')[0]}.</p>
+                <p>{config.company.description.split('. ').slice(1).join('. ')}</p>
               </div>
             </div>
 
             <div className="lp-services-list">
-              <div className="lp-service-item">
-                <div className="lp-service-title">AI Orchestration</div>
-                <div className="lp-service-desc">
-                  9 dedicated AI supervisors (OMEGA core) orchestrating cross-layer workflows and strategic recommendations.
+              {config.company.services.map((service, i) => (
+                <div className="lp-service-item" key={i}>
+                  <div className="lp-service-title">{service.title}</div>
+                  <div className="lp-service-desc">{service.description}</div>
                 </div>
-              </div>
-              <div className="lp-service-item">
-                <div className="lp-service-title">Sovereign Identity</div>
-                <div className="lp-service-desc">
-                  Unified identity and reputation passport that follows you across every platform layer without data leakage.
-                </div>
-              </div>
-              <div className="lp-service-item">
-                <div className="lp-service-title">Platform Infrastructure</div>
-                <div className="lp-service-desc">
-                  Enterprise-grade multi-tenant architecture with RBAC, SSO, and 2FA built into the foundation.
-                </div>
-              </div>
-              <div className="lp-service-item">
-                <div className="lp-service-title">Developer Cloud</div>
-                <div className="lp-service-desc">
-                  API-first design with a dedicated SDK and webhook engine for building custom integrations on the ecosystem.
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
+        )}
 
         {/* ── ARCHITECTURE DIAGRAM ── */}
+        {config.sections.architecture && (
         <div className="lp-arch">
-          <div className="lp-section-eyebrow">Architecture</div>
-          <h2 className="lp-section-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300 }}>
-            Three zones. One system.
+          <div className="lp-section-eyebrow">{config.architecture.eyebrow}</div>
+          <h2 className="lp-section-title" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
+            {config.architecture.title}
           </h2>
           <div className="lp-arch-box">
             <div className="lp-arch-ai">┌──────────────────────────────────────────────┐</div>
@@ -1411,21 +1437,20 @@ export default function LandingPage() {
             <div className="lp-arch-green">└──────────────────────────────────────────────┘</div>
           </div>
         </div>
+        )}
 
         {/* ── PLATFORM LAYERS ── */}
+        {config.sections.platforms && (
         <section className="lp-section" id="platforms">
           <div className="lp-section-header">
-            <div className="lp-section-eyebrow">Ecosystem Platforms</div>
+            <div className="lp-section-eyebrow">{config.platforms.eyebrow}</div>
             <h2 className="lp-section-title">
-              Six platforms.<br /><em>One ecosystem.</em>
+              {config.platforms.title.split(config.platforms.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.platforms.titleHighlight}</em>}</>))}
             </h2>
-            <p className="lp-section-desc">
-              Each layer is a standalone product and a monetizable business. Built sequentially,
-              connected by the AI core, evolved continuously.
-            </p>
+            <p className="lp-section-desc">{config.platforms.description}</p>
           </div>
           <div className="lp-platforms-grid">
-            {PLATFORMS.map(p => (
+            {config.platforms.items.map(p => (
               <div key={p.name} className={`lp-platform-card ${p.status}`}>
                 <div className="lp-platform-header">
                   <div className="lp-platform-icon">{p.icon}</div>
@@ -1447,47 +1472,42 @@ export default function LandingPage() {
             ))}
           </div>
         </section>
+        )}
 
         {/* ── AGENTIC LOOP ── */}
+        {config.sections.agenticLoop && (
         <div className="lp-loop-section">
-          <div className="lp-section-eyebrow">The Agentic Loop</div>
-          <h2 className="lp-section-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, textAlign: "center" }}>
-            Every action feeds the next.<br /><em>The ecosystem compounds.</em>
+          <div className="lp-section-eyebrow">{config.agenticLoop.eyebrow}</div>
+          <h2 className="lp-section-title" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, textAlign: "center" }}>
+            {config.agenticLoop.title.split(config.agenticLoop.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.agenticLoop.titleHighlight}</em>}</>))}
           </h2>
           <p style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.8, maxWidth: 580, margin: "0 auto", textAlign: "center" }}>
-            Winners Intelligence connects all platforms into one reinforcing loop. Your activity in
-            Community becomes your curriculum in Academy. Your certificate becomes your job listing.
-            Your income becomes your market. Every loop makes you more valuable.
+            {config.agenticLoop.description}
           </p>
           <div className="lp-loop-steps">
-            {AGENTIC_LOOP.map((step, i) => (
-              <>
-                <div className="lp-loop-step" key={step.label}>
-                  <div className="lp-loop-icon">{step.icon}</div>
-                  <div className="lp-loop-step-label">{step.label}</div>
-                </div>
-                {i < AGENTIC_LOOP.length - 1 && (
-                  <div className="lp-loop-arrow" key={`arrow-${i}`}>→</div>
-                )}
-              </>
+            {config.agenticLoop.steps.map((step, i) => (
+              <><div className="lp-loop-step" key={step.label}>
+                <div className="lp-loop-icon">{step.icon}</div>
+                <div className="lp-loop-step-label">{step.label}</div>
+              </div>
+              {i < config.agenticLoop.steps.length - 1 && <div className="lp-loop-arrow" key={`arrow-${i}`}>→</div>}</>
             ))}
           </div>
         </div>
+        )}
 
         {/* ── FEATURES ── */}
+        {config.sections.features && (
         <section className="lp-features-section" id="features">
           <div className="lp-section-header">
-            <div className="lp-section-eyebrow">Core Capabilities</div>
+            <div className="lp-section-eyebrow">{config.features.eyebrow}</div>
             <h2 className="lp-section-title">
-              Built for scale.<br /><em>From day one.</em>
+              {config.features.title.split(config.features.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.features.titleHighlight}</em>}</>))}
             </h2>
-            <p className="lp-section-desc">
-              The Core Engine isn't a feature — it's the foundation every platform layer runs on.
-              Built once, never abandoned.
-            </p>
+            <p className="lp-section-desc">{config.features.description}</p>
           </div>
           <div className="lp-features-grid">
-            {FEATURES.map(f => (
+            {config.features.items.map(f => (
               <div key={f.num} className="lp-feature">
                 <div className="lp-feature-num">{f.num}</div>
                 <div className="lp-feature-icon">{f.icon}</div>
@@ -1497,27 +1517,27 @@ export default function LandingPage() {
             ))}
           </div>
         </section>
+        )}
 
         {/* ── BUILD PROGRESS ── */}
+        {config.sections.buildProgress && (
         <div className="lp-progress-band" id="build" ref={progressRef}>
-          <div className="lp-section-eyebrow">Build Status · February 2026</div>
-          <h2 className="lp-section-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 300 }}>
-            Phase 2 of 8. <em>Active build.</em>
+          <div className="lp-section-eyebrow">{config.buildProgress.eyebrow}</div>
+          <h2 className="lp-section-title" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800 }}>
+            {config.buildProgress.title.split(config.buildProgress.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.buildProgress.titleHighlight}</em>}</>))}
           </h2>
-          <p style={{ fontSize: 13, color: "var(--text-dim)", maxWidth: 520, margin: "0 auto" }}>
-            Transparent progress. Every layer tracked. Shipped in order. Never abandoned.
-          </p>
+          <p style={{ fontSize: 13, color: "var(--text-dim)", maxWidth: 520, margin: "0 auto" }}>{config.buildProgress.description}</p>
           <div className="lp-progress-grid">
-            {PLATFORMS.map(p => (
+            {config.platforms.items.map(p => (
               <div className="lp-progress-item" key={p.name}>
                 <div className="lp-progress-name">{p.icon} {p.name}</div>
-                <div className={`lp-progress-status ${STATUS_MAP[p.status]}`}>
+                <div className={`lp-progress-status ${StatusMap[p.status]}`}>
                   {p.status === "live" ? "● Live" : p.status === "soon" ? "⟳ Building" : "◌ Planned"}
                 </div>
                 <div className="lp-progress-pct">{p.pct}% complete</div>
                 <div className="lp-progress-bar-track">
                   <div
-                    className={`lp-progress-bar-fill ${STATUS_MAP[p.status]}`}
+                    className={`lp-progress-bar-fill ${StatusMap[p.status]}`}
                     style={{ width: barsVisible ? `${p.pct}%` : "0%" }}
                   />
                 </div>
@@ -1525,19 +1545,18 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
+        )}
 
         {/* ── PRICING ── */}
+        {config.sections.pricing && (
         <section className="lp-pricing-section" id="pricing">
-          <div className="lp-section-eyebrow">Pricing</div>
+          <div className="lp-section-eyebrow">{config.pricing.eyebrow}</div>
           <h2 className="lp-section-title">
-            One account.<br /><em>Every platform.</em>
+            {config.pricing.title.split(config.pricing.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.pricing.titleHighlight}</em>}</>))}
           </h2>
-          <p className="lp-section-desc" style={{ margin: "0 auto" }}>
-            All plans give you access to the full ecosystem as each layer launches.
-            No per-platform pricing. One subscription covers everything.
-          </p>
+          <p className="lp-section-desc" style={{ margin: "0 auto" }}>{config.pricing.description}</p>
           <div className="lp-pricing-grid">
-            {PLANS.map(plan => (
+            {config.pricing.plans.map(plan => (
               <div key={plan.name} className={`lp-plan${plan.featured ? " featured" : ""}`}>
                 {plan.featured && <div className="lp-plan-badge">Most Popular</div>}
                 <div className="lp-plan-name">{plan.name}</div>
@@ -1549,46 +1568,71 @@ export default function LandingPage() {
                 <div className="lp-plan-period">{plan.period}</div>
                 <div className="lp-plan-divider" />
                 <ul className="lp-plan-features">
-                  {plan.features.map(f => (
-                    <li key={f.label} className="lp-plan-feature">
-                      <span className={f.yes ? "lp-plan-check" : "lp-plan-x"}>
-                        {f.yes ? "✓" : "–"}
+                  {plan.features.map((f, i) => (
+                    <li key={i} className="lp-plan-feature">
+                      <span className={f.included ? "lp-plan-check" : "lp-plan-x"}>
+                        {f.included ? "✓" : "–"}
                       </span>
-                      <span style={{ color: f.yes ? "var(--text-dim)" : "var(--text-faint)" }}>
+                      <span style={{ color: f.included ? "var(--text-dim)" : "var(--text-faint)" }}>
                         {f.label}
                       </span>
                     </li>
                   ))}
                 </ul>
-                <button className="lp-plan-btn" onClick={() => navigate("/login")}>
+                <button className="lp-plan-btn" onClick={() => navigate(config.nav.ctaLink)}>
                   {plan.cta}
                 </button>
               </div>
             ))}
           </div>
         </section>
+        )}
 
         <div className="lp-divider" />
 
+        {/* ── TESTIMONIALS ── */}
+        {config.sections.testimonials && (
+        <section className="lp-testimonials">
+          <div className="lp-section-eyebrow">{config.testimonials.eyebrow}</div>
+          <h2 className="lp-section-title">
+            {config.testimonials.title.split(config.testimonials.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.testimonials.titleHighlight}</em>}</>))}
+          </h2>
+          <p className="lp-section-desc" style={{ margin: "0 auto", textAlign: "center" }}>{config.testimonials.description}</p>
+          <div className="lp-testimonials-grid">
+            {config.testimonials.items.map((t, i) => (
+              <div key={i} className="lp-testimonial">
+                <div className="lp-testimonial-quote">"{t.quote}"</div>
+                <div className="lp-testimonial-author">
+                  <div className="lp-testimonial-avatar">{t.name.charAt(0)}</div>
+                  <div>
+                    <div className="lp-testimonial-name">{t.name}</div>
+                    <div className="lp-testimonial-role">{t.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
+
         {/* ── FAQ ── */}
+        {config.sections.faq && (
         <section className="lp-section" id="faq">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: 80, alignItems: "start" }}>
             <div>
-              <div className="lp-section-eyebrow">FAQ</div>
+              <div className="lp-section-eyebrow">{config.faq.eyebrow}</div>
               <h2 className="lp-section-title">
-                Common<br /><em>questions.</em>
+                {config.faq.title.split(config.faq.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.faq.titleHighlight}</em>}</>))}
               </h2>
-              <p className="lp-section-desc">
-                Everything you need to know about the ecosystem before joining.
-              </p>
+              <p className="lp-section-desc">{config.faq.description}</p>
               <div style={{ marginTop: 36 }}>
-                <button className="lp-btn-primary" onClick={() => navigate("/login")}>
-                  Join Free Today
+                <button className="lp-btn-primary" onClick={() => navigate(config.nav.ctaLink)}>
+                  {config.faq.cta}
                 </button>
               </div>
             </div>
             <div style={{ paddingTop: 12 }}>
-              {FAQS.map((faq, i) => (
+              {config.faq.items.map((faq, i) => (
                 <div key={i} className="lp-faq-item">
                   <button
                     className="lp-faq-question"
@@ -1603,94 +1647,120 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ── CTA BAND ── */}
+        {config.sections.cta && (
         <div className="lp-cta-band">
           <h2 className="lp-cta-title">
-            Ready to enter<br />the <em>ecosystem</em>?
+            {config.cta.title.split(config.cta.titleHighlight).map((part, i, arr) => (<>{part}{i < arr.length - 1 && <em>{config.cta.titleHighlight}</em>}</>))}
           </h2>
-          <p className="lp-cta-sub">One account. Six platforms. One intelligence core.</p>
+          <p className="lp-cta-sub">{config.cta.subtitle}</p>
           <div className="lp-hero-actions">
-            <button className="lp-btn-primary" onClick={() => navigate("/login")}>
-              Join the Ecosystem
+            <button className="lp-btn-primary" onClick={() => navigate(config.nav.ctaLink)}>
+              {config.cta.ctaPrimary}
             </button>
-            <button className="lp-btn-ghost" onClick={() => navigate("/login")}>
-              Sign In →
+            <button className="lp-btn-ghost" onClick={() => scrollTo("platforms")}>
+              {config.cta.ctaSecondary}
             </button>
           </div>
           <div className="lp-cta-tagline">
-            "Infrastructure → Engagement → Value → Monetization → Intelligence → Scale."
+            {config.cta.tagline}
           </div>
         </div>
+        )}
 
         {/* ── FOOTER ── */}
+        {config.sections.footer && (
         <footer className="lp-footer">
           <div className="lp-footer-top">
             <div>
               <div className="lp-footer-brand">
-                {!logoError ? (
-                  <img src="/logo.jpg" alt="Winners Ecosystem" className="lp-footer-logo"
+                {!logoError && config.branding.logo ? (
+                  <img src={config.branding.logo} alt={config.branding.name} className="lp-footer-logo"
                     onError={() => setLogoError(true)} />
                 ) : (
-                  <div style={{ width: 30, height: 30, borderRadius: 6, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⬡</div>
+                  <div style={{ width: 30, height: 30, borderRadius: 10, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>⬡</div>
                 )}
-                <div className="lp-footer-brand-name">Winners Ecosystem</div>
+                <div className="lp-footer-brand-name">{config.branding.name}</div>
               </div>
-              <p className="lp-footer-tagline">
-                A Central Digital Operating System. Six platforms, one identity, one AI intelligence
-                core. Building the infrastructure for the next generation of creators, entrepreneurs,
-                and digital businesses.
-              </p>
-              <div className="lp-footer-ecosystem-tag">
-                <span style={{ color: "var(--green)", fontSize: 8 }}>●</span>
-                Live on Railway · winners-empire-eco.up.railway.app
+              <p className="lp-footer-tagline">{config.footer.tagline}</p>
+              <div className="lp-footer-social">
+                {config.footer.socialLinks.twitter && (
+                  <a href={config.footer.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="lp-social-link" title="Twitter/X">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  </a>
+                )}
+                {config.footer.socialLinks.linkedin && (
+                  <a href={config.footer.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="lp-social-link" title="LinkedIn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  </a>
+                )}
+                {config.footer.socialLinks.github && (
+                  <a href={config.footer.socialLinks.github} target="_blank" rel="noopener noreferrer" className="lp-social-link" title="GitHub">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                  </a>
+                )}
+                {config.footer.socialLinks.discord && (
+                  <a href={config.footer.socialLinks.discord} target="_blank" rel="noopener noreferrer" className="lp-social-link" title="Discord">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                  </a>
+                )}
+                {config.footer.socialLinks.instagram && (
+                  <a href={config.footer.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="lp-social-link" title="Instagram">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678a6.162 6.162 0 100 12.324 6.162 6.162 0 100-12.324zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405a1.441 1.441 0 01-2.88 0 1.44 1.44 0 012.88 0z"/></svg>
+                  </a>
+                )}
+                {config.footer.socialLinks.youtube && (
+                  <a href={config.footer.socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="lp-social-link" title="YouTube">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  </a>
+                )}
+              </div>
+              <div className="lp-contact-info">
+                <div>Contact us:</div>
+                <div><a href={`mailto:${config.branding.supportEmail}`}>{config.branding.supportEmail}</a></div>
+                <div><a href={config.branding.websiteUrl}>{config.branding.websiteUrl.replace(/^https?:\/\//, '')}</a></div>
               </div>
             </div>
             <div>
               <div className="lp-footer-col-title">Platforms</div>
               <ul className="lp-footer-links">
-                <li><a href="#platforms" onClick={e => { e.preventDefault(); scrollTo("platforms"); }}>Core Engine</a></li>
-                <li><a href="#platforms" onClick={e => { e.preventDefault(); scrollTo("platforms"); }}>Winners Community</a></li>
-                <li><a href="#platforms" onClick={e => { e.preventDefault(); scrollTo("platforms"); }}>Winners Academy</a></li>
-                <li><a href="#platforms" onClick={e => { e.preventDefault(); scrollTo("platforms"); }}>Winners Market</a></li>
-                <li><a href="#platforms" onClick={e => { e.preventDefault(); scrollTo("platforms"); }}>Winners Intelligence</a></li>
-                <li><a href="#platforms" onClick={e => { e.preventDefault(); scrollTo("platforms"); }}>Winners Work</a></li>
+                {config.footer.platformLinks.map((link, i) => (
+                  <li key={i}><a href={link.href} onClick={e => { e.preventDefault(); scrollTo(link.href.replace("#", "")); }}>{link.label}</a></li>
+                ))}
               </ul>
             </div>
             <div>
               <div className="lp-footer-col-title">Product</div>
               <ul className="lp-footer-links">
-                <li><a href="#features"  onClick={e => { e.preventDefault(); scrollTo("features"); }}>Features</a></li>
-                <li><a href="#build"     onClick={e => { e.preventDefault(); scrollTo("build"); }}>Build Status</a></li>
-                <li><a href="#pricing"   onClick={e => { e.preventDefault(); scrollTo("pricing"); }}>Pricing</a></li>
-                <li><a href="#faq"       onClick={e => { e.preventDefault(); scrollTo("faq"); }}>FAQ</a></li>
-                <li><a href="/login"     onClick={e => { e.preventDefault(); navigate("/login"); }}>Sign In</a></li>
+                {config.footer.productLinks.map((link, i) => (
+                  <li key={i}><a href={link.href} onClick={e => { e.preventDefault(); scrollTo(link.href.replace("#", "")); }}>{link.label}</a></li>
+                ))}
               </ul>
             </div>
             <div>
               <div className="lp-footer-col-title">Ecosystem</div>
               <ul className="lp-footer-links">
-                <li><a href="#">Phase 1 — Core ✅</a></li>
-                <li><a href="#">Phase 2 — Community 🔄</a></li>
-                <li><a href="#">Phase 3 — Academy 🔄</a></li>
-                <li><a href="#">Phase 4 — Market 📋</a></li>
-                <li><a href="#">Phase 5 — Intelligence 📋</a></li>
-                <li><a href="#">Phase 6–8 — Planned 📋</a></li>
+                {config.footer.ecosystemLinks.map((link, i) => (
+                  <li key={i}><a href={link.href}>{link.label}</a></li>
+                ))}
               </ul>
             </div>
           </div>
           <div className="lp-footer-divider" />
           <div className="lp-footer-bottom">
             <div className="lp-footer-copy">
-              © 2024–2026 <span>Winners Ecosystem</span> · Digital Sovereign Infrastructure · Built with discipline.
+              {config.footer.copyright}
             </div>
             <div className="lp-footer-legal">
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-              <a href="#">API Docs</a>
+              {config.footer.legalLinks.map((link, i) => (
+                <a key={i} href={link.href}>{link.label}</a>
+              ))}
             </div>
           </div>
         </footer>
+        )}
 
       </div>
     </>

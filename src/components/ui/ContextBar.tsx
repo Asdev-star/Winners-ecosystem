@@ -53,7 +53,7 @@ export default function ContextBar({
           flex-wrap: wrap;
           gap: 6px;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
 
         .ctx-badge {
@@ -62,7 +62,7 @@ export default function ContextBar({
           gap: 8px;
           padding: 4px 10px;
           border: 1px solid var(--border);
-          border-radius: 6px;
+          border-radius: 999px;
           font-family: "Space Mono", monospace;
           font-size: 9px;
           letter-spacing: 0.14em;
@@ -82,6 +82,7 @@ export default function ContextBar({
         .ctx-badge.current {
           border-color: color-mix(in srgb, var(--gold) 35%, var(--border));
           color: var(--text);
+          background: color-mix(in srgb, var(--gold) 10%, var(--surface));
         }
 
         .ctx-dot {
