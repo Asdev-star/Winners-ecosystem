@@ -5,6 +5,7 @@ export type UserTableItem = {
   role: string;
   createdAt: string;
   trustScore: number;
+  trustScoreTier?: string;
   plan: string;
   layersActive: number;
   lastSeen: string;

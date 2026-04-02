@@ -11,7 +11,7 @@ interface AtlasContextBarProps {
 export default function AtlasContextBar({ view }: AtlasContextBarProps) {
   const [insight, setInsight] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const token = useAuthStore((s: { token?: string }) => s.token);
+  const token = useAuthStore((state) => state.token ?? undefined);
 
   useEffect(() => {
     if (!token) return;

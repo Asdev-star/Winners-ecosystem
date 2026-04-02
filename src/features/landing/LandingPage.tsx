@@ -32,10 +32,12 @@ const css = `
   }
 
   html { scroll-behavior: smooth; }
-  body { background: var(--bg); }
+  body { background: #0f1826; }
 
   .lp {
-    background: var(--bg);
+    background:
+      radial-gradient(circle at top, rgba(137,196,225,0.12), transparent 28%),
+      linear-gradient(180deg, #122033 0%, #0d1726 56%, #09111b 100%);
     color: var(--text);
     font-family: 'Syne', sans-serif;
     overflow-x: hidden;
@@ -49,8 +51,8 @@ const css = `
   .lp-grid-bg {
     position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background-image:
-      linear-gradient(rgba(43,95,142,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(43,95,142,0.025) 1px, transparent 1px);
+      linear-gradient(rgba(137,196,225,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(137,196,225,0.045) 1px, transparent 1px);
     background-size: 48px 48px;
   }
 
@@ -62,7 +64,7 @@ const css = `
     height: 64px;
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 48px;
-    background: rgba(13,21,32,0.88);
+    background: rgba(18,32,51,0.92);
     backdrop-filter: blur(24px);
     border-bottom: 1px solid rgba(30,50,72,0.8);
     transition: border-color 0.3s;
@@ -91,7 +93,7 @@ const css = `
   .lp-nav-links a {
     font-family: 'Space Mono', monospace; font-size: 9.5px;
     letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--text-dim); text-decoration: none; transition: color 0.2s;
+    color: rgba(242,247,252,0.78); text-decoration: none; transition: color 0.2s;
   }
   .lp-nav-links a:hover { color: var(--gold); }
 
@@ -135,8 +137,8 @@ const css = `
     position: absolute; top: 20%; left: 50%; transform: translateX(-50%);
     width: 1000px; height: 600px; pointer-events: none;
     background: radial-gradient(ellipse at center,
-      rgba(43,95,142,0.14) 0%,
-      rgba(201,168,76,0.04) 40%,
+      rgba(137,196,225,0.18) 0%,
+      rgba(201,168,76,0.08) 40%,
       transparent 70%);
   }
   .lp-hero-glow2 {
@@ -190,12 +192,12 @@ const css = `
     font-family: 'Cormorant Garamond', serif;
     font-size: clamp(24px, 3.5vw, 48px);
     font-weight: 300; font-style: italic;
-    color: var(--ice); line-height: 1.1; margin-bottom: 32px;
+    color: #b9e3f5; line-height: 1.1; margin-bottom: 32px;
     animation: fadeUp 0.7s ease 0.25s both;
   }
 
   .lp-hero-desc {
-    font-size: 15px; color: var(--text-dim); line-height: 1.8;
+    font-size: 15px; color: rgba(242,247,252,0.8); line-height: 1.8;
     max-width: 580px; margin: 0 auto 48px;
     animation: fadeUp 0.7s ease 0.35s both;
   }
@@ -224,14 +226,14 @@ const css = `
   /* ── HERO METRICS TICKER ── */
   .lp-hero-metrics {
     display: flex; gap: 0; justify-content: center;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(137,196,225,0.22);
     border-radius: 4px; overflow: hidden;
     animation: fadeUp 0.7s ease 0.55s both;
   }
   .lp-metric {
     padding: 18px 36px; text-align: center;
     border-right: 1px solid var(--border);
-    background: rgba(17,29,46,0.6);
+    background: rgba(26,42,61,0.74);
   }
   .lp-metric:last-child { border-right: none; }
   .lp-metric-value {
@@ -310,6 +312,116 @@ const css = `
   .lp-os-pill.gold { background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2); color: var(--gold); }
   .lp-os-pill.green { background: rgba(45,212,160,0.07); border: 1px solid rgba(45,212,160,0.18); color: var(--green); }
   .lp-os-pill.purple { background: rgba(155,111,255,0.08); border: 1px solid rgba(155,111,255,0.2); color: var(--purple); }
+
+  /* ═══════════════════════════════════════════
+     HOW IT WORKS
+  ═══════════════════════════════════════════ */
+  .lp-how-it-works {
+    padding: 100px 48px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .lp-how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    max-width: 1100px;
+    margin: 48px auto 0;
+  }
+  .lp-how-step {
+    padding: 32px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.3s ease;
+  }
+  .lp-how-step:hover {
+    transform: translateY(-8px);
+    border-color: var(--gold);
+  }
+  .lp-how-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+  }
+  .lp-how-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .lp-how-desc {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ═══════════════════════════════════════════
+     COMPANY & SERVICES
+  ═══════════════════════════════════════════ */
+  .lp-company-section {
+    padding: 100px 48px;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--surface2) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .lp-company-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: center;
+  }
+  .lp-company-mission {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    font-style: italic;
+    color: var(--gold);
+    line-height: 1.4;
+    margin-bottom: 24px;
+  }
+  .lp-company-body {
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+  .lp-services-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .lp-service-item {
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .lp-service-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .lp-service-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
 
   /* ═══════════════════════════════════════════
      ARCHITECTURE DIAGRAM (ASCII style)
@@ -1077,6 +1189,7 @@ export default function LandingPage() {
           </a>
 
           <ul className="lp-nav-links">
+            <li><a href="#company"   onClick={e => { e.preventDefault(); scrollTo("company"); }}>Company</a></li>
             <li><a href="#platforms" onClick={e => { e.preventDefault(); scrollTo("platforms"); }}>Platforms</a></li>
             <li><a href="#build"     onClick={e => { e.preventDefault(); scrollTo("build"); }}>Build Status</a></li>
             <li><a href="#pricing"   onClick={e => { e.preventDefault(); scrollTo("pricing"); }}>Pricing</a></li>
@@ -1190,6 +1303,87 @@ export default function LandingPage() {
             <span className="lp-os-pill gold">🌍 Scale</span>
           </div>
         </div>
+
+        {/* ── HOW IT WORKS ── */}
+        <section className="lp-how-it-works" id="how-it-works">
+          <div className="lp-section-eyebrow">The Journey</div>
+          <h2 className="lp-section-title">How to <em>Sovereign</em></h2>
+          <p className="lp-section-desc" style={{ margin: '0 auto' }}>
+            The Winners Ecosystem doesn't just host your data—it guides your growth through the Agentic Loop.
+          </p>
+          
+          <div className="lp-how-grid">
+            <div className="lp-how-step">
+              <div className="lp-how-num">01</div>
+              <div className="lp-how-title">Join & Post</div>
+              <div className="lp-how-desc">
+                Create your account and start sharing in the Community. NOVA AI passively monitors your signal to detect latent skills and interests.
+              </div>
+            </div>
+            <div className="lp-how-step">
+              <div className="lp-how-num">02</div>
+              <div className="lp-how-title">Learn & Prove</div>
+              <div className="lp-how-desc">
+                SAGE AI recommends specific Academy modules to sharpen your detected skills. Earn verified certificates that compound your Trust Score.
+              </div>
+            </div>
+            <div className="lp-how-step">
+              <div className="lp-how-num">03</div>
+              <div className="lp-how-title">Unlock & Earn</div>
+              <div className="lp-how-desc">
+                As your Trust Score grows, OMEGA unlocks commercial surfaces in Work and Market, matching you to high-leverage opportunities automatically.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── THE COMPANY & SERVICES ── */}
+        <section className="lp-company-section" id="company">
+          <div className="lp-company-grid">
+            <div className="lp-company-content">
+              <div className="lp-section-eyebrow">The Company</div>
+              <h2 className="lp-section-title">Winners <em>Empire</em></h2>
+              <p className="lp-company-mission">
+                "To build the world's first truly integrated Digital Sovereign Infrastructure that empowers creators, entrepreneurs, and digital businesses to own their growth."
+              </p>
+              <div className="lp-company-body">
+                <p style={{ marginBottom: 20 }}>
+                  Winners Ecosystem is not just a collection of apps; it's a strategic engine designed to eliminate the friction between learning, creating, and earning. Founded on the principle of Digital Sovereignty, we provide the infrastructure that allows users to escape fragmented tools and enter a unified, AI-orchestrated environment.
+                </p>
+                <p>
+                  Our company focuses on long-term sustainability, transparent building, and the relentless pursuit of an "Agentic Loop" where human potential is maximized by intelligent automation.
+                </p>
+              </div>
+            </div>
+
+            <div className="lp-services-list">
+              <div className="lp-service-item">
+                <div className="lp-service-title">AI Orchestration</div>
+                <div className="lp-service-desc">
+                  9 dedicated AI supervisors (OMEGA core) orchestrating cross-layer workflows and strategic recommendations.
+                </div>
+              </div>
+              <div className="lp-service-item">
+                <div className="lp-service-title">Sovereign Identity</div>
+                <div className="lp-service-desc">
+                  Unified identity and reputation passport that follows you across every platform layer without data leakage.
+                </div>
+              </div>
+              <div className="lp-service-item">
+                <div className="lp-service-title">Platform Infrastructure</div>
+                <div className="lp-service-desc">
+                  Enterprise-grade multi-tenant architecture with RBAC, SSO, and 2FA built into the foundation.
+                </div>
+              </div>
+              <div className="lp-service-item">
+                <div className="lp-service-title">Developer Cloud</div>
+                <div className="lp-service-desc">
+                  API-first design with a dedicated SDK and webhook engine for building custom integrations on the ecosystem.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* ── ARCHITECTURE DIAGRAM ── */}
         <div className="lp-arch">

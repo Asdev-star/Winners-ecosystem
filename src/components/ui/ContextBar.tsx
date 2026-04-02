@@ -14,6 +14,7 @@ interface LayerConfig {
 
 interface ContextBarProps {
   activeLayer?: LayerKey;
+  platform?: LayerKey;
   statusOverrides?: Partial<Record<LayerKey, LayerStatus>>;
   compact?: boolean;
   showLabels?: boolean;
@@ -33,10 +34,12 @@ const LAYERS: LayerConfig[] = [
 
 export default function ContextBar({
   activeLayer,
+  platform,
   statusOverrides,
   compact = false,
   showLabels = true,
 }: ContextBarProps) {
+  const resolvedActiveLayer = activeLayer ?? platform;
   const resolved = LAYERS.map((layer) => ({
     ...layer,
     status: statusOverrides?.[layer.key] ?? layer.status,
@@ -142,8 +145,8 @@ export default function ContextBar({
         <Fragment key={layer.key}>
           <Link
             to={layer.href}
-            className={`ctx-badge ${layer.status} ${activeLayer === layer.key ? "current" : ""}`}
-            aria-current={activeLayer === layer.key ? "page" : undefined}
+            className={`ctx-badge ${layer.status} ${resolvedActiveLayer === layer.key ? "current" : ""}`}
+            aria-current={resolvedActiveLayer === layer.key ? "page" : undefined}
             title={layer.label}
           >
             <span className="ctx-dot" aria-hidden="true" />

@@ -247,6 +247,9 @@ export default function CheckoutPage() {
 
     async function mountPaymentElement() {
       try {
+        const paymentSetup = currentPayment;
+        if (!paymentSetup?.clientSecret) return;
+
         if (!STRIPE_PUBLISHABLE_KEY) {
           throw new Error("VITE_STRIPE_PUBLISHABLE_KEY is not configured.");
         }
@@ -264,7 +267,7 @@ export default function CheckoutPage() {
         clearMountedPaymentElement();
 
         const elements = stripe.elements({
-          clientSecret: currentPayment.clientSecret,
+          clientSecret: paymentSetup.clientSecret,
           appearance: {
             theme: "night",
             variables: {

@@ -5,6 +5,7 @@ export type TenantTableItem = {
   name: string;
   plan: string;
   createdAt: string;
+  updatedAt?: string;
   status: AdminTenantStatus;
   statusLabel: string;
   totalRevenue: number;

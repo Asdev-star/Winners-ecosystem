@@ -37,49 +37,49 @@
   --gold-light: #F5C842;    /* Lighter gold for hover states */
 
   /* ── Surfaces ── */
-  --bg:       #080E1A;   /* Page background — deeper for contrast */
-  --surface:  #0D1826;   /* Card background */
-  --surface2: #121F30;   /* Elevated surface, inputs */
-  --surface3: #172538;   /* Highest surface */
-  --border:   #1A2E45;   /* Default borders */
-  --border-gold: rgba(240, 180, 41, 0.20);  /* Gold tinted border */
-  --border-blue: rgba(74, 158, 255, 0.20);  /* Blue tinted border */
+  --bg:       #0A101C;   /* Deep slate base */
+  --surface:  #111927;   /* Elevated base */
+  --surface2: #1C2533;   /* Components base */
+  --surface3: #262F3F;   /* Highlighted base */
+  --border:   rgba(255, 255, 255, 0.08); /* Clean thin borders */
+  --border-gold: rgba(240, 180, 41, 0.35);
+  --border-blue: rgba(74, 158, 255, 0.35);
 
   /* ── Text ── */
-  --text:     #E8EEF5;   /* Primary text */
-  --text-dim: #5A7A96;   /* Muted text */
-  --text-faint: #2A4560; /* Very dim */
+  --text:     #F8FAFC;   /* Crisp white text */
+  --text-dim: #94A3B8;   /* Balanced muted text */
+  --text-faint: #475569; /* Subtle text */
 
   /* Theme switch palettes consumed by themeStore.ts */
-  --theme-light-bg: #EEF2F7;
+  --theme-light-bg: #F8FAFC;
   --theme-light-surface: #FFFFFF;
-  --theme-light-surface2: #E4EBF4;
-  --theme-light-border: #C2D0E0;
-  --theme-light-text: #1A2B3C;
-  --theme-light-text-dim: #5A7A96;
-  --theme-light-gold: #B8912A;
-  --theme-light-gold-dim: rgba(184,145,42,0.12);
-  --theme-light-gold-glow: rgba(184,145,42,0.25);
-  --theme-light-blue: #2B5F8E;
-  --theme-light-blue-dim: rgba(43,95,142,0.12);
-  --theme-light-ice: #89C4E1;
-  --theme-light-red: #C0392B;
-  --theme-light-green: #1A7A5E;
-  --theme-light-purple: #6B4FA0;
+  --theme-light-surface2: #F1F5F9;
+  --theme-light-border: #E2E8F0;
+  --theme-light-text: #0F172A;
+  --theme-light-text-dim: #64748B;
+  --theme-light-gold: #B45309;
+  --theme-light-gold-dim: rgba(180,83,9,0.08);
+  --theme-light-gold-glow: rgba(180,83,9,0.15);
+  --theme-light-blue: #0369A1;
+  --theme-light-blue-dim: rgba(3,105,161,0.08);
+  --theme-light-ice: #38BDF8;
+  --theme-light-red: #DC2626;
+  --theme-light-green: #15803D;
+  --theme-light-purple: #7C3AED;
 
-  --theme-dark-bg: #0D1520;
-  --theme-dark-surface: #111D2E;
-  --theme-dark-surface2: #172335;
-  --theme-dark-border: #1E3248;
-  --theme-dark-text: #E8EEF5;
-  --theme-dark-text-dim: #5A7A96;
-  --theme-dark-gold: #C9A84C;
-  --theme-dark-gold-dim: rgba(201,168,76,0.12);
-  --theme-dark-gold-glow: rgba(201,168,76,0.25);
-  --theme-dark-blue: #2B5F8E;
-  --theme-dark-blue-dim: rgba(43,95,142,0.15);
+  --theme-dark-bg: #0A101C;
+  --theme-dark-surface: #111927;
+  --theme-dark-surface2: #1C2533;
+  --theme-dark-border: rgba(255, 255, 255, 0.08);
+  --theme-dark-text: #F8FAFC;
+  --theme-dark-text-dim: #94A3B8;
+  --theme-dark-gold: #F0B429;
+  --theme-dark-gold-dim: rgba(240,180,41,0.12);
+  --theme-dark-gold-glow: rgba(240,180,41,0.25);
+  --theme-dark-blue: #3B82F6;
+  --theme-dark-blue-dim: rgba(59,130,246,0.15);
   --theme-dark-ice: #89C4E1;
-  --theme-dark-red: #E05A4E;
+  --theme-dark-red: #EF4444;
   --theme-dark-green: #2DD4A0;
   --theme-dark-purple: #9B6FFF;
 
@@ -160,7 +160,7 @@ body::before {
   position: fixed;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  opacity: 0.035;
+  opacity: 0.015;
   pointer-events: none;
   z-index: 9999;
 }
@@ -171,8 +171,8 @@ body::after {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(74,158,255,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(240,180,41,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(74,158,255,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(240,180,41,0.02) 0%, transparent 50%),
     var(--bg);
   pointer-events: none;
   z-index: -1;
@@ -183,8 +183,8 @@ body .arch-grid {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(240, 180, 41, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(240, 180, 41, 0.018) 1px, transparent 1px);
+    linear-gradient(rgba(240, 180, 41, 0.01) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240, 180, 41, 0.01) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: linear-gradient(180deg, black 40%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, black 40%, transparent 100%);

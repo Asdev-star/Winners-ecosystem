@@ -4,6 +4,7 @@ type OverviewLayer = {
   progress: number;
   status: "live" | "ready" | "locked" | "build";
   statusLabel: string;
+  adminPath?: string;
   actionLabel: string;
   note: string;
 };

@@ -124,6 +124,7 @@ model Tenant {
   studyMembers                  StudyMember[]
   submissions                   Submission[]
   superChats                    SuperChat[]
+  tradingSignals                TradingSignal[]
   usageLogs                     UsageLog[]
   userFeedPreferences           UserFeedPreference[]
   userWallets                   UserWallet[]
@@ -166,23 +167,24 @@ model User {
   onboardingDone             Boolean                        @default(false)
   omegaMission               String?                        @db.Text
   incomeGoal                 String?
-  experienceLevel            String?
-  primaryMarkets             String[]                       @default([])
-  primarySkills              String[]                       @default([])
-  teamType                   String?
-  onboardingData             Json?
-  firstPlatform              String?
   trustScore                 Int                            @default(50)
   trustScoreTier             String                         @default("SILVER")
   trustScoreUpdatedAt        DateTime?
   openToOpportunities        Boolean                        @default(false)
   opportunityStatus          String?
   opportunityBio             String?
+  experienceLevel            String?
+  firstPlatform              String?
+  onboardingData             Json?
+  primaryMarkets             String[]                       @default([])
+  primarySkills              String[]                       @default([])
+  teamType                   String?
   hostedBroadcasts           BroadcastStream[]
   carts                      Cart[]
   courseCertificates         Certificate[]                  @relation("CourseCertificate")
   challengeSubmissions       CommunityChallengeSubmission[]
   challengeWins              CommunityChallengeWinner[]
+  challenges                 Challenge[]
   comments                   Comment[]                      @relation("CommentAuthor")
   clientContracts            Contract[]                     @relation("ClientContracts")
   conversationParticipations ConversationParticipant[]
@@ -218,6 +220,7 @@ model User {
   mentorProfile              Mentor?
   messageReads               MessageRead[]
   messages                   Message[]                      @relation("MessageSender")
+  notificationPreference     NotificationPreference?
   novaSkills                 NovaSkillDetection[]           @relation("UserNovaSkills")
   opportunities              Opportunity[]
   orders                     Order[]
@@ -248,11 +251,13 @@ model User {
   studyMembers               StudyMember[]
   submissions                Submission[]
   superChats                 SuperChat[]
+  tradingSignals             TradingSignal[]
   twoFactorOTPs              TwoFactorOTP[]
   tenant                     Tenant                         @relation(fields: [tenantId], references: [id])
   userWallets                UserWallet[]
   vendorReviews              VendorReview[]
   vendors                    Vendor[]
+  webAuthnCredentials        WebAuthnCredential[]
   withdrawalRequests         WithdrawalRequest[]
   videoRoomParticipations    VideoRoomParticipant[]
   hostedVideoRooms           VideoRoom[]
@@ -260,6 +265,31 @@ model User {
   @@unique([email, tenantId])
   @@index([tenantId])
   @@map("users")
+}
+
+model TradingSignal {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  symbol      String
+  type        String
+  confidence  Float
+  price       Float
+  targetPrice Float
+  stopLoss    Float
+  timeframe   String
+  analysis    String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([symbol])
+  @@index([status])
+  @@map("trading_signals")
 }
 
 model PrivacyAcknowledgment {
@@ -2318,12 +2348,11 @@ model Product {
   metaDescription String?
   viewCount       Int              @default(0)
   soldCount       Int              @default(0)
-  // Dropshipping fields
-  fulfillmentType         String   @default("own") // own | dropship | digital
+  fulfillmentType         String            @default("own")
   sourceSupplierProductId String?
   supplierId              String?
-  supplierProduct         SupplierProduct? @relation(fields: [sourceSupplierProductId], references: [id])
-  fulfillmentStatus       String?  // pending | sent_to_supplier | shipped | delivered
+  supplierProduct         SupplierProduct?  @relation(fields: [sourceSupplierProductId], references: [id])
+  fulfillmentStatus       String?
   trackingNumber          String?
   fulfilledAt             DateTime?
   createdAt       DateTime         @default(now())
@@ -2388,18 +2417,17 @@ model ProductImage {
   @@map("product_images")
 }
 
-// Dropshipping Suppliers
 model Supplier {
-  id            String            @id @default(cuid())
-  tenantId      String
-  name          String
-  origin        String            // "Kenya · Local" | "China · International"
-  website       String?
-  contactEmail  String?
-  rating        Float             @default(0)
-  isVerified    Boolean           @default(false)
-  products      SupplierProduct[]
-  createdAt     DateTime          @default(now())
+  id           String            @id @default(cuid())
+  tenantId     String
+  name         String
+  origin       String
+  website      String?
+  contactEmail String?
+  rating       Float             @default(0)
+  isVerified   Boolean           @default(false)
+  products     SupplierProduct[]
+  createdAt    DateTime          @default(now())
 
   @@index([tenantId])
 }
@@ -2423,9 +2451,8 @@ model SupplierProduct {
   tags            String[]
   isActive        Boolean   @default(true)
   products        Product[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([tenantId, category])
   @@index([tenantId, atlasScore])
@@ -2537,8 +2564,7 @@ model OrderItem {
   quantity  Int
   price     Float
   total     Float
-  // Dropshipping fulfillment
-  fulfillmentStatus  String?   // pending | sent_to_supplier | shipped | delivered
+  fulfillmentStatus  String?
   trackingNumber     String?
   fulfilledAt        DateTime?
   supplierId         String?
@@ -3002,6 +3028,7 @@ model EscrowPayment {
   tenantId        String
   contractId      String       @unique
   amount          Float
+  releasedAmount  Float        @default(0)
   currency        String       @default("USD")
   status          EscrowStatus @default(HELD)
   clientId        String
@@ -3313,26 +3340,25 @@ model VendorPayout {
   @@map("vendor_payouts")
 }
 
-// Winners Finance - Internal Settlement Rail
 model UserWallet {
-  id            String        @id @default(cuid())
-  userId        String
-  tenantId      String
-  currency      String        @default("USD")
-  balance       Float         @default(0)
-  available     Float         @default(0)  // Available for withdrawal
-  pending       Float         @default(0)  // Pending transactions
-  totalEarned   Float         @default(0)  // Lifetime earnings
-  totalSpent    Float         @default(0)  // Lifetime spending
-  stripeAccountId String?
-  mPesaNumber   String?       // Kenya mobile money
-  bankAccount   String?       // Bank account for withdrawals
-  bankName      String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  user          User          @relation(fields: [userId], references: [id])
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  transactions  WalletTransaction[]
+  id                 String              @id @default(cuid())
+  userId             String
+  tenantId           String
+  currency           String              @default("USD")
+  balance            Float               @default(0)
+  available          Float               @default(0)
+  pending            Float               @default(0)
+  totalEarned        Float               @default(0)
+  totalSpent         Float               @default(0)
+  stripeAccountId    String?
+  mPesaNumber        String?
+  bankAccount        String?
+  bankName           String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  user               User                @relation(fields: [userId], references: [id])
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  transactions       WalletTransaction[]
   withdrawalRequests WithdrawalRequest[]
 
   @@unique([userId, tenantId])
@@ -3341,21 +3367,21 @@ model UserWallet {
 }
 
 model WalletTransaction {
-  id            String        @id @default(cuid())
-  walletId      String
-  wallet        UserWallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type          String        // deposit, withdrawal, transfer, payment, refund, earned, fee
-  amount        Float
-  fee           Float         @default(0)
-  netAmount     Float         // amount - fee
-  currency      String        @default("USD")
-  status        String        @default("pending") // pending, completed, failed, reversed
-  description   String?
-  reference     String?       // External reference (Stripe payment intent, order ID, etc.)
-  relatedUserId String?       // For transfers: other user involved
-  metadata      Json?
-  createdAt     DateTime      @default(now())
-  completedAt   DateTime?
+  id            String     @id @default(cuid())
+  walletId       String
+  wallet         UserWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type           String
+  amount         Float
+  fee            Float      @default(0)
+  netAmount      Float
+  currency       String     @default("USD")
+  status         String     @default("pending")
+  description    String?
+  reference      String?
+  relatedUserId  String?
+  metadata       Json?
+  createdAt      DateTime   @default(now())
+  completedAt    DateTime?
 
   @@index([walletId, createdAt])
   @@index([walletId, type])
@@ -3364,48 +3390,46 @@ model WalletTransaction {
 }
 
 model WithdrawalRequest {
-  id            String        @id @default(cuid())
+  id            String     @id @default(cuid())
   userId        String
   tenantId      String
   walletId      String
   amount        Float
-  fee           Float         @default(0)
-  netAmount     Float         // amount - fee
-  method        String        // stripe, mpesa, bank
-  status        String        @default("pending") // pending, processing, completed, failed, cancelled
-  payoutId      String?        // External payout ID
+  fee           Float      @default(0)
+  netAmount     Float
+  method        String
+  status        String     @default("pending")
+  payoutId      String?
   failureReason String?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime   @default(now())
   processedAt   DateTime?
-  user          User          @relation(fields: [userId], references: [id])
-  tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  wallet        UserWallet    @relation(fields: [walletId], references: [id])
+  user          User       @relation(fields: [userId], references: [id])
+  tenant        Tenant     @relation(fields: [tenantId], references: [id])
+  wallet        UserWallet @relation(fields: [walletId], references: [id])
 
   @@index([userId, status])
   @@index([tenantId, status])
   @@map("withdrawal_requests")
 }
 
-// ========== SAVINGS GROUPS / CHAMA ==========
-
 model SavingsGroup {
-  id                String   @id @default(cuid())
-  tenantId          String
-  name              String
-  description       String   @default("")
+  id                 String                     @id @default(cuid())
+  tenantId           String
+  name               String
+  description        String                     @default("")
   contributionAmount Float
-  frequency         String   // weekly, biweekly, monthly
-  maxMembers        Int      @default(10)
-  currency          String   @default("USD")
-  status            String   @default("active") // active, completed, cancelled
-  currentRound      Int      @default(1)
-  totalPool         Float    @default(0)
-  createdBy         String
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  members           SavingsGroupMember[]
-  contributions     SavingsGroupContribution[]
-  payouts           SavingsGroupPayout[]
+  frequency          String
+  maxMembers         Int                        @default(10)
+  currency           String                     @default("USD")
+  status             String                     @default("active")
+  currentRound       Int                        @default(1)
+  totalPool          Float                      @default(0)
+  createdBy          String
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  members            SavingsGroupMember[]
+  contributions      SavingsGroupContribution[]
+  payouts            SavingsGroupPayout[]
 
   @@index([tenantId])
   @@index([status])
@@ -3413,14 +3437,14 @@ model SavingsGroup {
 }
 
 model SavingsGroupMember {
-  id                String   @id @default(cuid())
+  id                String       @id @default(cuid())
   groupId           String
   userId            String
-  role              String   @default("member") // admin, member
+  role              String       @default("member")
   payoutOrder       Int
-  totalContributed  Float    @default(0)
-  hasReceivedPayout Boolean  @default(false)
-  joinedAt          DateTime @default(now())
+  totalContributed  Float        @default(0)
+  hasReceivedPayout Boolean      @default(false)
+  joinedAt          DateTime     @default(now())
   group             SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
@@ -3429,13 +3453,13 @@ model SavingsGroupMember {
 }
 
 model SavingsGroupContribution {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   groupId   String
   userId    String
   amount    Float
   round     Int
-  status    String   @default("completed")
-  createdAt DateTime @default(now())
+  status    String       @default("completed")
+  createdAt DateTime     @default(now())
   group     SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@index([groupId, round])
@@ -3444,13 +3468,13 @@ model SavingsGroupContribution {
 }
 
 model SavingsGroupPayout {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   groupId   String
   userId    String
   amount    Float
   round     Int
-  status    String   @default("completed")
-  createdAt DateTime @default(now())
+  status    String       @default("completed")
+  createdAt DateTime     @default(now())
   group     SavingsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@index([groupId, round])
@@ -3697,4 +3721,55 @@ enum EscrowStatus {
   RELEASED
   REFUNDED
   DISPUTED
+}
+
+model Challenge {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  challenge String   @unique
+  type      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([challenge])
+  @@map("challenges")
+}
+
+model WebAuthnCredential {
+  id                      String   @id @default(cuid())
+  userId                  String
+  tenantId                String
+  credentialId            String   @unique
+  publicKey               String
+  counter                 Int      @default(0)
+  authenticatorAttachment String   @default("platform")
+  lastUsedAt              DateTime?
+  createdAt               DateTime @default(now())
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("webauthn_credentials")
+}
+
+model NotificationPreference {
+  userId              String   @id
+  enabled             Boolean  @default(true)
+  communityPosts      Boolean  @default(true)
+  communityLikes      Boolean  @default(true)
+  communityComments   Boolean  @default(true)
+  academyEnrollment   Boolean  @default(true)
+  academyCertificate  Boolean  @default(true)
+  marketOrderUpdate   Boolean  @default(true)
+  workApplication     Boolean  @default(true)
+  workContractUpdate  Boolean  @default(true)
+  trustScoreChange    Boolean  @default(true)
+  systemAnnouncements Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }

@@ -8,7 +8,7 @@ interface EcosystemItem {
 }
 
 interface Props {
-  items: EcosystemItem[];
+  items: readonly EcosystemItem[];
   onNavigate: (path: string) => void;
 }
 

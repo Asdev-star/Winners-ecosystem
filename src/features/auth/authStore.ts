@@ -9,6 +9,7 @@ export interface AuthUser {
   role: "owner" | "admin" | "member" | "viewer";
   tenantId: string;
   tenantName: string;
+  plan?: string | null;
   onboardingCompleted?: boolean;
   onboardingPrimaryLayer?: string | null;
   onboardingPrimaryPath?: string | null;
@@ -331,7 +332,7 @@ export function getPostLoginPath(user: AuthUser | null): string {
   if (!user) return "/login";
   const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS ?? "")
     .split(",")
-    .map((value) => value.trim().toLowerCase())
+    .map((value: string) => value.trim().toLowerCase())
     .filter(Boolean);
   const hasAdminEmail = user.email ? adminEmails.includes(user.email.toLowerCase()) : false;
   if (user.role === "owner" || hasAdminEmail) return "/dashboard";

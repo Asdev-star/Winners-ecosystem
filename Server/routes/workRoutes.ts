@@ -24,14 +24,162 @@ type CircuitRecommendation = {
   estimatedRate: string;
 };
 
+type CircuitContext = {
+  profile: {
+    title: string | null;
+    bio: string | null;
+    skills: string[];
+    hourlyRate: number | null;
+    availability: string;
+    yearsExperience: number | null;
+    trustScore: number;
+    successRate: number;
+  } | null;
+  detectedSkills: string[];
+  certificates: string[];
+};
+
+type CircuitScoredJob = CircuitRecommendation & {
+  estimatedDays: number;
+  suggestedRate: number;
+};
+
 function normalizeSkill(value: string) {
   return value.trim().toLowerCase();
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function dedupeNormalized(values: Array<string | null | undefined>) {
+  return [...new Set(values.map((value) => normalizeSkill(value ?? "")).filter(Boolean))];
+}
+
+function expectedYearsForLevel(level: string) {
+  switch (normalizeSkill(level)) {
+    case "entry":
+      return 0;
+    case "mid":
+      return 2;
+    case "senior":
+      return 5;
+    case "expert":
+      return 8;
+    default:
+      return 2;
+  }
+}
+
+function estimateDaysForJob(job: {
+  budgetMin: number | null;
+  budgetMax: number | null;
+  experienceLevel: string;
+  jobType?: string;
+}) {
+  const budget = job.budgetMax ?? job.budgetMin ?? 1200;
+  const baseline = job.jobType === "hourly" ? 5 : Math.max(4, Math.round(budget / 350));
+  const experienceAdjustment = normalizeSkill(job.experienceLevel) === "entry" ? 2 : normalizeSkill(job.experienceLevel) === "expert" ? -1 : 0;
+  return clamp(baseline + experienceAdjustment, 3, 30);
+}
+
+function suggestRateForJob(job: {
+  budgetMin: number | null;
+  budgetMax: number | null;
+  jobType?: string;
+}, hourlyRate: number | null) {
+  if (job.jobType === "hourly") {
+    if (hourlyRate && job.budgetMax && hourlyRate <= job.budgetMax) return hourlyRate;
+    if (job.budgetMax) return job.budgetMax;
+    if (job.budgetMin) return job.budgetMin;
+    return hourlyRate ?? 50;
+  }
+
+  if (job.budgetMax) return job.budgetMax;
+  if (job.budgetMin) return job.budgetMin;
+  if (hourlyRate) return Math.round(hourlyRate * 20);
+  return 1500;
+}
+
+function buildCircuitHeadline(matchedSkills: string[], missingSkills: string[], score: number) {
+  if (matchedSkills.length >= 2) {
+    return `Strong overlap across ${matchedSkills.slice(0, 2).join(" and ")}. CIRCUIT sees a credible path to delivery with only minor gaps left to close.`;
+  }
+  if (matchedSkills.length === 1) {
+    return `Clear strength in ${matchedSkills[0]}. This role is viable if you frame that edge well and address the main implementation gap early.`;
+  }
+  if (score >= 60) {
+    return "The category fit is promising, but your proposal needs to work harder than your current skill overlap.";
+  }
+  return "This listing is visible to keep your pipeline broad, but it is not yet a high-conviction CIRCUIT match.";
+}
+
+function scoreJobDeterministically(
+  job: {
+    id: string;
+    title: string;
+    category: string;
+    skills: string[];
+    experienceLevel: string;
+    budgetMin: number | null;
+    budgetMax: number | null;
+    currency: string;
+    jobType?: string;
+  },
+  context: CircuitContext,
+): CircuitScoredJob {
+  const normalizedProfileSkills = new Set(dedupeNormalized(context.profile?.skills ?? []));
+  const normalizedDetectedSkills = new Set(dedupeNormalized(context.detectedSkills));
+  const normalizedCertificates = new Set(dedupeNormalized(context.certificates));
+  const normalizedJobSkills = dedupeNormalized(job.skills);
+
+  const matchedSkills = normalizedJobSkills.filter(
+    (skill) => normalizedProfileSkills.has(skill) || normalizedDetectedSkills.has(skill),
+  );
+  const missingSkills = normalizedJobSkills.filter((skill) => !matchedSkills.includes(skill));
+  const certificateHit = normalizedCertificates.has(normalizeSkill(job.category));
+  const skillScore = normalizedJobSkills.length > 0
+    ? (matchedSkills.length / normalizedJobSkills.length) * 52
+    : 20;
+
+  const experienceYears = context.profile?.yearsExperience ?? 0;
+  const expectedYears = expectedYearsForLevel(job.experienceLevel);
+  const experienceScore = clamp(14 - Math.max(0, expectedYears - experienceYears) * 3.5, 2, 14);
+
+  const hourlyRate = context.profile?.hourlyRate ?? null;
+  let budgetScore = 8;
+  if (job.jobType === "hourly" && hourlyRate) {
+    const ceiling = job.budgetMax ?? job.budgetMin ?? hourlyRate;
+    budgetScore = hourlyRate <= ceiling ? 12 : clamp(12 - (hourlyRate - ceiling) / 8, 2, 12);
+  } else if (job.jobType !== "hourly" && hourlyRate && job.budgetMax) {
+    const impliedProject = hourlyRate * estimateDaysForJob(job) * 4;
+    budgetScore = impliedProject <= job.budgetMax * 1.15 ? 10 : clamp(10 - (impliedProject - job.budgetMax) / 250, 2, 10);
+  }
+
+  const trustScore = clamp((context.profile?.trustScore ?? 50) / 10, 3, 10);
+  const successScore = clamp((context.profile?.successRate ?? 70) / 12.5, 2, 8);
+  const certificateScore = certificateHit ? 8 : 0;
+  const score = Math.round(clamp(18 + skillScore + experienceScore + budgetScore + trustScore + successScore + certificateScore, 24, 98));
+  const suggestedRate = Math.round(suggestRateForJob(job, hourlyRate));
+  const estimatedDays = estimateDaysForJob(job);
+
+  return {
+    jobId: job.id,
+    score,
+    headline: buildCircuitHeadline(matchedSkills, missingSkills, score),
+    strengths: matchedSkills.slice(0, 3),
+    gaps: missingSkills.slice(0, 2),
+    estimatedRate: `${job.currency} ${suggestedRate}`,
+    suggestedRate,
+    estimatedDays,
+  };
+}
+
 function rankJobsDeterministically(input: {
-  profileSkills: string[];
-  detectedSkills: string[];
-  certificates: string[];
+  context?: CircuitContext;
+  profileSkills?: string[];
+  detectedSkills?: string[];
+  certificates?: string[];
   openJobs: Array<{
     id: string;
     title: string;
@@ -41,40 +189,102 @@ function rankJobsDeterministically(input: {
     budgetMin: number | null;
     budgetMax: number | null;
     currency: string;
+    jobType?: string;
   }>;
-}): CircuitRecommendation[] {
-  const profileSkills = new Set(input.profileSkills.map(normalizeSkill));
-  const detectedSkills = new Set(input.detectedSkills.map(normalizeSkill));
-  const certificates = new Set(input.certificates.map(normalizeSkill));
+}): CircuitScoredJob[] {
+  const context = input.context ?? {
+    profile: {
+      title: null,
+      bio: null,
+      skills: input.profileSkills ?? [],
+      hourlyRate: null,
+      availability: "AVAILABLE",
+      yearsExperience: null,
+      trustScore: 50,
+      successRate: 70,
+    },
+    detectedSkills: input.detectedSkills ?? [],
+    certificates: input.certificates ?? [],
+  };
 
   return input.openJobs
-    .map((job) => {
-      const jobSkills = job.skills.map(normalizeSkill);
-      const matchedSkills = jobSkills.filter(
-        (skill) => profileSkills.has(skill) || detectedSkills.has(skill),
-      );
-      const missingSkills = jobSkills.filter((skill) => !matchedSkills.includes(skill));
-      const categoryBoost = certificates.has(normalizeSkill(job.category)) ? 8 : 0;
-      const matchRatio = jobSkills.length
-        ? matchedSkills.length / jobSkills.length
-        : 0.45;
-      const baseScore = Math.round(Math.min(96, 45 + matchRatio * 40 + categoryBoost));
-      const estimatedRate = job.budgetMax ?? job.budgetMin ?? 0;
-
-      return {
-        jobId: job.id,
-        score: baseScore,
-        headline:
-          matchedSkills.length > 0
-            ? `Strong overlap across ${matchedSkills.slice(0, 2).join(" and ")} with room to close the remaining gaps quickly.`
-            : "Promising strategic fit, but this role needs profile strengthening before it becomes a top-tier CIRCUIT match.",
-        strengths: matchedSkills.slice(0, 3),
-        gaps: missingSkills.slice(0, 2),
-        estimatedRate: `${job.currency} ${estimatedRate || "Negotiable"}`,
-      };
-    })
+    .map((job) => scoreJobDeterministically(job, context))
     .sort((left, right) => right.score - left.score)
     .slice(0, 10);
+}
+
+async function loadCircuitContext(userId: string, tenantId: string): Promise<CircuitContext> {
+  const [profile, certificates, skills] = await Promise.all([
+    db.freelancerProfile.findFirst({
+      where: { userId, tenantId },
+      select: {
+        title: true,
+        bio: true,
+        skills: true,
+        hourlyRate: true,
+        availability: true,
+        yearsExperience: true,
+        trustScore: true,
+        successRate: true,
+      },
+    }),
+    db.certificate.findMany({
+      where: { userId, tenantId },
+      include: { course: { select: { title: true, category: true } } },
+    }),
+    db.novaSkillDetection.findMany({
+      where: { userId, tenantId, confidence: { gte: 0.65 } },
+      orderBy: { confidence: "desc" },
+      take: 20,
+    }),
+  ]);
+
+  return {
+    profile,
+    detectedSkills: skills.map((skill) => skill.skill),
+    certificates: certificates.flatMap((certificate) => [
+      certificate.course?.category ?? "",
+      certificate.course?.title ?? "",
+    ]).filter(Boolean),
+  };
+}
+
+function buildProposalDraft(input: {
+  profile: NonNullable<CircuitContext["profile"]>;
+  job: {
+    title: string;
+    description: string;
+    skills: string[];
+    experienceLevel: string;
+    currency: string;
+  };
+  matchedSkills: string[];
+  certificates: string[];
+  tone: string;
+}) {
+  const lead =
+    input.tone === "warm"
+      ? `The delivery challenge behind this ${input.job.title} role is exactly the kind of work I enjoy owning end to end.`
+      : input.tone === "confident"
+        ? `This ${input.job.title} brief is a strong fit for the systems I already ship reliably.`
+        : `Your ${input.job.title} brief stands out because the execution risk is manageable with the workflow I already use in production.`;
+
+  const skillLine = input.matchedSkills.length > 0
+    ? `My strongest overlap is in ${input.matchedSkills.slice(0, 3).join(", ")}, which maps directly to the delivery scope you described.`
+    : `My background is adjacent to this scope, and I would reduce ramp time by structuring delivery around the highest-risk pieces first.`;
+
+  const certificateLine = input.certificates.length > 0
+    ? `I would bring that experience in alongside ${input.certificates[0]} so the implementation quality is backed by recent validated work.`
+    : `I would support that with a clear milestone plan, weekly checkpoints, and a delivery trail the client can verify easily.`;
+
+  return [
+    lead,
+    skillLine,
+    `Over the past ${input.profile.yearsExperience ?? 2} years I have focused on ${input.profile.title ?? "delivery work"} and client communication that keeps scope, budget, and expectations aligned.`,
+    certificateLine,
+    `My proposed approach is to break the project into three milestones: discovery and architecture, implementation with review loops, and final QA with handoff documentation.`,
+    `If we move forward, I can start by confirming the success criteria, timeline, and the one technical constraint that matters most before build begins.`,
+  ].join(" ");
 }
 
 // ─── JOB LISTINGS ─────────────────────────────────────────────────────────────
@@ -82,6 +292,7 @@ function rankJobsDeterministically(input: {
 // GET /work/jobs — list jobs with filters
 router.get("/jobs", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
   const page     = parseInt(String(req.query.page  ?? "1"));
   const limit    = parseInt(String(req.query.limit ?? "20"));
   const category = String(req.query.category ?? "").trim() || undefined;
@@ -107,7 +318,7 @@ router.get("/jobs", async (req: Request, res: Response) => {
       ];
     }
 
-    const [jobs, total] = await Promise.all([
+    const [jobs, total, circuitContext] = await Promise.all([
       db.jobListing.findMany({
         where: where as never,
         orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
@@ -119,10 +330,38 @@ router.get("/jobs", async (req: Request, res: Response) => {
         },
       }),
       db.jobListing.count({ where: where as never }),
+      loadCircuitContext(userId, tenantId).catch(() => ({
+        profile: null,
+        detectedSkills: [],
+        certificates: [],
+      })),
     ]);
 
     return res.json({
-      jobs: jobs.map((j) => ({ ...j, applicationCount: j._count.applications })),
+      jobs: jobs.map((j) => {
+        const circuit = circuitContext.profile
+          ? scoreJobDeterministically({
+              id: j.id,
+              title: j.title,
+              category: j.category,
+              skills: j.skills,
+              experienceLevel: j.experienceLevel,
+              budgetMin: j.budgetMin,
+              budgetMax: j.budgetMax,
+              currency: j.currency,
+              jobType: j.jobType,
+            }, circuitContext)
+          : null;
+
+        return {
+          ...j,
+          applicationCount: j._count.applications,
+          circuitScore: circuit?.score ?? null,
+          circuitHeadline: circuit?.headline ?? null,
+          circuitStrengths: circuit?.strengths ?? [],
+          circuitGaps: circuit?.gaps ?? [],
+        };
+      }),
       total,
       page,
       pages: Math.ceil(total / limit),
@@ -137,20 +376,28 @@ router.get("/jobs", async (req: Request, res: Response) => {
 // GET /work/jobs/:id — single job
 router.get("/jobs/:id", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
+  const userId   = req.user!.userId;
   const jobId    = String(req.params.id);
 
   try {
-    const job = await db.jobListing.findFirst({
-      where:   { id: jobId, tenantId },
-      include: {
-        client:       { select: { id: true, name: true, email: true } },
-        _count:       { select: { applications: true } },
-        applications: {
-          where:   { freelancer: { userId: req.user!.userId } },
-          select:  { id: true, status: true, createdAt: true },
+    const [job, circuitContext] = await Promise.all([
+      db.jobListing.findFirst({
+        where:   { id: jobId, tenantId },
+        include: {
+          client:       { select: { id: true, name: true, email: true } },
+          _count:       { select: { applications: true } },
+          applications: {
+            where:   { freelancer: { userId } },
+            select:  { id: true, status: true, createdAt: true },
+          },
         },
-      },
-    });
+      }),
+      loadCircuitContext(userId, tenantId).catch(() => ({
+        profile: null,
+        detectedSkills: [],
+        certificates: [],
+      })),
+    ]);
 
     if (!job) return res.status(404).json({ message: "Job not found" });
 
@@ -159,10 +406,30 @@ router.get("/jobs/:id", async (req: Request, res: Response) => {
       data:  { viewCount: { increment: 1 } },
     });
 
+    const circuit = circuitContext.profile
+      ? scoreJobDeterministically({
+          id: job.id,
+          title: job.title,
+          category: job.category,
+          skills: job.skills,
+          experienceLevel: job.experienceLevel,
+          budgetMin: job.budgetMin,
+          budgetMax: job.budgetMax,
+          currency: job.currency,
+          jobType: job.jobType,
+        }, circuitContext)
+      : null;
+
     return res.json({
       ...job,
       applicationCount: job._count.applications,
       myApplication:    job.applications[0] ?? null,
+      circuitScore: circuit?.score ?? null,
+      circuitHeadline: circuit?.headline ?? null,
+      circuitStrengths: circuit?.strengths ?? [],
+      circuitGaps: circuit?.gaps ?? [],
+      suggestedRate: circuit?.suggestedRate ?? null,
+      estimatedDays: circuit?.estimatedDays ?? null,
     });
   } catch (error) {
     console.error("[work] Get job error:", error);
@@ -767,6 +1034,46 @@ router.get("/circuit/recommendations", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
 
   try {
+    {
+    const [circuitContext, openJobs] = await Promise.all([
+      loadCircuitContext(userId, tenantId),
+      db.jobListing.findMany({
+        where:   { tenantId, status: "OPEN" },
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+        take:    30,
+        include: { client: { select: { id: true, name: true } }, _count: { select: { applications: true } } },
+      }),
+    ]);
+
+    if (!circuitContext.profile) {
+      return res.json({ matches: [], message: "Create a freelancer profile to get AI job matches." });
+    }
+
+    const matches = rankJobsDeterministically({
+      context: circuitContext,
+      openJobs: openJobs.map((job) => ({
+        id: job.id,
+        title: job.title,
+        category: job.category,
+        skills: job.skills,
+        experienceLevel: job.experienceLevel,
+        budgetMin: job.budgetMin,
+        budgetMax: job.budgetMax,
+        currency: job.currency,
+        jobType: job.jobType,
+      })),
+    });
+
+    const enriched = matches
+      .map((match) => {
+        const job = openJobs.find((entry) => entry.id === match.jobId);
+        return { ...match, job };
+      })
+      .filter((match) => match.job);
+
+    return res.json({ matches: enriched, freelancerProfile: circuitContext.profile });
+    }
+
     const [profile, certificates, skills, openJobs] = await Promise.all([
       db.freelancerProfile.findFirst({
         where:   { userId, tenantId },
@@ -848,7 +1155,7 @@ Only return valid JSON. No explanation text outside the array.`;
           messages:   [{ role: "user", content: prompt }],
         });
 
-        const rawText = response.content[0].type === "text" ? response.content[0].text : "[]";
+        const rawText = response.content[0]?.type === "text" ? ("text" in response.content[0] ? response.content[0].text : "[]") : "[]";
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
         matches = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
       } catch (modelError) {
@@ -896,6 +1203,142 @@ router.post("/circuit/proposal/:jobId", async (req: Request, res: Response) => {
   const { tone = "professional" } = req.body;
 
   try {
+    {
+    const [profile, job, certificates, skills] = await Promise.all([
+      db.freelancerProfile.findFirst({
+        where:   { userId, tenantId },
+        include: { portfolioItems: { take: 3 } },
+      }),
+      db.jobListing.findFirst({
+        where:   { id: jobId, tenantId, status: "OPEN" },
+        include: { client: { select: { name: true } } },
+      }),
+      db.certificate.findMany({ where: { userId, tenantId }, include: { course: { select: { title: true, category: true } } } }),
+      db.novaSkillDetection.findMany({
+        where:   { userId, tenantId, confidence: { gte: 0.7 } },
+        orderBy: { confidence: "desc" },
+        take:    10,
+      }),
+    ]);
+
+    if (!profile) return res.status(400).json({ message: "Create a freelancer profile first." });
+    if (!job)     return res.status(404).json({ message: "Job not found." });
+
+    const circuitContext: CircuitContext = {
+      profile: {
+        title: profile.title,
+        bio: profile.bio,
+        skills: profile.skills,
+        hourlyRate: profile.hourlyRate,
+        availability: profile.availability,
+        yearsExperience: profile.yearsExperience,
+        trustScore: profile.trustScore,
+        successRate: profile.successRate,
+      },
+      detectedSkills: skills.map((skill) => skill.skill),
+      certificates: certificates.flatMap((certificate) => [
+        certificate.course?.title ?? "",
+        certificate.course?.category ?? "",
+      ]).filter(Boolean),
+    };
+    const score = scoreJobDeterministically({
+      id: job.id,
+      title: job.title,
+      category: job.category,
+      skills: job.skills,
+      experienceLevel: job.experienceLevel,
+      budgetMin: job.budgetMin,
+      budgetMax: job.budgetMax,
+      currency: job.currency,
+      jobType: job.jobType,
+    }, circuitContext);
+    const meta = {
+      suggestedRate: score.suggestedRate,
+      currency: job.currency,
+      estimatedDays: score.estimatedDays,
+      job: { id: job.id, title: job.title, category: job.category },
+    };
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+
+    const send = (payload: Record<string, unknown>) => {
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    send({ meta });
+
+    const fallbackProposal = buildProposalDraft({
+      profile,
+      job: {
+        title: job.title,
+        description: job.description,
+        skills: job.skills,
+        experienceLevel: job.experienceLevel,
+        currency: job.currency,
+      },
+      matchedSkills: score.strengths,
+      certificates: certificates.map((certificate) => certificate.course?.title ?? "").filter(Boolean),
+      tone: String(tone),
+    });
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      for (const chunk of fallbackProposal.match(/.{1,24}(\s|$)/g) ?? [fallbackProposal]) {
+        send({ token: chunk });
+      }
+      send({ done: true, proposal: fallbackProposal, ...meta });
+      res.end();
+      return;
+    }
+
+    const stream = await anthropic.messages.stream({
+      model: "claude-sonnet-4-6",
+      max_tokens: 700,
+      system: `You are CIRCUIT, the Work Supervisor for Winners Ecosystem. Write a winning freelance proposal.
+Rules:
+1. Open with the client's specific challenge, never with a generic greeting.
+2. Reference relevant verified skills or certificates naturally.
+3. Propose a clear three-step delivery plan.
+4. Keep it between 180 and 260 words.
+5. Close with one precise question that advances the project.`,
+      messages: [{
+        role: "user",
+        content: `Job: ${job.title}
+Category: ${job.category}
+Description: ${job.description}
+Required skills: ${job.skills.join(", ") || "Not specified"}
+Experience level: ${job.experienceLevel}
+Budget: ${job.budgetMin ?? "Open"}-${job.budgetMax ?? "Open"} ${job.currency}
+
+Freelancer title: ${profile.title ?? "Independent freelancer"}
+Freelancer bio: ${profile.bio ?? "No bio provided"}
+Freelancer skills: ${profile.skills.join(", ")}
+Detected skills: ${skills.map((skill) => skill.skill).join(", ")}
+Certificates: ${certificates.map((certificate) => certificate.course?.title ?? "").filter(Boolean).join(", ") || "none"}
+Portfolio items: ${profile.portfolioItems.map((item) => item.title).join(", ") || "none"}
+Tone: ${String(tone)}
+
+Use these strongest match signals when they help: ${score.strengths.join(", ") || "adjacent fit"}.
+Return only the proposal body, no JSON.`,
+      }],
+    });
+
+    let fullProposal = "";
+    for await (const chunk of stream) {
+      if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+        fullProposal += chunk.delta.text;
+        send({ token: chunk.delta.text });
+      }
+    }
+
+    const finalProposal = fullProposal.trim() || fallbackProposal;
+    send({ done: true, proposal: finalProposal, ...meta });
+    res.end();
+    return;
+    }
+
     const [profile, job, certificates, skills] = await Promise.all([
       db.freelancerProfile.findFirst({
         where:   { userId, tenantId },
@@ -954,14 +1397,131 @@ Return JSON: { "proposal": "full proposal text", "suggestedRate": number, "curre
       messages:   [{ role: "user", content: prompt }],
     });
 
-    const rawText = response.content[0].type === "text" ? response.content[0].text : "{}";
+    const rawText = response.content[0]?.type === "text" ? ("text" in response.content[0] ? response.content[0].text : "{}") : "{}";
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const result = jsonMatch ? JSON.parse(jsonMatch[0]) : { proposal: rawText, suggestedRate: profile.hourlyRate, currency: job.currency, estimatedDays: 7 };
 
     return res.json({ ...result, job: { id: job.id, title: job.title, category: job.category } });
   } catch (error) {
     console.error("[CIRCUIT] Proposal error:", error);
-    return res.status(500).json({ message: "CIRCUIT AI is temporarily unavailable." });
+    if (!res.headersSent) {
+      return res.status(500).json({ message: "CIRCUIT AI is temporarily unavailable." });
+    }
+    res.write(`data: ${JSON.stringify({ error: "CIRCUIT AI is temporarily unavailable." })}\n\n`);
+    res.end();
+  }
+});
+
+// ─── WORK REVIEWS ─────────────────────────────────────────────────────────────
+
+// POST /work/contracts/:id/review — submit a work review (both client and freelancer)
+router.post("/contracts/:id/review", async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  const contractId = String(req.params.id);
+  const { rating, title, content, category } = req.body;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: "Rating must be between 1 and 5" });
+  }
+
+  if (!category || !["freelancer", "client"].includes(category)) {
+    return res.status(400).json({ message: "Category must be 'freelancer' or 'client'" });
+  }
+
+  try {
+    const contract = await db.contract.findFirst({
+      where: { id: contractId, tenantId, status: "COMPLETED" },
+      include: {
+        client: { select: { id: true } },
+        freelancer: { include: { user: { select: { id: true } } } },
+      },
+    });
+
+    if (!contract) {
+      return res.status(404).json({ message: "Contract not found or not completed" });
+    }
+
+    // Determine reviewer role and target
+    const isClient = contract.clientId === userId;
+    const isFreelancer = contract.freelancer.user.id === userId;
+
+    if (!isClient && !isFreelancer) {
+      return res.status(403).json({ message: "Only contract participants can review" });
+    }
+
+    const targetUserId = isClient ? contract.freelancer.user.id : contract.clientId;
+    const targetType = isClient ? "freelancer" : "client";
+
+    // Check if already reviewed by this user
+    const existing = await db.workReview.findFirst({
+      where: {
+        contractId,
+        reviewerId: userId,
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: "You have already reviewed this contract" });
+    }
+
+    const review = await db.workReview.create({
+      data: {
+        tenantId,
+        contractId,
+        reviewerId: userId,
+        targetUserId,
+        targetType: targetType as "freelancer" | "client",
+        rating,
+        title: title?.trim(),
+        content: content?.trim(),
+      },
+      include: {
+        reviewer: { select: { name: true, email: true } },
+        targetUser: { select: { name: true, email: true } },
+      },
+    });
+
+    // Update freelancer/client average rating
+    const allReviews = await db.workReview.findMany({
+      where: { targetUserId, targetType },
+    });
+
+    const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+
+    if (targetType === "freelancer") {
+      await db.freelancerProfile.updateMany({
+        where: { userId: targetUserId, tenantId },
+        data: { rating: Number(avgRating.toFixed(2)) },
+      });
+    }
+
+    return res.status(201).json(review);
+  } catch (error) {
+    console.error("[work] Create review error:", error);
+    return res.status(500).json({ message: "Failed to submit review" });
+  }
+});
+
+// GET /work/contracts/:id/reviews — get reviews for a contract
+router.get("/contracts/:id/reviews", async (req: Request, res: Response) => {
+  const tenantId = req.user!.tenantId;
+  const contractId = String(req.params.id);
+
+  try {
+    const reviews = await db.workReview.findMany({
+      where: { contractId, tenantId },
+      include: {
+        reviewer: { select: { name: true, email: true } },
+        targetUser: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return res.json({ reviews });
+  } catch (error) {
+    console.error("[work] Get reviews error:", error);
+    return res.status(500).json({ message: "Failed to get reviews" });
   }
 });
 

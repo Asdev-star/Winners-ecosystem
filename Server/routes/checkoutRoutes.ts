@@ -5,6 +5,8 @@ import { Router, Response } from 'express';
 import Stripe from 'stripe';
 import { authMiddleware, type AuthRequest } from '../middleware/authMiddleware.js';
 import db from '../db.js';
+import { sendOrderConfirmationEmail } from '../services/emailService.js';
+import { autoFulfillDropOrder } from '../services/supplierService.js';
 
 const router = Router();
 router.use(authMiddleware);
@@ -22,6 +24,17 @@ interface CartItem {
   quantity: number;
   imageUrl?: string;
   type?: 'physical' | 'digital' | 'dropship';
+  variantId?: string;
+}
+
+function generateOrderNumber() {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `ORD-${timestamp}-${random}`;
+}
+
+function getPlatformFeePct(plan?: string) {
+  return plan === 'ENTERPRISE' ? 0.08 : plan === 'PRO' ? 0.10 : 0.15;
 }
 
 // GET /api/v1/checkout/cart - Get cart items grouped by vendor
@@ -110,11 +123,7 @@ router.post('/create-payment-intents', async (req: AuthRequest, res: Response) =
     }
 
     const { userId, tenantId, plan } = req.user;
-
-    // Platform fee by plan
-    const platformFeePct = 
-      plan === 'ENTERPRISE' ? 0.08 :
-      plan === 'PRO' ? 0.10 : 0.15;
+    const platformFeePct = getPlatformFeePct(plan);
 
     // Group by vendor
     const vendorGroups = items.reduce<Record<string, CartItem[]>>((acc, item) => {
@@ -147,11 +156,13 @@ router.post('/create-payment-intents', async (req: AuthRequest, res: Response) =
       const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
         amount: Math.round(amount * 100),
         currency: 'usd',
+        automatic_payment_methods: { enabled: true },
         metadata: {
           buyerId: userId,
           tenantId,
           vendorId,
-          itemCount: vendorItems.length.toString()
+          vendorName: vendor?.storeName || 'Direct Sale',
+          itemCount: vendorItems.length.toString(),
         }
       };
 
@@ -199,61 +210,295 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
         items: Array<{ productId: string; quantity: number; price: number; title?: string }>;
       }>;
     };
-    const { userId, tenantId } = req.user;
+    const { userId, tenantId, plan, email } = req.user;
 
-    // Verify all payment intents are succeeded
+    if (!paymentIntentIds?.length || !vendorGroups?.length) {
+      return res.status(400).json({ error: 'Payment intents and vendor groups are required' });
+    }
+
+    const existingOrders = await db.order.findMany({
+      where: {
+        tenantId,
+        userId,
+        stripePaymentIntentId: { in: paymentIntentIds },
+      },
+      select: { id: true, orderNumber: true },
+    });
+
+    if (existingOrders.length === paymentIntentIds.length) {
+      return res.json({ success: true, orders: existingOrders });
+    }
+
+    const cart = await db.cart.findFirst({
+      where: { userId, tenantId, status: 'ACTIVE' },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                vendor: {
+                  select: {
+                    id: true,
+                    storeName: true,
+                    stripeAccountId: true,
+                    freeShipping: true,
+                    shippingPrice: true,
+                    taxRate: true,
+                  },
+                },
+                supplierProduct: {
+                  include: {
+                    supplier: true,
+                  },
+                },
+              },
+            },
+            variant: true,
+          },
+        },
+      },
+    });
+
+    if (!cart?.items.length) {
+      return res.status(400).json({ error: 'Your cart is empty or has already been converted' });
+    }
+
+    const clientVendorIds = new Set(vendorGroups.map((group) => group.vendorId));
+    const cartVendorGroups = new Map<
+      string,
+      {
+        vendorId: string;
+        vendorName: string;
+        freeShipping: boolean;
+        shippingPrice: number;
+        taxRate: number;
+        items: typeof cart.items;
+      }
+    >();
+
+    for (const item of cart.items) {
+      const vendorId = item.product.vendorId;
+      if (!vendorId) continue;
+
+      const vendor = item.product.vendor;
+      const current = cartVendorGroups.get(vendorId) ?? {
+        vendorId,
+        vendorName: vendor?.storeName || 'Direct Sale',
+        freeShipping: vendor?.freeShipping ?? false,
+        shippingPrice: vendor?.shippingPrice ?? 0,
+        taxRate: vendor?.taxRate ?? 0,
+        items: [],
+      };
+      current.items.push(item);
+      cartVendorGroups.set(vendorId, current);
+    }
+
+    if (
+      cartVendorGroups.size === 0 ||
+      cartVendorGroups.size !== clientVendorIds.size ||
+      Array.from(cartVendorGroups.keys()).some((vendorId) => !clientVendorIds.has(vendorId))
+    ) {
+      return res.status(400).json({ error: 'Checkout vendor split no longer matches your active cart' });
+    }
+
+    const intentByVendorId = new Map<string, Stripe.PaymentIntent>();
     for (const piId of paymentIntentIds) {
       const intent = await stripe.paymentIntents.retrieve(piId);
       if (intent.status !== 'succeeded') {
         return res.status(400).json({ error: `Payment ${piId} not completed` });
       }
+      if (intent.metadata?.buyerId !== userId || intent.metadata?.tenantId !== tenantId) {
+        return res.status(403).json({ error: `Payment ${piId} does not belong to this buyer session` });
+      }
+
+      const vendorId = intent.metadata?.vendorId;
+      if (!vendorId || !clientVendorIds.has(vendorId)) {
+        return res.status(400).json({ error: `Payment ${piId} has no matching vendor routing` });
+      }
+      intentByVendorId.set(vendorId, intent);
     }
 
-    // Create orders for each vendor
-    const orders = [];
-    for (const group of vendorGroups) {
-      const subtotal = group.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-      const order = await db.order.create({
-        data: {
-          userId,
-          tenantId,
+    if (intentByVendorId.size !== cartVendorGroups.size) {
+      return res.status(400).json({ error: 'Missing one or more successful vendor payment intents' });
+    }
+
+    const platformFeePct = getPlatformFeePct(plan);
+    const orderIdsToFulfill: string[] = [];
+
+    const orders = await db.$transaction(async (tx) => {
+      const createdOrders: Array<{ id: string; orderNumber: string; vendorId: string }> = [];
+
+      for (const group of cartVendorGroups.values()) {
+        const paymentIntent = intentByVendorId.get(group.vendorId);
+        if (!paymentIntent) {
+          throw new Error(`Missing payment intent for vendor ${group.vendorId}`);
+        }
+
+        const subtotal = group.items.reduce(
+          (sum, item) => sum + (item.variant?.price ?? item.price) * item.quantity,
+          0,
+        );
+        const shippingCost = group.freeShipping ? 0 : group.shippingPrice;
+        const taxAmount = Number((subtotal * (group.taxRate / 100)).toFixed(2));
+        const total = Number((subtotal + shippingCost + taxAmount).toFixed(2));
+
+        const order = await tx.order.create({
+          data: {
+            userId,
+            tenantId,
+            vendorId: group.vendorId,
+            orderNumber: generateOrderNumber(),
+            status: 'CONFIRMED',
+            paymentStatus: 'PAID',
+            paymentMethod: 'STRIPE',
+            subtotal,
+            shippingCost,
+            taxAmount,
+            total,
+            currency: 'USD',
+            stripePaymentId: paymentIntent.latest_charge ? String(paymentIntent.latest_charge) : null,
+            stripePaymentIntentId: paymentIntent.id,
+            shippingName: shippingAddress?.fullName ?? '',
+            shippingAddress: shippingAddress?.addressLine ?? '',
+            shippingCity: shippingAddress?.city ?? '',
+            shippingState: shippingAddress?.region ?? '',
+            shippingZip: shippingAddress?.postalCode ?? '',
+            shippingCountry: shippingAddress?.country ?? '',
+            shippingPhone: shippingAddress?.phone ?? '',
+            metadata: {
+              checkoutFlow: 'payment_intents',
+              vendorName: group.vendorName,
+              paymentIntentId: paymentIntent.id,
+            },
+            items: {
+              create: group.items.map((item) => ({
+                tenantId,
+                productId: item.productId,
+                variantId: item.variantId ?? null,
+                name: item.product.name,
+                sku: item.variant?.sku ?? item.product.sku ?? null,
+                quantity: item.quantity,
+                price: item.variant?.price ?? item.price,
+                total: (item.variant?.price ?? item.price) * item.quantity,
+                fulfillmentStatus: item.product.fulfillmentType === 'dropship' ? 'pending' : null,
+                supplierId:
+                  item.product.supplierId ??
+                  item.product.supplierProduct?.supplierId ??
+                  null,
+              })),
+            },
+          },
+          include: {
+            items: true,
+          },
+        });
+
+        for (const item of group.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              soldCount: { increment: item.quantity },
+              ...(item.product.allowBackorder
+                ? {}
+                : { stockQuantity: { decrement: item.quantity } }),
+            },
+          });
+        }
+
+        const commission = Number((subtotal * platformFeePct).toFixed(2));
+        const payoutAmount = Number((subtotal - commission).toFixed(2));
+
+        await tx.vendorPayout.create({
+          data: {
+            tenantId,
+            vendorId: group.vendorId,
+            orderId: order.id,
+            amount: payoutAmount,
+            commission,
+            stripeTransferId: paymentIntent.transfer_data?.destination
+              ? String(paymentIntent.transfer_data.destination)
+              : null,
+            status: paymentIntent.transfer_data?.destination ? 'in_transit' : 'pending',
+          },
+        });
+
+        await tx.vendor.update({
+          where: { id_tenantId: { id: group.vendorId, tenantId } },
+          data: {
+            totalSales: { increment: 1 },
+            totalRevenue: { increment: subtotal },
+            payoutBalance: { increment: payoutAmount },
+          },
+        });
+
+        createdOrders.push({
+          id: order.id,
+          orderNumber: order.orderNumber,
           vendorId: group.vendorId,
-          orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-          status: 'CONFIRMED',
-          paymentStatus: 'PAID',
-          paymentMethod: 'STRIPE',
-          subtotal,
-          total: subtotal,
-          currency: 'USD',
-          shippingName: shippingAddress?.fullName ?? '',
-          shippingAddress: shippingAddress?.addressLine ?? '',
-          shippingCity: shippingAddress?.city ?? '',
-          shippingState: shippingAddress?.region ?? '',
-          shippingZip: shippingAddress?.postalCode ?? '',
-          shippingCountry: shippingAddress?.country ?? '',
-          shippingPhone: shippingAddress?.phone ?? '',
-          items: {
-            create: group.items.map(item => ({
-              tenantId,
-              productId: item.productId,
-              name: item.title || 'Product',
-              quantity: item.quantity,
-              price: item.price,
-              total: item.price * item.quantity
-            }))
-          }
-        },
-        include: { items: true }
-      });
-      orders.push(order);
-    }
+        });
+        orderIdsToFulfill.push(order.id);
+      }
 
-    // Clear cart after successful checkout
-    await db.cartItem.deleteMany({
-      where: { cart: { userId, tenantId } }
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id },
+      });
+
+      await tx.cart.update({
+        where: { id: cart.id },
+        data: { status: 'CONVERTED' },
+      });
+
+      return createdOrders;
     });
 
-    res.json({ success: true, orders });
+    const ordersWithDetails = await db.order.findMany({
+      where: {
+        tenantId,
+        id: { in: orders.map((order) => order.id) },
+      },
+      include: {
+        items: true,
+        user: { select: { email: true } },
+      },
+    });
+
+    for (const order of ordersWithDetails) {
+      const recipient = order.user?.email ?? email;
+      if (recipient) {
+        await sendOrderConfirmationEmail(tenantId, recipient, {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          total: order.total,
+          currency: order.currency,
+          items: order.items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        }).catch((emailError) => {
+          console.error('[checkout] Order confirmation email error:', emailError);
+        });
+      }
+    }
+
+    for (const orderId of orderIdsToFulfill) {
+      const dropshipItems = await db.orderItem.findMany({
+        where: {
+          tenantId,
+          orderId,
+          product: { fulfillmentType: 'dropship' },
+        },
+        select: { id: true },
+      });
+
+      for (const item of dropshipItems) {
+        await autoFulfillDropOrder({ orderItemId: item.id, tenantId }).catch((fulfillError) => {
+          console.error('[checkout] Dropship auto-fulfillment error:', fulfillError);
+        });
+      }
+    }
+
+    res.json({ success: true, orders: orders.map(({ id, orderNumber }) => ({ id, orderNumber })) });
   } catch (error) {
     console.error('[checkout] Confirm error:', error);
     res.status(500).json({ error: 'Failed to confirm order' });

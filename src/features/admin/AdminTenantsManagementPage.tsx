@@ -11,7 +11,7 @@ type TenantListItem = {
   name: string;
   plan: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   deletedAt?: string | null;
   status: AdminTenantStatus;
   statusLabel: string;

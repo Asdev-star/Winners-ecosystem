@@ -12,6 +12,7 @@ import LayerRouteGate from "./app/LayerRouteGate";
 import LayerThemeBridge from "./app/LayerThemeBridge";
 import HiddenNotFoundPage from "./app/HiddenNotFoundPage";
 import AIBackdrop from "./components/ui/AIBackdrop";
+import RealtimeNotifications from "./components/ui/RealtimeNotifications";
 import InstallPrompt from "./features/mobile/InstallPrompt";
 
 import LoginPage from "./features/auth/LoginPage";
@@ -90,6 +91,7 @@ import BusinessLauncherPage from "./features/market/BusinessLauncherPage";
 import CVToolsPage from "./features/market/CVToolsPage";
 import DigitalMarketingPage from "./features/market/DigitalMarketingPage";
 import WinnersStreamPage from "./features/market/WinnersStreamPage";
+import StreamViewerPage from "./features/market/StreamViewerPage";
 import WinnersTradingPage from "./features/market/WinnersTradingPage";
 import WinnersEventsPage from "./features/market/WinnersEventsPage";
 import WinnersPropertyPage from "./features/market/WinnersPropertyPage";
@@ -118,9 +120,7 @@ import ForgeIntelligencePage from "./features/admin/ForgeIntelligencePage";
 import SystemHealthPage from "./features/admin/SystemHealthPage";
 import BroadcastPage from "./features/admin/BroadcastPage";
 import SecurityPage from "./features/admin/SecurityPage";
-import {
-  AdminPlatformLayerPage,
-} from "./features/admin/AdminRoutePages";
+import { AdminPlatformLayerPage } from "./features/admin/AdminRoutePages";
 
 function DashboardRealmRoute() {
   const isRestoring = useAuthStore((state) => state.isRestoring);
@@ -140,7 +140,8 @@ function AuthenticatedDefaultRoute() {
   if (isRestoring) return null;
   if (!user) return <Navigate to="/landing" replace />;
   if (isChecking) return null;
-  if (user.onboardingCompleted === false) return <Navigate to="/onboarding" replace />;
+  if (user.onboardingCompleted === false)
+    return <Navigate to="/onboarding" replace />;
 
   return <Navigate to={hasAccess ? "/dashboard" : "/home"} replace />;
 }
@@ -156,6 +157,7 @@ function App() {
     <div className="app-shell">
       <LayerThemeBridge />
       <AIBackdrop />
+      <RealtimeNotifications />
       <Toaster position="top-center" toastOptions={{ duration: 4500 }} />
       <InstallPrompt />
       <div className="app-route-layer">
@@ -170,7 +172,10 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/sso/exchange" element={<SsoExchangePage />} />
-          <Route path="/verify/:token" element={<CertificateVerificationPage />} />
+          <Route
+            path="/verify/:token"
+            element={<CertificateVerificationPage />}
+          />
 
           <Route
             path="admin"
@@ -181,10 +186,19 @@ function App() {
             }
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Navigate to="/dashboard" replace />} />
-            <Route path="overview" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="dashboard"
+              element={<Navigate to="/dashboard" replace />}
+            />
+            <Route
+              path="overview"
+              element={<Navigate to="/dashboard" replace />}
+            />
             <Route path="platform" element={<PlatformLaunchPage />} />
-            <Route path="platform/:layerId" element={<AdminPlatformLayerPage />} />
+            <Route
+              path="platform/:layerId"
+              element={<AdminPlatformLayerPage />}
+            />
             <Route path="tenants" element={<TenantListPage />} />
             <Route path="tenants/:id" element={<TenantDetailPage />} />
             <Route path="users" element={<UserListPage />} />
@@ -194,11 +208,26 @@ function App() {
             <Route path="health" element={<SystemHealthPage />} />
             <Route path="broadcast" element={<BroadcastPage />} />
             <Route path="security" element={<SecurityPage />} />
-            <Route path="settings" element={<Navigate to="/settings/core" replace />} />
-            <Route path="platform-launch" element={<Navigate to="/admin/platform" replace />} />
-            <Route path="forge-intelligence" element={<Navigate to="/admin/forge" replace />} />
-            <Route path="omega-broadcast" element={<Navigate to="/admin/broadcast" replace />} />
-            <Route path="system-health" element={<Navigate to="/admin/health" replace />} />
+            <Route
+              path="settings"
+              element={<Navigate to="/settings/core" replace />}
+            />
+            <Route
+              path="platform-launch"
+              element={<Navigate to="/admin/platform" replace />}
+            />
+            <Route
+              path="forge-intelligence"
+              element={<Navigate to="/admin/forge" replace />}
+            />
+            <Route
+              path="omega-broadcast"
+              element={<Navigate to="/admin/broadcast" replace />}
+            />
+            <Route
+              path="system-health"
+              element={<Navigate to="/admin/health" replace />}
+            />
           </Route>
 
           <Route
@@ -285,16 +314,10 @@ function App() {
               path="community/discover"
               element={<DiasporaDirectoryPage />}
             />
-            <Route
-              path="community/saved"
-              element={<SavedPostsPage />}
-            />
+            <Route path="community/saved" element={<SavedPostsPage />} />
             <Route path="community/messages" element={<MessagesPage />} />
             <Route path="community/create" element={<CommunityPage />} />
-            <Route
-              path="community/studio"
-              element={<StudioHomePage />}
-            />
+            <Route path="community/studio" element={<StudioHomePage />} />
             <Route
               path="community/studio/room/:roomId"
               element={<VideoRoomPage />}
@@ -326,12 +349,18 @@ function App() {
             <Route path="intelligence/aria" element={<WinnersChat />} />
             <Route path="intelligence/omega" element={<OmegaDashboard />} />
             <Route path="intelligence/platform" element={<AIPlatformPage />} />
-            <Route path="intelligence/agents/:name" element={<SupervisorPage />} />
+            <Route
+              path="intelligence/agents/:name"
+              element={<SupervisorPage />}
+            />
             <Route path="intelligence/loop" element={<LoopTrackerPage />} />
             <Route path="intelligence/memory" element={<MemoryManagerPage />} />
             <Route path="intelligence/credits" element={<CreditsPage />} />
             <Route path="intelligence/reports" element={<ReportsPage />} />
-            <Route path="intelligence/analytics" element={<IntelligenceAnalytics />} />
+            <Route
+              path="intelligence/analytics"
+              element={<IntelligenceAnalytics />}
+            />
             <Route
               path="academy/instructor"
               element={<InstructorDashboard />}
@@ -356,72 +385,451 @@ function App() {
             />
             <Route path="academy/cohorts" element={<StudyGroupPage />} />
             <Route path="academy/quiz/:quizId" element={<QuizEngine />} />
-            <Route path="academy/live-sessions" element={<LiveSessionsPage />} />
-            <Route path="market" element={<LayerRouteGate layerId="market"><WinnersMarketExpanded /></LayerRouteGate>} />
-            <Route path="market/dropshipping" element={<LayerRouteGate layerId="market"><WinnersDropshipping /></LayerRouteGate>} />
-            <Route path="market/product/:productId" element={<LayerRouteGate layerId="market"><ProductPage /></LayerRouteGate>} />
-            <Route path="market/products/:productId" element={<LayerRouteGate layerId="market"><ProductPage /></LayerRouteGate>} />
-            <Route path="market/vendor" element={<LayerRouteGate layerId="market"><VendorDashboard /></LayerRouteGate>} />
-            <Route path="market/store" element={<LayerRouteGate layerId="market"><VendorDashboard /></LayerRouteGate>} />
-            <Route path="market/products" element={<LayerRouteGate layerId="market"><VendorDashboard /></LayerRouteGate>} />
-            <Route path="market/analytics" element={<LayerRouteGate layerId="market"><VendorDashboard /></LayerRouteGate>} />
-            <Route path="market/tools" element={<LayerRouteGate layerId="market"><VendorDashboard /></LayerRouteGate>} />
-            <Route path="market/cart" element={<LayerRouteGate layerId="market"><CartPage /></LayerRouteGate>} />
-            <Route path="market/orders" element={<LayerRouteGate layerId="market"><OrdersPage /></LayerRouteGate>} />
-            <Route path="market/checkout" element={<LayerRouteGate layerId="market"><CheckoutPage /></LayerRouteGate>} />
-            <Route path="market/finance" element={<LayerRouteGate layerId="market"><FinancePage /></LayerRouteGate>} />
-            <Route path="market/business-launcher" element={<LayerRouteGate layerId="market"><BusinessLauncherPage /></LayerRouteGate>} />
-            <Route path="market/cv-tools" element={<LayerRouteGate layerId="market"><CVToolsPage /></LayerRouteGate>} />
-            <Route path="market/digital-marketing" element={<LayerRouteGate layerId="market"><DigitalMarketingPage /></LayerRouteGate>} />
-            <Route path="market/stream" element={<LayerRouteGate layerId="market"><WinnersStreamPage /></LayerRouteGate>} />
-            <Route path="market/trading" element={<LayerRouteGate layerId="market"><WinnersTradingPage /></LayerRouteGate>} />
-            <Route path="market/events" element={<LayerRouteGate layerId="market"><WinnersEventsPage /></LayerRouteGate>} />
-            <Route path="market/property" element={<LayerRouteGate layerId="market"><WinnersPropertyPage /></LayerRouteGate>} />
-            <Route path="market/health" element={<LayerRouteGate layerId="market"><WinnersHealthPage /></LayerRouteGate>} />
-            <Route path="market/marketing" element={<LayerRouteGate layerId="market"><DigitalMarketingPage /></LayerRouteGate>} />
-            <Route path="market/trending" element={<LayerRouteGate layerId="market"><WinnersMarketExpanded /></LayerRouteGate>} />
-            <Route path="market/services" element={<LayerRouteGate layerId="market"><WinnersMarketExpanded /></LayerRouteGate>} />
-            <Route path="market/career" element={<LayerRouteGate layerId="market"><CVToolsPage /></LayerRouteGate>} />
-            <Route path="market/business" element={<LayerRouteGate layerId="market"><BusinessLauncherPage /></LayerRouteGate>} />
-            <Route path="market/vendor/products/new" element={<LayerRouteGate layerId="market"><VendorDashboard /></LayerRouteGate>} />
-            <Route path="work" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="work/jobs" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="work/freelancers" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="work/contracts" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="work/escrow" element={<LayerRouteGate layerId="work"><EscrowPage /></LayerRouteGate>} />
-            <Route path="work/profile" element={<LayerRouteGate layerId="work"><FreelancerProfilePage /></LayerRouteGate>} />
-            <Route path="work/applications" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="work/portfolio" element={<LayerRouteGate layerId="work"><FreelancerProfilePage /></LayerRouteGate>} />
-            <Route path="work/earnings" element={<LayerRouteGate layerId="work"><EscrowPage /></LayerRouteGate>} />
-            <Route path="work/post" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="work/listings" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="work/applicants" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="work/payments" element={<LayerRouteGate layerId="work"><EscrowPage /></LayerRouteGate>} />
-            <Route path="work/talent" element={<LayerRouteGate layerId="work"><WorkPage /></LayerRouteGate>} />
-            <Route path="market/:vertical" element={<LayerRouteGate layerId="market"><MarketPage /></LayerRouteGate>} />
-            <Route path="cloud" element={<LayerRouteGate layerId="cloud"><CloudPage /></LayerRouteGate>} />
-            <Route path="cloud/connectors" element={<LayerRouteGate layerId="cloud"><CloudConnectorsPage /></LayerRouteGate>} />
-            <Route path="cloud/automations" element={<LayerRouteGate layerId="cloud"><CloudAutomationsPage /></LayerRouteGate>} />
-            <Route path="cloud/agents" element={<LayerRouteGate layerId="cloud"><CloudAgentsPage /></LayerRouteGate>} />
-            <Route path="cloud/keys" element={<LayerRouteGate layerId="cloud"><CloudAPIKeysPage /></LayerRouteGate>} />
-            <Route path="cloud/webhooks" element={<LayerRouteGate layerId="cloud"><CloudWebhooksPage /></LayerRouteGate>} />
-            <Route path="cloud/usage" element={<LayerRouteGate layerId="cloud"><CloudUsagePage /></LayerRouteGate>} />
-            <Route path="cloud/marketplace" element={<LayerRouteGate layerId="cloud"><APIMarketplacePage /></LayerRouteGate>} />
-            <Route path="intelligence/revenue" element={<AIRevenueProductsPage />} />
-            <Route path="intelligence/agents" element={<Navigate to="/intelligence/agents/omega" replace />} />
-            <Route path="intelligence/skills" element={<Navigate to="/intelligence/analytics" replace />} />
-            <Route path="intelligence/api" element={<Navigate to="/intelligence/platform" replace />} />
+            <Route
+              path="academy/live-sessions"
+              element={<LiveSessionsPage />}
+            />
+            <Route
+              path="market"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersMarketExpanded />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/dropshipping"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersDropshipping />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/product/:productId"
+              element={
+                <LayerRouteGate layerId="market">
+                  <ProductPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/products/:productId"
+              element={
+                <LayerRouteGate layerId="market">
+                  <ProductPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/vendor"
+              element={
+                <LayerRouteGate layerId="market">
+                  <VendorDashboard />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/store"
+              element={
+                <LayerRouteGate layerId="market">
+                  <VendorDashboard />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/products"
+              element={
+                <LayerRouteGate layerId="market">
+                  <VendorDashboard />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/analytics"
+              element={
+                <LayerRouteGate layerId="market">
+                  <VendorDashboard />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/tools"
+              element={
+                <LayerRouteGate layerId="market">
+                  <VendorDashboard />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/cart"
+              element={
+                <LayerRouteGate layerId="market">
+                  <CartPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/orders"
+              element={
+                <LayerRouteGate layerId="market">
+                  <OrdersPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/checkout"
+              element={
+                <LayerRouteGate layerId="market">
+                  <CheckoutPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/finance"
+              element={
+                <LayerRouteGate layerId="market">
+                  <FinancePage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/business-launcher"
+              element={
+                <LayerRouteGate layerId="market">
+                  <BusinessLauncherPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/cv-tools"
+              element={
+                <LayerRouteGate layerId="market">
+                  <CVToolsPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/digital-marketing"
+              element={
+                <LayerRouteGate layerId="market">
+                  <DigitalMarketingPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/stream"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersStreamPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/stream/:streamId"
+              element={
+                <LayerRouteGate layerId="market">
+                  <StreamViewerPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/trading"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersTradingPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/events"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersEventsPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/property"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersPropertyPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/health"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersHealthPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/marketing"
+              element={
+                <LayerRouteGate layerId="market">
+                  <DigitalMarketingPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/trending"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersMarketExpanded />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/services"
+              element={
+                <LayerRouteGate layerId="market">
+                  <WinnersMarketExpanded />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/career"
+              element={
+                <LayerRouteGate layerId="market">
+                  <CVToolsPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/business"
+              element={
+                <LayerRouteGate layerId="market">
+                  <BusinessLauncherPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/vendor/products/new"
+              element={
+                <LayerRouteGate layerId="market">
+                  <VendorDashboard />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/jobs"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/freelancers"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/contracts"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/escrow"
+              element={
+                <LayerRouteGate layerId="work">
+                  <EscrowPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/profile"
+              element={
+                <LayerRouteGate layerId="work">
+                  <FreelancerProfilePage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/applications"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/portfolio"
+              element={
+                <LayerRouteGate layerId="work">
+                  <FreelancerProfilePage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/earnings"
+              element={
+                <LayerRouteGate layerId="work">
+                  <EscrowPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/post"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/listings"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/applicants"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/payments"
+              element={
+                <LayerRouteGate layerId="work">
+                  <EscrowPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/talent"
+              element={
+                <LayerRouteGate layerId="work">
+                  <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="market/:vertical"
+              element={
+                <LayerRouteGate layerId="market">
+                  <MarketPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="cloud"
+              element={
+                <LayerRouteGate layerId="cloud">
+                  <CloudPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="cloud/connectors"
+              element={
+                <LayerRouteGate layerId="cloud">
+                  <CloudConnectorsPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="cloud/automations"
+              element={
+                <LayerRouteGate layerId="cloud">
+                  <CloudAutomationsPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="cloud/agents"
+              element={
+                <LayerRouteGate layerId="cloud">
+                  <CloudAgentsPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="cloud/keys"
+              element={
+                <LayerRouteGate layerId="cloud">
+                  <CloudAPIKeysPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="cloud/webhooks"
+              element={
+                <LayerRouteGate layerId="cloud">
+                  <CloudWebhooksPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="cloud/usage"
+              element={
+                <LayerRouteGate layerId="cloud">
+                  <CloudUsagePage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="cloud/marketplace"
+              element={
+                <LayerRouteGate layerId="cloud">
+                  <APIMarketplacePage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="intelligence/revenue"
+              element={<AIRevenueProductsPage />}
+            />
+            <Route
+              path="intelligence/agents"
+              element={<Navigate to="/intelligence/agents/omega" replace />}
+            />
+            <Route
+              path="intelligence/skills"
+              element={<Navigate to="/intelligence/analytics" replace />}
+            />
+            <Route
+              path="intelligence/api"
+              element={<Navigate to="/intelligence/platform" replace />}
+            />
             <Route path="settings/integrations" element={<SettingsPage />} />
             <Route path="settings/security" element={<SettingsPage />} />
-            <Route path="cart" element={<Navigate to="/market/cart" replace />} />
-            <Route path="checkout" element={<Navigate to="/market/checkout" replace />} />
-            <Route path="orders" element={<Navigate to="/market/orders" replace />} />
+            <Route
+              path="cart"
+              element={<Navigate to="/market/cart" replace />}
+            />
+            <Route
+              path="checkout"
+              element={<Navigate to="/market/checkout" replace />}
+            />
+            <Route
+              path="orders"
+              element={<Navigate to="/market/orders" replace />}
+            />
           </Route>
 
-          <Route
-            path="*"
-            element={<AuthenticatedDefaultRoute />}
-          />
+          <Route path="*" element={<AuthenticatedDefaultRoute />} />
         </Routes>
       </div>
     </div>

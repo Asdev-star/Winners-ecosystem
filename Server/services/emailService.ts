@@ -300,8 +300,8 @@ export async function sendOrderConfirmationEmail(
     </table>
 
     <div style="margin-top:24px;text-align:center">
-      <a href="${APP_URL}/market/orders/${order.id}" style="display:inline-block;background:#C9A84C;color:#080B10;text-decoration:none;padding:12px 28px;border-radius:4px;font-weight:700;font-size:13px">
-        Track Your Order
+      <a href="${APP_URL}/market/orders" style="display:inline-block;background:#C9A84C;color:#080B10;text-decoration:none;padding:12px 28px;border-radius:4px;font-weight:700;font-size:13px">
+        View Your Orders
       </a>
     </div>`;
 

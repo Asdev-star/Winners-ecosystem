@@ -16,17 +16,19 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 
 interface OrderItem {
   id: string;
+  productId: string;
   productName: string;
-  productSlug: string;
+  productSlug?: string;
   quantity: number;
   price: number;
   variant?: string;
+  canReview?: boolean;
 }
 
 interface Order {
   id: string;
   orderNumber: string;
-  status: "PENDING" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   total: number;
   items: OrderItem[];
   createdAt: string;
@@ -36,11 +38,58 @@ interface Order {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   PENDING: { label: "Pending", color: "var(--gold)", bg: "color-mix(in srgb, var(--gold) 12%, transparent)" },
+  CONFIRMED: { label: "Confirmed", color: "var(--green)", bg: "color-mix(in srgb, var(--green) 12%, transparent)" },
   PROCESSING: { label: "Processing", color: "var(--ice)", bg: "color-mix(in srgb, var(--ice) 12%, transparent)" },
   SHIPPED: { label: "Shipped", color: "var(--purple)", bg: "color-mix(in srgb, var(--purple) 12%, transparent)" },
   DELIVERED: { label: "Delivered", color: "var(--green)", bg: "color-mix(in srgb, var(--green) 12%, transparent)" },
   CANCELLED: { label: "Cancelled", color: "var(--red)", bg: "color-mix(in srgb, var(--red) 12%, transparent)" },
 };
+
+function normalizeOrder(raw: any): Order {
+  const items = Array.isArray(raw?.items)
+    ? raw.items.map((item: any) => ({
+        id: String(item.id),
+        productId: String(item.productId ?? item.product?.id ?? ""),
+        productName: String(item.name ?? item.productName ?? item.product?.name ?? "Product"),
+        productSlug:
+          typeof item.productSlug === "string"
+            ? item.productSlug
+            : typeof item.product?.slug === "string"
+              ? item.product.slug
+              : undefined,
+        quantity: Number(item.quantity ?? 0),
+        price: Number(item.price ?? 0),
+        variant: typeof item.variant?.name === "string" ? item.variant.name : undefined,
+        canReview: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"].includes(String(raw?.status ?? "").toUpperCase()),
+      }))
+    : [];
+
+  const trackingNumber =
+    typeof raw?.trackingNumber === "string"
+      ? raw.trackingNumber
+      : typeof raw?.tracking?.trackingNumber === "string"
+        ? raw.tracking.trackingNumber
+        : undefined;
+
+  const shippingParts = [
+    raw?.shippingAddress,
+    raw?.shippingCity,
+    raw?.shippingState,
+    raw?.shippingZip,
+    raw?.shippingCountry,
+  ].filter(Boolean);
+
+  return {
+    id: String(raw?.id),
+    orderNumber: String(raw?.orderNumber ?? raw?.id),
+    status: String(raw?.status ?? "PENDING").toUpperCase() as Order["status"],
+    total: Number(raw?.total ?? 0),
+    items,
+    createdAt: String(raw?.createdAt ?? new Date().toISOString()),
+    shippingAddress: shippingParts.length > 0 ? shippingParts.join(", ") : undefined,
+    trackingNumber,
+  };
+}
 
 export default function OrdersPage() {
   const { user, token } = useAuthStore();
@@ -66,7 +115,8 @@ export default function OrdersPage() {
       });
       if (!res.ok) throw new Error("Failed to load orders");
       const data = await res.json();
-      setOrders(data.orders || data || []);
+      const rawOrders = Array.isArray(data?.orders) ? data.orders : Array.isArray(data) ? data : [];
+      setOrders(rawOrders.map(normalizeOrder));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load orders");
     } finally {
@@ -182,7 +232,7 @@ export default function OrdersPage() {
                   </div>
                   <div className="order-footer">
                     <span className="order-total">
-                      ${(order.total / 100).toFixed(2)}
+                      ${order.total.toFixed(2)}
                     </span>
                     <div className="order-actions">
                       <button
@@ -191,7 +241,7 @@ export default function OrdersPage() {
                       >
                         View Details
                       </button>
-                      {order.status === "PENDING" && (
+                     {order.status === "PENDING" && (
                         <button
                           className="order-cancel-btn"
                           onClick={() => cancelOrder(order.id)}
@@ -238,7 +288,7 @@ export default function OrdersPage() {
                 {selectedOrder.items.map((item) => (
                   <div key={item.id} className="modal-item">
                     <Link
-                      to={`/market/products/${item.productSlug}`}
+                      to={item.productSlug ? `/market/products/${item.productSlug}` : `/market/products/${item.productId}`}
                       className="modal-item-name"
                     >
                       {item.productName}
@@ -248,8 +298,16 @@ export default function OrdersPage() {
                     )}
                     <span className="modal-item-qty">Qty: {item.quantity}</span>
                     <span className="modal-item-price">
-                      ${((item.price * item.quantity) / 100).toFixed(2)}
+                      ${(item.price * item.quantity).toFixed(2)}
                     </span>
+                    {item.canReview && (item.productSlug || item.productId) && (
+                      <Link
+                        to={item.productSlug ? `/market/products/${item.productSlug}` : `/market/products/${item.productId}`}
+                        className="order-view-btn"
+                      >
+                        Review Item
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>
@@ -270,7 +328,7 @@ export default function OrdersPage() {
 
               <div className="modal-total">
                 <span>Total</span>
-                <span>${(selectedOrder.total / 100).toFixed(2)}</span>
+                <span>${selectedOrder.total.toFixed(2)}</span>
               </div>
             </div>
           </div>

@@ -35,7 +35,7 @@ type OverviewLayer = {
   progress: number;
   status: LayerStatus;
   statusLabel: string;
-  adminPath: string;
+  adminPath?: string;
   actionLabel: string;
   note: string;
 };
@@ -495,6 +495,7 @@ export default function DashboardPage() {
 
   function handleLayer(layer: OverviewLayer) {
     if (layer.status === "locked") { void openChecklist(layer); return; }
+    if (!layer.adminPath) return;
     navigate(layer.adminPath);
   }
 

@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
 import { useInviteStore } from "../team/inviteStore";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
@@ -169,6 +170,15 @@ function metadataObject(value: unknown) {
   return value as Record<string, unknown>;
 }
 
+function settingMetadataObject(value: unknown): Record<string, SettingValue> {
+  const metadata = metadataObject(value);
+  return Object.fromEntries(
+    Object.entries(metadata).filter(([, entry]) =>
+      typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean",
+    ),
+  ) as Record<string, SettingValue>;
+}
+
 function getProfileLocation(profile?: ProfilePayload["profile"] | null) {
   const metadata = metadataObject(profile?.metadata);
   const profileMeta = metadataObject(metadata.profile);
@@ -190,7 +200,7 @@ function buildInitialBranchValues(planName: string, tenant: { settings?: { timez
   const branchValues = BRANCHES.reduce<BranchValues>((acc, branch) => {
     acc[branch.key] = {
       ...getDefaultBranchValues(branch.settings, planName),
-      ...metadataObject(preferences[branch.key]),
+      ...settingMetadataObject(preferences[branch.key]),
     };
     return acc;
   }, {} as BranchValues);
@@ -343,6 +353,7 @@ export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
   const logout = useAuthStore((state) => state.logout);
+  const { hasAccess: hasSuperAdminAccess } = useSuperAdminAccess();
   const navigate = useNavigate();
   const location = useLocation();
   const { tenant, fetchTenant, updateTenant } = useInviteStore();
@@ -601,7 +612,7 @@ export default function SettingsPage() {
           <div className="st-actions">
             <Link className="st-link" to="/settings/account">Open Account</Link>
             <Link className="st-link" to="/settings/intelligence">Open Intelligence</Link>
-            {user?.role === "superadmin" ? <Link className="st-link primary" to="/settings/core">Open Core Engine</Link> : null}
+            {hasSuperAdminAccess ? <Link className="st-link primary" to="/settings/core">Open Core Engine</Link> : null}
           </div>
         </div>
 
@@ -647,7 +658,7 @@ export default function SettingsPage() {
                 ))}
               </div>
 
-              {user?.role === "superadmin" ? (
+              {hasSuperAdminAccess ? (
                 <>
                   <div className="st-nav-divider" />
                   <div className="st-nav-group">

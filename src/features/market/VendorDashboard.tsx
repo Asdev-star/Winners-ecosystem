@@ -253,6 +253,12 @@ interface Order {
   date: string;
 }
 
+interface PayoutSummary {
+  total: number;
+  paid: number;
+  pending: number;
+}
+
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
@@ -260,6 +266,7 @@ export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [payoutSummary, setPayoutSummary] = useState<PayoutSummary>({ total: 0, paid: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -283,7 +290,11 @@ export default function VendorDashboard() {
       });
       
       // Fetch orders
-      const ordersRes = await fetch('/api/v1/orders?vendor=true', {
+      const ordersRes = await fetch('/api/v1/orders/vendor/all', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      const payoutsRes = await fetch('/api/v1/vendors/me/payouts', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -295,7 +306,26 @@ export default function VendorDashboard() {
       
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
-        setOrders(ordersData.orders || ordersData || []);
+        const normalizedOrders = Array.isArray(ordersData.orders)
+          ? ordersData.orders.map((order: any) => ({
+              id: order.orderNumber || order.id,
+              customer: order.user?.name || order.user?.email || 'Customer',
+              product: order.items?.[0]?.product?.name || order.items?.[0]?.name || 'Order',
+              amount: Number(order.total || 0),
+              status: String(order.status || 'pending').toLowerCase(),
+              date: order.createdAt || new Date().toISOString(),
+            }))
+          : [];
+        setOrders(normalizedOrders);
+      }
+
+      if (payoutsRes.ok) {
+        const payoutData = await payoutsRes.json();
+        setPayoutSummary({
+          total: Number(payoutData.summary?.total || 0),
+          paid: Number(payoutData.summary?.paid || 0),
+          pending: Number(payoutData.summary?.pending || 0),
+        });
       }
       
       if (!vendorRes.ok) {
@@ -385,6 +415,7 @@ export default function VendorDashboard() {
           pendingOrders: orders.filter((order) => order.status === 'pending').length,
           totalRevenue,
           totalSales,
+          pendingPayouts: payoutSummary.pending,
           currentTab: activeTab,
         }}
       />
@@ -430,6 +461,14 @@ export default function VendorDashboard() {
           <div style={styles.statValue}>{orders.filter(o => o.status === 'pending').length}</div>
           <div style={{ ...styles.statChange, ...styles.positive }}>
             Requires attention
+          </div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statCardTopBorder}></div>
+          <div style={styles.statLabel}>Pending Payouts</div>
+          <div style={styles.statValue}>${payoutSummary.pending.toFixed(2)}</div>
+          <div style={{ ...styles.statChange, ...(payoutSummary.pending > 0 ? styles.positive : styles.negative) }}>
+            ${payoutSummary.paid.toFixed(2)} paid out
           </div>
         </div>
       </div>

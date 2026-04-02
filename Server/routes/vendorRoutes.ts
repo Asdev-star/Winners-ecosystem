@@ -309,6 +309,53 @@ router.get("/me/analytics", authMiddleware, async (req: Request, res: Response) 
   }
 });
 
+router.get("/me/payouts", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const tenantId = req.user!.tenantId;
+
+    const vendor = await db.vendor.findFirst({
+      where: { userId, tenantId },
+      select: { id: true, payoutBalance: true },
+    });
+
+    if (!vendor) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    const payouts = await db.vendorPayout.findMany({
+      where: { tenantId, vendorId: vendor.id },
+      include: {
+        vendor: { select: { storeName: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+
+    const summary = payouts.reduce(
+      (acc, payout) => {
+        acc.total += payout.amount;
+        if (payout.status === "paid") {
+          acc.paid += payout.amount;
+        } else {
+          acc.pending += payout.amount;
+        }
+        return acc;
+      },
+      { total: 0, paid: 0, pending: 0 },
+    );
+
+    return res.json({
+      balance: vendor.payoutBalance,
+      payouts,
+      summary,
+    });
+  } catch (error) {
+    console.error("[vendorRoutes] Error fetching vendor payouts:", error);
+    return res.status(500).json({ error: "Failed to fetch vendor payouts" });
+  }
+});
+
 // GET /vendors/:id - Get vendor by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {

@@ -1,0 +1,633 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Winners Cloud API",
+    "description": "RESTful API for Winners Ecosystem Cloud Platform - API Keys, Connectors, Webhooks, Automations, AI Agents, and Plugin Marketplace",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Winners Ecosystem Support",
+      "email": "support@winnersempire.io",
+      "url": "https://docs.winnersempire.io"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://winnersempire.io/license"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://winners-empire-eco.up.railway.app/api/v1",
+      "description": "Production Server"
+    },
+    {
+      "url": "http://localhost:3001/api/v1",
+      "description": "Development Server"
+    }
+  ],
+  "tags": [
+    { "name": "Cloud Overview", "description": "Developer portal dashboard and overview" },
+    { "name": "API Keys", "description": "Generate and manage API keys with scoped permissions" },
+    { "name": "Connectors", "description": "50+ integrations including M-Pesa, Shopify, Stripe, Flutterwave" },
+    { "name": "Webhooks", "description": "Subscribe to 15+ ecosystem events with HMAC-signed payloads" },
+    { "name": "Automations", "description": "Visual workflow builder with triggers, actions, and conditions" },
+    { "name": "AI Agents", "description": "Deploy autonomous OMEGA-class agents with goal-driven intelligence" },
+    { "name": "Usage & Billing", "description": "Credit consumption, API call volumes, cost breakdown" },
+    { "name": "Plugins", "description": "Plugin marketplace - submission, review, installation, revenue sharing" },
+    { "name": "White-label", "description": "Enterprise white-label licensing and tenant provisioning" }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "apiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/cloud/overview": {
+      "get": {
+        "tags": ["Cloud Overview"],
+        "summary": "Get developer portal summary",
+        "operationId": "getCloudOverview",
+        "responses": {
+          "200": {
+            "description": "Cloud overview retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "overview": {
+                      "type": "object",
+                      "properties": {
+                        "apiKeys": { "type": "integer", "example": 5 },
+                        "connectors": { "type": "integer", "example": 12 },
+                        "activeAutomations": { "type": "integer", "example": 8 },
+                        "activeAgents": { "type": "integer", "example": 3 },
+                        "creditsUsed30d": { "type": "integer", "example": 15420 },
+                        "apiCalls30d": { "type": "integer", "example": 8934 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "description": "Server error" }
+        }
+      }
+    },
+    "/cloud/keys": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "List API keys for tenant",
+        "operationId": "listApiKeys",
+        "responses": {
+          "200": {
+            "description": "API keys retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keys": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/APIKey"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["API Keys"],
+        "summary": "Create a new API key",
+        "operationId": "createApiKey",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "example": "Production API Key" },
+                  "scopes": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "example": ["read", "write"]
+                  },
+                  "rateLimitRpm": { "type": "integer", "example": 60 },
+                  "expiresAt": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": { "$ref": "#/components/schemas/APIKeyWithSecret" },
+                    "message": {
+                      "type": "string",
+                      "example": "Store this key — it will never be shown again."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid request" }
+        }
+      }
+    },
+    "/cloud/keys/{keyId}": {
+      "delete": {
+        "tags": ["API Keys"],
+        "summary": "Revoke an API key",
+        "operationId": "revokeApiKey",
+        "parameters": [
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "API key revoked successfully" },
+          "404": { "description": "API key not found" }
+        }
+      }
+    },
+    "/cloud/connectors": {
+      "get": {
+        "tags": ["Connectors"],
+        "summary": "List connector catalogue",
+        "operationId": "listConnectors",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connectors retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connectors": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Connector" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cloud/connectors/installed": {
+      "get": {
+        "tags": ["Connectors"],
+        "summary": "List tenant's installed connectors",
+        "operationId": "listInstalledConnectors",
+        "responses": {
+          "200": {
+            "description": "Installed connectors retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "installs": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/ConnectorInstall" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cloud/connectors/{connectorId}/install": {
+      "post": {
+        "tags": ["Connectors"],
+        "summary": "Install a connector",
+        "operationId": "installConnector",
+        "parameters": [
+          {
+            "name": "connectorId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "201": { "description": "Connector installed successfully" },
+          "404": { "description": "Connector not found" },
+          "409": { "description": "Already installed" }
+        }
+      }
+    },
+    "/cloud/webhooks": {
+      "get": {
+        "tags": ["Webhooks"],
+        "summary": "List webhook subscriptions",
+        "operationId": "listWebhooks",
+        "responses": {
+          "200": {
+            "description": "Webhooks retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhooks": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/WebhookSubscription" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Create webhook subscription",
+        "operationId": "createWebhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["url", "events"],
+                "properties": {
+                  "url": { "type": "string", "format": "uri", "example": "https://yourapp.com/webhook" },
+                  "events": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "example": ["user.trust_score_changed", "market.sale_completed"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Webhook created successfully" },
+          "400": { "description": "Invalid request" }
+        }
+      }
+    },
+    "/cloud/webhooks/{webhookId}": {
+      "delete": {
+        "tags": ["Webhooks"],
+        "summary": "Delete webhook",
+        "operationId": "deleteWebhook",
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Webhook deleted successfully" }
+        }
+      }
+    },
+    "/cloud/automations": {
+      "get": {
+        "tags": ["Automations"],
+        "summary": "List automations",
+        "operationId": "listAutomations",
+        "responses": {
+          "200": {
+            "description": "Automations retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "automations": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Automation" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Automations"],
+        "summary": "Create automation",
+        "operationId": "createAutomation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "trigger", "steps"],
+                "properties": {
+                  "name": { "type": "string", "example": "Welcome New Users" },
+                  "description": { "type": "string" },
+                  "trigger": {
+                    "type": "object",
+                    "description": "Trigger configuration"
+                  },
+                  "steps": {
+                    "type": "array",
+                    "description": "Automation steps"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Automation created successfully" }
+        }
+      }
+    },
+    "/cloud/agents": {
+      "get": {
+        "tags": ["AI Agents"],
+        "summary": "List AI agents",
+        "operationId": "listAgents",
+        "responses": {
+          "200": {
+            "description": "AI agents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agents": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/AIAgent" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["AI Agents"],
+        "summary": "Create AI agent",
+        "operationId": "createAgent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "goal"],
+                "properties": {
+                  "name": { "type": "string", "example": "Customer Support Agent" },
+                  "description": { "type": "string" },
+                  "goal": { "type": "string", "example": "Resolve customer inquiries within 5 minutes" },
+                  "baseAssistant": { "type": "string", "enum": ["omega", "aria", "nova", "sage"], "example": "omega" },
+                  "tools": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "maxCreditsPerRun": { "type": "integer", "example": 100 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "AI agent created successfully" }
+        }
+      }
+    },
+    "/cloud/usage": {
+      "get": {
+        "tags": ["Usage & Billing"],
+        "summary": "Get usage summary for tenant",
+        "operationId": "getUsage",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["7d", "30d", "90d"], "default": "30d" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "logs": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/UsageLog" }
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "totalCredits": { "type": "integer" },
+                        "totalCalls": { "type": "integer" },
+                        "period": { "type": "string" },
+                        "since": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugins": {
+      "get": {
+        "tags": ["Plugins"],
+        "summary": "List published plugins",
+        "operationId": "listPlugins",
+        "responses": {
+          "200": {
+            "description": "Plugins retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "plugins": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Plugin" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "User JWT token from authentication"
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "API key with Bearer prefix (e.g., 'Bearer wsk_live_...')"
+      }
+    },
+    "schemas": {
+      "APIKey": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "prefix": { "type": "string", "example": "wn_live_" },
+          "scopes": { "type": "array", "items": { "type": "string" } },
+          "rateLimitRpm": { "type": "integer" },
+          "lastUsedAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "revoked": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "APIKeyWithSecret": {
+        "allOf": [
+          { "$ref": "#/components/schemas/APIKey" },
+          {
+            "type": "object",
+            "properties": {
+              "rawKey": { "type": "string", "example": "wn_live_abc123..." }
+            }
+          }
+        ]
+      },
+      "Connector": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "category": { "type": "string" },
+          "verified": { "type": "boolean" },
+          "installCount": { "type": "integer" },
+          "published": { "type": "boolean" }
+        }
+      },
+      "ConnectorInstall": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "connectorId": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "active": { "type": "boolean" },
+          "installedAt": { "type": "string", "format": "date-time" },
+          "connector": { "$ref": "#/components/schemas/Connector" }
+        }
+      },
+      "WebhookSubscription": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "events": { "type": "array", "items": { "type": "string" } },
+          "active": { "type": "boolean" },
+          "failCount": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Automation": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "trigger": { "type": "object" },
+          "steps": { "type": "array" },
+          "active": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AIAgent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "goal": { "type": "string" },
+          "baseAssistant": { "type": "string" },
+          "tools": { "type": "array", "items": { "type": "string" } },
+          "active": { "type": "boolean" },
+          "maxCreditsPerRun": { "type": "integer" },
+          "humanApprovalRequired": { "type": "boolean" }
+        }
+      },
+      "UsageLog": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "feature": { "type": "string" },
+          "credits": { "type": "integer" },
+          "metadata": { "type": "object" },
+          "billedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Plugin": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "version": { "type": "string" },
+          "author": { "type": "string" },
+          "category": { "type": "string" },
+          "price": { "type": "number" },
+          "revenueShare": { "type": "number" },
+          "installCount": { "type": "integer" },
+          "reviewCount": { "type": "integer" },
+          "published": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

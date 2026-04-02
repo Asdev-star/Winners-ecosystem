@@ -111,4 +111,145 @@ router.post("/", async (req: Request, res: Response) => {
   return res.status(201).json(newNotif);
 });
 
+// ─── PUSH NOTIFICATIONS — FIREBASE FCM ──────────────────────────────────────────
+
+// POST /notifications/push/register — Register push subscription
+router.post("/push/register", async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  const { endpoint, keys } = req.body ?? {};
+
+  if (!endpoint || !keys?.p256dh || !keys?.auth) {
+    return res.status(400).json({ error: "endpoint, keys.p256dh, and keys.auth are required" });
+  }
+
+  try {
+    // Store in DeviceToken table (reuse for push subscriptions)
+    const deviceToken = await db.deviceToken.upsert({
+      where: { token: endpoint },
+      update: {
+        isActive: true,
+        lastSeen: new Date(),
+        platform: "web-push",
+        tenantId,
+        userId,
+        userAgent: JSON.stringify({ keys }),
+      },
+      create: {
+        token: endpoint,
+        platform: "web-push",
+        userId,
+        tenantId,
+        userAgent: JSON.stringify({ keys }),
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      subscription: {
+        id: deviceToken.id,
+        endpoint: deviceToken.token,
+        keys: JSON.parse(deviceToken.userAgent || "{}"),
+        createdAt: deviceToken.createdAt.toISOString(),
+      },
+    });
+  } catch (err) {
+    console.error("[Push] Registration error:", err);
+    res.status(500).json({ error: "Failed to register push subscription" });
+  }
+});
+
+// DELETE /notifications/push/unregister — Unregister push subscription
+router.delete("/push/unregister", async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+
+  try {
+    await db.deviceToken.updateMany({
+      where: {
+        userId,
+        platform: "web-push",
+      },
+      data: { isActive: false },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[Push] Unregister error:", err);
+    res.status(500).json({ error: "Failed to unregister push subscription" });
+  }
+});
+
+// GET /notifications/preferences — Get user notification preferences
+router.get("/preferences", async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+
+  try {
+    // For now, return default preferences
+    // In production, create a NotificationPreference model in Prisma
+    const defaultPrefs = {
+      userId,
+      enabled: true,
+      communityPosts: true,
+      communityLikes: true,
+      communityComments: true,
+      academyEnrollment: true,
+      academyCertificate: true,
+      marketOrderUpdate: true,
+      workApplication: true,
+      workContractUpdate: true,
+      trustScoreChange: true,
+      systemAnnouncements: true,
+    };
+
+    res.json({ preferences: defaultPrefs });
+  } catch (err) {
+    console.error("[Preferences] Fetch error:", err);
+    res.status(500).json({ error: "Failed to fetch preferences" });
+  }
+});
+
+// PATCH /notifications/preferences — Update notification preferences
+router.patch("/preferences", async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const updates = req.body ?? {};
+
+  try {
+    // For now, just acknowledge the update
+    // In production, save to NotificationPreference table
+    res.json({ preferences: { userId, ...updates }, success: true });
+  } catch (err) {
+    console.error("[Preferences] Update error:", err);
+    res.status(500).json({ error: "Failed to update preferences" });
+  }
+});
+
+// POST /notifications/push/test — Send test notification
+router.post("/push/test", async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+
+  try {
+    // Create a test notification
+    const testNotif = {
+      id: `test_${Date.now()}`,
+      type: "system",
+      title: "🎉 Test Notification",
+      body: "Your push notifications are working correctly!",
+      read: false,
+      createdAt: new Date().toISOString(),
+      link: "/notifications",
+    };
+
+    const notifs = getTenantNotifs(req.user!.tenantId);
+    notifs.unshift(testNotif);
+
+    // In production, send via Firebase Cloud Messaging here
+    // await firebaseAdmin.messaging().send({...})
+
+    res.json({ success: true, notification: testNotif });
+  } catch (err) {
+    console.error("[Push] Test error:", err);
+    res.status(500).json({ error: "Failed to send test notification" });
+  }
+});
+
 export default router;

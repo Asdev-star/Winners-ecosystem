@@ -285,7 +285,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
           vendor: { select: { storeName: true } },
           items: {
             include: {
-              product: { select: { name: true, images: { take: 1 } } },
+              product: { select: { name: true, slug: true, images: { take: 1 } } },
             },
           },
         },

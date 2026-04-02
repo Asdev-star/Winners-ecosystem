@@ -324,7 +324,7 @@ router.post("/:id/reviews", authMiddleware, async (req: Request, res: Response) 
     }
 
     const existing = await db.productReview.findFirst({
-      where: { productId, userId }
+      where: { productId, userId, tenantId }
     });
 
     if (existing) {
@@ -334,14 +334,34 @@ router.post("/:id/reviews", authMiddleware, async (req: Request, res: Response) 
     const product = await db.product.findFirst({ where: { id: productId, tenantId } });
     if (!product) return res.status(404).json({ error: "Product not found" });
 
+    const purchasedOrder = await db.order.findFirst({
+      where: {
+        tenantId,
+        userId,
+        paymentStatus: "PAID",
+        status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] },
+        items: {
+          some: { productId },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+
+    if (!purchasedOrder) {
+      return res.status(403).json({ error: "You can only review products you have purchased" });
+    }
+
     const review = await db.productReview.create({
       data: {
         tenantId,
         productId,
         userId,
+        orderId: purchasedOrder.id,
         rating: Number(rating),
         title: title || "",
         content: content || "",
+        isVerified: true,
         isApproved: true
       },
       include: {

@@ -1,155 +1,397 @@
-// Phase 4D — Winners Market: Winners Trading
-// Stocks, Crypto, Forex, Copy Trading, African Market Signals
-// AI supervisor: ATLAS / OMEGA
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  BarChart3,
+  Bell,
+  Star,
+  RefreshCw,
+  ChevronDown,
+  ArrowUpRight,
+  ArrowDownRight,
+  Activity,
+  Target,
+  Zap,
+  Clock,
+  Filter,
+  Search,
+  Plus,
+  Minus,
+  Eye,
+  EyeOff,
+  Settings,
+  Info,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
+import { useAuthStore } from "../../stores/authStore";
+import { useTradingStore } from "../../stores/tradingStore";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import Badge from "../../components/ui/Badge";
+import Card from "../../components/ui/Card";
+import { TradingSignalCard } from "./TradingSignalCard";
+import { PortfolioCard } from "./PortfolioCard";
+import { MarketAnalysisCard } from "./MarketAnalysisCard";
 
-import { useState } from "react";
-import { useAuthStore } from "../auth/authStore";
-import AssistantPanel from "../../components/ui/AssistantPanel";
-import ContextBar from "../../components/ui/ContextBar";
+interface TradingSignal {
+  id: string;
+  symbol: string;
+  type: "BUY" | "SELL" | "HOLD";
+  confidence: number;
+  price: number;
+  targetPrice: number;
+  stopLoss: number;
+  timeframe: string;
+  analysis: string;
+  createdAt: string;
+  status: "active" | "triggered" | "expired";
+}
 
-export default function WinnersTradingPage() {
-  const { token } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'markets' | 'portfolio' | 'signals' | 'copy'>('markets');
+interface PortfolioItem {
+  id: string;
+  symbol: string;
+  quantity: number;
+  avgPrice: number;
+  currentPrice: number;
+  pnl: number;
+  pnlPercent: number;
+}
 
-  const MARKETS = [
-    { symbol: 'NSE: EQTY', name: 'Equity Group Holdings', price: 42.50, change: +1.2, region: 'Kenya' },
-    { symbol: 'NGX: MTNN', name: 'MTN Nigeria', price: 245.00, change: -0.5, region: 'Nigeria' },
-    { symbol: 'JSE: NPN', name: 'Naspers Ltd', price: 3150.00, change: +0.8, region: 'South Africa' },
-    { symbol: 'BTC/USD', name: 'Bitcoin', price: 68420.00, change: +2.4, region: 'Global' },
+interface MarketAnalysis {
+  id: string;
+  title: string;
+  summary: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+  confidence: number;
+  assets: string[];
+  createdAt: string;
+}
+
+export function WinnersTradingPage() {
+  const { user } = useAuthStore();
+  const {
+    signals,
+    portfolio,
+    analyses,
+    loading,
+    fetchSignals,
+    fetchPortfolio,
+    fetchAnalyses,
+    subscribeToSignal,
+    unsubscribeFromSignal,
+  } = useTradingStore();
+
+  const [activeTab, setActiveTab] = useState<
+    "signals" | "portfolio" | "analysis"
+  >("signals");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const timeframes = [
+    { value: "all", label: "All Timeframes" },
+    { value: "1h", label: "1 Hour" },
+    { value: "4h", label: "4 Hours" },
+    { value: "1d", label: "1 Day" },
+    { value: "1w", label: "1 Week" },
   ];
 
-  const SIGNALS = [
-    { type: 'BUY', symbol: 'NSE: SCOM', entry: 18.20, target: 21.00, stop: 17.00, confidence: '85%' },
-    { type: 'SELL', symbol: 'BTC/USD', entry: 69500, target: 65000, stop: 71000, confidence: '72%' },
+  const signalTypes = [
+    { value: "all", label: "All Types" },
+    { value: "BUY", label: "Buy Signals" },
+    { value: "SELL", label: "Sell Signals" },
+    { value: "HOLD", label: "Hold Signals" },
   ];
+
+  useEffect(() => {
+    fetchSignals();
+    fetchPortfolio();
+    fetchAnalyses();
+  }, [fetchSignals, fetchPortfolio, fetchAnalyses]);
+
+  const filteredSignals = signals.filter((signal) => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        signal.symbol.toLowerCase().includes(query) ||
+        signal.analysis.toLowerCase().includes(query)
+      );
+    }
+    if (selectedTimeframe !== "all" && signal.timeframe !== selectedTimeframe) {
+      return false;
+    }
+    if (selectedType !== "all" && signal.type !== selectedType) {
+      return false;
+    }
+    return true;
+  });
+
+  const totalPnl = portfolio.reduce((sum, item) => sum + item.pnl, 0);
+  const totalPnlPercent =
+    portfolio.length > 0
+      ? portfolio.reduce((sum, item) => sum + item.pnlPercent, 0) /
+        portfolio.length
+      : 0;
+
+  const activeSignals = signals.filter((s) => s.status === "active").length;
+  const triggeredSignals = signals.filter(
+    (s) => s.status === "triggered",
+  ).length;
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 40px" }}>
-      <ContextBar platform="market" />
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 32 }}>
-        <div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 40, fontWeight: 300, color: "var(--gold)", marginBottom: 8 }}>Winners Trading</h1>
-          <p style={{ color: "var(--text-dim)", fontSize: 16 }}>Professional trading tools for African and Global markets</p>
-        </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button style={{ 
-            background: 'transparent', border: '1px solid var(--gold)', borderRadius: 6, padding: '10px 20px', 
-            color: 'var(--gold)', fontWeight: 700, fontFamily: 'Syne', cursor: 'pointer' 
-          }}>
-            Paper Trading
-          </button>
-          <button style={{ 
-            background: 'var(--gold)', border: 'none', borderRadius: 6, padding: '10px 20px', 
-            color: 'var(--bg)', fontWeight: 700, fontFamily: 'Syne', cursor: 'pointer' 
-          }}>
-            Deposit Funds
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      {/* Header */}
+      <div className="bg-gray-900/50 backdrop-blur-xl border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                <TrendingUp className="w-8 h-8 text-green-400" />
+                Winners Trading
+              </h1>
+              <p className="mt-2 text-gray-400">
+                AI-powered trading signals and portfolio management
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => fetchSignals()}
+                variant="outline"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+              <Button className="bg-green-600 hover:bg-green-700">
+                <Plus className="w-4 h-4 mr-2" />
+                New Signal
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-gray-800/50 border-gray-700 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Active Signals</p>
+                  <p className="text-2xl font-bold text-white">
+                    {activeSignals}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-blue-400" />
+                </div>
+              </div>
+            </Card>
+            <Card className="bg-gray-800/50 border-gray-700 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Triggered</p>
+                  <p className="text-2xl font-bold text-white">
+                    {triggeredSignals}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-400" />
+                </div>
+              </div>
+            </Card>
+            <Card className="bg-gray-800/50 border-gray-700 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Portfolio P&L</p>
+                  <p
+                    className={`text-2xl font-bold ${totalPnl >= 0 ? "text-green-400" : "text-red-400"}`}
+                  >
+                    {totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}
+                  </p>
+                </div>
+                <div
+                  className={`w-12 h-12 rounded-full ${totalPnl >= 0 ? "bg-green-500/20" : "bg-red-500/20"} flex items-center justify-center`}
+                >
+                  {totalPnl >= 0 ? (
+                    <ArrowUpRight className="w-6 h-6 text-green-400" />
+                  ) : (
+                    <ArrowDownRight className="w-6 h-6 text-red-400" />
+                  )}
+                </div>
+              </div>
+            </Card>
+            <Card className="bg-gray-800/50 border-gray-700 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-400">Win Rate</p>
+                  <p className="text-2xl font-bold text-white">
+                    {triggeredSignals > 0
+                      ? Math.round(
+                          (triggeredSignals /
+                            (triggeredSignals + activeSignals)) *
+                            100,
+                        )
+                      : 0}
+                    %
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <Target className="w-6 h-6 text-purple-400" />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Tabs */}
+          <div className="mt-6 flex gap-2">
+            {[
+              { value: "signals", label: "Signals", icon: Zap },
+              { value: "portfolio", label: "Portfolio", icon: BarChart3 },
+              { value: "analysis", label: "Market Analysis", icon: TrendingUp },
+            ].map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value as any)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  activeTab === tab.value
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 32, borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
-        {['markets', 'portfolio', 'signals', 'copy'].map((t) => (
-          <button 
-            key={t}
-            onClick={() => setActiveTab(t as any)}
-            style={{ 
-              background: 'transparent', border: 'none', padding: '8px 16px', 
-              color: activeTab === t ? 'var(--gold)' : 'var(--text-dim)', 
-              fontFamily: 'Space Mono', fontSize: 12, textTransform: 'uppercase', 
-              cursor: 'pointer', borderBottom: activeTab === t ? '2px solid var(--gold)' : 'none'
-            }}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === "signals" && (
+          <div>
+            {/* Filters */}
+            <div className="mb-6 flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search signals..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                />
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={selectedTimeframe}
+                  onChange={(e) => setSelectedTimeframe(e.target.value)}
+                  className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  {timeframes.map((tf) => (
+                    <option key={tf.value} value={tf.value}>
+                      {tf.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  {signalTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
-        {/* Main Content Area */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 24 }}>
-            <h3 style={{ color: 'var(--text)', marginBottom: 20, fontFamily: 'Syne' }}>Market Watch</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '12px 0', color: 'var(--text-dim)', fontWeight: 400, fontSize: 12, fontFamily: 'Space Mono' }}>SYMBOL</th>
-                  <th style={{ padding: '12px 0', color: 'var(--text-dim)', fontWeight: 400, fontSize: 12, fontFamily: 'Space Mono' }}>NAME</th>
-                  <th style={{ padding: '12px 0', color: 'var(--text-dim)', fontWeight: 400, fontSize: 12, fontFamily: 'Space Mono' }}>PRICE</th>
-                  <th style={{ padding: '12px 0', color: 'var(--text-dim)', fontWeight: 400, fontSize: 12, fontFamily: 'Space Mono' }}>24H %</th>
-                </tr>
-              </thead>
-              <tbody>
-                {MARKETS.map((m) => (
-                  <tr key={m.symbol} style={{ borderBottom: '1px solid var(--border2)' }}>
-                    <td style={{ padding: '16px 0', fontWeight: 700, color: 'var(--ice)' }}>{m.symbol}</td>
-                    <td style={{ padding: '16px 0', color: 'var(--text)', fontSize: 14 }}>{m.name} <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>({m.region})</span></td>
-                    <td style={{ padding: '16px 0', fontFamily: 'Space Mono' }}>${m.price.toLocaleString()}</td>
-                    <td style={{ padding: '16px 0', color: m.change > 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'Space Mono' }}>
-                      {m.change > 0 ? '+' : ''}{m.change}%
-                    </td>
-                  </tr>
+            {/* Signals Grid */}
+            {loading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 text-green-400 animate-spin" />
+              </div>
+            ) : filteredSignals.length === 0 ? (
+              <div className="text-center py-20">
+                <Zap className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  No signals found
+                </h3>
+                <p className="text-gray-400">
+                  Try adjusting your filters or check back later for new
+                  signals.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <AnimatePresence>
+                  {filteredSignals.map((signal) => (
+                    <motion.div
+                      key={signal.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <TradingSignalCard signal={signal} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "portfolio" && (
+          <div>
+            {portfolio.length === 0 ? (
+              <div className="text-center py-20">
+                <BarChart3 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  No portfolio items
+                </h3>
+                <p className="text-gray-400">
+                  Start trading to build your portfolio.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {portfolio.map((item) => (
+                  <PortfolioCard key={item.id} item={item} />
                 ))}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
+        )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 20 }}>
-                <h4 style={{ color: 'var(--gold)', marginBottom: 12, fontSize: 14 }}>Copy Trading</h4>
-                <p style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 16 }}>Follow the top performing traders in the African diaspora.</p>
-                <button style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', padding: '8px', color: 'var(--text)', borderRadius: 4, cursor: 'pointer' }}>View Leaderboard</button>
-             </div>
-             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 20 }}>
-                <h4 style={{ color: 'var(--ice)', marginBottom: 12, fontSize: 14 }}>Education</h4>
-                <p style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 16 }}>Learn the basics of technical analysis with SAGE AI.</p>
-                <button style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', padding: '8px', color: 'var(--text)', borderRadius: 4, cursor: 'pointer' }}>Open Academy</button>
-             </div>
+        {activeTab === "analysis" && (
+          <div>
+            {analyses.length === 0 ? (
+              <div className="text-center py-20">
+                <TrendingUp className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  No market analysis
+                </h3>
+                <p className="text-gray-400">
+                  Check back later for AI-powered market insights.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {analyses.map((analysis) => (
+                  <MarketAnalysisCard key={analysis.id} analysis={analysis} />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 20, position: 'relative' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--purple), transparent)' }} />
-            <h3 style={{ color: 'var(--purple)', marginBottom: 16, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>⚡</span> Alpha Signals
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {SIGNALS.map((s, i) => (
-                <div key={i} style={{ padding: 12, background: 'var(--surface2)', borderRadius: 4, border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ color: s.type === 'BUY' ? 'var(--green)' : 'var(--red)', fontWeight: 800 }}>{s.type}</span>
-                    <span style={{ color: 'var(--text)', fontWeight: 700 }}>{s.symbol}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-dim)', fontFamily: 'Space Mono' }}>
-                    <span>ENTRY: {s.entry}</span>
-                    <span>TGT: {s.target}</span>
-                  </div>
-                  <div style={{ marginTop: 8, height: 4, background: 'var(--bg)', borderRadius: 2 }}>
-                    <div style={{ width: s.confidence, height: '100%', background: 'var(--gold)', borderRadius: 2 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button style={{ width: '100%', marginTop: 16, background: 'transparent', border: '1px solid var(--purple)', padding: '10px', color: 'var(--purple)', borderRadius: 4, cursor: 'pointer', fontFamily: 'Syne', fontWeight: 600 }}>Unlock Premium Signals</button>
-          </div>
-
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 20 }}>
-            <h4 style={{ color: 'var(--text)', marginBottom: 12, fontSize: 14 }}>Top Movers (NSE)</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {['KCB (+3.2%)', 'ABSA (+2.1%)', 'BAT (-1.4%)'].map((stock, i) => (
-                <div key={i} style={{ fontSize: 13, color: stock.includes('+') ? 'var(--green)' : 'var(--red)', display: 'flex', justifyContent: 'space-between' }}>
-                   <span>{stock.split(' ')[0]}</span>
-                   <span style={{ fontFamily: 'Space Mono' }}>{stock.split(' ')[1]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
-
-      <AssistantPanel assistant="atlas" />
     </div>
   );
 }

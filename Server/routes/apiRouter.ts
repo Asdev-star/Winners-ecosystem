@@ -59,6 +59,8 @@ import circuitRoutes from "./circuitRoutes.js";
 import atlasRoutes from "./atlasRoutes.js";
 import atlasMarketRoutes from "./atlasMarketRoutes.js";
 import connectorRoutes from "./connectorRoutes.js";
+import tradingRoutes from "./tradingRoutes.js";
+import pluginRoutes from "./pluginRoutes.js";
 import notificationTokenRoutes from "./notificationTokenRoutes.js";
 
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -120,6 +122,7 @@ const gatewayRoutes = [
   "/atlas",
   "/connectors",
   "/push-tokens",
+  "/plugins",
 ];
 
 router.get("/", (_req, res) => {
@@ -172,13 +175,43 @@ router.use("/opportunities", opportunityRoutes);
 router.use("/community", communityIntelligenceRoutes);
 router.use("/external-courses", externalCourseRoutes);
 router.use("/social", socialRoutes);
-router.use("/vendors", authMiddleware, requireLayerAccess("market"), vendorRoutes);
-router.use("/dropship", authMiddleware, requireLayerAccess("market"), dropshipRoutes);
-router.use("/finance", authMiddleware, requireLayerAccess("market"), financeRoutes);
-router.use("/products", authMiddleware, requireLayerAccess("market"), productRoutes);
+router.use(
+  "/vendors",
+  authMiddleware,
+  requireLayerAccess("market"),
+  vendorRoutes,
+);
+router.use(
+  "/dropship",
+  authMiddleware,
+  requireLayerAccess("market"),
+  dropshipRoutes,
+);
+router.use(
+  "/finance",
+  authMiddleware,
+  requireLayerAccess("market"),
+  financeRoutes,
+);
+router.use(
+  "/products",
+  authMiddleware,
+  requireLayerAccess("market"),
+  productRoutes,
+);
 router.use("/cart", authMiddleware, requireLayerAccess("market"), cartRoutes);
-router.use("/checkout", authMiddleware, requireLayerAccess("market"), checkoutRoutes);
-router.use("/orders", authMiddleware, requireLayerAccess("market"), orderRoutes);
+router.use(
+  "/checkout",
+  authMiddleware,
+  requireLayerAccess("market"),
+  checkoutRoutes,
+);
+router.use(
+  "/orders",
+  authMiddleware,
+  requireLayerAccess("market"),
+  orderRoutes,
+);
 router.use("/work", authMiddleware, requireLayerAccess("work"), workRoutes);
 router.use("/quizzes", quizRoutes);
 router.use("/lecture-uploads", lectureUploadRoutes);
@@ -191,10 +224,31 @@ router.use("/insights", autonomousRoutes);
 router.use("/agentic", agenticLoopRoutes);
 router.use("/credits", creditRoutes);
 router.use("/escrow", authMiddleware, requireLayerAccess("work"), escrowRoutes);
-router.use("/circuit", authMiddleware, requireLayerAccess("work"), circuitRoutes);
+router.use(
+  "/circuit",
+  authMiddleware,
+  requireLayerAccess("work"),
+  circuitRoutes,
+);
 router.use("/atlas", authMiddleware, requireLayerAccess("market"), atlasRoutes);
-router.use("/ai/atlas", authMiddleware, requireLayerAccess("market"), atlasMarketRoutes);
-router.use("/connectors", authMiddleware, requireLayerAccess("cloud"), connectorRoutes);
+router.use(
+  "/ai/atlas",
+  authMiddleware,
+  requireLayerAccess("market"),
+  atlasMarketRoutes,
+);
+router.use(
+  "/connectors",
+  authMiddleware,
+  requireLayerAccess("cloud"),
+  connectorRoutes,
+);
+router.use(
+  "/plugins",
+  authMiddleware,
+  requireLayerAccess("cloud"),
+  pluginRoutes,
+);
 router.use("/push-tokens", notificationTokenRoutes);
 
 export default router;

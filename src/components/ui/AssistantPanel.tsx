@@ -21,7 +21,7 @@ interface Message {
 interface AssistantPanelProps {
   assistant: AssistantKey;
   context?: Record<string, unknown>;
-  page: string;
+  page?: string;
   userId?: string;
   initialMessage?: string;
 }
@@ -103,7 +103,7 @@ const ASSISTANT_CONFIGS: Record<AssistantKey, AssistantConfig> = {
 export default function AssistantPanel({
   assistant,
   context,
-  page,
+  page = "general",
   userId,
   initialMessage,
 }: AssistantPanelProps) {

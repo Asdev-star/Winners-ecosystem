@@ -14,7 +14,7 @@ type AdminUserListItem = {
   role: string;
   createdAt: string;
   trustScore: number;
-  trustScoreTier: string;
+  trustScoreTier?: string;
   plan: string;
   layersActive: number;
   lastSeen: string;

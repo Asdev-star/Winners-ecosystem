@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "../../features/auth/authStore";
 
 interface AIInsightBannerProps {
-  page: "dashboard" | "community" | "academy" | "market" | "work" | "intelligence";
+  page: "dashboard" | "community" | "academy" | "market" | "work" | "intelligence" | "settings";
   assistant?: "aria" | "nova" | "sage" | "atlas" | "circuit" | "forge" | "omega";
   userId?: string;
 }

@@ -61,6 +61,39 @@ export type WorkFreelancerProfile = {
   featuredContractIds: string[];
 };
 
+export type WorkIntelligenceTool = {
+  id: string;
+  name: string;
+  headline: string;
+  summary: string;
+  actionLabel: string;
+  impactLabel: string;
+};
+
+export type WorkService = {
+  id: string;
+  title: string;
+  provider: string;
+  serviceType: "Offer service" | "Get service";
+  pricing: string;
+  deliveryWindow: string;
+  fitScore: number;
+  summary: string;
+  tags: string[];
+  linkedProfileId?: string;
+  linkedJobId?: string;
+};
+
+export type WorkPlatformIntegration = {
+  id: string;
+  name: string;
+  category: "Find jobs" | "Hire talent" | "Offer services" | "Get services";
+  syncStatus: string;
+  bestFor: string;
+  workflow: string;
+  strengths: string[];
+};
+
 type WorkApplicationPayload = {
   jobId: string;
   proposal: string;
@@ -73,6 +106,9 @@ type WorkState = {
   jobs: WorkJob[];
   contracts: WorkContract[];
   freelancers: WorkFreelancerProfile[];
+  intelligenceTools: WorkIntelligenceTool[];
+  services: WorkService[];
+  platformIntegrations: WorkPlatformIntegration[];
   savedJobIds: string[];
   appliedJobIds: string[];
   toggleSavedJob: (jobId: string) => void;
@@ -249,11 +285,188 @@ const FREELANCERS: WorkFreelancerProfile[] = [
   },
 ];
 
+const INTELLIGENCE_TOOLS: WorkIntelligenceTool[] = [
+  {
+    id: "tool-circuit-match",
+    name: "CIRCUIT Match",
+    headline: "Ranks the best roles, clients, and service opportunities by timing, skill fit, and trust.",
+    summary: "Use it when you need fast signal on what to apply for, who to hire, or which service offer to publish first.",
+    actionLabel: "Review strongest matches",
+    impactLabel: "Cuts low-quality outreach before it starts",
+  },
+  {
+    id: "tool-proposal-studio",
+    name: "Proposal Studio",
+    headline: "Builds tailored proposals, scope notes, and client-ready answers from one brief.",
+    summary: "Great for freelancers packaging services and for teams responding to hiring briefs without starting from a blank page.",
+    actionLabel: "Draft winning proposals",
+    impactLabel: "Speeds up proposal and scope creation",
+  },
+  {
+    id: "tool-trust-risk",
+    name: "Trust and Risk Scan",
+    headline: "Highlights payment friction, vague briefs, unrealistic deadlines, and weak marketplace signals.",
+    summary: "Use it before accepting work, hiring a contractor, or buying a service package from a new provider.",
+    actionLabel: "Check delivery risk",
+    impactLabel: "Reduces bad-fit contracts and unreliable buyers",
+  },
+  {
+    id: "tool-brief-builder",
+    name: "AI Brief Builder",
+    headline: "Turns a rough hiring need or service request into a clear scope, milestones, and shortlist criteria.",
+    summary: "Helpful for clients who know the outcome they need but want clearer requirements before they hire or buy a service.",
+    actionLabel: "Build a sharper brief",
+    impactLabel: "Improves role clarity before hiring",
+  },
+  {
+    id: "tool-gig-packager",
+    name: "Gig Packager",
+    headline: "Shapes repeatable freelancer work into a productized offer with pricing, delivery windows, and proof points.",
+    summary: "Great for users who want to stop rewriting the same offer and start selling services more consistently across platforms.",
+    actionLabel: "Package a service offer",
+    impactLabel: "Makes services easier to sell",
+  },
+];
+
+const SERVICES: WorkService[] = [
+  {
+    id: "service-mobile-product-sprint",
+    title: "Mobile product sprint",
+    provider: "Amina Okafor",
+    serviceType: "Offer service",
+    pricing: "$1,500 fixed sprint",
+    deliveryWindow: "10 business days",
+    fitScore: 95,
+    summary: "A focused sprint for product teams that need a mobile feature shipped, tightened, and ready for release.",
+    tags: ["React Native", "Product Delivery", "QA"],
+    linkedProfileId: "freelancer-amina-okafor",
+  },
+  {
+    id: "service-launch-ops-pack",
+    title: "Launch ops system setup",
+    provider: "Diaspora Ventures",
+    serviceType: "Get service",
+    pricing: "$900 setup",
+    deliveryWindow: "1 week",
+    fitScore: 84,
+    summary: "Ideal for founders who need launch rituals, checklists, and reporting templates without building the system from scratch.",
+    tags: ["Operations", "Community", "Templates"],
+    linkedJobId: "job-community-launch-systems",
+  },
+  {
+    id: "service-ai-client-brief",
+    title: "AI client brief and hiring pack",
+    provider: "Winners Work Layer",
+    serviceType: "Get service",
+    pricing: "$120 per brief",
+    deliveryWindow: "Same day",
+    fitScore: 89,
+    summary: "Turns a rough idea into a scope doc, role outline, interview rubric, and delivery milestones for faster hiring.",
+    tags: ["AI", "Hiring", "Scoping"],
+  },
+];
+
+const PLATFORM_INTEGRATIONS: WorkPlatformIntegration[] = [
+  {
+    id: "platform-linkedin",
+    name: "LinkedIn",
+    category: "Find jobs",
+    syncStatus: "Profile sync ready",
+    bestFor: "Professional roles, recruiter discovery, long-term hiring",
+    workflow: "Push your profile summary and use CIRCUIT to decide which openings deserve a tailored application.",
+    strengths: ["Recruiter visibility", "Brand credibility", "High-signal hiring teams"],
+  },
+  {
+    id: "platform-indeed",
+    name: "Indeed",
+    category: "Find jobs",
+    syncStatus: "Search feed ready",
+    bestFor: "Broad job discovery across remote and local markets",
+    workflow: "Pull role themes into the Work layer, then shortlist by compensation, location, and fit score.",
+    strengths: ["Large volume", "Fast search coverage", "Easy salary comparison"],
+  },
+  {
+    id: "platform-wellfound",
+    name: "Wellfound",
+    category: "Find jobs",
+    syncStatus: "Startup pipeline ready",
+    bestFor: "Startup jobs, operator roles, and early-stage product teams",
+    workflow: "Pull startup opportunities into Winners Work, then prioritize the teams with clearer ownership and faster decisions.",
+    strengths: ["Startup access", "Direct teams", "Operator roles"],
+  },
+  {
+    id: "platform-upwork",
+    name: "Upwork",
+    category: "Offer services",
+    syncStatus: "Proposal workflow mapped",
+    bestFor: "Freelance proposals, short contracts, scoped delivery work",
+    workflow: "Package services, compare buyer signals, and route the best-fit briefs into Proposal Studio.",
+    strengths: ["Freelance demand", "Escrow support", "Short-cycle contracts"],
+  },
+  {
+    id: "platform-fiverr",
+    name: "Fiverr",
+    category: "Offer services",
+    syncStatus: "Gig packaging ready",
+    bestFor: "Productized service offers and fast turnaround gigs",
+    workflow: "Turn repeatable delivery into clear offers with pricing, timeline, and outcome framing.",
+    strengths: ["Service packaging", "Repeatable offers", "Fast buyer intent"],
+  },
+  {
+    id: "platform-contra",
+    name: "Contra",
+    category: "Offer services",
+    syncStatus: "Portfolio flow ready",
+    bestFor: "Independent creatives, builders, and portfolio-first service selling",
+    workflow: "Refine your positioning in Winners Work, then publish a stronger portfolio-led offer in Contra.",
+    strengths: ["Portfolio first", "Independent brand", "Creative work"],
+  },
+  {
+    id: "platform-toptal",
+    name: "Toptal",
+    category: "Hire talent",
+    syncStatus: "Talent sourcing mapped",
+    bestFor: "Premium specialist hiring and vetted freelance talent",
+    workflow: "Use the Work layer to compare trust signals, scope clarity, and specialist fit before outreach.",
+    strengths: ["Vetted experts", "Senior talent", "Fast shortlist quality"],
+  },
+  {
+    id: "platform-freelancer",
+    name: "Freelancer.com",
+    category: "Hire talent",
+    syncStatus: "Bid comparison ready",
+    bestFor: "Budget-sensitive hiring with many proposals to compare",
+    workflow: "Collect bid volume there, then use Winners Work trust signals to filter weak proposals and delivery risk.",
+    strengths: ["Proposal volume", "Global reach", "Flexible budgets"],
+  },
+  {
+    id: "platform-catalant",
+    name: "Catalant",
+    category: "Get services",
+    syncStatus: "Service buying mapped",
+    bestFor: "Consulting, strategy, and fractional operator engagements",
+    workflow: "Convert your need into a buying brief, then compare service providers on outcome, budget, and speed.",
+    strengths: ["Fractional operators", "Consulting scope", "Enterprise-style matching"],
+  },
+  {
+    id: "platform-malt",
+    name: "Malt",
+    category: "Get services",
+    syncStatus: "Service sourcing ready",
+    bestFor: "European freelance sourcing and specialist service buying",
+    workflow: "Use Winners Work to shape the brief, then compare specialists by trust, timing, and service fit.",
+    strengths: ["European market", "Specialist sourcing", "Service comparisons"],
+  },
+];
+
 export const useWorkStore = create<WorkState>((set) => ({
   currentFreelancerId: "freelancer-amina-okafor",
   jobs: JOBS,
   contracts: CONTRACTS,
   freelancers: FREELANCERS,
+  intelligenceTools: INTELLIGENCE_TOOLS,
+  services: SERVICES,
+  platformIntegrations: PLATFORM_INTEGRATIONS,
   savedJobIds: JOBS.filter((job) => job.saved).map((job) => job.id),
   appliedJobIds: JOBS.filter((job) => job.applied).map((job) => job.id),
 

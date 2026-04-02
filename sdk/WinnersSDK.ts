@@ -542,6 +542,208 @@ class CertificateResource {
   }
 }
 
+// ─── Cloud API: Webhook Helper Resource ─────────────────────────────────────────
+
+export interface WebhookEvent {
+  event: string;
+  timestamp: string;
+  data: Record<string, unknown>;
+  tenantId: string;
+  signature?: string;
+}
+
+export interface WebhookSubscription {
+  id: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  secret: string;
+  createdAt: string;
+}
+
+class WebhookResource {
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
+
+  /** List webhook subscriptions */
+  list() {
+    return this.http.get<{ webhooks: WebhookSubscription[] }>("/cloud/webhooks");
+  }
+
+  /** Create webhook subscription */
+  create(data: { url: string; events: string[] }) {
+    return this.http.post<{ webhook: WebhookSubscription }>("/cloud/webhooks", data);
+  }
+
+  /** Delete webhook subscription */
+  delete(webhookId: string) {
+    return this.http.delete<{ success: boolean }>(`/cloud/webhooks/${webhookId}`);
+  }
+
+  /** Get webhook delivery history */
+  getDeliveries(webhookId: string) {
+    return this.http.get<{ deliveries: unknown[] }>(`/cloud/webhooks/${webhookId}/deliveries`);
+  }
+
+  /** Verify webhook signature (HMAC-SHA256) */
+  verifySignature(payload: string, signature: string, secret: string): boolean {
+    const crypto = require("crypto");
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(payload)
+      .digest("hex");
+    return `sha256=${expected}` === signature;
+  }
+
+  /** Parse webhook event from request body */
+  parseEvent(body: unknown): WebhookEvent | null {
+    if (!body || typeof body !== "object") return null;
+    const b = body as Record<string, unknown>;
+    if (!b.event || !b.timestamp || !b.data) return null;
+    return b as WebhookEvent;
+  }
+}
+
+// ─── Cloud API: Plugin Marketplace Resource ──────────────────────────────────────
+
+export interface Plugin {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  author: string;
+  category: string;
+  price: number;
+  revenueShare: number;
+  installCount: number;
+  reviewCount: number;
+  published: boolean;
+  verified: boolean;
+  manifest: Record<string, unknown>;
+}
+
+export interface PluginInstall {
+  id: string;
+  pluginId: string;
+  tenantId: string;
+  active: boolean;
+  config: Record<string, unknown>;
+  installedAt: string;
+}
+
+export interface PluginReview {
+  id: string;
+  pluginId: string;
+  userId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+class PluginResource {
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
+
+  /** List published plugins */
+  list(params?: { category?: string; search?: string }) {
+    const query = new URLSearchParams(params as Record<string, string>).toString();
+    return this.http.get<{ plugins: Plugin[] }>(`/plugins?${query}`);
+  }
+
+  /** Get plugin details */
+  get(pluginId: string) {
+    return this.http.get<Plugin>(`/plugins/${pluginId}`);
+  }
+
+  /** Install a plugin */
+  install(pluginId: string, config?: Record<string, unknown>) {
+    return this.http.post<{ install: PluginInstall }>(`/plugins/${pluginId}/install`, { config });
+  }
+
+  /** List installed plugins */
+  listInstalled() {
+    return this.http.get<{ installs: (PluginInstall & { plugin: Plugin })[] }>("/plugins/installed");
+  }
+
+  /** Uninstall a plugin */
+  uninstall(installId: string) {
+    return this.http.delete<{ success: boolean }>(`/plugins/installed/${installId}`);
+  }
+
+  /** Submit a plugin for review */
+  submit(data: {
+    name: string;
+    description: string;
+    version: string;
+    category: string;
+    price: number;
+    manifest: Record<string, unknown>;
+  }) {
+    return this.http.post<{ plugin: Plugin }>("/plugins/submit", data);
+  }
+
+  /** Get plugin reviews */
+  getReviews(pluginId: string) {
+    return this.http.get<{ reviews: PluginReview[] }>(`/plugins/${pluginId}/reviews`);
+  }
+
+  /** Add plugin review */
+  addReview(pluginId: string, rating: number, comment: string) {
+    return this.http.post<{ review: PluginReview }>(`/plugins/${pluginId}/review`, { rating, comment });
+  }
+}
+
+// ─── Cloud API: White-label Licensing Resource ───────────────────────────────────
+
+export interface TenantConfig {
+  id: string;
+  name: string;
+  domain: string;
+  branding: {
+    logoUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    faviconUrl?: string;
+  };
+  features: string[];
+  active: boolean;
+  createdAt: string;
+}
+
+class WhiteLabelResource {
+  private readonly http: HTTPClient;
+
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
+
+  /** Get tenant configuration */
+  getConfig() {
+    return this.http.get<TenantConfig>("/whitelabel/config");
+  }
+
+  /** Update tenant branding */
+  updateBranding(branding: TenantConfig["branding"]) {
+    return this.http.patch<{ config: TenantConfig }>("/whitelabel/branding", { branding });
+  }
+
+  /** Enable/disable features */
+  updateFeatures(features: string[]) {
+    return this.http.patch<{ config: TenantConfig }>("/whitelabel/features", { features });
+  }
+
+  /** Provision new sub-tenant */
+  provisionSubtenant(data: { name: string; domain: string; plan: string }) {
+    return this.http.post<{ tenant: TenantConfig }>("/whitelabel/provision", data);
+  }
+}
+
 // ─── Main SDK Class ────────────────────────────────────────────────────────────
 
 export class WinnersSDK {
@@ -554,6 +756,9 @@ export class WinnersSDK {
   public readonly academy: AcademyResource;
   public readonly market: MarketResource;
   public readonly certificates: CertificateResource;
+  public readonly webhooks: WebhookResource;
+  public readonly plugins: PluginResource;
+  public readonly whitelabel: WhiteLabelResource;
 
   private readonly http: HTTPClient;
 
@@ -578,6 +783,9 @@ export class WinnersSDK {
     this.academy = new AcademyResource(this.http);
     this.market = new MarketResource(this.http);
     this.certificates = new CertificateResource(this.http);
+    this.webhooks = new WebhookResource(this.http);
+    this.plugins = new PluginResource(this.http);
+    this.whitelabel = new WhiteLabelResource(this.http);
   }
 
   /** Get API health status */
@@ -607,8 +815,11 @@ export default WinnersSDK;
  * - Academy API: Courses, enrollments, certificates
  * - Market API: Products, cart, orders
  * - Certificate Verification API: Verify Academy certificates
+ * - Webhooks API: Subscribe to ecosystem events with HMAC-signed payloads
+ * - Plugin Marketplace: Install, publish, and monetize plugins
+ * - White-label Licensing: Enterprise branding and sub-tenant provisioning
  * 
- * Full documentation: https://docs.winnersempire.io
+ * Full documentation: https://docs.winnersempire.io/cloud-api
  * 
  * ─── SDK Usage Example ────────────────────────────────────────────────────────
  *
@@ -649,4 +860,38 @@ export default WinnersSDK;
  *
  * // Export data (GDPR)
  * const { data: myData } = await winners.gdpr.exportMyData();
+ *
+ * // Webhooks: Subscribe to events
+ * const { data: webhook } = await winners.webhooks.create({
+ *   url: "https://yourapp.com/webhook",
+ *   events: ["user.trust_score_changed", "market.sale_completed"]
+ * });
+ *
+ * // Verify webhook signature
+ * const isValid = winners.webhooks.verifySignature(payload, signature, secret);
+ *
+ * // Plugins: Browse marketplace
+ * const { data: plugins } = await winners.plugins.list({ category: "analytics" });
+ *
+ * // Install a plugin
+ * await winners.plugins.install("plugin_id", { apiKey: "..." });
+ *
+ * // Submit your own plugin
+ * await winners.plugins.submit({
+ *   name: "My Analytics Plugin",
+ *   description: "Advanced analytics dashboard",
+ *   version: "1.0.0",
+ *   category: "analytics",
+ *   price: 9.99,
+ *   manifest: { /* plugin manifest * / }
+ * });
+ *
+ * // White-label: Get tenant config
+ * const { data: config } = await winners.whitelabel.getConfig();
+ *
+ * // Update branding
+ * await winners.whitelabel.updateBranding({
+ *   logoUrl: "https://cdn.example.com/logo.png",
+ *   primaryColor: "#C9A84C"
+ * });
  */

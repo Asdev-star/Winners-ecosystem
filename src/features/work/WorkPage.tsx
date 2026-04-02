@@ -32,6 +32,12 @@ interface JobListing {
   createdAt: string;
   client: { id: string; name: string; email: string };
   myApplication?: { id: string; status: string; createdAt: string } | null;
+  circuitScore?: number | null;
+  circuitHeadline?: string | null;
+  circuitStrengths?: string[];
+  circuitGaps?: string[];
+  suggestedRate?: number | null;
+  estimatedDays?: number | null;
 }
 
 interface FreelancerProfile {
@@ -73,6 +79,38 @@ interface WorkStats {
   completedContracts: number;
 }
 
+interface SmartToolRecommendation {
+  id: string;
+  name: string;
+  audience: "Freelancers" | "Clients" | "Both";
+  headline: string;
+  description: string;
+  action: string;
+}
+
+interface ServiceWorkspaceCard {
+  id: string;
+  title: string;
+  serviceType: "Offer service" | "Get service";
+  provider: string;
+  pricing: string;
+  deliveryWindow: string;
+  summary: string;
+  tags: string[];
+  ctaLabel: string;
+  ctaTab: "freelancers" | "jobs" | "post" | "circuit";
+}
+
+interface PlatformIntegrationCard {
+  id: string;
+  name: string;
+  category: "Find jobs" | "Hire talent" | "Offer services" | "Get services";
+  syncStatus: string;
+  bestFor: string;
+  workflow: string;
+  strengths: string[];
+}
+
 const CATEGORIES = [
   { icon: "💻", label: "Software Dev",   value: "software_dev" },
   { icon: "📱", label: "Mobile Dev",     value: "mobile_dev" },
@@ -91,7 +129,7 @@ const LEVEL_LABELS: Record<string, string> = {
   expert: "Expert",
 };
 
-type TabType = "jobs" | "freelancers" | "contracts" | "post" | "circuit";
+type TabType = "jobs" | "freelancers" | "contracts" | "services" | "platforms" | "post" | "circuit";
 
 interface CircuitMatch {
   jobId: string;
@@ -102,6 +140,185 @@ interface CircuitMatch {
   estimatedRate: string;
   job: JobListing & { client: { id: string; name: string } };
 }
+
+const SMART_TOOLS: SmartToolRecommendation[] = [
+  {
+    id: "circuit-match",
+    name: "CIRCUIT Match Radar",
+    audience: "Both",
+    headline: "Ranks the best jobs, freelancers, and service opportunities by skill fit, trust, timing, and payout quality.",
+    description: "Use it to avoid low-quality outreach and surface the highest-leverage next move before you spend time applying or hiring.",
+    action: "Open CIRCUIT AI",
+  },
+  {
+    id: "proposal-studio",
+    name: "Proposal Studio",
+    audience: "Freelancers",
+    headline: "Generates stronger proposals, scope notes, and response drafts from a single brief.",
+    description: "Best for freelancers packaging their offer faster and tailoring every proposal without starting from a blank page.",
+    action: "Generate a tailored proposal",
+  },
+  {
+    id: "brief-builder",
+    name: "AI Hiring Brief Builder",
+    audience: "Clients",
+    headline: "Turns a rough need into a clean hiring brief with milestones, required skills, and interview prompts.",
+    description: "Useful when a team knows the outcome they need but not the exact role, budget framing, or execution plan.",
+    action: "Post a clearer job",
+  },
+  {
+    id: "trust-risk",
+    name: "Trust and Risk Scan",
+    audience: "Both",
+    headline: "Flags vague briefs, risky buyers, unrealistic deadlines, and weak service marketplace signals.",
+    description: "Adds a simple risk lens before a user accepts a contract, hires a contractor, or buys a specialist service.",
+    action: "Review trust signals",
+  },
+];
+
+const SERVICE_WORKSPACE: ServiceWorkspaceCard[] = [
+  {
+    id: "service-mobile-sprint",
+    title: "Mobile feature sprint",
+    serviceType: "Offer service",
+    provider: "Freelancer package",
+    pricing: "USD 1,500 fixed sprint",
+    deliveryWindow: "10 business days",
+    summary: "A focused offer for founders who need one critical mobile flow designed, built, and tightened for launch.",
+    tags: ["React Native", "Delivery", "QA"],
+    ctaLabel: "Set up freelancer profile",
+    ctaTab: "freelancers",
+  },
+  {
+    id: "service-hiring-pack",
+    title: "AI hiring brief and shortlist pack",
+    serviceType: "Get service",
+    provider: "Winners Work Layer",
+    pricing: "USD 120 per brief",
+    deliveryWindow: "Same day",
+    summary: "Converts a rough idea into a scope doc, role outline, milestone plan, and shortlist criteria for faster hiring.",
+    tags: ["Hiring", "Scoping", "AI"],
+    ctaLabel: "Post a job",
+    ctaTab: "post",
+  },
+  {
+    id: "service-launch-ops",
+    title: "Launch ops system setup",
+    serviceType: "Get service",
+    provider: "Operator service",
+    pricing: "USD 900 setup",
+    deliveryWindow: "1 week",
+    summary: "Ideal for founders who need launch rituals, reporting templates, and execution checklists without building the system from scratch.",
+    tags: ["Operations", "Templates", "Growth"],
+    ctaLabel: "Find talent",
+    ctaTab: "freelancers",
+  },
+  {
+    id: "service-proposal-gig",
+    title: "Productized gig packaging",
+    serviceType: "Offer service",
+    provider: "Freelancer package",
+    pricing: "Outcome-based pricing",
+    deliveryWindow: "Reusable listing",
+    summary: "Turns repeatable work into a clear service offer with pricing, timeline, proofs, and delivery promises.",
+    tags: ["Offers", "Pricing", "Positioning"],
+    ctaLabel: "Open CIRCUIT AI",
+    ctaTab: "circuit",
+  },
+];
+
+const PLATFORM_INTEGRATIONS: PlatformIntegrationCard[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    category: "Find jobs",
+    syncStatus: "Profile sync ready",
+    bestFor: "Professional roles, recruiter discovery, and long-term hiring relationships",
+    workflow: "Publish a stronger profile narrative, then use CIRCUIT to decide which openings deserve a tailored application.",
+    strengths: ["Recruiter visibility", "Brand credibility", "Long-term roles"],
+  },
+  {
+    id: "indeed",
+    name: "Indeed",
+    category: "Find jobs",
+    syncStatus: "Search workflow mapped",
+    bestFor: "Broad job discovery across remote, hybrid, and local roles",
+    workflow: "Use it for wide discovery, then shortlist roles inside Winners Work by fit score, pay quality, and location.",
+    strengths: ["Large volume", "Fast search", "Salary comparison"],
+  },
+  {
+    id: "wellfound",
+    name: "Wellfound",
+    category: "Find jobs",
+    syncStatus: "Startup sourcing ready",
+    bestFor: "Startup jobs, operator roles, and early-stage teams",
+    workflow: "Pull startup opportunities into your pipeline and prioritize the teams with clear ownership and faster decision cycles.",
+    strengths: ["Startup access", "Direct teams", "Product roles"],
+  },
+  {
+    id: "upwork",
+    name: "Upwork",
+    category: "Offer services",
+    syncStatus: "Proposal workflow ready",
+    bestFor: "Freelance proposals, short contracts, and scoped delivery work",
+    workflow: "Package services, compare buyer signals, and route the best-fit briefs into Proposal Studio before applying.",
+    strengths: ["Freelance demand", "Escrow support", "Short-cycle work"],
+  },
+  {
+    id: "fiverr",
+    name: "Fiverr",
+    category: "Offer services",
+    syncStatus: "Gig packaging ready",
+    bestFor: "Productized offers and fast-turnaround service gigs",
+    workflow: "Turn repeatable work into structured offers with clear pricing, timeline, and outcome framing.",
+    strengths: ["Buyer intent", "Repeatable offers", "Quick turnaround"],
+  },
+  {
+    id: "contra",
+    name: "Contra",
+    category: "Offer services",
+    syncStatus: "Portfolio-first flow ready",
+    bestFor: "Independent creatives, operators, and no-fee freelance positioning",
+    workflow: "Lead with portfolio proof and use Winners Work to refine your service packaging before publishing.",
+    strengths: ["Portfolio-first", "Independent brand", "Creative services"],
+  },
+  {
+    id: "toptal",
+    name: "Toptal",
+    category: "Hire talent",
+    syncStatus: "Talent sourcing mapped",
+    bestFor: "Premium specialist hiring and vetted freelance talent",
+    workflow: "Use Winners Work to clarify scope first, then compare senior specialist options by trust, speed, and budget.",
+    strengths: ["Vetted experts", "Senior talent", "Fast shortlist quality"],
+  },
+  {
+    id: "freelancer",
+    name: "Freelancer.com",
+    category: "Hire talent",
+    syncStatus: "Bid comparison ready",
+    bestFor: "Budget-sensitive hiring with many proposal options",
+    workflow: "Collect proposal volume there, then use Trust and Risk Scan inside Winners Work to reduce bad-fit hires.",
+    strengths: ["Proposal volume", "Global reach", "Flexible budgets"],
+  },
+  {
+    id: "catalant",
+    name: "Catalant",
+    category: "Get services",
+    syncStatus: "Service buying mapped",
+    bestFor: "Consulting, strategy, and fractional operator engagements",
+    workflow: "Convert your need into a buying brief, then compare service providers on outcome, budget, and speed.",
+    strengths: ["Fractional operators", "Consulting scope", "Enterprise matching"],
+  },
+  {
+    id: "malt",
+    name: "Malt",
+    category: "Get services",
+    syncStatus: "Service sourcing ready",
+    bestFor: "European freelance sourcing and specialist service buying",
+    workflow: "Use Winners Work to define the deliverable, then evaluate specialists on trust, timing, and scope clarity.",
+    strengths: ["European market", "Specialist sourcing", "Service comparisons"],
+  },
+];
 
 function budgetDisplay(min: number | null, max: number | null, currency: string, jobType: string) {
   if (!min && !max) return "Budget: Negotiable";
@@ -252,18 +469,81 @@ export default function WorkPage() {
 
   const generateProposal = useCallback(async (jobId: string) => {
     setProposalJobId(jobId);
-    setProposalData(null);
+    setProposalData({ proposal: "", suggestedRate: 0, currency: "USD", estimatedDays: 7 });
     setProposalLoading(true);
     try {
       const res = await fetch(`${API_BASE}/work/circuit/proposal/${jobId}`, {
         method:  "POST",
-        headers: headers(),
+        headers: {
+          Accept: "text/event-stream",
+          ...headers(),
+        },
         body:    JSON.stringify({ tone: proposalTone }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed");
-      setProposalData(data);
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Failed");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+
+        for (const event of events) {
+          const line = event.split("\n").find((entry) => entry.startsWith("data: "));
+          if (!line) continue;
+
+          const payload = JSON.parse(line.slice(6)) as {
+            token?: string;
+            meta?: { suggestedRate: number; currency: string; estimatedDays: number };
+            proposal?: string;
+            done?: boolean;
+            error?: string;
+            suggestedRate?: number;
+            currency?: string;
+            estimatedDays?: number;
+          };
+
+          if (payload.error) throw new Error(payload.error);
+
+          if (payload.meta) {
+            setProposalData((current) => ({
+              proposal: current?.proposal ?? "",
+              suggestedRate: payload.meta?.suggestedRate ?? current?.suggestedRate ?? 0,
+              currency: payload.meta?.currency ?? current?.currency ?? "USD",
+              estimatedDays: payload.meta?.estimatedDays ?? current?.estimatedDays ?? 7,
+            }));
+          }
+
+          if (payload.token) {
+            setProposalData((current) => ({
+              proposal: `${current?.proposal ?? ""}${payload.token ?? ""}`,
+              suggestedRate: current?.suggestedRate ?? 0,
+              currency: current?.currency ?? "USD",
+              estimatedDays: current?.estimatedDays ?? 7,
+            }));
+          }
+
+          if (payload.done) {
+            setProposalData((current) => ({
+              proposal: payload.proposal ?? current?.proposal ?? "",
+              suggestedRate: payload.suggestedRate ?? current?.suggestedRate ?? 0,
+              currency: payload.currency ?? current?.currency ?? "USD",
+              estimatedDays: payload.estimatedDays ?? current?.estimatedDays ?? 7,
+            }));
+          }
+        }
+      }
     } catch (err) {
+      setProposalData(null);
       setCircuitMessage(err instanceof Error ? err.message : "Proposal generation failed");
     } finally {
       setProposalLoading(false);
@@ -349,6 +629,13 @@ export default function WorkPage() {
     DISPUTED:  "var(--red)",
   };
 
+  const hiringPlatforms = PLATFORM_INTEGRATIONS.filter(
+    (platform) => platform.category === "Find jobs" || platform.category === "Hire talent",
+  );
+  const servicePlatforms = PLATFORM_INTEGRATIONS.filter(
+    (platform) => platform.category === "Offer services" || platform.category === "Get services",
+  );
+
   return (
     <>
     <style>{`
@@ -368,6 +655,20 @@ export default function WorkPage() {
       .work-stat-value { display:block; font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:700; color:var(--gold); }
       .work-stat-label { font-family:'Space Mono',monospace; font-size:9px; text-transform:uppercase;
         letter-spacing:.08em; color:var(--text-dim); }
+
+      .smart-tools-shell { margin-bottom:24px; }
+      .smart-tools-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
+      .smart-tool-card { background:linear-gradient(180deg, rgba(43,95,142,.12), rgba(15,17,22,.5));
+        border:1px solid var(--border); border-radius:8px; padding:18px; position:relative; overflow:hidden; }
+      .smart-tool-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px;
+        background:linear-gradient(90deg, var(--blue), var(--gold)); }
+      .smart-tool-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
+      .smart-tool-name { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--text); margin:0; }
+      .smart-tool-audience { font-family:'Space Mono',monospace; font-size:9px; text-transform:uppercase;
+        padding:4px 8px; border-radius:999px; border:1px solid rgba(201,168,76,.25); color:var(--gold); background:rgba(201,168,76,.08); }
+      .smart-tool-headline { font-family:'Syne',sans-serif; font-size:13px; line-height:1.5; color:var(--text); margin:0 0 10px; }
+      .smart-tool-description { font-family:'Syne',sans-serif; font-size:12px; line-height:1.6; color:var(--text-dim); margin:0 0 12px; }
+      .smart-tool-action { font-family:'Space Mono',monospace; font-size:10px; color:var(--ice); }
 
       .work-tabs { display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:0; }
       .work-tab { background:transparent; border:none; border-bottom:2px solid transparent;
@@ -412,6 +713,7 @@ export default function WorkPage() {
       .job-badge.type-fixed  { color:var(--ice);    border-color:rgba(137,196,225,.3);  background:rgba(137,196,225,.08); }
       .job-badge.type-hourly { color:var(--green);  border-color:rgba(45,212,160,.3);   background:rgba(45,212,160,.08); }
       .job-badge.level       { color:var(--text-dim); border-color:var(--border);        background:var(--surface2); }
+      .job-badge.match       { color:var(--blue);   border-color:rgba(43,95,142,.3);    background:rgba(43,95,142,.12); }
       .job-badge.featured    { color:var(--gold);   border-color:rgba(201,168,76,.3);   background:rgba(201,168,76,.08); }
       .job-badge.applied     { color:var(--green);  border-color:rgba(45,212,160,.3);   background:rgba(45,212,160,.08); }
 
@@ -475,6 +777,27 @@ export default function WorkPage() {
         border-radius:3px; background:var(--surface2); border:1px solid var(--border); color:var(--text-dim); }
       .milestone-chip.APPROVED, .milestone-chip.PAID { color:var(--green); border-color:rgba(45,212,160,.3); }
       .milestone-chip.SUBMITTED { color:var(--gold); border-color:rgba(201,168,76,.3); }
+
+      .service-grid, .platform-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+      .service-card, .platform-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; position:relative; overflow:hidden; }
+      .service-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--purple), var(--gold)); }
+      .platform-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, var(--ice), var(--blue)); }
+      .card-topline { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
+      .card-pill { font-family:'Space Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:.08em;
+        padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:var(--text-dim); background:var(--surface2); }
+      .card-pill.offer { color:var(--purple); border-color:rgba(155,111,255,.25); background:rgba(155,111,255,.08); }
+      .card-pill.get { color:var(--gold); border-color:rgba(201,168,76,.25); background:rgba(201,168,76,.08); }
+      .service-title, .platform-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--text); margin:0 0 4px; }
+      .service-provider, .platform-bestfor { font-family:'Syne',sans-serif; font-size:12px; color:var(--text-dim); margin:0 0 12px; }
+      .service-meta, .platform-status { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+      .service-meta span, .platform-status span { font-family:'Space Mono',monospace; font-size:10px; color:var(--gold); }
+      .service-summary, .platform-workflow { font-family:'Syne',sans-serif; font-size:13px; line-height:1.6; color:var(--text-dim); margin:0 0 14px; }
+      .platform-section { margin-bottom:24px; }
+      .platform-section-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; color:var(--text); margin:0 0 8px; }
+      .platform-section-copy { font-family:'Syne',sans-serif; font-size:13px; color:var(--text-dim); margin:0 0 16px; }
+      .card-strengths { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+      .card-strength { font-family:'Space Mono',monospace; font-size:9px; text-transform:uppercase; padding:3px 8px;
+        border-radius:3px; border:1px solid var(--border); color:var(--text-dim); background:var(--surface2); }
 
       .work-empty { text-align:center; padding:60px 24px; }
       .work-empty-icon { font-size:48px; margin-bottom:16px; }
@@ -642,11 +965,43 @@ export default function WorkPage() {
           </div>
         )}
 
+        <div className="smart-tools-shell">
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", gap:16, marginBottom:16, flexWrap:"wrap" }}>
+            <div>
+              <div style={{ fontFamily:"'Space Mono',monospace", fontSize:10, textTransform:"uppercase", letterSpacing:".12em", color:"var(--ice)", marginBottom:8 }}>
+                Smart Recommendations
+              </div>
+              <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.25rem", fontWeight:700, color:"var(--text)", margin:"0 0 6px" }}>
+                Intelligent tools for work discovery, hiring, and service delivery
+              </h2>
+              <p style={{ fontFamily:"'Syne',sans-serif", fontSize:13, color:"var(--text-dim)", margin:0, maxWidth:780 }}>
+                Users can now find jobs, hire talent, offer services, and get services with AI-assisted recommendations inside the Work layer.
+              </p>
+            </div>
+          </div>
+
+          <div className="smart-tools-grid">
+            {SMART_TOOLS.map((tool) => (
+              <div key={tool.id} className="smart-tool-card">
+                <div className="smart-tool-top">
+                  <h3 className="smart-tool-name">{tool.name}</h3>
+                  <span className="smart-tool-audience">{tool.audience}</span>
+                </div>
+                <p className="smart-tool-headline">{tool.headline}</p>
+                <p className="smart-tool-description">{tool.description}</p>
+                <span className="smart-tool-action">{tool.action}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="work-tabs">
           {([
             { id: "jobs",        label: "💼 Browse Jobs" },
             { id: "freelancers", label: "🧑‍💻 Find Talent" },
             { id: "contracts",   label: "📄 My Contracts" },
+            { id: "services",    label: "Services" },
+            { id: "platforms",   label: "Platforms" },
             { id: "post",        label: "+ Post a Job" },
             { id: "circuit",     label: "🤖 CIRCUIT AI" },
           ] as { id: TabType; label: string }[]).map((tab) => (
@@ -732,11 +1087,17 @@ export default function WorkPage() {
                           {job.isFeatured && <span className="job-badge featured">⭐ Featured</span>}
                           <span className={`job-badge type-${job.jobType}`}>{job.jobType}</span>
                           <span className="job-badge level">{LEVEL_LABELS[job.experienceLevel] ?? job.experienceLevel}</span>
+                          {typeof job.circuitScore === "number" && <span className="job-badge match">{job.circuitScore}% Match</span>}
                           {job.myApplication && <span className="job-badge applied">✓ Applied</span>}
                         </div>
                       </div>
 
                       <p className="job-card-desc">{job.description}</p>
+                      {job.circuitHeadline && (
+                        <p style={{ fontFamily:"'Syne',sans-serif", fontSize:13, lineHeight:1.55, color:"var(--ice)", margin:"0 0 12px" }}>
+                          {job.circuitHeadline}
+                        </p>
+                      )}
 
                       {job.skills.length > 0 && (
                         <div className="job-card-skills">
@@ -918,6 +1279,122 @@ export default function WorkPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === "services" && (
+          <div>
+            <div style={{ marginBottom: 18 }}>
+              <h2 style={{ fontFamily:"'Syne',sans-serif", fontSize:"1.25rem", fontWeight:700, color:"var(--text)", margin:"0 0 6px" }}>
+                Offer services or get specialist help
+              </h2>
+              <p style={{ fontFamily:"'Syne',sans-serif", fontSize:13, color:"var(--text-dim)", margin:0 }}>
+                Package repeatable offers, buy scoped expert help, and route users to the best service workflow for the job.
+              </p>
+            </div>
+
+            <div className="service-grid">
+              {SERVICE_WORKSPACE.map((service) => (
+                <div key={service.id} className="service-card">
+                  <div className="card-topline">
+                    <div>
+                      <h3 className="service-title">{service.title}</h3>
+                      <p className="service-provider">{service.provider}</p>
+                    </div>
+                    <span className={`card-pill ${service.serviceType === "Offer service" ? "offer" : "get"}`}>
+                      {service.serviceType}
+                    </span>
+                  </div>
+
+                  <div className="service-meta">
+                    <span>{service.pricing}</span>
+                    <span>{service.deliveryWindow}</span>
+                  </div>
+
+                  <p className="service-summary">{service.summary}</p>
+
+                  <div className="card-strengths">
+                    {service.tags.map((tag) => (
+                      <span key={tag} className="card-strength">{tag}</span>
+                    ))}
+                  </div>
+
+                  <button className="cta-btn-work primary" onClick={() => changeTab(service.ctaTab)}>
+                    {service.ctaLabel}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "platforms" && (
+          <div>
+            <div className="platform-section">
+              <h2 className="platform-section-title">Job discovery and hiring platforms</h2>
+              <p className="platform-section-copy">
+                Global platforms where users can find jobs or hire talent, with the Winners Work layer helping qualify fit and reduce hiring waste.
+              </p>
+
+              <div className="platform-grid">
+                {hiringPlatforms.map((platform) => (
+                  <div key={platform.id} className="platform-card">
+                    <div className="card-topline">
+                      <div>
+                        <h3 className="platform-title">{platform.name}</h3>
+                        <p className="platform-bestfor">{platform.bestFor}</p>
+                      </div>
+                      <span className="card-pill">{platform.category}</span>
+                    </div>
+
+                    <div className="platform-status">
+                      <span>{platform.syncStatus}</span>
+                    </div>
+
+                    <p className="platform-workflow">{platform.workflow}</p>
+
+                    <div className="card-strengths">
+                      {platform.strengths.map((strength) => (
+                        <span key={strength} className="card-strength">{strength}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="platform-section">
+              <h2 className="platform-section-title">Service selling and buying platforms</h2>
+              <p className="platform-section-copy">
+                World platforms where users can offer a service or get a service, while CIRCUIT helps package the offer and screen risk before engagement.
+              </p>
+
+              <div className="platform-grid">
+                {servicePlatforms.map((platform) => (
+                  <div key={platform.id} className="platform-card">
+                    <div className="card-topline">
+                      <div>
+                        <h3 className="platform-title">{platform.name}</h3>
+                        <p className="platform-bestfor">{platform.bestFor}</p>
+                      </div>
+                      <span className="card-pill">{platform.category}</span>
+                    </div>
+
+                    <div className="platform-status">
+                      <span>{platform.syncStatus}</span>
+                    </div>
+
+                    <p className="platform-workflow">{platform.workflow}</p>
+
+                    <div className="card-strengths">
+                      {platform.strengths.map((strength) => (
+                        <span key={strength} className="card-strength">{strength}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -1170,7 +1647,7 @@ export default function WorkPage() {
                       <div style={{ fontFamily:"'Space Mono',monospace", fontSize:9, textTransform:"uppercase", letterSpacing:".1em", color:"var(--purple)", marginBottom:10 }}>
                         🤖 CIRCUIT Proposal — {proposalTone} tone
                       </div>
-                      <div className="proposal-text">{proposalData.proposal}</div>
+                      <div className="proposal-text">{proposalData.proposal || (proposalLoading ? "CIRCUIT is drafting your proposal…" : "")}</div>
                       <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
                         <button className="proposal-copy" onClick={() => navigator.clipboard.writeText(proposalData.proposal)}>
                           Copy Proposal

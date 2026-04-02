@@ -45,8 +45,12 @@ router.post('/fund', async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
   const userId = req.user!.userId;
   try {
+    if (!contractId) return res.status(400).json({ error: 'contractId is required' });
     const contract = await db.contract.findFirst({ where: { id: contractId, tenantId, clientId: userId } });
     if (!contract) return res.status(404).json({ error: 'Contract not found' });
+    if (contract.status === 'CANCELLED' || contract.status === 'COMPLETED') {
+      return res.status(400).json({ error: 'Only active contracts can be funded' });
+    }
     const existing = await db.escrowPayment.findUnique({ where: { contractId } });
     if (existing && existing.status !== 'REFUNDED') {
       return res.status(400).json({ error: 'Escrow already exists for this contract' });
@@ -65,9 +69,9 @@ router.post('/fund', async (req: Request, res: Response) => {
         contractId, tenantId, clientId: userId,
         freelancerId: contract.freelancerId,
         amount: contract.amount, currency: contract.currency,
-        stripePaymentId: paymentIntent.id, status: 'HELD',
+        stripePaymentId: paymentIntent.id, status: 'HELD', releasedAmount: 0,
       },
-      update: { stripePaymentId: paymentIntent.id, status: 'HELD' },
+      update: { stripePaymentId: paymentIntent.id, status: 'HELD', releasedAmount: 0, releasedAt: null },
     });
     return res.json({ clientSecret: paymentIntent.client_secret, escrow });
   } catch (error) {
@@ -130,12 +134,35 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
-    const escrow = await db.escrowPayment.findFirst({ where: { id: req.params.escrowId as string, tenantId } });
+    const escrow = await db.escrowPayment.findFirst({
+      where: { id: req.params.escrowId as string, tenantId },
+      include: { contract: { include: { milestones: true } } },
+    });
     if (!escrow) return res.status(404).json({ error: 'Escrow not found' });
     if (escrow.clientId !== userId) return res.status(403).json({ error: 'Only the client can release funds' });
     if (escrow.status === 'DISPUTED') return res.status(400).json({ error: 'Escrow is under dispute' });
     if (escrow.status === 'RELEASED') return res.status(400).json({ error: 'Escrow already released' });
-    const releaseAmount = Number(amount) || escrow.amount;
+    const milestone = milestoneId
+      ? escrow.contract.milestones.find((entry) => entry.id === milestoneId)
+      : null;
+    if (milestoneId && !milestone) {
+      return res.status(404).json({ error: 'Milestone not found for this contract' });
+    }
+    if (milestone?.status === 'PAID') {
+      return res.status(400).json({ error: 'Milestone already paid' });
+    }
+    const remainingAmount = Math.max(0, escrow.amount - (escrow.releasedAmount ?? 0));
+    if (remainingAmount <= 0) {
+      return res.status(400).json({ error: 'No escrow funds remain to release' });
+    }
+    const requestedAmount = Number(amount);
+    const releaseAmount = milestone?.amount ?? (Number.isFinite(requestedAmount) && requestedAmount > 0 ? requestedAmount : remainingAmount);
+    if (!Number.isFinite(releaseAmount) || releaseAmount <= 0) {
+      return res.status(400).json({ error: 'Release amount must be greater than 0' });
+    }
+    if (releaseAmount > remainingAmount) {
+      return res.status(400).json({ error: `Release amount exceeds remaining escrow balance of ${remainingAmount.toFixed(2)}` });
+    }
     const platformFee = releaseAmount * 0.10;
     const freelancerPayout = releaseAmount - platformFee;
     const freelancerProfile = await db.freelancerProfile.findUnique({
@@ -155,7 +182,16 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
       });
       transferId = transfer.id;
     }
-    await db.escrowPayment.update({ where: { id: escrow.id }, data: { status: 'RELEASED', releasedAt: new Date() } });
+    const nextReleasedAmount = (escrow.releasedAmount ?? 0) + releaseAmount;
+    const isFullyReleased = nextReleasedAmount >= escrow.amount - 0.0001;
+    await db.escrowPayment.update({
+      where: { id: escrow.id },
+      data: {
+        releasedAmount: nextReleasedAmount,
+        status: isFullyReleased ? 'RELEASED' : 'HELD',
+        releasedAt: isFullyReleased ? new Date() : null,
+      },
+    });
     if (milestoneId) {
       await db.contractMilestone.update({ where: { id: milestoneId }, data: { status: 'PAID', paidAt: new Date() } });
     }
@@ -163,7 +199,7 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
       where: { contractId: escrow.contractId },
       select: { status: true },
     });
-    if (milestoneStatus.length > 0 && milestoneStatus.every((entry) => entry.status === 'PAID')) {
+    if (isFullyReleased || (milestoneStatus.length > 0 && milestoneStatus.every((entry) => entry.status === 'PAID'))) {
       await db.contract.update({
         where: { id: escrow.contractId },
         data: { status: 'COMPLETED', completedAt: new Date() },
@@ -212,7 +248,15 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
         entityType: 'escrow',
       },
     });
-    return res.json({ success: true, payout: freelancerPayout, platformFee, transferId });
+    return res.json({
+      success: true,
+      payout: freelancerPayout,
+      platformFee,
+      transferId,
+      releasedAmount: nextReleasedAmount,
+      remainingAmount: Math.max(0, escrow.amount - nextReleasedAmount),
+      status: isFullyReleased ? 'RELEASED' : 'HELD',
+    });
   } catch (error) {
     console.error('[escrow] Release error:', error);
     return res.status(500).json({ error: 'Failed to release escrow' });
@@ -280,6 +324,7 @@ router.post('/refund/:escrowId', async (req: Request, res: Response) => {
     if (!escrow) return res.status(404).json({ error: 'Escrow not found' });
     if (escrow.clientId !== userId) return res.status(403).json({ error: 'Not authorised' });
     if (escrow.status === 'RELEASED') return res.status(400).json({ error: 'Cannot refund a released escrow' });
+    if ((escrow.releasedAmount ?? 0) > 0) return res.status(400).json({ error: 'Cannot refund escrow after any release has been made' });
     if (escrow.stripePaymentId) {
       const stripe = getStripe();
       await stripe.refunds.create({ payment_intent: escrow.stripePaymentId, reason: 'requested_by_customer' });

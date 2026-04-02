@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../stores/authStore";
+import { useAppShellStore } from "../../stores/appShellStore";
 import { useEcosystemStore } from "../../stores/ecosystemStore";
 import { useQAStore } from "../../stores/qaStore";
 import {
@@ -25,6 +26,8 @@ type Props = {
 const BACK_ICON = "\u2039";
 const NOTIFICATION_ICON = "\u{1F514}";
 const MAX_BADGE_COUNT = 99;
+const PREVIEW_ROTATION_MS = 40_000;
+const PREVIEW_VISIBLE_MS = 7_000;
 
 function initialsFromName(name?: string | null) {
   if (!name) return "ME";
@@ -45,14 +48,59 @@ export default function MobileHeader({
 }: Props) {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
+  const notifications = useAppShellStore((state) => state.notifications);
   const unreadNotifications = useEcosystemStore(
     (state) => state.unreadNotifications,
   );
   const markNavigationStart = useQAStore((state) => state.markNavigationStart);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
   const unreadBadgeLabel =
     unreadNotifications > MAX_BADGE_COUNT
       ? `${MAX_BADGE_COUNT}+`
       : `${unreadNotifications}`;
+  const unreadPreviewNotifications = useMemo(
+    () => notifications.filter((notification) => !notification.read),
+    [notifications],
+  );
+  const activePreview =
+    unreadPreviewNotifications.length > 0
+      ? unreadPreviewNotifications[previewIndex % unreadPreviewNotifications.length]
+      : null;
+
+  useEffect(() => {
+    if (!unreadPreviewNotifications.length) {
+      setShowPreview(false);
+      setPreviewIndex(0);
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      setPreviewIndex((current) => current + 1);
+      setShowPreview(true);
+    }, PREVIEW_ROTATION_MS);
+
+    const initialDelayId = setTimeout(() => {
+      setShowPreview(true);
+    }, 8_000);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(initialDelayId);
+    };
+  }, [unreadPreviewNotifications.length]);
+
+  useEffect(() => {
+    if (!showPreview) return;
+
+    const hideId = setTimeout(() => {
+      setShowPreview(false);
+    }, PREVIEW_VISIBLE_MS);
+
+    return () => {
+      clearTimeout(hideId);
+    };
+  }, [showPreview, previewIndex]);
 
   return (
     <View style={[styles.wrap, { paddingTop: insets.top }]}>
@@ -131,8 +179,51 @@ export default function MobileHeader({
           </Pressable>
         </View>
       </View>
+
+      {showPreview && activePreview ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${activePreview.title}. Opens notifications.`}
+          accessibilityHint="Shows an occasional preview of a recent unread notification."
+          onPress={() => {
+            setShowPreview(false);
+            markNavigationStart("Notifications Preview");
+            onNotificationsPress?.();
+          }}
+          style={[
+            styles.previewCard,
+            { borderColor: accentColor(activePreview.accent) },
+          ]}
+        >
+          <Text style={styles.previewEyebrow}>Live update</Text>
+          <Text numberOfLines={1} style={styles.previewTitle}>
+            {activePreview.title}
+          </Text>
+          <Text numberOfLines={2} style={styles.previewBody}>
+            {activePreview.body}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
+}
+
+function accentColor(accent: "gold" | "green" | "ice" | "blue" | "red" | "purple") {
+  switch (accent) {
+    case "gold":
+      return withAlpha("gold", 0.52);
+    case "green":
+      return withAlpha("green", 0.52);
+    case "ice":
+    case "blue":
+      return withAlpha("ice", 0.5);
+    case "red":
+      return withAlpha("red", 0.5);
+    case "purple":
+      return withAlpha("purple", 0.5);
+    default:
+      return withAlpha("border", 0.92);
+  }
 }
 
 const styles = StyleSheet.create({
@@ -149,6 +240,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
+  },
+  previewCard: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    backgroundColor: withAlpha("surface3", 0.78),
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: 4,
+  },
+  previewEyebrow: {
+    color: colors.gold,
+    ...typography.labelSm,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  previewTitle: {
+    color: colors.text,
+    ...typography.labelLg,
+  },
+  previewBody: {
+    color: colors.textDim,
+    ...typography.bodySm,
+    lineHeight: 18,
   },
   leftSlot: {
     minWidth: 72,

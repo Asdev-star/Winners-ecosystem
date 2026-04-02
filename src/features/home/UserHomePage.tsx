@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ContextBar from "../../components/ui/ContextBar";
+import Tooltip from "../../components/ui/Tooltip";
 import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
 import { useTrustScore } from "../../hooks/useTrustScore";
 import { API_BASE } from "../../lib/api";
@@ -248,17 +249,17 @@ export default function UserHomePage() {
   return (
     <>
       <style>{`
-        .omega-home{min-height:100vh;padding:28px 28px 88px;color:var(--text);background:radial-gradient(circle at top right,rgba(137,196,225,.11),transparent 26%),radial-gradient(circle at top left,rgba(201,168,76,.12),transparent 22%),linear-gradient(180deg,rgba(6,10,18,.98),rgba(9,14,24,1))}
-        .omega-shell{max-width:1320px;margin:0 auto;display:grid;gap:24px}
-        .omega-panel{background:linear-gradient(180deg,rgba(13,21,35,.96),rgba(10,16,28,.96));border:1px solid rgba(255,255,255,.08);border-radius:22px;box-shadow:0 28px 70px rgba(0,0,0,.24);overflow:hidden}
-        .omega-topbar{position:sticky;top:12px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;border-radius:18px;background:rgba(8,13,22,.86);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(18px);box-shadow:0 18px 40px rgba(0,0,0,.24)}
-        .omega-brand,.omega-topnav,.omega-toptools,.omega-meta-row,.omega-actions,.omega-section-header,.omega-layer-top,.omega-ring-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+        .omega-home{min-height:100vh;padding:40px 40px 100px;color:var(--text);background:radial-gradient(circle at top right,rgba(137,196,225,.08),transparent 30%),radial-gradient(circle at top left,rgba(201,168,76,.08),transparent 30%),var(--bg)}
+        .omega-shell{max-width:1320px;margin:0 auto;display:grid;gap:32px}
+        .omega-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);overflow:hidden}
+        .omega-topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 24px;background:rgba(10,16,28,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+        .omega-brand,.omega-topnav,.omega-toptools,.omega-meta-row,.omega-actions,.omega-section-header,.omega-layer-top,.omega-ring-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
         .omega-brand-mark{width:28px;height:28px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(135deg,rgba(201,168,76,.22),rgba(137,196,225,.22));color:var(--gold);font-weight:800}
         .omega-brand-name{font-weight:800;letter-spacing:-.03em}
         .omega-topnav-btn,.omega-tool-btn,.omega-button,.omega-inline-link{font:inherit;cursor:pointer}
-        .omega-topnav-btn,.omega-tool-btn{border:none;background:none;color:var(--text-dim);padding:0}
+        .omega-topnav-btn,.omega-tool-btn{border:none;background:none;color:rgba(244,248,252,.74);padding:0}
         .omega-topnav-btn.active{color:var(--text);font-weight:700}
-        .omega-tool-btn{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center}
+        .omega-tool-btn{width:38px;height:38px;border-radius:12px;background:rgba(190,220,241,.08);border:1px solid rgba(190,220,241,.14);display:grid;place-items:center}
         .omega-hero,.omega-quick-grid,.omega-status-grid,.omega-achievement-grid,.omega-progress-row,.omega-ecosystem-grid,.omega-portfolio-grid,.omega-loop-strip{display:grid;gap:20px}
         .omega-hero{grid-template-columns:minmax(0,1.5fr) minmax(280px,.65fr)}
         .omega-briefing-card,.omega-side,.omega-resume-card,.omega-achievement-card,.omega-showcase-card,.omega-stat-card,.omega-focus-card,.omega-quick-card{padding:20px}
@@ -274,7 +275,7 @@ export default function UserHomePage() {
         .omega-quick-grid{grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr)}
         .omega-kicker,.omega-micro,.omega-card-label,.omega-focus-label,.omega-layer-tag,.omega-briefing-badge,.omega-stat-chip,.omega-resume-path,.omega-briefing-date,.omega-rec-number{margin:0;font-family:"Space Mono",monospace;text-transform:uppercase}
         .omega-kicker{font-size:11px;color:var(--gold);letter-spacing:.14em}
-        .omega-micro,.omega-card-label,.omega-focus-label{font-size:10px;color:var(--text-dim);letter-spacing:.12em}
+        .omega-micro,.omega-card-label,.omega-focus-label{font-size:10px;color:rgba(220,232,242,.76);letter-spacing:.12em}
         .omega-headline,.omega-section-title,.omega-resume-title,.omega-stat-value,.omega-layer-title,.omega-focus-value{margin:0;letter-spacing:-.04em}
         .omega-headline{font-size:clamp(34px,5vw,56px);line-height:.96}
         .omega-section-title{font-size:clamp(24px,3vw,34px)}
@@ -282,12 +283,12 @@ export default function UserHomePage() {
         .omega-stat-value{font-size:28px;font-weight:800}
         .omega-layer-title{font-size:20px;line-height:1.15}
         .omega-focus-value{font-size:18px;font-weight:700;line-height:1.3}
-        .omega-copy,.omega-section-copy,.omega-side-copy,.omega-card-copy,.omega-layer-copy,.omega-layer-highlight,.omega-focus-note,.omega-list,.omega-briefing-message{margin:0;color:var(--text-dim);font-size:14px;line-height:1.75}
+        .omega-copy,.omega-section-copy,.omega-side-copy,.omega-card-copy,.omega-layer-copy,.omega-layer-highlight,.omega-focus-note,.omega-list,.omega-briefing-message{margin:0;color:rgba(232,240,247,.82);font-size:14px;line-height:1.75}
         .omega-briefing-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
         .omega-briefing-title{display:flex;gap:12px;align-items:flex-start}
         .omega-omega-mark{width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,rgba(45,212,160,.18),rgba(201,168,76,.18));font-size:22px}
-        .omega-briefing-message{padding:18px 0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);font-size:15px;color:var(--text);font-style:italic}
-        .omega-recommend-box{padding:16px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);display:grid;gap:12px}
+        .omega-briefing-message{padding:18px 0;border-top:1px solid rgba(190,220,241,.12);border-bottom:1px solid rgba(190,220,241,.12);font-size:15px;color:var(--text);font-style:italic}
+        .omega-recommend-box{padding:16px;border-radius:18px;background:rgba(190,220,241,.06);border:1px solid rgba(190,220,241,.12);display:grid;gap:12px}
         .omega-rec-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
         .omega-rec-number{font-size:10px;color:var(--gold);letter-spacing:.12em}
         .omega-rec-copy{margin:0;font-size:13px;color:var(--text)}
@@ -295,40 +296,40 @@ export default function UserHomePage() {
         .omega-list{padding-left:18px}
         .omega-list li+li{margin-top:8px}
         .omega-section-header,.omega-layer-top{justify-content:space-between;align-items:flex-end}
-        .omega-button{border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:12px 18px;background:rgba(255,255,255,.03);color:var(--text);font-weight:700}
+        .omega-button{border:1px solid rgba(190,220,241,.18);border-radius:999px;padding:12px 18px;background:rgba(190,220,241,.07);color:var(--text);font-weight:700}
         .omega-button.primary{background:linear-gradient(135deg,rgba(201,168,76,.92),rgba(237,206,112,.86));color:#10151d;border-color:rgba(201,168,76,.55)}
         .omega-briefing-badge,.omega-stat-chip,.omega-resume-path,.omega-layer-tag{display:inline-flex;width:fit-content;padding:6px 10px;border-radius:999px;letter-spacing:.08em}
         .omega-briefing-badge{background:rgba(45,212,160,.1);border:1px solid rgba(45,212,160,.18);color:var(--green)}
         .omega-stat-chip{background:rgba(137,196,225,.1);border:1px solid rgba(137,196,225,.18);color:var(--ice)}
         .omega-resume-path{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.22);color:var(--gold)}
-        .omega-focus-card,.omega-stat-card,.omega-achievement-card,.omega-showcase-card,.omega-quick-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:18px}
-        .omega-breakdown-row{display:grid;grid-template-columns:90px 1fr auto;gap:10px;align-items:center;font-size:12px;color:var(--text-dim)}
-        .omega-breakdown-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+        .omega-focus-card,.omega-stat-card,.omega-achievement-card,.omega-showcase-card,.omega-quick-card{background:rgba(190,220,241,.06);border:1px solid rgba(190,220,241,.12);border-radius:18px}
+        .omega-breakdown-row{display:grid;grid-template-columns:90px 1fr auto;gap:10px;align-items:center;font-size:12px;color:rgba(220,232,242,.76)}
+        .omega-breakdown-bar{height:8px;border-radius:999px;background:rgba(190,220,241,.08);overflow:hidden}
         .omega-breakdown-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(201,168,76,.88),rgba(137,196,225,.88))}
         .omega-inline-link{background:none;border:none;color:var(--gold);padding:0;font-weight:700}
-        .omega-mini-track{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+        .omega-mini-track{height:10px;border-radius:999px;background:rgba(190,220,241,.08);overflow:hidden}
         .omega-mini-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(45,212,160,.92),rgba(137,196,225,.88))}
         .omega-mini-fill.gold{background:linear-gradient(90deg,rgba(201,168,76,.96),rgba(255,227,136,.9))}
         .omega-mini-fill.purple{background:linear-gradient(90deg,rgba(155,111,255,.92),rgba(137,196,225,.84))}
         .omega-progress-copy{display:grid;gap:8px}
-        .omega-ecosystem-card{padding:18px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);display:grid;gap:10px}
+        .omega-ecosystem-card{padding:18px;border-radius:18px;background:rgba(190,220,241,.06);border:1px solid rgba(190,220,241,.12);display:grid;gap:10px}
         .omega-ecosystem-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
         .omega-state-badge{display:inline-flex;align-items:center;gap:6px;font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
         .omega-state-badge.live{color:var(--green)}
         .omega-state-badge.preview{color:var(--gold)}
         .omega-state-badge.locked{color:var(--text-dim)}
         .omega-portfolio-hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
-        .omega-avatar{width:72px;height:72px;border-radius:24px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(201,168,76,.2),rgba(137,196,225,.2));border:1px solid rgba(255,255,255,.08);font-size:24px;font-weight:800;color:var(--text)}
+        .omega-avatar{width:72px;height:72px;border-radius:24px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(201,168,76,.24),rgba(137,196,225,.24));border:1px solid rgba(190,220,241,.14);font-size:24px;font-weight:800;color:var(--text)}
         .omega-portfolio-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
         .omega-portfolio-title{margin:0;font-size:32px;letter-spacing:-.05em}
         .omega-portfolio-columns{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
         .omega-pill-row{display:flex;gap:8px;flex-wrap:wrap}
         .omega-skill-pill{padding:6px 10px;border-radius:999px;background:rgba(137,196,225,.1);border:1px solid rgba(137,196,225,.18);font-size:12px;color:var(--ice)}
-        .omega-loop-step{padding:14px 10px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);text-align:center;display:grid;gap:6px}
+        .omega-loop-step{padding:14px 10px;border-radius:16px;border:1px solid rgba(190,220,241,.12);background:rgba(190,220,241,.06);text-align:center;display:grid;gap:6px}
         .omega-loop-step.current{border-color:rgba(201,168,76,.3);background:rgba(201,168,76,.07)}
         .omega-loop-step.done{border-color:rgba(45,212,160,.26);background:rgba(45,212,160,.06)}
         .omega-loop-icon{font-size:20px}
-        .omega-loop-label{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+        .omega-loop-label{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(220,232,242,.72)}
         .omega-loop-status{font-size:12px;color:var(--text)}
         @media (max-width:1120px){.omega-hero,.omega-quick-grid,.omega-status-grid,.omega-achievement-grid,.omega-showcase-grid,.omega-stats-grid,.omega-progress-row,.omega-ecosystem-grid,.omega-portfolio-grid,.omega-portfolio-columns{grid-template-columns:1fr}}
         @media (max-width:720px){.omega-home{padding:18px 16px 72px}.omega-headline{font-size:34px}.omega-topbar{top:8px;padding:12px 14px}.omega-topnav{display:none}.omega-rec-row{grid-template-columns:1fr}}
@@ -358,6 +359,56 @@ export default function UserHomePage() {
           </header>
 
           <ContextBar activeLayer="core" />
+          
+          {score < 15 && (
+            <section
+              className="omega-panel"
+              style={{
+                padding: "24px",
+                marginBottom: "24px",
+                border: "1px solid rgba(201,168,76,0.42)",
+                background:
+                  "linear-gradient(135deg, rgba(201,168,76,0.11), rgba(137,196,225,0.08))",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: "16px",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ fontSize: "32px" }}>✨</div>
+                <div>
+                  <h3
+                    style={{ margin: 0, fontSize: "18px", color: "var(--gold)" }}
+                  >
+                    Welcome to your Sovereign Journey
+                  </h3>
+                  <p
+                    style={{
+                      margin: "4px 0 0",
+                      fontSize: "14px",
+                      color: "rgba(242,247,252,0.82)",
+                      maxWidth: "800px",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    Winners Ecosystem is a Digital OS that grows with you. Post in <strong>Community</strong> to build signal, learn in <strong>Academy</strong> to earn proof, and <strong>OMEGA</strong> will orchestrate your commercial unlocks.
+                  </p>
+                </div>
+                <button
+                  className="omega-button primary"
+                  style={{ marginLeft: "auto" }}
+                  onClick={() => navigate("/onboarding")}
+                >
+                  View Roadmap
+                </button>
+              </div>
+            </section>
+          )}
+
           <section className="omega-hero">
             <OMEGABriefingCard
               greeting={`OMEGA · ${getGreeting(now)}, ${firstName}.`}
@@ -387,10 +438,13 @@ export default function UserHomePage() {
             <div className="omega-section">
               <div className="omega-section-header">
                 <div>
-                  <h2 className="omega-section-title">Where You Left Off</h2>
+                  <h2 className="omega-section-title">
+                    <Tooltip content="Smart resumption keeps your place, highlights the fastest return path, and shows the signals OMEGA is tracking before your next unlock.">
+                      Where You Left Off
+                    </Tooltip>
+                  </h2>
                   <p className="omega-section-copy">
-                    Smart resumption keeps your place, highlights the fastest return path, and shows
-                    the signals OMEGA is tracking before your next unlock.
+                    OMEGA tracks your signal across all layers to ensure you never lose momentum.
                   </p>
                 </div>
               </div>
@@ -420,10 +474,13 @@ export default function UserHomePage() {
             <div className="omega-section">
               <div className="omega-section-header">
                 <div>
-                  <h2 className="omega-section-title">Progress Row</h2>
+                  <h2 className="omega-section-title">
+                    <Tooltip content="Your Progress Row tracks your trust level and learning milestones. As these grow, new ecosystem layers will unlock.">
+                      Progress Row
+                    </Tooltip>
+                  </h2>
                   <p className="omega-section-copy">
-                    Three quick cards that tell you where you are in the loop, how trust is moving,
-                    and how learning is compounding into opportunity.
+                    The core metrics that govern your route and unlocks.
                   </p>
                 </div>
               </div>
@@ -452,7 +509,7 @@ export default function UserHomePage() {
                 </div>
               </div>
 
-              <EcosystemStatusBar items={ecosystemStatuses as Array<{ icon: string; label: string; state: "live" | "preview" | "locked"; note: string; cta: string; path: string }>} onNavigate={navigate} />
+              <EcosystemStatusBar items={ecosystemStatuses} onNavigate={navigate} />
             </div>
 
             <div className="omega-section">

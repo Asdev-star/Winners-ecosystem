@@ -5,13 +5,13 @@ export const colors = {
   green: "#2DD4A0",
   red: "#E05A4E",
   purple: "#9B6FFF",
-  bg: "#0D1520",
-  surface: "#111D2E",
-  surface2: "#172335",
-  surface3: "#1E3248",
-  border: "#1E3248",
-  text: "#E8EEF5",
-  textDim: "#5A7A96",
+  bg: "#122033",
+  surface: "#1A2A3D",
+  surface2: "#223449",
+  surface3: "#2B4460",
+  border: "#3A5673",
+  text: "#F4F8FC",
+  textDim: "#A6BCCE",
 } as const;
 
 const colorChannels: Record<keyof typeof colors, string> = {
@@ -21,13 +21,13 @@ const colorChannels: Record<keyof typeof colors, string> = {
   green: "45, 212, 160",
   red: "224, 90, 78",
   purple: "155, 111, 255",
-  bg: "13, 21, 32",
-  surface: "17, 29, 46",
-  surface2: "23, 35, 53",
-  surface3: "30, 50, 72",
-  border: "30, 50, 72",
-  text: "232, 238, 245",
-  textDim: "90, 122, 150",
+  bg: "18, 32, 51",
+  surface: "26, 42, 61",
+  surface2: "34, 52, 73",
+  surface3: "43, 68, 96",
+  border: "58, 86, 115",
+  text: "244, 248, 252",
+  textDim: "166, 188, 206",
 };
 
 export function withAlpha(color: keyof typeof colors, alpha: number) {
