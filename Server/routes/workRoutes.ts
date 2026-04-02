@@ -287,6 +287,11 @@ function buildProposalDraft(input: {
   ].join(" ");
 }
 
+function extractAnthropicText(content: Anthropic.Messages.Message["content"], fallback: string) {
+  const firstBlock = content[0];
+  return firstBlock?.type === "text" ? firstBlock.text : fallback;
+}
+
 // ─── JOB LISTINGS ─────────────────────────────────────────────────────────────
 
 // GET /work/jobs — list jobs with filters
@@ -1167,7 +1172,7 @@ Only return valid JSON. No explanation text outside the array.`;
           messages:   [{ role: "user", content: prompt }],
         });
 
-        const rawText = response.content[0]?.type === "text" ? ("text" in response.content[0] ? response.content[0].text : "[]") : "[]";
+        const rawText = extractAnthropicText(response.content, "[]");
         const jsonMatch = rawText.match(/\[[\s\S]*\]/);
         matches = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
       } catch (modelError) {
@@ -1409,7 +1414,7 @@ Return JSON: { "proposal": "full proposal text", "suggestedRate": number, "curre
       messages:   [{ role: "user", content: prompt }],
     });
 
-    const rawText = response.content[0]?.type === "text" ? ("text" in response.content[0] ? response.content[0].text : "{}") : "{}";
+    const rawText = extractAnthropicText(response.content, "{}");
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     const result = jsonMatch ? JSON.parse(jsonMatch[0]) : { proposal: rawText, suggestedRate: profile.hourlyRate, currency: job.currency, estimatedDays: 7 };
 
@@ -1431,14 +1436,10 @@ router.post("/contracts/:id/review", async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   const contractId = String(req.params.id);
-  const { rating, title, content, category } = req.body;
+  const { rating, title, content } = req.body;
 
   if (!rating || rating < 1 || rating > 5) {
     return res.status(400).json({ message: "Rating must be between 1 and 5" });
-  }
-
-  if (!category || !["freelancer", "client"].includes(category)) {
-    return res.status(400).json({ message: "Category must be 'freelancer' or 'client'" });
   }
 
   try {
@@ -1462,8 +1463,7 @@ router.post("/contracts/:id/review", async (req: Request, res: Response) => {
       return res.status(403).json({ message: "Only contract participants can review" });
     }
 
-    const targetUserId = isClient ? contract.freelancer.user.id : contract.clientId;
-    const targetType = isClient ? "freelancer" : "client";
+    const revieweeId = isClient ? contract.freelancer.user.id : contract.clientId;
 
     // Check if already reviewed by this user
     const existing = await db.workReview.findFirst({
@@ -1482,31 +1482,11 @@ router.post("/contracts/:id/review", async (req: Request, res: Response) => {
         tenantId,
         contractId,
         reviewerId: userId,
-        targetUserId,
-        targetType: targetType as "freelancer" | "client",
+        revieweeId,
         rating,
-        title: title?.trim(),
-        content: content?.trim(),
-      },
-      include: {
-        reviewer: { select: { name: true, email: true } },
-        targetUser: { select: { name: true, email: true } },
+        comment: [title?.trim(), content?.trim()].filter(Boolean).join("\n\n") || null,
       },
     });
-
-    // Update freelancer/client average rating
-    const allReviews = await db.workReview.findMany({
-      where: { targetUserId, targetType },
-    });
-
-    const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-
-    if (targetType === "freelancer") {
-      await db.freelancerProfile.updateMany({
-        where: { userId: targetUserId, tenantId },
-        data: { rating: Number(avgRating.toFixed(2)) },
-      });
-    }
 
     return res.status(201).json(review);
   } catch (error) {
@@ -1523,10 +1503,6 @@ router.get("/contracts/:id/reviews", async (req: Request, res: Response) => {
   try {
     const reviews = await db.workReview.findMany({
       where: { contractId, tenantId },
-      include: {
-        reviewer: { select: { name: true, email: true } },
-        targetUser: { select: { name: true, email: true } },
-      },
       orderBy: { createdAt: "desc" },
     });
 

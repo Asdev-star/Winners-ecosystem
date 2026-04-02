@@ -1117,6 +1117,14 @@ export default function WorkPage() {
                           </div>
                         </div>
                         <div className="job-card-actions">
+                          <Link to={`/work/jobs/${job.id}`} className="btn-view" style={{
+                            padding:"8px 16px", background:"transparent", border:"1px solid var(--border)",
+                            borderRadius:4, fontFamily:"'Space Mono',monospace", fontSize:10,
+                            textTransform:"uppercase", color:"var(--ice)", textDecoration:"none",
+                            cursor:"pointer", transition:"border-color .15s"
+                          }}>
+                            View Details
+                          </Link>
                           {!job.myApplication ? (
                             <button className="btn-apply" onClick={() => {
                               setApplyModal(job);

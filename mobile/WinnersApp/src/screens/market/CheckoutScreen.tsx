@@ -140,6 +140,14 @@ export default function CheckoutScreen({ navigation }: Props) {
     () => buildVendorGroups(cartItems, products),
     [cartItems, products],
   );
+  const unresolvedItems = useMemo(
+    () =>
+      cartItems.filter((item) => {
+        const product = getCartProduct(item, products);
+        return !product?.vendorId;
+      }),
+    [cartItems, products],
+  );
   const vendorCount = vendorGroups.length;
   const itemCount = useMemo(
     () =>
@@ -202,6 +210,14 @@ export default function CheckoutScreen({ navigation }: Props) {
   };
 
   const handlePay = async () => {
+    if (unresolvedItems.length > 0) {
+      const names = unresolvedItems
+        .map((item) => getCartProduct(item, products)?.name ?? item.productId)
+        .join(", ");
+      setMessage(`${unresolvedItems.length} item(s) missing vendor: ${names}. Remove them to continue.`);
+      return;
+    }
+
     if (!vendorGroups.length) {
       setMessage("Your cart is empty or missing vendor routing data.");
       return;
@@ -475,6 +491,13 @@ export default function CheckoutScreen({ navigation }: Props) {
             {itemCount} item(s) across {vendorCount || 0} vendor
             {vendorCount === 1 ? "" : "s"}
           </Text>
+          {unresolvedItems.length > 0 && (
+            <View style={styles.warningBanner}>
+              <Text style={styles.warningText}>
+                ⚠ {unresolvedItems.length} item(s) missing vendor assignment. Remove them to continue checkout.
+              </Text>
+            </View>
+          )}
           {vendorGroups.map((group) => (
             <View key={group.vendorId} style={styles.vendorSummaryRow}>
               <View style={styles.vendorSummaryCopy}>
@@ -705,6 +728,18 @@ const styles = StyleSheet.create({
   },
   message: {
     color: colors.textDim,
+    ...typography.bodySm,
+  },
+  warningBanner: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: "rgba(240, 180, 41, 0.4)",
+    backgroundColor: withAlpha("gold", 0.08),
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  warningText: {
+    color: colors.gold,
     ...typography.bodySm,
   },
   stickyButton: {

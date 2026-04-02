@@ -1,20 +1,16 @@
-// Phase 8 — Winners Cloud — Revenue Sharing Service
-// Handles plugin revenue distribution, developer payouts, and platform fees
+// Phase 8 - Winners Cloud - Revenue Sharing Service
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Revenue split configuration
 const REVENUE_CONFIG = {
-  developerShare: 0.7, // 70% to developer
-  platformShare: 0.3, // 30% to platform
-  minimumPayout: 50, // Minimum $50 for payout
-  payoutSchedule: "monthly", // monthly, weekly, or on-demand
+  developerShare: 0.7,
+  platformShare: 0.3,
+  minimumPayout: 50,
+  payoutSchedule: "monthly",
   currency: "USD",
-};
-
-// ─── Revenue Calculation ───────────────────────────────────────────────────────
+} as const;
 
 interface RevenueCalculation {
   totalAmount: number;
@@ -23,24 +19,9 @@ interface RevenueCalculation {
   currency: string;
 }
 
-export function calculateRevenueSplit(amount: number): RevenueCalculation {
-  const developerAmount =
-    Math.round(amount * REVENUE_CONFIG.developerShare * 100) / 100;
-  const platformAmount =
-    Math.round(amount * REVENUE_CONFIG.platformShare * 100) / 100;
-
-  return {
-    totalAmount: amount,
-    developerAmount,
-    platformAmount,
-    currency: REVENUE_CONFIG.currency,
-  };
-}
-
-// ─── Transaction Recording ─────────────────────────────────────────────────────
-
 interface RecordTransactionData {
   pluginId: string;
+  tenantId: string;
   developerId: string;
   buyerId: string;
   amount: number;
@@ -50,42 +31,48 @@ interface RecordTransactionData {
   metadata?: Record<string, unknown>;
 }
 
+interface ProcessPayoutData {
+  developerId: string;
+  amount: number;
+  payoutMethod: string;
+  payoutDetails: Record<string, unknown>;
+}
+
+export function calculateRevenueSplit(amount: number): RevenueCalculation {
+  const developerAmount = Math.round(amount * REVENUE_CONFIG.developerShare * 100) / 100;
+  const platformAmount = Math.round(amount * REVENUE_CONFIG.platformShare * 100) / 100;
+
+  return {
+    totalAmount: amount,
+    developerAmount,
+    platformAmount,
+    currency: REVENUE_CONFIG.currency,
+  };
+}
+
 export async function recordTransaction(data: RecordTransactionData) {
   const split = calculateRevenueSplit(data.amount);
 
   const transaction = await prisma.pluginTransaction.create({
     data: {
       pluginId: data.pluginId,
+      tenantId: data.tenantId,
       developerId: data.developerId,
       buyerId: data.buyerId,
       amount: split.totalAmount,
       developerAmount: split.developerAmount,
       platformAmount: split.platformAmount,
-      currency: data.currency || REVENUE_CONFIG.currency,
+      currency: data.currency ?? REVENUE_CONFIG.currency,
       paymentMethod: data.paymentMethod,
       paymentId: data.paymentId,
       status: "completed",
-      metadata: data.metadata || {},
+      metadata: (data.metadata ?? {}) as Prisma.InputJsonValue,
     },
     include: {
-      plugin: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
-      },
-      developer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
+      plugin: true,
     },
   });
 
-  // Update developer's pending balance
   await prisma.developerEarnings.upsert({
     where: { developerId: data.developerId },
     create: {
@@ -103,52 +90,30 @@ export async function recordTransaction(data: RecordTransactionData) {
   return transaction;
 }
 
-// ─── Developer Earnings ────────────────────────────────────────────────────────
-
 export async function getDeveloperEarnings(developerId: string) {
-  const earnings = await prisma.developerEarnings.findUnique({
-    where: { developerId },
-  });
-
-  if (!earnings) {
-    return {
-      pendingBalance: 0,
-      totalEarned: 0,
-      totalPaidOut: 0,
-      availableForPayout: 0,
-    };
-  }
-
-  const availableForPayout = Math.max(
-    0,
-    earnings.pendingBalance - REVENUE_CONFIG.minimumPayout,
-  );
+  const earnings = await prisma.developerEarnings.findUnique({ where: { developerId } });
 
   return {
-    ...earnings,
-    availableForPayout,
+    pendingBalance: earnings?.pendingBalance ?? 0,
+    totalEarned: earnings?.totalEarned ?? 0,
+    totalPaidOut: earnings?.totalPaidOut ?? 0,
+    availableForPayout: earnings?.pendingBalance ?? 0,
     minimumPayout: REVENUE_CONFIG.minimumPayout,
   };
 }
 
 export async function getDeveloperTransactions(
   developerId: string,
-  options: {
-    page?: number;
-    limit?: number;
-    status?: string;
-    startDate?: Date;
-    endDate?: Date;
-  } = {},
+  options: { page?: number; limit?: number; status?: string; startDate?: Date; endDate?: Date } = {},
 ) {
   const { page = 1, limit = 20, status, startDate, endDate } = options;
+  const where: {
+    developerId: string;
+    status?: string;
+    createdAt?: { gte?: Date; lte?: Date };
+  } = { developerId };
 
-  const where: Record<string, unknown> = { developerId };
-
-  if (status) {
-    where.status = status;
-  }
-
+  if (status) where.status = status;
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) where.createdAt.gte = startDate;
@@ -160,18 +125,10 @@ export async function getDeveloperTransactions(
       where,
       include: {
         plugin: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
+          select: { id: true, name: true, slug: true, category: true },
         },
         buyer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: { id: true, name: true, email: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -192,119 +149,66 @@ export async function getDeveloperTransactions(
   };
 }
 
-// ─── Payout Processing ─────────────────────────────────────────────────────────
-
-interface ProcessPayoutData {
-  developerId: string;
-  amount: number;
-  payoutMethod: string;
-  payoutDetails: Record<string, unknown>;
-}
-
 export async function processPayout(data: ProcessPayoutData) {
   const earnings = await prisma.developerEarnings.findUnique({
     where: { developerId: data.developerId },
   });
 
-  if (!earnings) {
-    throw new Error("Developer earnings record not found");
-  }
-
-  if (data.amount > earnings.pendingBalance) {
+  if (!earnings || earnings.pendingBalance < data.amount) {
     throw new Error("Insufficient balance for payout");
   }
 
   if (data.amount < REVENUE_CONFIG.minimumPayout) {
-    throw new Error(
-      `Minimum payout amount is $${REVENUE_CONFIG.minimumPayout}`,
-    );
+    throw new Error(`Minimum payout amount is $${REVENUE_CONFIG.minimumPayout}`);
   }
 
-  // Create payout record
-  const payout = await prisma.developerPayout.create({
-    data: {
-      developerId: data.developerId,
-      amount: data.amount,
-      currency: REVENUE_CONFIG.currency,
-      payoutMethod: data.payoutMethod,
-      payoutDetails: data.payoutDetails,
-      status: "processing",
-    },
-  });
-
-  // Update developer earnings
-  await prisma.developerEarnings.update({
-    where: { developerId: data.developerId },
-    data: {
-      pendingBalance: { decrement: data.amount },
-      totalPaidOut: { increment: data.amount },
-    },
-  });
-
-  // Mark related transactions as paid out
-  const transactions = await prisma.pluginTransaction.findMany({
-    where: {
-      developerId: data.developerId,
-      status: "completed",
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  let remainingAmount = data.amount;
-  const transactionIds: string[] = [];
-
-  for (const transaction of transactions) {
-    if (remainingAmount <= 0) break;
-
-    if (transaction.developerAmount <= remainingAmount) {
-      transactionIds.push(transaction.id);
-      remainingAmount -= transaction.developerAmount;
-    }
-  }
-
-  if (transactionIds.length > 0) {
-    await prisma.pluginTransaction.updateMany({
-      where: { id: { in: transactionIds } },
-      data: { status: "paid_out" },
-    });
-  }
+  const [payout] = await prisma.$transaction([
+    prisma.developerPayout.create({
+      data: {
+        developerId: data.developerId,
+        amount: data.amount,
+        currency: REVENUE_CONFIG.currency,
+        payoutMethod: data.payoutMethod,
+        payoutDetails: data.payoutDetails as Prisma.InputJsonValue,
+        status: "PENDING",
+      },
+    }),
+    prisma.developerEarnings.update({
+      where: { developerId: data.developerId },
+      data: {
+        pendingBalance: { decrement: data.amount },
+        totalPaidOut: { increment: data.amount },
+      },
+    }),
+  ]);
 
   return payout;
 }
 
 export async function getPayouts(developerId: string) {
-  const payouts = await prisma.developerPayout.findMany({
+  return prisma.developerPayout.findMany({
     where: { developerId },
     orderBy: { createdAt: "desc" },
   });
-
-  return payouts;
 }
 
-// ─── Platform Revenue Analytics ────────────────────────────────────────────────
-
 export async function getPlatformRevenueStats() {
-  const [totalRevenue, totalPayouts, activePlugins, totalTransactions] =
-    await Promise.all([
-      prisma.pluginTransaction.aggregate({
-        _sum: { platformAmount: true },
-        where: { status: "completed" },
-      }),
-      prisma.developerPayout.aggregate({
-        _sum: { amount: true },
-        where: { status: "completed" },
-      }),
-      prisma.plugin.count({
-        where: { status: "approved" },
-      }),
-      prisma.pluginTransaction.count({
-        where: { status: "completed" },
-      }),
-    ]);
+  const [transactions, payouts, activePlugins, totalTransactions] = await Promise.all([
+    prisma.pluginTransaction.aggregate({
+      where: { status: "completed" },
+      _sum: { platformAmount: true },
+    }),
+    prisma.developerPayout.aggregate({
+      where: { status: "COMPLETED" },
+      _sum: { amount: true },
+    }),
+    prisma.plugin.count({ where: { status: "PUBLISHED" } }),
+    prisma.pluginTransaction.count({ where: { status: "completed" } }),
+  ]);
 
   return {
-    totalPlatformRevenue: totalRevenue._sum.platformAmount || 0,
-    totalDeveloperPayouts: totalPayouts._sum.amount || 0,
+    totalPlatformRevenue: transactions._sum.platformAmount ?? 0,
+    totalDeveloperPayouts: payouts._sum.amount ?? 0,
     activePlugins,
     totalTransactions,
     revenueSplit: REVENUE_CONFIG,
@@ -317,36 +221,18 @@ export async function getRevenueByPlugin(pluginId: string) {
     orderBy: { createdAt: "desc" },
   });
 
-  const totalRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const developerRevenue = transactions.reduce(
-    (sum, t) => sum + t.developerAmount,
-    0,
-  );
-  const platformRevenue = transactions.reduce(
-    (sum, t) => sum + t.platformAmount,
-    0,
-  );
-
   return {
-    transactions,
-    totalRevenue,
-    developerRevenue,
-    platformRevenue,
+    pluginId,
     transactionCount: transactions.length,
+    totalRevenue: transactions.reduce((sum, item) => sum + item.amount, 0),
+    developerRevenue: transactions.reduce((sum, item) => sum + item.developerAmount, 0),
+    platformRevenue: transactions.reduce((sum, item) => sum + item.platformAmount, 0),
   };
 }
 
-// ─── Revenue Reports ───────────────────────────────────────────────────────────
-
-export async function generateRevenueReport(startDate: Date, endDate: Date) {
+export async function getTopPerformingPlugins(limit = 10) {
   const transactions = await prisma.pluginTransaction.findMany({
-    where: {
-      createdAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-      status: "completed",
-    },
+    where: { status: "completed" },
     include: {
       plugin: {
         select: {
@@ -355,90 +241,40 @@ export async function generateRevenueReport(startDate: Date, endDate: Date) {
           category: true,
         },
       },
-      developer: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  const totalRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const developerRevenue = transactions.reduce(
-    (sum, t) => sum + t.developerAmount,
-    0,
-  );
-  const platformRevenue = transactions.reduce(
-    (sum, t) => sum + t.platformAmount,
-    0,
-  );
+  const grouped = new Map<
+    string,
+    {
+      plugin: { id: string; name: string; category: string };
+      transactionCount: number;
+      totalRevenue: number;
+      developerRevenue: number;
+      platformRevenue: number;
+    }
+  >();
 
-  // Group by plugin
-  const byPlugin = transactions.reduce(
-    (acc, t) => {
-      const key = t.pluginId;
-      if (!acc[key]) {
-        acc[key] = {
-          plugin: t.plugin,
-          totalRevenue: 0,
-          transactionCount: 0,
-        };
-      }
-      acc[key].totalRevenue += t.amount;
-      acc[key].transactionCount += 1;
-      return acc;
-    },
-    {} as Record<
-      string,
-      {
-        plugin: { id: string; name: string; category: string };
-        totalRevenue: number;
-        transactionCount: number;
-      }
-    >,
-  );
-
-  // Group by developer
-  const byDeveloper = transactions.reduce(
-    (acc, t) => {
-      const key = t.developerId;
-      if (!acc[key]) {
-        acc[key] = {
-          developer: t.developer,
-          totalRevenue: 0,
-          transactionCount: 0,
-        };
-      }
-      acc[key].totalRevenue += t.amount;
-      acc[key].transactionCount += 1;
-      return acc;
-    },
-    {} as Record<
-      string,
-      {
-        developer: { id: string; name: string };
-        totalRevenue: number;
-        transactionCount: number;
-      }
-    >,
-  );
+  for (const transaction of transactions) {
+    const current = grouped.get(transaction.pluginId) ?? {
+      plugin: transaction.plugin,
+      transactionCount: 0,
+      totalRevenue: 0,
+      developerRevenue: 0,
+      platformRevenue: 0,
+    };
+    current.transactionCount += 1;
+    current.totalRevenue += transaction.amount;
+    current.developerRevenue += transaction.developerAmount;
+    current.platformRevenue += transaction.platformAmount;
+    grouped.set(transaction.pluginId, current);
+  }
 
   return {
-    period: { startDate, endDate },
-    summary: {
-      totalRevenue,
-      developerRevenue,
-      platformRevenue,
-      transactionCount: transactions.length,
-    },
-    byPlugin: Object.values(byPlugin).sort(
-      (a, b) => b.totalRevenue - a.totalRevenue,
-    ),
-    byDeveloper: Object.values(byDeveloper).sort(
-      (a, b) => b.totalRevenue - a.totalRevenue,
-    ),
-    transactions,
+    plugins: [...grouped.values()]
+      .sort((left, right) => right.totalRevenue - left.totalRevenue)
+      .slice(0, limit),
+    limit,
   };
 }

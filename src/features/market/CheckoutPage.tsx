@@ -113,10 +113,14 @@ function buildVendorGroups(cart: Cart | null): CheckoutVendorGroup[] {
   if (!cart?.items.length) return [];
 
   const groups = new Map<string, CheckoutVendorGroup>();
+  const unresolved: string[] = [];
 
   for (const item of cart.items) {
     const vendorId = item.product.vendorId ?? item.product.vendor?.id;
-    if (!vendorId) continue;
+    if (!vendorId) {
+      unresolved.push(item.product.name);
+      continue;
+    }
 
     const vendorName =
       item.product.vendor?.storeName ?? item.product.vendor?.name ?? "Direct Sale";
@@ -139,6 +143,12 @@ function buildVendorGroups(cart: Cart | null): CheckoutVendorGroup[] {
     current.subtotal += unitPrice * item.quantity;
 
     groups.set(vendorId, current);
+  }
+
+  if (unresolved.length > 0) {
+    console.warn(
+      `[checkout] ${unresolved.length} item(s) missing vendor resolution: ${unresolved.join(", ")}`,
+    );
   }
 
   return Array.from(groups.values());
@@ -191,6 +201,13 @@ export default function CheckoutPage() {
   const paymentElementRef = useRef<any>(null);
 
   const vendorGroups = useMemo(() => buildVendorGroups(cart), [cart]);
+  const unresolvedItems = useMemo(() => {
+    if (!cart?.items.length) return [];
+    return cart.items.filter((item) => {
+      const vendorId = item.product.vendorId ?? item.product.vendor?.id;
+      return !vendorId;
+    });
+  }, [cart]);
   const subtotal = useMemo(
     () => vendorGroups.reduce((sum, group) => sum + group.subtotal, 0),
     [vendorGroups],
@@ -333,6 +350,13 @@ export default function CheckoutPage() {
   }
 
   async function preparePayments() {
+    if (unresolvedItems.length > 0) {
+      setError(
+        `${unresolvedItems.length} item(s) could not be assigned to a vendor (${unresolvedItems.map((i) => i.product.name).join(", ")}). Remove them from your cart and try again.`,
+      );
+      return;
+    }
+
     if (!cart?.items.length || !vendorGroups.length) {
       setError("Your cart is empty or missing vendor routing.");
       return;
@@ -570,6 +594,12 @@ export default function CheckoutPage() {
           <div className="checkout-error">
             {error}
             <button onClick={() => setError("")}>×</button>
+          </div>
+        )}
+
+        {unresolvedItems.length > 0 && (
+          <div className="checkout-error" style={{ borderColor: "rgba(240, 180, 41, 0.4)", background: "rgba(240, 180, 41, 0.08)", color: "var(--gold)" }}>
+            ⚠ {unresolvedItems.length} item(s) missing vendor assignment: {unresolvedItems.map((i) => i.product.name).join(", ")}. These items cannot be checked out until a vendor is assigned.
           </div>
         )}
 

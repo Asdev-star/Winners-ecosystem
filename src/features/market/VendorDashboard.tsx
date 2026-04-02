@@ -267,8 +267,14 @@ export default function VendorDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [payoutSummary, setPayoutSummary] = useState<PayoutSummary>({ total: 0, paid: 0, pending: 0 });
+  const [availableBalance, setAvailableBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState('');
+  const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payoutError, setPayoutError] = useState<string | null>(null);
+  const [payoutSuccess, setPayoutSuccess] = useState(false);
 
   useEffect(() => {
     fetchVendorData();
@@ -326,6 +332,7 @@ export default function VendorDashboard() {
           paid: Number(payoutData.summary?.paid || 0),
           pending: Number(payoutData.summary?.pending || 0),
         });
+        setAvailableBalance(Number(payoutData.balance || 0));
       }
       
       if (!vendorRes.ok) {
@@ -471,6 +478,18 @@ export default function VendorDashboard() {
             ${payoutSummary.paid.toFixed(2)} paid out
           </div>
         </div>
+        <div style={{ ...styles.statCard, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+          <div style={{ ...styles.statCardTopBorder, background: 'var(--green)' }}></div>
+          <div style={styles.statLabel}>Available Balance</div>
+          <div style={{ ...styles.statValue, color: 'var(--green)' }}>${availableBalance.toFixed(2)}</div>
+          <button
+            style={{ ...styles.btnPrimary, marginTop: '12px', background: 'var(--green)', width: '100%' }}
+            onClick={() => setPayoutModalOpen(true)}
+            disabled={availableBalance < 50}
+          >
+            Request Payout
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -574,6 +593,168 @@ export default function VendorDashboard() {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {payoutModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: 'var(--surface)',
+            borderRadius: '12px',
+            padding: '32px',
+            maxWidth: '420px',
+            width: '100%',
+            border: '1px solid var(--border)',
+          }}>
+            <h2 style={{ margin: '0 0 20px 0', fontSize: '20px', color: 'var(--text)' }}>Request Payout</h2>
+            
+            {payoutSuccess ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                <p style={{ color: 'var(--green)', fontWeight: 600 }}>Payout requested successfully!</p>
+                <p style={{ color: 'var(--text-dim)', fontSize: '14px' }}>
+                  Your payout will be processed to your connected Stripe account.
+                </p>
+                <button
+                  style={{ ...styles.btnPrimary, marginTop: '20px', width: '100%' }}
+                  onClick={() => {
+                    setPayoutModalOpen(false);
+                    setPayoutSuccess(false);
+                    setPayoutAmount('');
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dim)', fontSize: '14px' }}>
+                    Available Balance
+                  </label>
+                  <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--green)' }}>
+                    ${availableBalance.toFixed(2)}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dim)', fontSize: '14px' }}>
+                    Payout Amount (min $50)
+                  </label>
+                  <input
+                    type="number"
+                    value={payoutAmount}
+                    onChange={(e) => setPayoutAmount(e.target.value)}
+                    placeholder="Enter amount"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--text)',
+                      fontSize: '16px',
+                    }}
+                  />
+                </div>
+
+                {payoutError && (
+                  <div style={{ 
+                    padding: '12px', 
+                    borderRadius: '6px', 
+                    background: 'rgba(255,100,100,0.1)', 
+                    color: 'var(--red)',
+                    marginBottom: '16px',
+                    fontSize: '14px',
+                  }}>
+                    {payoutError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border)',
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      setPayoutModalOpen(false);
+                      setPayoutError(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: 'var(--green)',
+                      color: '#000',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: payoutLoading ? 'not-allowed' : 'pointer',
+                      opacity: payoutLoading ? 0.7 : 1,
+                    }}
+                    onClick={async () => {
+                      const amount = Number(payoutAmount);
+                      if (amount < 50) {
+                        setPayoutError('Minimum payout amount is $50');
+                        return;
+                      }
+                      if (amount > availableBalance) {
+                        setPayoutError('Amount exceeds available balance');
+                        return;
+                      }
+                      setPayoutLoading(true);
+                      setPayoutError(null);
+                      try {
+                        const res = await fetch('/api/v1/vendors/me/payout/request', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ amount, payoutMethod: 'stripe_connect' }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                          throw new Error(data.error || 'Failed to process payout');
+                        }
+                        setPayoutSuccess(true);
+                        fetchVendorData();
+                      } catch (err: any) {
+                        setPayoutError(err.message || 'Failed to process payout');
+                      } finally {
+                        setPayoutLoading(false);
+                      }
+                    }}
+                    disabled={payoutLoading || !payoutAmount}
+                  >
+                    {payoutLoading ? 'Processing...' : 'Request Payout'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

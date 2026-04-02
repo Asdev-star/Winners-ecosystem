@@ -1,18 +1,30 @@
-// Phase 8 — Winners Cloud — White-label Licensing API
-// Enterprise white-label licensing, sub-tenant provisioning, and custom branding
+// Phase 8 - Winners Cloud - White-label Licensing API
 
-import { Router, Request, Response } from "express";
+import { Router, type Request, type Response } from "express";
+import { Plan } from "@prisma/client";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
 
 const router = Router();
+
 router.use(authMiddleware);
 router.use(enforceTenant);
 
-// ─── TENANT CONFIGURATION ─────────────────────────────────────────────────────
+function defaultBranding() {
+  return {
+    logoUrl: null,
+    primaryColor: "#C9A84C",
+    secondaryColor: "#0D1520",
+    faviconUrl: null,
+  };
+}
 
-// GET /whitelabel/config — Get tenant configuration
+function defaultFeatures() {
+  return ["community", "academy", "market"];
+}
+
+// GET /whitelabel/config - Get tenant configuration
 router.get("/config", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
 
@@ -22,20 +34,23 @@ router.get("/config", async (req: Request, res: Response) => {
     });
 
     if (!config) {
-      // Create default config
+      const tenant = await db.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true, customDomain: true, whiteLabelEnabled: true },
+      });
+
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+
       config = await db.tenantConfig.create({
         data: {
           tenantId,
-          name: "Default Tenant",
-          domain: "",
-          branding: {
-            logoUrl: null,
-            primaryColor: "#C9A84C",
-            secondaryColor: "#0D1520",
-            faviconUrl: null,
-          },
-          features: ["community", "academy", "market"],
-          active: true,
+          name: tenant.name,
+          domain: tenant.customDomain,
+          branding: defaultBranding(),
+          features: defaultFeatures(),
+          active: tenant.whiteLabelEnabled,
         },
       });
     }
@@ -47,25 +62,47 @@ router.get("/config", async (req: Request, res: Response) => {
   }
 });
 
-// PATCH /whitelabel/branding — Update tenant branding
+// PATCH /whitelabel/branding - Update tenant branding
 router.patch("/branding", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
   const { branding } = req.body ?? {};
 
-  if (!branding) {
+  if (!branding || typeof branding !== "object") {
     return res.status(400).json({ error: "Branding data is required" });
   }
 
   try {
+    const tenant = await db.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ error: "Tenant not found" });
+    }
+
     const config = await db.tenantConfig.upsert({
       where: { tenantId },
-      update: { branding },
+      update: { branding, active: true },
       create: {
         tenantId,
-        name: "Default Tenant",
+        name: tenant.name,
         branding,
-        features: ["community", "academy", "market"],
+        features: defaultFeatures(),
         active: true,
+      },
+    });
+
+    await db.tenant.update({
+      where: { id: tenantId },
+      data: {
+        whiteLabelEnabled: true,
+        brandColor:
+          typeof branding.primaryColor === "string" ? branding.primaryColor.trim() : undefined,
+        logoUrl:
+          typeof branding.logoUrl === "string" ? branding.logoUrl.trim() : branding.logoUrl === null ? null : undefined,
+        faviconUrl:
+          typeof branding.faviconUrl === "string" ? branding.faviconUrl.trim() : branding.faviconUrl === null ? null : undefined,
       },
     });
 
@@ -76,7 +113,7 @@ router.patch("/branding", async (req: Request, res: Response) => {
   }
 });
 
-// PATCH /whitelabel/features — Update enabled features
+// PATCH /whitelabel/features - Update enabled features
 router.patch("/features", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
   const { features } = req.body ?? {};
@@ -86,15 +123,30 @@ router.patch("/features", async (req: Request, res: Response) => {
   }
 
   try {
+    const tenant = await db.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+
+    if (!tenant) {
+      return res.status(404).json({ error: "Tenant not found" });
+    }
+
     const config = await db.tenantConfig.upsert({
       where: { tenantId },
-      update: { features },
+      update: { features, active: true },
       create: {
         tenantId,
-        name: "Default Tenant",
+        name: tenant.name,
+        branding: defaultBranding(),
         features,
         active: true,
       },
+    });
+
+    await db.tenant.update({
+      where: { id: tenantId },
+      data: { whiteLabelEnabled: true },
     });
 
     res.json({ config, success: true });
@@ -104,36 +156,63 @@ router.patch("/features", async (req: Request, res: Response) => {
   }
 });
 
-// PATCH /whitelabel/domain — Update custom domain
+// PATCH /whitelabel/domain - Update custom domain
 router.patch("/domain", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
-  const { domain } = req.body ?? {};
+  const domain = typeof req.body?.domain === "string" ? req.body.domain.trim().toLowerCase() : "";
 
-  if (!domain?.trim()) {
+  if (!domain) {
     return res.status(400).json({ error: "Domain is required" });
   }
 
   try {
-    // Check if domain is already in use
     const existing = await db.tenantConfig.findFirst({
-      where: { domain: domain.toLowerCase(), tenantId: { not: tenantId } },
+      where: { domain, tenantId: { not: tenantId } },
     });
 
     if (existing) {
       return res.status(409).json({ error: "Domain already in use" });
     }
 
-    const config = await db.tenantConfig.upsert({
-      where: { tenantId },
-      update: { domain: domain.toLowerCase() },
-      create: {
-        tenantId,
-        name: "Default Tenant",
-        domain: domain.toLowerCase(),
-        features: ["community", "academy", "market"],
-        active: true,
-      },
+    const tenant = await db.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
     });
+
+    if (!tenant) {
+      return res.status(404).json({ error: "Tenant not found" });
+    }
+
+    const [config] = await db.$transaction([
+      db.tenantConfig.upsert({
+        where: { tenantId },
+        update: { domain, active: true },
+        create: {
+          tenantId,
+          name: tenant.name,
+          domain,
+          branding: defaultBranding(),
+          features: defaultFeatures(),
+          active: true,
+        },
+      }),
+      db.tenant.update({
+        where: { id: tenantId },
+        data: {
+          customDomain: domain,
+          whiteLabelEnabled: true,
+        },
+      }),
+      db.dNSZone.upsert({
+        where: { domain },
+        update: { tenantId },
+        create: {
+          tenantId,
+          domain,
+          ns: ["ns1.winnersempire.io", "ns2.winnersempire.io"],
+        },
+      }),
+    ]);
 
     res.json({ config, success: true });
   } catch (err) {
@@ -142,9 +221,7 @@ router.patch("/domain", async (req: Request, res: Response) => {
   }
 });
 
-// ─── SUB-TENANT PROVISIONING ──────────────────────────────────────────────────
-
-// POST /whitelabel/provision — Provision sub-tenant
+// POST /whitelabel/provision - Provision sub-tenant
 router.post("/provision", async (req: Request, res: Response) => {
   const parentTenantId = req.user!.tenantId;
   const userRole = req.user!.role;
@@ -153,56 +230,71 @@ router.post("/provision", async (req: Request, res: Response) => {
     return res.status(403).json({ error: "Admin access required" });
   }
 
-  const { name, domain, plan = "starter" } = req.body ?? {};
+  const { name, domain, plan = "FREE" } = req.body ?? {};
 
-  if (!name?.trim()) {
+  if (typeof name !== "string" || !name.trim()) {
     return res.status(400).json({ error: "Name is required" });
   }
 
+  const normalizedDomain = typeof domain === "string" && domain.trim() ? domain.trim().toLowerCase() : null;
+  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const requestedPlan = String(plan).toUpperCase();
+  const planValue = Object.values(Plan).includes(requestedPlan as Plan) ? (requestedPlan as Plan) : Plan.FREE;
+
   try {
-    // Create new tenant
-    const newTenant = await db.tenant.create({
-      data: {
-        id: `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        name: name.trim(),
-        slug: name.trim().toLowerCase().replace(/\s+/g, "-"),
-        region: "africa-east",
-        status: "active",
-        plan: plan.toUpperCase(),
-        parentTenantId,
+    const existingTenant = await db.tenant.findFirst({
+      where: {
+        OR: [
+          { slug },
+          ...(normalizedDomain ? [{ customDomain: normalizedDomain }] : []),
+        ],
       },
+      select: { id: true },
     });
 
-    // Create default config
-    const config = await db.tenantConfig.create({
-      data: {
-        tenantId: newTenant.id,
-        name: newTenant.name,
-        domain: domain ? domain.toLowerCase() : "",
-        branding: {
-          logoUrl: null,
-          primaryColor: "#C9A84C",
-          secondaryColor: "#0D1520",
-          faviconUrl: null,
-        },
-        features: ["community", "academy"],
-        active: true,
-      },
-    });
-
-    // Create DNS zone for custom domain
-    if (domain) {
-      await db.dNSZone.create({
-        data: {
-          tenantId: newTenant.id,
-          domain: domain.toLowerCase(),
-          ns: ["ns1.winnersempire.io", "ns2.winnersempire.io"],
-        },
-      });
+    if (existingTenant) {
+      return res.status(409).json({ error: "A tenant with this name or domain already exists" });
     }
 
+    const [tenant, config] = await db.$transaction(async (tx) => {
+      const newTenant = await tx.tenant.create({
+        data: {
+          name: name.trim(),
+          slug,
+          status: "active",
+          parentTenantId,
+          plan: planValue,
+          whiteLabelEnabled: true,
+          customDomain: normalizedDomain,
+        },
+      });
+
+      const newConfig = await tx.tenantConfig.create({
+        data: {
+          tenantId: newTenant.id,
+          name: newTenant.name,
+          domain: normalizedDomain,
+          branding: defaultBranding(),
+          features: defaultFeatures(),
+          active: true,
+        },
+      });
+
+      if (normalizedDomain) {
+        await tx.dNSZone.create({
+          data: {
+            tenantId: newTenant.id,
+            domain: normalizedDomain,
+            ns: ["ns1.winnersempire.io", "ns2.winnersempire.io"],
+          },
+        });
+      }
+
+      return [newTenant, newConfig] as const;
+    });
+
     res.status(201).json({
-      tenant: newTenant,
+      tenant,
       config,
       message: "Sub-tenant provisioned successfully",
     });
@@ -212,15 +304,13 @@ router.post("/provision", async (req: Request, res: Response) => {
   }
 });
 
-// GET /whitelabel/subtenants — List sub-tenants
+// GET /whitelabel/subtenants - List sub-tenants
 router.get("/subtenants", async (req: Request, res: Response) => {
-  const parentTenantId = req.user!.tenantId;
-
   try {
     const subtenants = await db.tenant.findMany({
-      where: { parentTenantId },
+      where: { parentTenantId: req.user!.tenantId },
       include: {
-        config: true,
+        tenantConfig: true,
         _count: {
           select: { users: true },
         },
@@ -235,11 +325,10 @@ router.get("/subtenants", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /whitelabel/subtenants/:id — Deprovision sub-tenant
+// DELETE /whitelabel/subtenants/:id - Deprovision sub-tenant
 router.delete("/subtenants/:id", async (req: Request, res: Response) => {
-  const parentTenantId = req.user!.tenantId;
   const userRole = req.user!.role;
-  const { id } = req.params as Record<string, string>;
+  const id = String(req.params.id);
 
   if (!["owner", "admin"].includes(userRole)) {
     return res.status(403).json({ error: "Admin access required" });
@@ -247,14 +336,13 @@ router.delete("/subtenants/:id", async (req: Request, res: Response) => {
 
   try {
     const tenant = await db.tenant.findFirst({
-      where: { id, parentTenantId },
+      where: { id, parentTenantId: req.user!.tenantId },
     });
 
     if (!tenant) {
       return res.status(404).json({ error: "Sub-tenant not found" });
     }
 
-    // Soft delete by updating status
     await db.tenant.update({
       where: { id },
       data: { status: "suspended" },
@@ -267,25 +355,21 @@ router.delete("/subtenants/:id", async (req: Request, res: Response) => {
   }
 });
 
-// ─── ENTERPRISE SSO ───────────────────────────────────────────────────────────
-
-// GET /whitelabel/sso/config — Get SSO configuration
+// GET /whitelabel/sso/config - Get SSO configuration
 router.get("/sso/config", async (req: Request, res: Response) => {
-  const tenantId = req.user!.tenantId;
-
   try {
-    let ssoConfig = await db.sSOConfig.findUnique({
-      where: { tenantId },
+    const config = await db.sSOConfig.findUnique({
+      where: { tenantId: req.user!.tenantId },
     });
 
-    if (!ssoConfig) {
+    if (!config) {
       return res.json({ config: null });
     }
 
     res.json({
       config: {
-        ...ssoConfig,
-        clientSecret: undefined, // Never expose secret
+        ...config,
+        clientSecret: undefined,
       },
     });
   } catch (err) {
@@ -294,12 +378,9 @@ router.get("/sso/config", async (req: Request, res: Response) => {
   }
 });
 
-// POST /whitelabel/sso/config — Configure SSO (SAML/OIDC)
+// POST /whitelabel/sso/config - Configure SSO
 router.post("/sso/config", async (req: Request, res: Response) => {
-  const tenantId = req.user!.tenantId;
-  const userRole = req.user!.role;
-
-  if (!["owner", "admin"].includes(userRole)) {
+  if (!["owner", "admin"].includes(req.user!.role)) {
     return res.status(403).json({ error: "Admin access required" });
   }
 
@@ -313,35 +394,39 @@ router.post("/sso/config", async (req: Request, res: Response) => {
     oidcIssuer,
   } = req.body ?? {};
 
+  if (typeof provider !== "string" || !provider.trim()) {
+    return res.status(400).json({ error: "provider is required" });
+  }
+
   try {
-    const ssoConfig = await db.sSOConfig.upsert({
-      where: { tenantId },
+    const config = await db.sSOConfig.upsert({
+      where: { tenantId: req.user!.tenantId },
       update: {
-        provider,
-        entityId,
-        ssoUrl,
-        certificate,
-        clientId,
-        clientSecret,
-        oidcIssuer,
+        provider: provider.trim(),
+        entityId: typeof entityId === "string" ? entityId.trim() : null,
+        ssoUrl: typeof ssoUrl === "string" ? ssoUrl.trim() : null,
+        certificate: typeof certificate === "string" ? certificate.trim() : null,
+        clientId: typeof clientId === "string" ? clientId.trim() : null,
+        clientSecret: typeof clientSecret === "string" ? clientSecret.trim() : null,
+        oidcIssuer: typeof oidcIssuer === "string" ? oidcIssuer.trim() : null,
         active: true,
       },
       create: {
-        tenantId,
-        provider,
-        entityId,
-        ssoUrl,
-        certificate,
-        clientId,
-        clientSecret,
-        oidcIssuer,
+        tenantId: req.user!.tenantId,
+        provider: provider.trim(),
+        entityId: typeof entityId === "string" ? entityId.trim() : null,
+        ssoUrl: typeof ssoUrl === "string" ? ssoUrl.trim() : null,
+        certificate: typeof certificate === "string" ? certificate.trim() : null,
+        clientId: typeof clientId === "string" ? clientId.trim() : null,
+        clientSecret: typeof clientSecret === "string" ? clientSecret.trim() : null,
+        oidcIssuer: typeof oidcIssuer === "string" ? oidcIssuer.trim() : null,
         active: true,
       },
     });
 
     res.status(201).json({
       config: {
-        ...ssoConfig,
+        ...config,
         clientSecret: undefined,
       },
       success: true,
@@ -352,18 +437,15 @@ router.post("/sso/config", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /whitelabel/sso/config — Disable SSO
+// DELETE /whitelabel/sso/config - Disable SSO
 router.delete("/sso/config", async (req: Request, res: Response) => {
-  const tenantId = req.user!.tenantId;
-  const userRole = req.user!.role;
-
-  if (!["owner", "admin"].includes(userRole)) {
+  if (!["owner", "admin"].includes(req.user!.role)) {
     return res.status(403).json({ error: "Admin access required" });
   }
 
   try {
     await db.sSOConfig.delete({
-      where: { tenantId },
+      where: { tenantId: req.user!.tenantId },
     });
 
     res.json({ success: true, message: "SSO configuration removed" });
@@ -373,24 +455,21 @@ router.delete("/sso/config", async (req: Request, res: Response) => {
   }
 });
 
-// POST /whitelabel/sso/test — Test SSO configuration
+// POST /whitelabel/sso/test - Test SSO configuration
 router.post("/sso/test", async (req: Request, res: Response) => {
-  const tenantId = req.user!.tenantId;
-
   try {
-    const ssoConfig = await db.sSOConfig.findUnique({
-      where: { tenantId },
+    const config = await db.sSOConfig.findUnique({
+      where: { tenantId: req.user!.tenantId },
     });
 
-    if (!ssoConfig) {
+    if (!config) {
       return res.status(404).json({ error: "SSO not configured" });
     }
 
-    // In production, test the SSO connection here
     res.json({
       success: true,
       message: "SSO configuration is valid",
-      provider: ssoConfig.provider,
+      provider: config.provider,
     });
   } catch (err) {
     console.error("[WhiteLabel] SSO test error:", err);

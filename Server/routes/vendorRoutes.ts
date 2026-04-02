@@ -356,6 +356,123 @@ router.get("/me/payouts", authMiddleware, async (req: Request, res: Response) =>
   }
 });
 
+const MINIMUM_PAYOUT = 50;
+
+router.post("/me/payout/request", authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  const amount = Number(req.body?.amount ?? 0);
+  const payoutMethod = typeof req.body?.payoutMethod === "string" ? req.body.payoutMethod.trim() : "stripe_connect";
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: "Valid payout amount is required" });
+  }
+
+  if (amount < MINIMUM_PAYOUT) {
+    return res.status(400).json({ error: `Minimum payout amount is $${MINIMUM_PAYOUT}` });
+  }
+
+  try {
+    const vendor = await db.vendor.findFirst({
+      where: { userId, tenantId },
+      include: { _count: { select: { vendorPayouts: true } } },
+    });
+
+    if (!vendor) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    const stripeAccountId = (vendor as any).stripeAccountId;
+    if (!stripeAccountId) {
+      return res.status(400).json({ error: "Stripe account not connected. Please complete onboarding first." });
+    }
+
+    if (vendor.payoutBalance < amount) {
+      return res.status(400).json({ error: "Insufficient available balance" });
+    }
+
+    const stripe = getStripe();
+    const account = await stripe.accounts.retrieve(stripeAccountId);
+    if (!account.payouts_enabled) {
+      return res.status(400).json({ error: "Payouts not enabled on your Stripe account. Please complete Stripe onboarding." });
+    }
+
+    let stripeTransferId: string | null = null;
+    
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: Math.round(amount * 100),
+        currency: "usd",
+        destination: stripeAccountId,
+        description: `Vendor payout for ${vendor.storeName}`,
+      });
+      stripeTransferId = transfer.id;
+    } catch (stripeError: any) {
+      console.error("[vendorRoutes] Stripe transfer error:", stripeError);
+      return res.status(500).json({ error: `Stripe transfer failed: ${stripeError.message}` });
+    }
+
+    const pendingPayouts = await db.vendorPayout.findMany({
+      where: { vendorId: vendor.id, status: "pending" },
+      orderBy: { createdAt: "asc" },
+    });
+
+    let payoutAmountRemaining = amount;
+    const payoutIds: string[] = [];
+
+    for (const payout of pendingPayouts) {
+      if (payoutAmountRemaining <= 0) break;
+      const deductAmount = Math.min(payout.amount, payoutAmountRemaining);
+      payoutIds.push(payout.id);
+      payoutAmountRemaining -= deductAmount;
+    }
+
+    await db.$transaction([
+      db.vendor.update({
+        where: { id: vendor.id, tenantId },
+        data: { payoutBalance: { decrement: amount } },
+      }),
+      db.vendorPayout.updateMany({
+        where: { id: { in: payoutIds } },
+        data: { status: "paid", paidAt: new Date(), stripeTransferId },
+      }),
+      db.vendorPayout.create({
+        data: {
+          tenantId,
+          vendorId: vendor.id,
+          orderId: "PAYOUT-" + Date.now(),
+          amount: -amount,
+          commission: 0,
+          stripeTransferId,
+          status: "paid",
+          paidAt: new Date(),
+        },
+      }),
+    ]);
+
+    await recordAdminSignal({
+      tenantId,
+      type: "VENDOR_PAYOUT",
+      severity: "low",
+      message: `Vendor ${vendor.storeName} payout of $${amount} processed`,
+      metadata: { vendorId: vendor.id, amount, stripeTransferId },
+    });
+
+    return res.status(201).json({
+      success: true,
+      payout: {
+        amount,
+        method: payoutMethod,
+        status: "paid",
+        stripeTransferId,
+      },
+    });
+  } catch (error) {
+    console.error("[vendorRoutes] Payout request error:", error);
+    return res.status(500).json({ error: "Failed to process payout request" });
+  }
+});
+
 // GET /vendors/:id - Get vendor by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {

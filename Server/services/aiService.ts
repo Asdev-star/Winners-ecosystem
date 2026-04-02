@@ -2,6 +2,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 let anthropic: Anthropic | null = null;
+let anthropicDisabledReason: string | null = null;
+let anthropicDisableLogged = false;
 try {
   if (process.env.ANTHROPIC_API_KEY) {
     anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -11,6 +13,36 @@ try {
 } catch (error) {
   console.error("[aiService] Failed to initialize Anthropic SDK:", error);
   anthropic = null;
+}
+
+function anthropicErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  if (typeof error === "object" && error && "error" in error) {
+    const nested = (error as { error?: { message?: unknown } }).error;
+    if (nested && typeof nested.message === "string" && nested.message.trim()) return nested.message.trim();
+  }
+  return "Anthropic request failed";
+}
+
+function shouldDisableAnthropic(error: unknown) {
+  const message = anthropicErrorMessage(error).toLowerCase();
+  return (
+    message.includes("credit balance is too low") ||
+    message.includes("purchase credits") ||
+    message.includes("billing") ||
+    message.includes("invalid x-api-key") ||
+    message.includes("authentication_error")
+  );
+}
+
+function markAnthropicUnavailable(error: unknown) {
+  if (!shouldDisableAnthropic(error)) return;
+  anthropicDisabledReason = anthropicErrorMessage(error);
+  anthropic = null;
+  if (!anthropicDisableLogged) {
+    console.warn(`[aiService] Anthropic disabled for this process. ${anthropicDisabledReason}`);
+    anthropicDisableLogged = true;
+  }
 }
 
 /**
@@ -29,6 +61,10 @@ export async function callAnthropicAndParseJson<T>(
   fallback: T,
 ): Promise<T> {
   if (!anthropic) {
+    if (anthropicDisabledReason && !anthropicDisableLogged) {
+      console.warn(`[aiService] Anthropic unavailable. ${anthropicDisabledReason}`);
+      anthropicDisableLogged = true;
+    }
     return fallback;
   }
   try {
@@ -37,7 +73,8 @@ export async function callAnthropicAndParseJson<T>(
     const jsonString = responseText.replace(/```json|```/g, "").trim();
     return jsonString ? (JSON.parse(jsonString) as T) : fallback;
   } catch (error) {
-    console.error("Anthropic API or JSON parsing error:", error);
+    markAnthropicUnavailable(error);
+    console.warn(`[aiService] Anthropic JSON fallback used. ${anthropicErrorMessage(error)}`);
     return fallback;
   }
 }
@@ -58,6 +95,10 @@ export async function callAnthropicAndGetText(
   fallback: string,
 ): Promise<string> {
   if (!anthropic) {
+    if (anthropicDisabledReason && !anthropicDisableLogged) {
+      console.warn(`[aiService] Anthropic unavailable. ${anthropicDisabledReason}`);
+      anthropicDisableLogged = true;
+    }
     return fallback;
   }
   try {
@@ -69,7 +110,8 @@ export async function callAnthropicAndGetText(
     const responseText = message.content[0]?.type === "text" ? message.content[0].text : "";
     return responseText || fallback;
   } catch (error) {
-    console.error("Anthropic API error:", error);
+    markAnthropicUnavailable(error);
+    console.warn(`[aiService] Anthropic text fallback used. ${anthropicErrorMessage(error)}`);
     return fallback;
   }
 }

@@ -692,7 +692,15 @@ export default function LoginPage() {
     const redirectUri = `${window.location.origin}/login`;
 
     if (oauthErr) {
-      setError("Sign-in failed. Please try again.");
+      const oauthMessage =
+        oauthErr === "google_code_invalid"
+          ? "Google sign-in expired or was already used. Please try again."
+          : oauthErr === "google_not_configured"
+            ? "Google sign-in is not configured right now."
+            : oauthErr === "no_id_token"
+              ? "Google sign-in did not return an ID token."
+              : "Sign-in failed. Please try again.";
+      setError(oauthMessage);
       window.history.replaceState({}, "", "/login");
       return;
     }

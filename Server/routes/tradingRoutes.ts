@@ -1,36 +1,31 @@
 import { Router } from "express";
+import { PrismaClient, type Prisma } from "@prisma/client";
 import { z } from "zod";
-import { PrismaClient } from "@prisma/client";
-import { authenticateToken } from "../middleware/authMiddleware.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const prisma = new PrismaClient();
-
 const router = Router();
 
-// Validation schemas
 const createSignalSchema = z.object({
-  symbol: z.string().min(1).max(20),
+  symbol: z.string().trim().min(1).max(20),
   type: z.enum(["BUY", "SELL", "HOLD"]),
   confidence: z.number().min(0).max(100),
   price: z.number().positive(),
   targetPrice: z.number().positive(),
   stopLoss: z.number().positive(),
-  timeframe: z.string().min(1),
-  analysis: z.string().min(1),
+  timeframe: z.string().trim().min(1),
+  analysis: z.string().trim().min(1).optional(),
 });
 
-const updatePortfolioSchema = z.object({
-  symbol: z.string().min(1).max(20),
-  quantity: z.number().positive(),
-  avgPrice: z.number().positive(),
-  currentPrice: z.number().positive(),
-});
+router.use(authMiddleware);
 
-// GET /api/trading/signals - Get all trading signals
-router.get("/signals", authenticateToken, async (req, res) => {
+router.get("/signals", async (req, res) => {
   try {
     const signals = await prisma.tradingSignal.findMany({
-      where: { userId: req.user!.id },
+      where: {
+        tenantId: req.user!.tenantId,
+        userId: req.user!.userId,
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -41,38 +36,36 @@ router.get("/signals", authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/trading/signals - Create a new trading signal
-router.post("/signals", authenticateToken, async (req, res) => {
+router.post("/signals", async (req, res) => {
   try {
     const validatedData = createSignalSchema.parse(req.body);
+    const data: Prisma.TradingSignalUncheckedCreateInput = {
+      tenantId: req.user!.tenantId,
+      userId: req.user!.userId,
+      status: "active",
+      ...validatedData,
+    };
 
-    const signal = await prisma.tradingSignal.create({
-      data: {
-        ...validatedData,
-        userId: req.user!.id,
-        status: "active",
-      },
-    });
-
+    const signal = await prisma.tradingSignal.create({ data });
     res.status(201).json({ signal });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res
-        .status(400)
-        .json({ error: "Invalid input", details: error.errors });
+      return res.status(400).json({ error: "Invalid input", details: error.issues });
     }
     console.error("Error creating trading signal:", error);
     res.status(500).json({ error: "Failed to create trading signal" });
   }
 });
 
-// GET /api/trading/signals/:id - Get a specific trading signal
-router.get("/signals/:id", authenticateToken, async (req, res) => {
+router.get("/signals/:id", async (req, res) => {
+  const signalId = String(req.params.id);
+
   try {
     const signal = await prisma.tradingSignal.findFirst({
       where: {
-        id: req.params.id,
-        userId: req.user!.id,
+        id: signalId,
+        tenantId: req.user!.tenantId,
+        userId: req.user!.userId,
       },
     });
 
@@ -87,13 +80,15 @@ router.get("/signals/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/trading/signals/:id - Update a trading signal
-router.put("/signals/:id", authenticateToken, async (req, res) => {
+router.put("/signals/:id", async (req, res) => {
+  const signalId = String(req.params.id);
+
   try {
     const existingSignal = await prisma.tradingSignal.findFirst({
       where: {
-        id: req.params.id,
-        userId: req.user!.id,
+        id: signalId,
+        tenantId: req.user!.tenantId,
+        userId: req.user!.userId,
       },
     });
 
@@ -102,31 +97,30 @@ router.put("/signals/:id", authenticateToken, async (req, res) => {
     }
 
     const validatedData = createSignalSchema.partial().parse(req.body);
-
     const signal = await prisma.tradingSignal.update({
-      where: { id: req.params.id },
+      where: { id: signalId },
       data: validatedData,
     });
 
     res.json({ signal });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res
-        .status(400)
-        .json({ error: "Invalid input", details: error.errors });
+      return res.status(400).json({ error: "Invalid input", details: error.issues });
     }
     console.error("Error updating trading signal:", error);
     res.status(500).json({ error: "Failed to update trading signal" });
   }
 });
 
-// DELETE /api/trading/signals/:id - Delete a trading signal
-router.delete("/signals/:id", authenticateToken, async (req, res) => {
+router.delete("/signals/:id", async (req, res) => {
+  const signalId = String(req.params.id);
+
   try {
     const existingSignal = await prisma.tradingSignal.findFirst({
       where: {
-        id: req.params.id,
-        userId: req.user!.id,
+        id: signalId,
+        tenantId: req.user!.tenantId,
+        userId: req.user!.userId,
       },
     });
 
@@ -134,10 +128,7 @@ router.delete("/signals/:id", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Trading signal not found" });
     }
 
-    await prisma.tradingSignal.delete({
-      where: { id: req.params.id },
-    });
-
+    await prisma.tradingSignal.delete({ where: { id: signalId } });
     res.json({ message: "Trading signal deleted successfully" });
   } catch (error) {
     console.error("Error deleting trading signal:", error);
@@ -145,196 +136,44 @@ router.delete("/signals/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/trading/signals/:id/subscribe - Subscribe to a trading signal
-router.post("/signals/:id/subscribe", authenticateToken, async (req, res) => {
-  try {
-    const signal = await prisma.tradingSignal.findFirst({
-      where: {
-        id: req.params.id,
-        userId: req.user!.id,
-      },
-    });
-
-    if (!signal) {
-      return res.status(404).json({ error: "Trading signal not found" });
-    }
-
-    const subscription = await prisma.signalSubscription.upsert({
-      where: {
-        userId_signalId: {
-          userId: req.user!.id,
-          signalId: req.params.id,
-        },
-      },
-      update: { active: true },
-      create: {
-        userId: req.user!.id,
-        signalId: req.params.id,
-        active: true,
-      },
-    });
-
-    res.json({ subscription });
-  } catch (error) {
-    console.error("Error subscribing to signal:", error);
-    res.status(500).json({ error: "Failed to subscribe to signal" });
-  }
+router.post("/signals/:id/subscribe", async (_req, res) => {
+  res.json({
+    subscription: null,
+    message: "Signal subscriptions are not available in the current schema.",
+  });
 });
 
-// POST /api/trading/signals/:id/unsubscribe - Unsubscribe from a trading signal
-router.post("/signals/:id/unsubscribe", authenticateToken, async (req, res) => {
-  try {
-    const subscription = await prisma.signalSubscription.findFirst({
-      where: {
-        userId: req.user!.id,
-        signalId: req.params.id,
-      },
-    });
-
-    if (!subscription) {
-      return res.status(404).json({ error: "Subscription not found" });
-    }
-
-    await prisma.signalSubscription.update({
-      where: { id: subscription.id },
-      data: { active: false },
-    });
-
-    res.json({ message: "Unsubscribed successfully" });
-  } catch (error) {
-    console.error("Error unsubscribing from signal:", error);
-    res.status(500).json({ error: "Failed to unsubscribe from signal" });
-  }
+router.post("/signals/:id/unsubscribe", async (_req, res) => {
+  res.json({
+    subscription: null,
+    message: "Signal subscriptions are not available in the current schema.",
+  });
 });
 
-// GET /api/trading/portfolio - Get user's portfolio
-router.get("/portfolio", authenticateToken, async (req, res) => {
-  try {
-    const portfolio = await prisma.portfolioItem.findMany({
-      where: { userId: req.user!.id },
-      orderBy: { createdAt: "desc" },
-    });
-
-    res.json({ portfolio });
-  } catch (error) {
-    console.error("Error fetching portfolio:", error);
-    res.status(500).json({ error: "Failed to fetch portfolio" });
-  }
+router.get("/portfolio", async (_req, res) => {
+  res.json({ portfolio: [] });
 });
 
-// POST /api/trading/portfolio - Add or update portfolio item
-router.post("/portfolio", authenticateToken, async (req, res) => {
-  try {
-    const validatedData = updatePortfolioSchema.parse(req.body);
-
-    const portfolioItem = await prisma.portfolioItem.upsert({
-      where: {
-        userId_symbol: {
-          userId: req.user!.id,
-          symbol: validatedData.symbol,
-        },
-      },
-      update: {
-        quantity: validatedData.quantity,
-        avgPrice: validatedData.avgPrice,
-        currentPrice: validatedData.currentPrice,
-        pnl:
-          (validatedData.currentPrice - validatedData.avgPrice) *
-          validatedData.quantity,
-        pnlPercent:
-          ((validatedData.currentPrice - validatedData.avgPrice) /
-            validatedData.avgPrice) *
-          100,
-      },
-      create: {
-        ...validatedData,
-        userId: req.user!.id,
-        pnl:
-          (validatedData.currentPrice - validatedData.avgPrice) *
-          validatedData.quantity,
-        pnlPercent:
-          ((validatedData.currentPrice - validatedData.avgPrice) /
-            validatedData.avgPrice) *
-          100,
-      },
-    });
-
-    res.json({ portfolioItem });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res
-        .status(400)
-        .json({ error: "Invalid input", details: error.errors });
-    }
-    console.error("Error updating portfolio:", error);
-    res.status(500).json({ error: "Failed to update portfolio" });
-  }
+router.post("/portfolio", async (_req, res) => {
+  res.status(501).json({
+    error: "Trading portfolio persistence is not available in the current schema.",
+  });
 });
 
-// DELETE /api/trading/portfolio/:id - Remove portfolio item
-router.delete("/portfolio/:id", authenticateToken, async (req, res) => {
-  try {
-    const portfolioItem = await prisma.portfolioItem.findFirst({
-      where: {
-        id: req.params.id,
-        userId: req.user!.id,
-      },
-    });
-
-    if (!portfolioItem) {
-      return res.status(404).json({ error: "Portfolio item not found" });
-    }
-
-    await prisma.portfolioItem.delete({
-      where: { id: req.params.id },
-    });
-
-    res.json({ message: "Portfolio item deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting portfolio item:", error);
-    res.status(500).json({ error: "Failed to delete portfolio item" });
-  }
+router.delete("/portfolio/:id", async (_req, res) => {
+  res.status(501).json({
+    error: "Trading portfolio persistence is not available in the current schema.",
+  });
 });
 
-// GET /api/trading/analyses - Get market analyses
-router.get("/analyses", authenticateToken, async (req, res) => {
-  try {
-    const analyses = await prisma.marketAnalysis.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    });
-
-    res.json({ analyses });
-  } catch (error) {
-    console.error("Error fetching market analyses:", error);
-    res.status(500).json({ error: "Failed to fetch market analyses" });
-  }
+router.get("/analyses", async (_req, res) => {
+  res.json({ analyses: [] });
 });
 
-// POST /api/trading/analyses - Create a market analysis (admin only)
-router.post("/analyses", authenticateToken, async (req, res) => {
-  try {
-    if (req.user!.role !== "admin") {
-      return res.status(403).json({ error: "Admin access required" });
-    }
-
-    const { title, summary, sentiment, confidence, assets } = req.body;
-
-    const analysis = await prisma.marketAnalysis.create({
-      data: {
-        title,
-        summary,
-        sentiment,
-        confidence,
-        assets,
-      },
-    });
-
-    res.status(201).json({ analysis });
-  } catch (error) {
-    console.error("Error creating market analysis:", error);
-    res.status(500).json({ error: "Failed to create market analysis" });
-  }
+router.post("/analyses", async (_req, res) => {
+  res.status(501).json({
+    error: "Market analyses are not available in the current schema.",
+  });
 });
 
 export default router;

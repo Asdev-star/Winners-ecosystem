@@ -9,10 +9,13 @@ datasource db {
 model Tenant {
   id                            String                         @id @default(cuid())
   name                          String
+  slug                          String?                        @unique
   plan                          Plan                           @default(FREE)
+  status                        String                         @default("active")
   createdAt                     DateTime                       @default(now())
   updatedAt                     DateTime                       @updatedAt
   deletedAt                     DateTime?
+  parentTenantId                String?
   timezone                      String                         @default("UTC")
   currency                      String                         @default("USD")
   fiscalMonth                   Int                            @default(1)
@@ -137,6 +140,15 @@ model Tenant {
   videoRooms                    VideoRoom[]
   webhookSubscriptions          WebhookSubscription[]
   workReviews                   WorkReview[]
+  parentTenant                  Tenant?                        @relation("TenantHierarchy", fields: [parentTenantId], references: [id])
+  subtenants                    Tenant[]                       @relation("TenantHierarchy")
+  tenantConfig                  TenantConfig?
+  sSOConfig                     SSOConfig?
+  plugins                       Plugin[]
+  pluginInstalls                PluginInstall[]
+  pluginReviews                 PluginReview[]
+  pluginRevenues                PluginRevenue[]
+  pluginTransactions            PluginTransaction[]
 
   @@map("tenants")
 }
@@ -258,6 +270,16 @@ model User {
   vendorReviews              VendorReview[]
   vendors                    Vendor[]
   webAuthnCredentials        WebAuthnCredential[]
+  developedPlugins           Plugin[]                       @relation("PluginDeveloper")
+  reviewedPlugins            Plugin[]                       @relation("PluginReviewer")
+  pluginInstalls             PluginInstall[]
+  pluginReviews              PluginReview[]
+  pluginRevenueAsDeveloper   PluginRevenue[]                @relation("PluginRevenueDeveloper")
+  pluginRevenueAsBuyer       PluginRevenue[]                @relation("PluginRevenueBuyer")
+  pluginTransactionsAsDeveloper PluginTransaction[]         @relation("PluginTransactionDeveloper")
+  pluginTransactionsAsBuyer  PluginTransaction[]            @relation("PluginTransactionBuyer")
+  developerEarnings          DeveloperEarnings?
+  developerPayouts           DeveloperPayout[]
   withdrawalRequests         WithdrawalRequest[]
   videoRoomParticipations    VideoRoomParticipant[]
   hostedVideoRooms           VideoRoom[]
@@ -3065,6 +3087,217 @@ model WorkReview {
   @@index([reviewerId])
   @@index([revieweeId])
   @@map("work_reviews")
+}
+
+enum PluginPricing {
+  free
+  paid
+  freemium
+}
+
+enum PluginStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PUBLISHED
+  ARCHIVED
+}
+
+model TenantConfig {
+  id        String   @id @default(cuid())
+  tenantId  String   @unique
+  name      String
+  domain    String?  @unique
+  branding  Json     @default("{}")
+  features  String[] @default([])
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([active])
+  @@map("tenant_configs")
+}
+
+model SSOConfig {
+  id           String   @id @default(cuid())
+  tenantId      String   @unique
+  provider     String
+  entityId     String?
+  ssoUrl       String?
+  certificate  String?
+  clientId     String?
+  clientSecret String?
+  oidcIssuer   String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([active])
+  @@map("sso_configs")
+}
+
+model Plugin {
+  id               String         @id @default(cuid())
+  tenantId         String
+  developerId      String
+  name             String
+  slug             String         @unique
+  description      String
+  version          String
+  category         String
+  pricing          PluginPricing  @default(free)
+  price            Float          @default(0)
+  currency         String         @default("USD")
+  revenueShare     Int            @default(70)
+  manifestUrl      String
+  documentationUrl String?
+  repositoryUrl    String?
+  screenshots      String[]       @default([])
+  tags             String[]       @default([])
+  status           PluginStatus   @default(PENDING_REVIEW)
+  reviewNotes      String?
+  reviewedAt       DateTime?
+  reviewedBy       String?
+  publishedAt      DateTime?
+  installCount     Int            @default(0)
+  averageRating    Float          @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  developer        User           @relation("PluginDeveloper", fields: [developerId], references: [id], onDelete: Cascade)
+  reviewer         User?          @relation("PluginReviewer", fields: [reviewedBy], references: [id])
+  installs         PluginInstall[]
+  reviews          PluginReview[]
+  revenues         PluginRevenue[]
+  transactions     PluginTransaction[]
+
+  @@index([tenantId, status])
+  @@index([developerId])
+  @@index([category])
+  @@map("plugins")
+}
+
+model PluginInstall {
+  id          String   @id @default(cuid())
+  pluginId    String
+  tenantId    String
+  userId      String
+  version     String
+  active      Boolean  @default(true)
+  installedAt DateTime @default(now())
+  lastUsedAt  DateTime?
+  plugin      Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pluginId, tenantId])
+  @@unique([pluginId, userId])
+  @@index([tenantId, active])
+  @@index([userId])
+  @@map("plugin_installs")
+}
+
+model PluginReview {
+  id        String   @id @default(cuid())
+  pluginId  String
+  userId    String
+  tenantId  String
+  rating    Int
+  title     String?
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  plugin    Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([pluginId, userId])
+  @@index([tenantId])
+  @@index([pluginId])
+  @@map("plugin_reviews")
+}
+
+model PluginRevenue {
+  id              String   @id @default(cuid())
+  pluginId        String
+  tenantId        String
+  developerId     String
+  buyerId         String
+  amount          Float
+  developerAmount Float
+  platformAmount  Float
+  currency        String   @default("USD")
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+  paidOutAt       DateTime?
+  plugin          Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  developer       User     @relation("PluginRevenueDeveloper", fields: [developerId], references: [id], onDelete: Cascade)
+  buyer           User     @relation("PluginRevenueBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([developerId, status])
+  @@index([pluginId])
+  @@map("plugin_revenues")
+}
+
+model PluginTransaction {
+  id              String   @id @default(cuid())
+  pluginId        String
+  tenantId        String
+  developerId     String
+  buyerId         String
+  amount          Float
+  developerAmount Float
+  platformAmount  Float
+  currency        String   @default("USD")
+  paymentMethod   String
+  paymentId       String
+  status          String
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  plugin          Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  developer       User     @relation("PluginTransactionDeveloper", fields: [developerId], references: [id], onDelete: Cascade)
+  buyer           User     @relation("PluginTransactionBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([developerId, status])
+  @@index([buyerId])
+  @@index([pluginId])
+  @@map("plugin_transactions")
+}
+
+model DeveloperEarnings {
+  id             String   @id @default(cuid())
+  developerId    String   @unique
+  pendingBalance Float    @default(0)
+  totalEarned    Float    @default(0)
+  totalPaidOut   Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  developer      User     @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@map("developer_earnings")
+}
+
+model DeveloperPayout {
+  id            String   @id @default(cuid())
+  developerId   String
+  amount        Float
+  currency      String   @default("USD")
+  payoutMethod  String
+  payoutDetails Json
+  status        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  developer     User     @relation(fields: [developerId], references: [id], onDelete: Cascade)
+
+  @@index([developerId, status])
+  @@map("developer_payouts")
 }
 
 model ApiKey {

@@ -1,12 +1,8 @@
-// Phase 8 — Winners Cloud — Plugin Marketplace Service
-// Plugin submission, review, approval, and revenue sharing logic
+// Phase 8 - Winners Cloud - Plugin Marketplace Service
 
-import { PrismaClient, PluginStatus, Prisma } from "@prisma/client";
-import { randomBytes } from "crypto";
+import { PrismaClient, type Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
-
-// ─── Plugin Submission ─────────────────────────────────────────────────────────
 
 interface PluginSubmissionData {
   name: string;
@@ -22,56 +18,9 @@ interface PluginSubmissionData {
   repositoryUrl?: string;
   screenshots?: string[];
   tags?: string[];
+  currency?: string;
+  revenueShare?: number;
 }
-
-export async function submitPlugin(data: PluginSubmissionData) {
-  const slug = data.name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  // Check for duplicate slug
-  const existing = await prisma.plugin.findUnique({ where: { slug } });
-  if (existing) {
-    throw new Error(`Plugin with slug "${slug}" already exists`);
-  }
-
-  const plugin = await prisma.plugin.create({
-    data: {
-      name: data.name,
-      slug,
-      description: data.description,
-      version: data.version,
-      category: data.category,
-      pricing: data.pricing,
-      price: data.price || 0,
-      developerId: data.developerId,
-      tenantId: data.tenantId,
-      manifestUrl: data.manifestUrl,
-      documentationUrl: data.documentationUrl,
-      repositoryUrl: data.repositoryUrl,
-      screenshots: data.screenshots || [],
-      tags: data.tags || [],
-      status: PluginStatus.PENDING_REVIEW,
-      reviewNotes: null,
-      publishedAt: null,
-    },
-    include: {
-      developer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-        },
-      },
-    },
-  });
-
-  return plugin;
-}
-
-// ─── Plugin Review (Admin) ─────────────────────────────────────────────────────
 
 interface PluginReviewData {
   pluginId: string;
@@ -80,90 +29,97 @@ interface PluginReviewData {
   reviewNotes?: string;
 }
 
-export async function reviewPlugin(data: PluginReviewData) {
-  const plugin = await prisma.plugin.findUnique({
-    where: { id: data.pluginId },
-  });
-
-  if (!plugin) {
-    throw new Error("Plugin not found");
-  }
-
-  if (plugin.status !== PluginStatus.PENDING_REVIEW) {
-    throw new Error("Plugin is not pending review");
-  }
-
-  const updatedPlugin = await prisma.plugin.update({
-    where: { id: data.pluginId },
-    data: {
-      status: data.approved ? PluginStatus.APPROVED : PluginStatus.REJECTED,
-      reviewNotes: data.reviewNotes,
-      reviewedAt: new Date(),
-      reviewedBy: data.reviewerId,
-      publishedAt: data.approved ? new Date() : null,
-    },
-    include: {
-      developer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-        },
-      },
-      reviewer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
-
-  return updatedPlugin;
-}
-
-// ─── Plugin Installation ───────────────────────────────────────────────────────
-
 interface PluginInstallData {
   pluginId: string;
   userId: string;
   tenantId: string;
 }
 
-export async function installPlugin(data: PluginInstallData) {
-  const plugin = await prisma.plugin.findUnique({
-    where: { id: data.pluginId },
+interface PluginUserReviewData {
+  pluginId: string;
+  userId: string;
+  tenantId: string;
+  rating: number;
+  title?: string;
+  content?: string;
+}
+
+function pluginSlug(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+async function recalculatePluginRating(pluginId: string) {
+  const aggregate = await prisma.pluginReview.aggregate({
+    where: { pluginId },
+    _avg: { rating: true },
   });
 
-  if (!plugin) {
-    throw new Error("Plugin not found");
-  }
+  await prisma.plugin.update({
+    where: { id: pluginId },
+    data: { averageRating: aggregate._avg.rating ?? 0 },
+  });
+}
 
-  if (plugin.status !== PluginStatus.APPROVED) {
-    throw new Error("Plugin is not approved for installation");
-  }
-
-  // Check if already installed
-  const existingInstall = await prisma.pluginInstall.findUnique({
-    where: {
-      pluginId_userId_tenantId: {
-        pluginId: data.pluginId,
-        userId: data.userId,
-        tenantId: data.tenantId,
-      },
+export async function submitPlugin(data: PluginSubmissionData) {
+  return prisma.plugin.create({
+    data: {
+      tenantId: data.tenantId,
+      developerId: data.developerId,
+      name: data.name.trim(),
+      slug: pluginSlug(data.name),
+      description: data.description.trim(),
+      version: data.version.trim(),
+      category: data.category.trim(),
+      pricing: data.pricing,
+      price: data.price ?? 0,
+      currency: data.currency ?? "USD",
+      revenueShare: data.revenueShare ?? 70,
+      manifestUrl: data.manifestUrl.trim(),
+      documentationUrl: data.documentationUrl?.trim(),
+      repositoryUrl: data.repositoryUrl?.trim(),
+      screenshots: data.screenshots ?? [],
+      tags: data.tags ?? [],
+      status: "PENDING_REVIEW",
     },
   });
+}
 
-  if (existingInstall) {
-    throw new Error("Plugin already installed");
+export async function reviewPlugin(data: PluginReviewData) {
+  return prisma.plugin.update({
+    where: { id: data.pluginId },
+    data: {
+      status: data.approved ? "PUBLISHED" : "REJECTED",
+      reviewedBy: data.reviewerId,
+      reviewedAt: new Date(),
+      publishedAt: data.approved ? new Date() : null,
+      reviewNotes: data.reviewNotes?.trim() || null,
+    },
+  });
+}
+
+export async function installPlugin(data: PluginInstallData) {
+  const plugin = await prisma.plugin.findUnique({ where: { id: data.pluginId } });
+  if (!plugin || plugin.status !== "PUBLISHED") {
+    throw new Error("Plugin not found or not published");
   }
 
-  // If paid plugin, check payment
-  if (plugin.pricing === "paid" && plugin.price && plugin.price > 0) {
-    // Payment verification would go here
-    // For now, we'll assume payment is handled externally
+  const existing = await prisma.pluginInstall.findUnique({
+    where: { pluginId_tenantId: { pluginId: data.pluginId, tenantId: data.tenantId } },
+  });
+
+  if (existing) {
+    return prisma.pluginInstall.update({
+      where: { pluginId_tenantId: { pluginId: data.pluginId, tenantId: data.tenantId } },
+      data: {
+        active: true,
+        version: plugin.version,
+        lastUsedAt: new Date(),
+      },
+    });
   }
 
   const install = await prisma.pluginInstall.create({
@@ -171,300 +127,88 @@ export async function installPlugin(data: PluginInstallData) {
       pluginId: data.pluginId,
       userId: data.userId,
       tenantId: data.tenantId,
-      installedAt: new Date(),
-    },
-    include: {
-      plugin: true,
+      version: plugin.version,
     },
   });
 
-  // Increment install count
   await prisma.plugin.update({
     where: { id: data.pluginId },
-    data: {
-      installCount: { increment: 1 },
-    },
+    data: { installCount: { increment: 1 } },
   });
 
   return install;
 }
 
-export async function uninstallPlugin(
-  pluginId: string,
-  userId: string,
-  tenantId: string,
-) {
-  const install = await prisma.pluginInstall.findUnique({
-    where: {
-      pluginId_userId_tenantId: {
-        pluginId,
-        userId,
-        tenantId,
-      },
-    },
+export async function uninstallPlugin(pluginId: string, userId: string, tenantId: string) {
+  const install = await prisma.pluginInstall.findFirst({
+    where: { pluginId, userId, tenantId, active: true },
   });
 
   if (!install) {
-    throw new Error("Plugin not installed");
+    throw new Error("Plugin install not found");
   }
 
-  await prisma.pluginInstall.delete({
-    where: {
-      pluginId_userId_tenantId: {
-        pluginId,
-        userId,
-        tenantId,
-      },
-    },
+  return prisma.pluginInstall.update({
+    where: { id: install.id },
+    data: { active: false },
   });
-
-  // Decrement install count
-  await prisma.plugin.update({
-    where: { id: pluginId },
-    data: {
-      installCount: { decrement: 1 },
-    },
-  });
-
-  return { success: true };
 }
 
-// ─── Plugin Reviews & Ratings ──────────────────────────────────────────────────
-
-interface PluginReviewInput {
-  pluginId: string;
-  userId: string;
-  tenantId: string;
-  rating: number;
-  comment?: string;
-}
-
-export async function submitPluginReview(data: PluginReviewInput) {
-  if (data.rating < 1 || data.rating > 5) {
-    throw new Error("Rating must be between 1 and 5");
-  }
-
-  // Check if user has installed the plugin
-  const install = await prisma.pluginInstall.findUnique({
-    where: {
-      pluginId_userId_tenantId: {
-        pluginId: data.pluginId,
-        userId: data.userId,
-        tenantId: data.tenantId,
-      },
-    },
+export async function createOrUpdateReview(data: PluginUserReviewData) {
+  const existing = await prisma.pluginReview.findUnique({
+    where: { pluginId_userId: { pluginId: data.pluginId, userId: data.userId } },
   });
 
-  if (!install) {
-    throw new Error("You must install a plugin before reviewing it");
-  }
+  const review = existing
+    ? await prisma.pluginReview.update({
+        where: { pluginId_userId: { pluginId: data.pluginId, userId: data.userId } },
+        data: {
+          rating: data.rating,
+          title: data.title?.trim() || null,
+          content: data.content?.trim() || null,
+        },
+      })
+    : await prisma.pluginReview.create({
+        data: {
+          pluginId: data.pluginId,
+          userId: data.userId,
+          tenantId: data.tenantId,
+          rating: data.rating,
+          title: data.title?.trim() || null,
+          content: data.content?.trim() || null,
+        },
+      });
 
-  // Check if already reviewed
-  const existingReview = await prisma.pluginReview.findUnique({
-    where: {
-      pluginId_userId: {
-        pluginId: data.pluginId,
-        userId: data.userId,
-      },
-    },
-  });
-
-  if (existingReview) {
-    // Update existing review
-    const updatedReview = await prisma.pluginReview.update({
-      where: { id: existingReview.id },
-      data: {
-        rating: data.rating,
-        comment: data.comment,
-        updatedAt: new Date(),
-      },
-    });
-
-    // Recalculate average rating
-    await recalculatePluginRating(data.pluginId);
-
-    return updatedReview;
-  }
-
-  // Create new review
-  const review = await prisma.pluginReview.create({
-    data: {
-      pluginId: data.pluginId,
-      userId: data.userId,
-      tenantId: data.tenantId,
-      rating: data.rating,
-      comment: data.comment,
-    },
-  });
-
-  // Recalculate average rating
   await recalculatePluginRating(data.pluginId);
-
   return review;
 }
 
-async function recalculatePluginRating(pluginId: string) {
-  const reviews = await prisma.pluginReview.findMany({
-    where: { pluginId },
-    select: { rating: true },
-  });
-
-  if (reviews.length === 0) {
-    await prisma.plugin.update({
-      where: { id: pluginId },
-      data: {
-        averageRating: 0,
-        reviewCount: 0,
-      },
-    });
-    return;
-  }
-
-  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-  const averageRating = totalRating / reviews.length;
-
-  await prisma.plugin.update({
-    where: { id: pluginId },
-    data: {
-      averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
-      reviewCount: reviews.length,
-    },
-  });
-}
-
-// ─── Revenue Sharing ───────────────────────────────────────────────────────────
-
-interface RevenueShareData {
-  pluginId: string;
-  amount: number;
-  currency?: string;
-  transactionId: string;
-  buyerId: string;
-  buyerTenantId: string;
-}
-
-export async function processRevenueShare(data: RevenueShareData) {
-  const plugin = await prisma.plugin.findUnique({
-    where: { id: data.pluginId },
-    select: {
-      id: true,
-      developerId: true,
-      tenantId: true,
-      pricing: true,
-      price: true,
-    },
-  });
-
-  if (!plugin) {
-    throw new Error("Plugin not found");
-  }
-
-  if (plugin.pricing !== "paid" || !plugin.price || plugin.price <= 0) {
-    throw new Error("Plugin is not a paid plugin");
-  }
-
-  // Revenue split: 70% developer, 30% platform
-  const developerShare = Math.round(data.amount * 0.7 * 100) / 100;
-  const platformShare = Math.round(data.amount * 0.3 * 100) / 100;
-
-  // Create revenue record
-  const revenueRecord = await prisma.pluginRevenue.create({
-    data: {
-      pluginId: data.pluginId,
-      developerId: plugin.developerId,
-      amount: data.amount,
-      developerShare,
-      platformShare,
-      currency: data.currency || "USD",
-      transactionId: data.transactionId,
-      buyerId: data.buyerId,
-      buyerTenantId: data.buyerTenantId,
-      status: "pending",
-    },
-  });
-
-  // Update developer earnings
-  await prisma.user.update({
-    where: { id: plugin.developerId },
-    data: {
-      pluginEarnings: { increment: developerShare },
-    },
-  });
-
-  return revenueRecord;
-}
-
 export async function getDeveloperRevenue(developerId: string) {
-  const revenueRecords = await prisma.pluginRevenue.findMany({
-    where: { developerId },
-    include: {
-      plugin: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
+  const [records, totals] = await Promise.all([
+    prisma.pluginRevenue.findMany({
+      where: { developerId },
+      include: { plugin: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.pluginRevenue.aggregate({
+      where: { developerId },
+      _sum: {
+        amount: true,
+        developerAmount: true,
+        platformAmount: true,
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const totalEarnings = revenueRecords.reduce(
-    (sum, record) => sum + record.developerShare,
-    0,
-  );
-
-  const pendingEarnings = revenueRecords
-    .filter((record) => record.status === "pending")
-    .reduce((sum, record) => sum + record.developerShare, 0);
-
-  const paidEarnings = revenueRecords
-    .filter((record) => record.status === "paid")
-    .reduce((sum, record) => sum + record.developerShare, 0);
+    }),
+  ]);
 
   return {
-    records: revenueRecords,
-    totalEarnings,
-    pendingEarnings,
-    paidEarnings,
-  };
-}
-
-export async function payoutDeveloper(developerId: string, amount: number) {
-  // This would integrate with Stripe Connect or similar
-  // For now, we'll just mark records as paid
-
-  const pendingRecords = await prisma.pluginRevenue.findMany({
-    where: {
-      developerId,
-      status: "pending",
+    records,
+    totals: {
+      totalRevenue: totals._sum.amount ?? 0,
+      developerShare: totals._sum.developerAmount ?? 0,
+      platformShare: totals._sum.platformAmount ?? 0,
     },
-    orderBy: { createdAt: "asc" },
-  });
-
-  let remainingAmount = amount;
-  const paidRecords: string[] = [];
-
-  for (const record of pendingRecords) {
-    if (remainingAmount <= 0) break;
-
-    if (record.developerShare <= remainingAmount) {
-      await prisma.pluginRevenue.update({
-        where: { id: record.id },
-        data: { status: "paid" },
-      });
-      paidRecords.push(record.id);
-      remainingAmount -= record.developerShare;
-    }
-  }
-
-  return {
-    paidRecords,
-    remainingAmount,
   };
 }
-
-// ─── Plugin Discovery ──────────────────────────────────────────────────────────
 
 export async function getPlugins(options: {
   category?: string;
@@ -474,68 +218,30 @@ export async function getPlugins(options: {
   page?: number;
   limit?: number;
 }) {
-  const {
-    category,
-    search,
-    pricing,
-    sortBy = "popular",
-    page = 1,
-    limit = 20,
-  } = options;
+  const { category, search, pricing, sortBy = "popular", page = 1, limit = 20 } = options;
 
-  const where: Prisma.PluginWhereInput = {
-    status: PluginStatus.APPROVED,
-  };
-
-  if (category) {
-    where.category = category;
-  }
-
-  if (pricing) {
-    where.pricing = pricing;
-  }
-
+  const where: Prisma.PluginWhereInput = { status: "PUBLISHED" };
+  if (category) where.category = category;
+  if (pricing) where.pricing = pricing;
   if (search) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
       { description: { contains: search, mode: "insensitive" } },
-      { tags: { hasSome: [search.toLowerCase()] } },
+      { tags: { has: search.toLowerCase() } },
     ];
   }
 
-  let orderBy: Prisma.PluginOrderByWithRelationInput = {};
-  switch (sortBy) {
-    case "popular":
-      orderBy = { installCount: "desc" };
-      break;
-    case "newest":
-      orderBy = { publishedAt: "desc" };
-      break;
-    case "rating":
-      orderBy = { averageRating: "desc" };
-      break;
-    case "price":
-      orderBy = { price: "asc" };
-      break;
-  }
+  let orderBy: Prisma.PluginOrderByWithRelationInput = { installCount: "desc" };
+  if (sortBy === "newest") orderBy = { publishedAt: "desc" };
+  if (sortBy === "rating") orderBy = { averageRating: "desc" };
+  if (sortBy === "price") orderBy = { price: "asc" };
 
   const [plugins, total] = await Promise.all([
     prisma.plugin.findMany({
       where,
       include: {
         developer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
-        },
-        _count: {
-          select: {
-            installs: true,
-            reviews: true,
-          },
+          select: { id: true, name: true, email: true },
         },
       },
       orderBy,
@@ -556,105 +262,60 @@ export async function getPlugins(options: {
   };
 }
 
-export async function getPluginBySlug(slug: string) {
-  const plugin = await prisma.plugin.findUnique({
-    where: { slug },
+export async function getPluginById(pluginId: string) {
+  return prisma.plugin.findUnique({
+    where: { id: pluginId },
     include: {
       developer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-        },
+        select: { id: true, name: true, email: true },
       },
       reviews: {
         include: {
           user: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
+            select: { id: true, name: true },
           },
         },
         orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-      _count: {
-        select: {
-          installs: true,
-          reviews: true,
-        },
       },
     },
   });
-
-  return plugin;
 }
 
 export async function getInstalledPlugins(userId: string, tenantId: string) {
-  const installs = await prisma.pluginInstall.findMany({
-    where: {
-      userId,
-      tenantId,
-    },
+  return prisma.pluginInstall.findMany({
+    where: { userId, tenantId, active: true },
     include: {
       plugin: {
         include: {
           developer: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
+            select: { id: true, name: true, email: true },
           },
         },
       },
     },
     orderBy: { installedAt: "desc" },
   });
-
-  return installs;
 }
 
-// ─── Admin Functions ───────────────────────────────────────────────────────────
-
 export async function getPendingPlugins() {
-  const plugins = await prisma.plugin.findMany({
-    where: { status: PluginStatus.PENDING_REVIEW },
+  return prisma.plugin.findMany({
+    where: { status: "PENDING_REVIEW" },
     include: {
       developer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-        },
+        select: { id: true, name: true, email: true },
       },
     },
     orderBy: { createdAt: "asc" },
   });
-
-  return plugins;
 }
 
-export async function getPluginStats() {
-  const [
-    totalPlugins,
-    approvedPlugins,
-    pendingPlugins,
-    totalInstalls,
-    totalRevenue,
-  ] = await Promise.all([
+export async function getMarketplaceStats() {
+  const [totalPlugins, approvedPlugins, pendingPlugins, totalInstalls, totalRevenue] = await Promise.all([
     prisma.plugin.count(),
-    prisma.plugin.count({ where: { status: PluginStatus.APPROVED } }),
-    prisma.plugin.count({ where: { status: PluginStatus.PENDING_REVIEW } }),
-    prisma.pluginInstall.count(),
-    prisma.pluginRevenue.aggregate({
-      _sum: { amount: true },
-    }),
+    prisma.plugin.count({ where: { status: "PUBLISHED" } }),
+    prisma.plugin.count({ where: { status: "PENDING_REVIEW" } }),
+    prisma.pluginInstall.count({ where: { active: true } }),
+    prisma.pluginRevenue.aggregate({ _sum: { amount: true } }),
   ]);
 
   return {
@@ -662,6 +323,6 @@ export async function getPluginStats() {
     approvedPlugins,
     pendingPlugins,
     totalInstalls,
-    totalRevenue: totalRevenue._sum.amount || 0,
+    totalRevenue: totalRevenue._sum.amount ?? 0,
   };
 }

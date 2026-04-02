@@ -97,6 +97,7 @@ import WinnersEventsPage from "./features/market/WinnersEventsPage";
 import WinnersPropertyPage from "./features/market/WinnersPropertyPage";
 import WinnersHealthPage from "./features/market/WinnersHealthPage";
 import WorkPage from "./features/work/WorkPage";
+import JobDetailPage from "./features/work/JobDetailPage";
 import FreelancerProfilePage from "./features/work/FreelancerProfilePage";
 import EscrowPage from "./features/work/EscrowPage";
 import CreatorProfilePage from "./features/community/CreatorProfilePage";
@@ -626,6 +627,14 @@ function App() {
               element={
                 <LayerRouteGate layerId="work">
                   <WorkPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="work/jobs/:jobId"
+              element={
+                <LayerRouteGate layerId="work">
+                  <JobDetailPage />
                 </LayerRouteGate>
               }
             />

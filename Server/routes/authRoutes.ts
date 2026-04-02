@@ -57,6 +57,24 @@ function errorMessage(err: unknown) {
   return err instanceof Error ? err.message : "Internal server error";
 }
 
+function normalizeRedirectUri(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function googleOauthMessage(err: unknown) {
+  const message = errorMessage(err).toLowerCase();
+  if (message.includes("invalid_grant")) {
+    return "Google sign-in expired or was already used. Please try again.";
+  }
+  if (message.includes("redirect_uri_mismatch")) {
+    return "Google sign-in redirect URI mismatch. Check your Google OAuth redirect settings.";
+  }
+  if (message.includes("invalid_client")) {
+    return "Google OAuth client credentials are invalid or incomplete.";
+  }
+  return null;
+}
+
 function emitSignupAdminEvent(user: { id: string; name: string; email: string; tenant: { name: string } }) {
   emitAdminEvent({
     type: "user_signup",
@@ -390,10 +408,20 @@ router.get("/google", (_req: Request, res: Response) => {
 
 router.post("/google/exchange", async (req: Request, res: Response) => {
   const { code, redirectUri, refCode } = req.body;
+  const resolvedRedirectUri = normalizeRedirectUri(redirectUri);
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({ message: "Google OAuth is not configured." });
+  }
+  if (!code || !resolvedRedirectUri) {
+    return res.status(400).json({ message: "code and redirectUri are required" });
+  }
   try {
-    const client     = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, redirectUri);
+    const client     = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, resolvedRedirectUri);
     const { tokens } = await client.getToken(code);
-    const ticket     = await client.verifyIdToken({ idToken: tokens.id_token!, audience: GOOGLE_CLIENT_ID });
+    if (!tokens.id_token) {
+      return res.status(400).json({ message: "Google did not return an ID token." });
+    }
+    const ticket     = await client.verifyIdToken({ idToken: tokens.id_token, audience: GOOGLE_CLIENT_ID });
     const payload    = ticket.getPayload();
     if (!payload?.email) return res.status(400).json({ message: "No email from Google" });
 
@@ -441,21 +469,29 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error("Google exchange error:", err);
-    return res.status(500).json({ message: errorMessage(err) });
+    const oauthMessage = googleOauthMessage(err);
+    if (oauthMessage) {
+      return res.status(400).json({ message: oauthMessage });
+    }
+    return res.status(500).json({ message: "Google sign-in failed. Please try again." });
   }
 });
 
 router.get("/google/callback", async (req: Request, res: Response) => {
   const { code } = req.query;
   if (!code) return res.redirect(`${APP_URL}/login?error=no_code`);
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return res.redirect(`${APP_URL}/login?error=google_not_configured`);
+  }
 
   try {
     const cbRedirectUri = `${SERVER_URL}/auth/google/callback`;
     const client        = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, cbRedirectUri);
     const { tokens }    = await client.getToken(code as string);
+    if (!tokens.id_token) return res.redirect(`${APP_URL}/login?error=no_id_token`);
     client.setCredentials(tokens);
 
-    const ticket        = await client.verifyIdToken({ idToken: tokens.id_token!, audience: GOOGLE_CLIENT_ID });
+    const ticket        = await client.verifyIdToken({ idToken: tokens.id_token, audience: GOOGLE_CLIENT_ID });
     const googlePayload = ticket.getPayload();
     if (!googlePayload?.email) return res.redirect(`${APP_URL}/login?error=no_email`);
 
@@ -487,6 +523,9 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     return res.redirect(buildLoginRedirectUrl(user, token, refreshToken, omegaWelcome));
   } catch (err) {
     console.error("Google OAuth error:", err);
+    if (googleOauthMessage(err)) {
+      return res.redirect(`${APP_URL}/login?error=google_code_invalid`);
+    }
     return res.redirect(`${APP_URL}/login?error=oauth_failed`);
   }
 });

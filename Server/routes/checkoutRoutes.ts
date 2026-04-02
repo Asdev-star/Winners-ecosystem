@@ -79,13 +79,11 @@ router.get('/cart', async (req: AuthRequest, res: Response) => {
       }>;
       subtotal: number;
     }>>((acc, item) => {
-      const vendorId = item.product.vendorId;
-      if (!vendorId) return acc;
-
+      const vendorId = item.product.vendorId ?? '_unassigned';
       if (!acc[vendorId]) {
         acc[vendorId] = {
           vendorId,
-          vendorName: item.product.vendor?.storeName || 'Unknown Vendor',
+          vendorName: item.product.vendor?.storeName || (vendorId === '_unassigned' ? 'Unassigned' : 'Unknown Vendor'),
           stripeAccountId: item.product.vendor?.stripeAccountId || null,
           items: [],
           subtotal: 0
@@ -125,9 +123,56 @@ router.post('/create-payment-intents', async (req: AuthRequest, res: Response) =
     const { userId, tenantId, plan } = req.user;
     const platformFeePct = getPlatformFeePct(plan);
 
-    // Group by vendor
+    // Resolve vendors server-side — never trust client-provided vendorId
+    const productIds = items.map((item) => item.productId);
+    const products = await db.product.findMany({
+      where: { id: { in: productIds }, tenantId },
+      select: {
+        id: true,
+        vendorId: true,
+        price: true,
+        stockQuantity: true,
+        allowBackorder: true,
+        vendor: {
+          select: { id: true, storeName: true, stripeAccountId: true },
+        },
+      },
+    });
+
+    const productById = new Map(products.map((p) => [p.id, p]));
+
+    // Validate all products exist and have vendors
+    const unresolved: string[] = [];
+    for (const item of items) {
+      const product = productById.get(item.productId);
+      if (!product) {
+        return res.status(400).json({ error: `Product ${item.productId} not found` });
+      }
+      if (!product.vendorId) {
+        unresolved.push(item.title || item.productId);
+      }
+    }
+
+    if (unresolved.length > 0) {
+      return res.status(400).json({
+        error: `${unresolved.length} item(s) have no vendor assignment: ${unresolved.join(', ')}. Remove them and try again.`,
+      });
+    }
+
+    // Check stock availability
+    for (const item of items) {
+      const product = productById.get(item.productId)!;
+      if (!product.allowBackorder && product.stockQuantity < item.quantity) {
+        return res.status(400).json({
+          error: `"${item.title || product.id}" has only ${product.stockQuantity} in stock but ${item.quantity} requested`,
+        });
+      }
+    }
+
+    // Group by server-resolved vendorId
     const vendorGroups = items.reduce<Record<string, CartItem[]>>((acc, item) => {
-      const vendorId = item.vendorId || 'direct';
+      const product = productById.get(item.productId);
+      const vendorId = product?.vendorId || 'direct';
       if (!acc[vendorId]) acc[vendorId] = [];
       acc[vendorId].push(item);
       return acc;
@@ -141,14 +186,9 @@ router.post('/create-payment-intents', async (req: AuthRequest, res: Response) =
     }> = [];
 
     for (const [vendorId, vendorItems] of Object.entries(vendorGroups)) {
-      let vendor: { stripeAccountId: string | null; storeName: string } | null = null;
-
-      if (vendorId !== 'direct') {
-        vendor = await db.vendor.findUnique({
-          where: { id: vendorId },
-          select: { stripeAccountId: true, storeName: true }
-        }) as { stripeAccountId: string | null; storeName: string } | null;
-      }
+      // Use server-resolved vendor data from the product lookup above
+      const firstProduct = productById.get(vendorItems[0].productId);
+      const vendor = firstProduct?.vendor ?? null;
 
       const amount = vendorItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
       const platformFee = Math.round(amount * platformFeePct * 100); // cents
@@ -276,9 +316,13 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
       }
     >();
 
+    const unresolvedCartItems: string[] = [];
     for (const item of cart.items) {
       const vendorId = item.product.vendorId;
-      if (!vendorId) continue;
+      if (!vendorId) {
+        unresolvedCartItems.push(item.product.name);
+        continue;
+      }
 
       const vendor = item.product.vendor;
       const current = cartVendorGroups.get(vendorId) ?? {
@@ -291,6 +335,12 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
       };
       current.items.push(item);
       cartVendorGroups.set(vendorId, current);
+    }
+
+    if (unresolvedCartItems.length > 0) {
+      return res.status(400).json({
+        error: `${unresolvedCartItems.length} item(s) have no vendor assignment: ${unresolvedCartItems.join(', ')}`,
+      });
     }
 
     if (
