@@ -80,6 +80,7 @@ From PROJECT_STATE_CURRENT.md V10.0 Critical Pending Actions (Prioritized)
 ✅ **Mobile PWA** - Push notifications (Firebase FCM), biometric authentication (WebAuthn)
 ✅ **Plugin Marketplace** - Review workflow, revenue sharing, payout system
 ✅ **White-label Licensing** - Sub-tenant provisioning, custom branding, enterprise SSO foundation
+✅ **Cloud 8Connector OAuth2 Flow** - M-Pesa, Stripe, HubSpot, Google Workspace, Slack connectors seeded
 
 ### FILES CREATED/MODIFIED
 
