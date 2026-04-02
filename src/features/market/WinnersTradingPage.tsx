@@ -28,7 +28,7 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import { useAuthStore } from "../../stores/authStore";
+import { useAuthStore } from "../auth/authStore";
 import { useTradingStore } from "../../stores/tradingStore";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -395,3 +395,5 @@ export function WinnersTradingPage() {
     </div>
   );
 }
+
+export default WinnersTradingPage;
