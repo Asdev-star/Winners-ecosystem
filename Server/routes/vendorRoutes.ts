@@ -458,7 +458,6 @@ router.post("/me/payout/request", authMiddleware, async (req: Request, res: Resp
       adminPath: "/admin/vendors",
       title: "Vendor Payout Processed",
       message: `Vendor ${vendor.storeName} payout of $${amount} processed`,
-      severity: "low",
       metadata: { vendorId: vendor.id, amount, stripeTransferId },
     });
 
