@@ -375,7 +375,6 @@ router.post("/me/payout/request", authMiddleware, async (req: Request, res: Resp
   try {
     const vendor = await db.vendor.findFirst({
       where: { userId, tenantId },
-      include: { _count: { select: { vendorPayouts: true } } },
     });
 
     if (!vendor) {
@@ -451,10 +450,15 @@ router.post("/me/payout/request", authMiddleware, async (req: Request, res: Resp
     ]);
 
     await recordAdminSignal({
-      tenantId,
-      type: "VENDOR_PAYOUT",
-      severity: "low",
+      kind: "atlas:vendor_applied",
+      supervisor: "ATLAS",
+      supervisorEmoji: "🛒",
+      layerId: vendor.id,
+      layerName: vendor.storeName,
+      adminPath: "/admin/vendors",
+      title: "Vendor Payout Processed",
       message: `Vendor ${vendor.storeName} payout of $${amount} processed`,
+      severity: "low",
       metadata: { vendorId: vendor.id, amount, stripeTransferId },
     });
 
