@@ -318,18 +318,15 @@ router.get("/jobs", async (req: Request, res: Response) => {
       ];
     }
 
-    const [jobs, total, circuitContext] = await Promise.all([
+    const [jobs, circuitContext] = await Promise.all([
       db.jobListing.findMany({
         where: where as never,
         orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
-        skip:    (page - 1) * limit,
-        take:    limit,
         include: {
           client:       { select: { id: true, name: true, email: true } },
           _count:       { select: { applications: true } },
         },
       }),
-      db.jobListing.count({ where: where as never }),
       loadCircuitContext(userId, tenantId).catch(() => ({
         profile: null,
         detectedSkills: [],
@@ -337,31 +334,46 @@ router.get("/jobs", async (req: Request, res: Response) => {
       })),
     ]);
 
-    return res.json({
-      jobs: jobs.map((j) => {
-        const circuit = circuitContext.profile
-          ? scoreJobDeterministically({
-              id: j.id,
-              title: j.title,
-              category: j.category,
-              skills: j.skills,
-              experienceLevel: j.experienceLevel,
-              budgetMin: j.budgetMin,
-              budgetMax: j.budgetMax,
-              currency: j.currency,
-              jobType: j.jobType,
-            }, circuitContext)
-          : null;
+    const scoredJobs = jobs.map((j) => {
+      const circuit = circuitContext.profile
+        ? scoreJobDeterministically({
+            id: j.id,
+            title: j.title,
+            category: j.category,
+            skills: j.skills,
+            experienceLevel: j.experienceLevel,
+            budgetMin: j.budgetMin,
+            budgetMax: j.budgetMax,
+            currency: j.currency,
+            jobType: j.jobType,
+          }, circuitContext)
+        : null;
 
-        return {
-          ...j,
-          applicationCount: j._count.applications,
-          circuitScore: circuit?.score ?? null,
-          circuitHeadline: circuit?.headline ?? null,
-          circuitStrengths: circuit?.strengths ?? [],
-          circuitGaps: circuit?.gaps ?? [],
-        };
-      }),
+      return {
+        ...j,
+        applicationCount: j._count.applications,
+        circuitScore: circuit?.score ?? null,
+        circuitHeadline: circuit?.headline ?? null,
+        circuitStrengths: circuit?.strengths ?? [],
+        circuitGaps: circuit?.gaps ?? [],
+      };
+    });
+
+    const rankedJobs = [...scoredJobs].sort((left, right) => {
+      if (left.isFeatured !== right.isFeatured) return Number(right.isFeatured) - Number(left.isFeatured);
+
+      const leftScore = typeof left.circuitScore === "number" ? left.circuitScore : -1;
+      const rightScore = typeof right.circuitScore === "number" ? right.circuitScore : -1;
+      if (leftScore !== rightScore) return rightScore - leftScore;
+
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    });
+
+    const total = rankedJobs.length;
+    const pagedJobs = rankedJobs.slice((page - 1) * limit, page * limit);
+
+    return res.json({
+      jobs: pagedJobs,
       total,
       page,
       pages: Math.ceil(total / limit),
