@@ -100,8 +100,8 @@ type AdminActionModal = "plan" | "invite" | "forge" | null;
 
 const css = `
   .tdd-root{max-width:1320px;margin:0 auto;padding:28px 22px 88px;color:var(--text);font-family:'Syne',sans-serif}
-  .tdd-shell{border:1px solid rgba(201,168,76,.18);border-radius:28px;overflow:hidden;background:linear-gradient(180deg,rgba(9,16,28,.98),rgba(10,20,33,.97));box-shadow:0 28px 90px rgba(0,0,0,.34)}
-  .tdd-hero{padding:26px 26px 24px;border-bottom:1px solid rgba(201,168,76,.18);background:radial-gradient(circle at top right,rgba(201,168,76,.16),transparent 30%),linear-gradient(135deg,rgba(18,30,47,.95),rgba(10,18,30,.94))}
+  .tdd-shell{border:1px solid rgba(201,168,76,.18);border-radius:34px;overflow:hidden;background:linear-gradient(180deg,rgba(9,16,28,.98),rgba(10,20,33,.97));box-shadow:0 32px 96px rgba(0,0,0,.34)}
+  .tdd-hero{padding:28px 28px 26px;border-bottom:1px solid rgba(201,168,76,.18);background:radial-gradient(circle at top right,rgba(201,168,76,.16),transparent 30%),linear-gradient(135deg,rgba(18,30,47,.95),rgba(10,18,30,.94))}
   .tdd-topline{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
   .tdd-kicker{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
   .tdd-title{margin:8px 0 0;font-size:36px;font-weight:800;letter-spacing:-.05em}
@@ -112,8 +112,8 @@ const css = `
   .tdd-pill.pro{color:var(--gold);border-color:rgba(201,168,76,.24);background:rgba(201,168,76,.1)}
   .tdd-pill.free{color:var(--ice);border-color:rgba(137,196,225,.24);background:rgba(137,196,225,.08)}
   .tdd-actions,.tdd-modal-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .tdd-body{padding:22px}
-  .tdd-banner{margin-bottom:16px;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03);font-size:13px;line-height:1.6}
+  .tdd-body{padding:24px}
+  .tdd-banner{margin-bottom:16px;padding:12px 14px;border-radius:18px;border:1px solid var(--border);background:rgba(255,255,255,.03);font-size:13px;line-height:1.6}
   .tdd-banner.error{border-color:rgba(224,90,78,.26);background:rgba(224,90,78,.08);color:#ffd0ca}
   .tdd-banner.success{border-color:rgba(45,212,160,.24);background:rgba(45,212,160,.08);color:#c1ffe4}
   .tdd-button,.tdd-link{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid rgba(201,168,76,.22);background:rgba(201,168,76,.1);color:var(--gold);font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;cursor:pointer}
@@ -121,16 +121,16 @@ const css = `
   .tdd-button.danger{border-color:rgba(224,90,78,.24);background:rgba(224,90,78,.1);color:var(--red)}
   .tdd-button:disabled{opacity:.54;cursor:not-allowed}
   .tdd-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;margin-bottom:18px}
-  .tdd-card{padding:20px;border-radius:20px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(17,29,46,.9),rgba(12,21,35,.88))}
-  .tdd-profile{padding:22px;border-radius:22px;border:1px solid rgba(201,168,76,.22);background:radial-gradient(circle at top right,rgba(137,196,225,.12),transparent 32%),linear-gradient(135deg,rgba(17,29,46,.95),rgba(11,20,33,.93))}
+  .tdd-card{padding:20px;border-radius:24px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(17,29,46,.9),rgba(12,21,35,.88))}
+  .tdd-profile{padding:24px;border-radius:26px;border:1px solid rgba(201,168,76,.22);background:radial-gradient(circle at top right,rgba(137,196,225,.12),transparent 32%),linear-gradient(135deg,rgba(17,29,46,.95),rgba(11,20,33,.93))}
   .tdd-profile-copy{margin:10px 0 0;font-size:15px;line-height:1.8;color:#f5f0df;white-space:pre-line}
   .tdd-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
-  .tdd-metric{padding:18px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(17,29,46,.88),rgba(12,21,35,.84))}
+  .tdd-metric{padding:18px;border-radius:20px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(17,29,46,.88),rgba(12,21,35,.84))}
   .tdd-metric-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
   .tdd-metric-value{margin-top:10px;font-size:30px;font-weight:800;letter-spacing:-.05em;color:var(--gold)}
   .tdd-metric-sub{margin-top:8px;font-size:12px;color:var(--text-dim);line-height:1.5}
   .tdd-usage-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-  .tdd-usage-item{padding:16px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.02)}
+  .tdd-usage-item{padding:16px;border-radius:18px;border:1px solid var(--border);background:rgba(255,255,255,.02)}
   .tdd-usage-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
   .tdd-usage-name{font-size:14px;font-weight:700}
   .tdd-usage-meta{font-size:12px;color:var(--text-dim);text-align:right}
@@ -141,11 +141,11 @@ const css = `
   .tdd-mini-row:last-child{border-bottom:none;padding-bottom:0}
   .tdd-mini-label{color:var(--text-dim)}
   .tdd-mini-value{text-align:right}
-  .tdd-section{margin-top:18px;padding:20px;border-radius:20px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(17,29,46,.78),rgba(12,21,35,.8))}
+  .tdd-section{margin-top:18px;padding:20px;border-radius:24px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(17,29,46,.78),rgba(12,21,35,.8))}
   .tdd-section-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
   .tdd-section-title{margin:0;font-size:22px;font-weight:800;letter-spacing:-.03em}
   .tdd-section-sub{margin:6px 0 0;font-size:13px;color:var(--text-dim);line-height:1.6}
-  .tdd-table-wrap{overflow:auto;border-radius:18px;border:1px solid var(--border)}
+  .tdd-table-wrap{overflow:auto;border-radius:22px;border:1px solid var(--border)}
   .tdd-table{width:100%;border-collapse:collapse;background:rgba(7,13,23,.44)}
   .tdd-table th,.tdd-table td{padding:14px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;font-size:13px}
   .tdd-table th{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
@@ -160,7 +160,7 @@ const css = `
   .tdd-action p{margin:8px 0 14px;font-size:12px;color:var(--text-dim);line-height:1.6}
   .tdd-empty{padding:18px;border-radius:16px;border:1px dashed var(--border);background:rgba(255,255,255,.03);color:var(--text-dim)}
   .tdd-modal-backdrop{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:24px;background:rgba(3,8,15,.76);backdrop-filter:blur(10px)}
-  .tdd-modal{width:min(460px,100%);padding:22px;border-radius:20px;border:1px solid rgba(201,168,76,.22);background:linear-gradient(180deg,rgba(17,29,46,.98),rgba(11,19,31,.98));box-shadow:0 24px 80px rgba(0,0,0,.42)}
+  .tdd-modal{width:min(460px,100%);padding:22px;border-radius:24px;border:1px solid rgba(201,168,76,.22);background:linear-gradient(180deg,rgba(17,29,46,.98),rgba(11,19,31,.98));box-shadow:0 24px 80px rgba(0,0,0,.42)}
   .tdd-modal-title{margin:10px 0 0;font-size:24px;font-weight:800}
   .tdd-modal-copy{margin:10px 0 16px;font-size:13px;line-height:1.6;color:var(--text-dim)}
   .tdd-input,.tdd-select,.tdd-textarea{width:100%;border-radius:12px;border:1px solid var(--border);background:rgba(8,14,24,.92);color:var(--text);padding:11px 12px;font:inherit}
@@ -503,7 +503,7 @@ export default function AdminTenantDeepDivePage() {
         <section className="tdd-hero">
           <div className="tdd-topline">
             <div>
-              <div className="tdd-kicker">Admin / Tenants / Deep Dive</div>
+              <div className="tdd-kicker">Ecosystem Controller / Tenants / Deep Dive</div>
               <div className="tdd-title-row">
                 <h1 className="tdd-title">{tenant?.name ?? "Tenant Deep Dive"}</h1>
                 {tenant ? <span className={`tdd-pill ${planClass(tenant.plan)}`}>{tenant.plan} Plan</span> : null}
@@ -511,8 +511,8 @@ export default function AdminTenantDeepDivePage() {
               </div>
               <p className="tdd-subtitle">
                 {tenant
-                  ? `${tenant.name} on ${tenant.plan} plan, operating inside your sovereign infrastructure.`
-                  : "Loading tenant workspace intelligence and admin actions."}
+                  ? `${tenant.name} on ${tenant.plan} plan, operating inside your ecosystem controller.`
+                  : "Loading tenant workspace intelligence and controller actions."}
               </p>
             </div>
 

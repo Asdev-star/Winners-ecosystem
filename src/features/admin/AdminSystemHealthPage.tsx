@@ -63,7 +63,7 @@ const css = `
   }
   .ash-shell{
     border:1px solid rgba(201,168,76,.18);
-    border-radius:30px;
+    border-radius:34px;
     overflow:hidden;
     background:
       radial-gradient(circle at top right, rgba(201,168,76,.1), transparent 28%),
@@ -76,7 +76,7 @@ const css = `
     justify-content:space-between;
     gap:16px;
     align-items:flex-start;
-    padding:20px 24px 22px;
+    padding:22px 26px 24px;
     border-bottom:1px solid rgba(255,255,255,.06);
     background:rgba(6,11,18,.8);
   }
@@ -138,9 +138,9 @@ const css = `
   }
   .ash-panel{
     border:1px solid rgba(255,255,255,.08);
-    border-radius:24px;
+    border-radius:28px;
     background:linear-gradient(180deg, rgba(17,27,39,.94), rgba(10,17,27,.94));
-    padding:18px;
+    padding:20px;
   }
   .ash-panel-head{
     display:flex;
@@ -173,7 +173,7 @@ const css = `
     gap:14px;
     align-items:center;
     padding:16px;
-    border-radius:18px;
+    border-radius:20px;
     border:1px solid rgba(255,255,255,.08);
     background:rgba(255,255,255,.03);
   }
@@ -646,7 +646,7 @@ export default function AdminSystemHealthPage() {
       <div className="ash-shell">
         <div className="ash-head">
           <div>
-            <div className="ash-kicker">Admin / System Health / Route: /admin/health</div>
+            <div className="ash-kicker">Ecosystem Controller / Health / Route: /admin/health</div>
             <h1 className="ash-title">SYSTEM HEALTH</h1>
             <p className="ash-subtitle">
               Sovereign visibility into service readiness, rate limiting pressure, database posture, and the most recent platform faults.
@@ -655,7 +655,7 @@ export default function AdminSystemHealthPage() {
 
           <div className="ash-actions">
             <Link className="ash-link ghost" to="/admin/overview">
-              Admin Overview
+              Controller Overview
             </Link>
             {snapshot?.observability.sentryUrl ? (
               <a className="ash-link ghost" href={snapshot.observability.sentryUrl} target="_blank" rel="noreferrer">

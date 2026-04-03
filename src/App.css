@@ -30,9 +30,9 @@
 }
 
 .ai-backdrop-logo-fallback {
-  font-family: Georgia, serif;
+  font-family: "Syne", sans-serif;
   font-size: 40vmax;
-  font-weight: bold;
+  font-weight: 800;
   color: var(--gold, #C9A84C);
   display: flex;
   align-items: center;

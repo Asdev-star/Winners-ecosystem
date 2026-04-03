@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { shouldShowInstallPrompt } from "../../lib/regulation";
+import { trackAppDownload } from "../../lib/ecosystemTelemetry";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -38,11 +40,20 @@ export default function InstallPrompt() {
       : 999;
 
     const handleBeforeInstallPrompt = (event: Event) => {
+      if (
+        !shouldShowInstallPrompt({
+          dismissed: Boolean(dismissed),
+          displayMode: "browser",
+          visits,
+          daysSinceDismiss,
+        })
+      ) {
+        return;
+      }
+
       event.preventDefault();
       setPrompt(event as BeforeInstallPromptEvent);
-      if (visits >= 3 && daysSinceDismiss > 30) {
-        setVisible(true);
-      }
+      setVisible(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -56,6 +67,11 @@ export default function InstallPrompt() {
     const result = await prompt.userChoice;
     if (result.outcome === "accepted") {
       trackEvent("pwa_install");
+      trackAppDownload({
+        platform: "pwa",
+        appVersion: "web",
+        isFirstDownload: true,
+      });
     }
     setVisible(false);
   };

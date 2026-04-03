@@ -5,10 +5,32 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../../lib/api";
 import { defaultConfig, LandingPageConfig } from "../../config/landingConfig";
+import {
+  detectBrowserCountry,
+  getLandingDirection,
+  getLandingLocalePack,
+  resolveLandingLocale,
+} from "../../lib/landingLocalization";
 
 interface LandingPageProps {
   config?: Partial<LandingPageConfig>;
+}
+
+type PublicEcosystemSettings = Partial<LandingPageConfig> & {
+  language?: string;
+  adaptiveLanguage?: boolean;
+  countryLanguageMapping?: Array<{ country: string; language: string }>;
+};
+
+function assignDefined(target: Record<string, unknown>, source?: Record<string, unknown>) {
+  if (!source) return;
+  for (const [key, value] of Object.entries(source)) {
+    if (value !== undefined) {
+      target[key] = value;
+    }
+  }
 }
 
 const generateCSS = (config: LandingPageConfig) => `
@@ -1177,18 +1199,136 @@ const generateCSS = (config: LandingPageConfig) => `
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
 
 export default function LandingPage({ config: userConfig }: LandingPageProps = {}) {
-  const config = useMemo(() => {
-    const merged = { ...defaultConfig };
-    if (userConfig) {
-      Object.assign(merged.theme, userConfig.theme || {});
-      Object.assign(merged.branding, userConfig.branding || {});
-      Object.assign(merged.nav, userConfig.nav || {});
-      Object.assign(merged.sections, userConfig.sections || {});
-      Object.assign(merged.hero, userConfig.hero || {});
-      Object.assign(merged.footer, userConfig.footer || {});
+  const [runtimeSettings, setRuntimeSettings] = useState<PublicEcosystemSettings | null>(null);
+  const [localeCode, setLocaleCode] = useState("en");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const country = detectBrowserCountry();
+
+    async function loadPublicSettings() {
+      try {
+        const response = await fetch(`${API_BASE}/public/ecosystem-settings?country=${encodeURIComponent(country)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+
+        const body = (await response.json().catch(() => ({}))) as {
+          settings?: PublicEcosystemSettings;
+          resolvedLanguage?: string;
+          countryLanguageMapping?: Array<{ country: string; language: string }>;
+        };
+        if (controller.signal.aborted) return;
+
+        const settings = body.settings ?? {};
+        setRuntimeSettings(settings);
+
+        const language = settings.adaptiveLanguage === false
+          ? (settings.language ?? "en")
+          : body.resolvedLanguage ?? resolveLandingLocale(settings.language ?? "en", country, body.countryLanguageMapping ?? settings.countryLanguageMapping ?? []);
+
+        setLocaleCode(language || "en");
+      } catch {
+        if (!controller.signal.aborted) {
+          setRuntimeSettings(null);
+          setLocaleCode("en");
+        }
+      }
     }
+
+    void loadPublicSettings();
+    return () => controller.abort();
+  }, []);
+
+  const localePack = useMemo(() => getLandingLocalePack(localeCode), [localeCode]);
+
+  const config = useMemo(() => {
+    const merged = {
+      ...defaultConfig,
+      theme: { ...defaultConfig.theme },
+      branding: { ...defaultConfig.branding },
+      nav: { ...defaultConfig.nav, links: [...defaultConfig.nav.links] },
+      sections: { ...defaultConfig.sections },
+      hero: { ...defaultConfig.hero, metrics: [...defaultConfig.hero.metrics] },
+      trustedBy: { ...defaultConfig.trustedBy, companies: [...defaultConfig.trustedBy.companies] },
+      ecosystemBand: { ...defaultConfig.ecosystemBand, pillars: [...defaultConfig.ecosystemBand.pillars] },
+      howItWorks: { ...defaultConfig.howItWorks, steps: [...defaultConfig.howItWorks.steps] },
+      company: { ...defaultConfig.company, services: [...defaultConfig.company.services] },
+      architecture: { ...defaultConfig.architecture },
+      platforms: {
+        ...defaultConfig.platforms,
+        items: defaultConfig.platforms.items.map((item) => ({ ...item, tags: [...item.tags] })),
+      },
+      agenticLoop: { ...defaultConfig.agenticLoop, steps: [...defaultConfig.agenticLoop.steps] },
+      features: { ...defaultConfig.features, items: [...defaultConfig.features.items] },
+      buildProgress: { ...defaultConfig.buildProgress },
+      pricing: {
+        ...defaultConfig.pricing,
+        plans: defaultConfig.pricing.plans.map((plan) => ({ ...plan, features: plan.features.map((feature) => ({ ...feature })) })),
+      },
+      testimonials: { ...defaultConfig.testimonials, items: [...defaultConfig.testimonials.items] },
+      faq: { ...defaultConfig.faq, items: [...defaultConfig.faq.items] },
+      cta: { ...defaultConfig.cta },
+      footer: {
+        ...defaultConfig.footer,
+        platformLinks: [...defaultConfig.footer.platformLinks],
+        productLinks: [...defaultConfig.footer.productLinks],
+        ecosystemLinks: [...defaultConfig.footer.ecosystemLinks],
+        socialLinks: { ...defaultConfig.footer.socialLinks },
+        legalLinks: [...defaultConfig.footer.legalLinks],
+      },
+    };
+
+    if (runtimeSettings) {
+      merged.theme.primary = runtimeSettings.brandColor ?? merged.theme.primary;
+      merged.theme.primaryHover = runtimeSettings.brandColor ?? merged.theme.primaryHover;
+      merged.theme.accent = runtimeSettings.accentColor ?? merged.theme.accent;
+      merged.theme.secondary = runtimeSettings.accentColor ?? merged.theme.secondary;
+      merged.theme.background = runtimeSettings.defaultTheme === "light" ? "#f7fafc" : merged.theme.background;
+      merged.theme.surface = runtimeSettings.defaultTheme === "light" ? "#ffffff" : merged.theme.surface;
+      merged.theme.surface2 = runtimeSettings.defaultTheme === "light" ? "#f1f5f9" : merged.theme.surface2;
+      merged.theme.text = runtimeSettings.defaultTheme === "light" ? "#0f172a" : merged.theme.text;
+      merged.theme.textDim = runtimeSettings.defaultTheme === "light" ? "#475569" : merged.theme.textDim;
+      merged.theme.border = runtimeSettings.defaultTheme === "light" ? "rgba(15,23,42,0.12)" : merged.theme.border;
+    }
+
+    const localeOverrides = {
+      nav: {
+        statusText: localePack.nav?.statusText,
+        ctaText: localePack.nav?.ctaText,
+      },
+      hero: {
+        eyebrow: localePack.hero?.eyebrow,
+        subtitle: localePack.hero?.subtitle,
+        description: localePack.hero?.description,
+        ctaPrimary: localePack.hero?.ctaPrimary,
+        ctaSecondary: localePack.hero?.ctaSecondary,
+      },
+      trustedBy: localePack.trustedBy,
+      ecosystemBand: localePack.ecosystemBand,
+      cta: localePack.cta,
+      footer: localePack.footer,
+    };
+
+    if (userConfig) {
+      assignDefined(merged.theme as Record<string, unknown>, userConfig.theme as Record<string, unknown> | undefined);
+      assignDefined(merged.branding as Record<string, unknown>, userConfig.branding as Record<string, unknown> | undefined);
+      assignDefined(merged.nav as Record<string, unknown>, userConfig.nav as Record<string, unknown> | undefined);
+      assignDefined(merged.sections as Record<string, unknown>, userConfig.sections as Record<string, unknown> | undefined);
+      assignDefined(merged.hero as Record<string, unknown>, userConfig.hero as Record<string, unknown> | undefined);
+      assignDefined(merged.trustedBy as Record<string, unknown>, userConfig.trustedBy as Record<string, unknown> | undefined);
+      assignDefined(merged.ecosystemBand as Record<string, unknown>, userConfig.ecosystemBand as Record<string, unknown> | undefined);
+      assignDefined(merged.cta as Record<string, unknown>, userConfig.cta as Record<string, unknown> | undefined);
+      assignDefined(merged.footer as Record<string, unknown>, userConfig.footer as Record<string, unknown> | undefined);
+    }
+    assignDefined(merged.nav as Record<string, unknown>, localeOverrides.nav as Record<string, unknown> | undefined);
+    assignDefined(merged.hero as Record<string, unknown>, localeOverrides.hero as Record<string, unknown> | undefined);
+    assignDefined(merged.trustedBy as Record<string, unknown>, localeOverrides.trustedBy as Record<string, unknown> | undefined);
+    assignDefined(merged.ecosystemBand as Record<string, unknown>, localeOverrides.ecosystemBand as Record<string, unknown> | undefined);
+    assignDefined(merged.cta as Record<string, unknown>, localeOverrides.cta as Record<string, unknown> | undefined);
+    assignDefined(merged.footer as Record<string, unknown>, localeOverrides.footer as Record<string, unknown> | undefined);
     return merged;
-  }, [userConfig]);
+  }, [localePack, runtimeSettings, userConfig]);
 
   const navigate  = useNavigate();
   const [openFaq, setOpenFaq]     = useState<number | null>(null);
@@ -1198,6 +1338,11 @@ export default function LandingPage({ config: userConfig }: LandingPageProps = {
   const [barsVisible, setBarsVisible] = useState(false);
 
   const css = useMemo(() => generateCSS(config), [config]);
+
+  useEffect(() => {
+    document.documentElement.lang = localeCode;
+    document.documentElement.dir = getLandingDirection(localeCode);
+  }, [localeCode]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);

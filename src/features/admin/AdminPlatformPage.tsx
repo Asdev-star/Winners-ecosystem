@@ -207,8 +207,8 @@ export default function AdminPlatformPage() {
   const [success, setSuccess] = useState("");
   const [checklist, setChecklist] = useState<{ layerId: string; layerName: string; loading: boolean; data: ChecklistResponse | null } | null>(null);
 
-  const queue = data?.control.queue ?? null;
-  const rows = data?.control.rows ?? [];
+  const queue = data?.control?.queue ?? null;
+  const rows = data?.control?.rows ?? [];
 
   async function load() {
     try {
@@ -293,7 +293,7 @@ export default function AdminPlatformPage() {
     }
   }
 
-  const impactPreview = useMemo(() => data?.control.impactPreview ?? [], [data]);
+  const impactPreview = useMemo(() => data?.control?.impactPreview ?? [], [data]);
 
   if (loading && !data) {
     return (
@@ -395,7 +395,7 @@ export default function AdminPlatformPage() {
           <section className="apl-hero">
             <div className="apl-kicker">Platform Activation Control</div>
             <h1 className="apl-title">Platform Activation Control</h1>
-            <div className="apl-copy">{data?.control.summary}</div>
+            <div className="apl-copy">{data?.control?.summary ?? "Platform control summary is loading."}</div>
           </section>
 
           <div className="apl-grid">

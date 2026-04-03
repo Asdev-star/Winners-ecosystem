@@ -1152,3 +1152,62 @@ textarea,
 select {
   font: inherit;
 }
+
+/* Legacy surface overrides */
+.work-title,
+.work-stat-value,
+.smart-tool-name,
+.smart-tool-headline,
+.smart-tool-description,
+.job-card-title,
+.job-card-desc,
+.freelancer-name,
+.freelancer-title,
+.contract-title,
+.service-title,
+.platform-title,
+.qt-score,
+.qb-title,
+.qb-q-text,
+.vid-upl-title,
+.img-upl-title {
+  font-family: 'Syne', sans-serif !important;
+}
+
+.work-stat,
+.work-select,
+.work-filter-btn,
+.job-card,
+.freelancer-card,
+.contract-card,
+.service-card,
+.platform-card,
+.btn-apply,
+.btn-view,
+.skill-chip,
+.avail-badge,
+.contract-status,
+.milestone-chip,
+.smart-tool-card,
+.qt-quiz-card,
+.qt-question,
+.qb-card,
+.qb-question,
+.vid-upl-card,
+.img-upl-card {
+  border-radius: 14px !important;
+}
+
+.work-stat,
+.job-card,
+.freelancer-card,
+.contract-card,
+.service-card,
+.platform-card,
+.smart-tool-card,
+.qt-quiz-card,
+.qb-card,
+.vid-upl-card,
+.img-upl-card {
+  border-radius: 18px !important;
+}

@@ -35,6 +35,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "health", label: "Health", to: "/admin/health", aliases: ["/ops"] },
   { id: "broadcast", label: "Broadcast", to: "/admin/broadcast" },
   { id: "security", label: "Security", to: "/admin/security", badgeKey: "security" },
+  { id: "settings", label: "Settings", to: "/admin/settings" },
 ];
 
 const css = `
@@ -344,7 +345,7 @@ export default function AdminSubNav() {
       <div className="asn-shell admin-card">
         <div className="asn-brand">
           <span className="asn-brand-mark" />
-          <span>Core Engine Admin</span>
+          <span>Ecosystem Controller</span>
         </div>
 
         <div className="asn-scroll-wrap">

@@ -44,17 +44,17 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 4,
-  md: 6,
-  lg: 12,
-  xl: 20,
+  sm: 6,
+  md: 12,
+  lg: 18,
+  xl: 24,
   full: 999,
 } as const;
 
 export const typography = {
-  displayLg: { fontSize: 32, fontWeight: "700" as const, letterSpacing: -0.5 },
-  displayMd: { fontSize: 24, fontWeight: "700" as const, letterSpacing: -0.3 },
-  displaySm: { fontSize: 20, fontWeight: "700" as const },
+  displayLg: { fontSize: 32, fontWeight: "800" as const, letterSpacing: -0.5, lineHeight: 40 },
+  displayMd: { fontSize: 24, fontWeight: "800" as const, letterSpacing: -0.3, lineHeight: 32 },
+  displaySm: { fontSize: 20, fontWeight: "800" as const, lineHeight: 28 },
   bodyLg: { fontSize: 16, fontWeight: "400" as const, lineHeight: 26 },
   bodyMd: { fontSize: 14, fontWeight: "400" as const, lineHeight: 22 },
   bodySm: { fontSize: 12, fontWeight: "400" as const, lineHeight: 18 },

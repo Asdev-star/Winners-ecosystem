@@ -4006,3 +4006,64 @@ model NotificationPreference {
 
   @@map("notification_preferences")
 }
+
+model EcosystemSettings {
+  id                String   @id @default(cuid())
+  key                String   @unique
+  value              Json
+  description        String?
+  updatedAt          DateTime @default(now())
+  updatedBy          String?
+
+  @@index([key])
+  @@map("ecosystem_settings")
+}
+
+model AppDownload {
+  id                  String   @id @default(cuid())
+  userId               String?
+  tenantId             String?
+  platform             String
+  platformVersion      String?
+  appVersion           String
+  country              String?
+  city                 String?
+  deviceModel          String?
+  osVersion            String?
+  language             String?
+  isFirstDownload      Boolean  @default(false)
+  installedAt          DateTime @default(now())
+  lastActiveAt         DateTime?
+  isActive             Boolean  @default(true)
+
+  @@index([platform])
+  @@index([installedAt])
+  @@index([country])
+  @@index([userId])
+  @@map("app_downloads")
+}
+
+model UserActivity {
+  id          String   @id @default(cuid())
+  userId      String?
+  tenantId   String?
+  sessionId  String?
+  event      String
+  activity  String
+  page       String?
+  metadata  Json?
+  country   String?
+  city      String?
+  duration  Int?
+  issueType String?
+  issueData Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([event])
+  @@index([activity])
+  @@index([createdAt])
+  @@index([issueType])
+  @@map("user_activities")
+}

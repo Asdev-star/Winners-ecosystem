@@ -62,10 +62,12 @@ import connectorRoutes from "./connectorRoutes.js";
 import tradingRoutes from "./tradingRoutes.js";
 import pluginRoutes from "./pluginRoutes.js";
 import notificationTokenRoutes from "./notificationTokenRoutes.js";
+import { DEFAULT_ECOSYSTEM_SETTINGS } from "./adminRoutes.js";
 
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireLayerAccess } from "../middleware/layerAccessMiddleware.js";
 import { authLimiter, postLimiter } from "../middleware/rateLimitMiddleware.js";
+import db from "../db.js";
 
 const router = Router();
 const version = process.env.npm_package_version ?? "1.0.0";
@@ -123,6 +125,7 @@ const gatewayRoutes = [
   "/connectors",
   "/push-tokens",
   "/plugins",
+  "/public",
 ];
 
 router.get("/", (_req, res) => {
@@ -134,6 +137,110 @@ router.get("/", (_req, res) => {
     routeCount: gatewayRoutes.length,
     routes: gatewayRoutes,
   });
+});
+
+router.get("/public/ecosystem-settings", async (req, res) => {
+  try {
+    const country = typeof req.query.country === "string" ? req.query.country.trim().toUpperCase() : "";
+    const records = await db.ecosystemSettings.findMany();
+    const stored = records.reduce<Record<string, unknown>>((acc, record) => {
+      acc[record.key] = record.value;
+      return acc;
+    }, {});
+    const settings = {
+      ...DEFAULT_ECOSYSTEM_SETTINGS,
+      ...stored,
+    };
+    const mapping = Array.isArray(settings.countryLanguageMapping)
+      ? settings.countryLanguageMapping as Array<{ country: string; language: string }>
+      : DEFAULT_ECOSYSTEM_SETTINGS.countryLanguageMapping;
+    const resolvedLanguage =
+      (mapping.find((entry) => entry.country.toUpperCase() === country)?.language?.toLowerCase() ?? settings.language ?? DEFAULT_ECOSYSTEM_SETTINGS.language);
+
+    return res.json({
+      settings,
+      country,
+      resolvedLanguage,
+      countryLanguageMapping: mapping,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to load ecosystem settings" });
+  }
+});
+
+router.post("/public/analytics/track", async (req, res) => {
+  try {
+    const records = await db.ecosystemSettings.findMany();
+    const settings = records.reduce<Record<string, unknown>>((acc, record) => {
+      acc[record.key] = record.value;
+      return acc;
+    }, {});
+    const merged = { ...DEFAULT_ECOSYSTEM_SETTINGS, ...settings };
+
+    if (merged.analyticsTracking === false) {
+      return res.status(204).end();
+    }
+
+    const { userId, tenantId, sessionId, event, activity, page, metadata, country, city, duration, issueType, issueData } = req.body ?? {};
+
+    await db.userActivity.create({
+      data: {
+        userId: typeof userId === "string" ? userId : null,
+        tenantId: typeof tenantId === "string" ? tenantId : null,
+        sessionId: typeof sessionId === "string" ? sessionId : null,
+        event: typeof event === "string" ? event : "unknown",
+        activity: typeof activity === "string" ? activity : "unknown",
+        page: typeof page === "string" ? page : null,
+        metadata: metadata && typeof metadata === "object" ? metadata : {},
+        country: typeof country === "string" ? country : null,
+        city: typeof city === "string" ? city : null,
+        duration: typeof duration === "number" ? duration : null,
+        issueType: typeof issueType === "string" ? issueType : null,
+        issueData: issueData && typeof issueData === "object" ? issueData : {},
+      },
+    });
+
+    return res.json({ message: "Activity tracked" });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to track activity" });
+  }
+});
+
+router.post("/public/analytics/app-download", async (req, res) => {
+  try {
+    const records = await db.ecosystemSettings.findMany();
+    const settings = records.reduce<Record<string, unknown>>((acc, record) => {
+      acc[record.key] = record.value;
+      return acc;
+    }, {});
+    const merged = { ...DEFAULT_ECOSYSTEM_SETTINGS, ...settings };
+
+    if (merged.analyticsTracking === false) {
+      return res.status(204).end();
+    }
+
+    const { userId, tenantId, platform, platformVersion, appVersion, country, city, deviceModel, osVersion, language, isFirstDownload } = req.body ?? {};
+
+    await db.appDownload.create({
+      data: {
+        userId: typeof userId === "string" ? userId : null,
+        tenantId: typeof tenantId === "string" ? tenantId : null,
+        platform: typeof platform === "string" ? platform : "unknown",
+        platformVersion: typeof platformVersion === "string" ? platformVersion : null,
+        appVersion: typeof appVersion === "string" ? appVersion : "1.0.0",
+        country: typeof country === "string" ? country : null,
+        city: typeof city === "string" ? city : null,
+        deviceModel: typeof deviceModel === "string" ? deviceModel : null,
+        osVersion: typeof osVersion === "string" ? osVersion : null,
+        language: typeof language === "string" ? language : null,
+        isFirstDownload: Boolean(isFirstDownload),
+      },
+    });
+
+    return res.json({ message: "Download recorded" });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to record download" });
+  }
 });
 
 router.use("/auth/login", authLimiter);

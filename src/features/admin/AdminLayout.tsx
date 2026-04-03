@@ -214,18 +214,18 @@ export default function AdminLayout() {
         <div className="adl-brand">
           <div className="adl-mark">+</div>
           <div>
-            <div className="adl-kicker">Core Engine / Hidden Admin Realm</div>
+            <div className="adl-kicker">Ecosystem Controller / Hidden Admin Realm</div>
             <h1 className="adl-title">{title}</h1>
             <p className="adl-copy">{copy}</p>
             <div className="adl-meta">
-              <span className="adl-meta-pill mode">Admin Mode</span>
+              <span className="adl-meta-pill mode">Controller Mode</span>
               <span className="adl-meta-pill">
                 Operator
                 <strong>{user?.email ?? "Unknown"}</strong>
               </span>
               <span className="adl-meta-pill">
                 Status
-                <strong>Operate</strong>
+                <strong>Decide</strong>
               </span>
             </div>
           </div>
@@ -233,10 +233,10 @@ export default function AdminLayout() {
 
         <div className="adl-actions">
           <button className="adl-button ghost" onClick={() => navigate("/home")}>
-            Exit Admin
+            Exit Controller
           </button>
           <button className="adl-button" onClick={() => navigate("/admin/forge")}>
-            FORGE Briefing
+            Controller Briefing
           </button>
           <ThemeToggle />
           <NotificationBell />

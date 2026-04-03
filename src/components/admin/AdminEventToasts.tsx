@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
+import { closeOpenSocket, createAuthenticatedSocketUrl } from "../../lib/regulation";
 
 type AdminRealtimeEvent = {
   type:
@@ -166,8 +167,16 @@ export default function AdminEventToasts() {
   useEffect(() => {
     if (!token || !isAdminPage) return undefined;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws?token=${token}`);
+    const socket = new WebSocket(createAuthenticatedSocketUrl(token));
+    let isOpen = false;
+    let shouldClose = false;
+
+    socket.onopen = () => {
+      isOpen = true;
+      if (shouldClose) {
+        socket.close();
+      }
+    };
 
     socket.onmessage = (event) => {
       try {
@@ -196,8 +205,15 @@ export default function AdminEventToasts() {
       } catch {}
     };
 
+    socket.onerror = () => {
+      // Let the connection fail quietly; reconnecting is handled by the next page visit or refresh.
+    };
+
     return () => {
-      socket.close();
+      shouldClose = true;
+      if (isOpen) {
+        closeOpenSocket(socket);
+      }
     };
   }, [isAdminPage, token]);
 
@@ -239,7 +255,7 @@ export default function AdminEventToasts() {
               <div className="aet-time">{relativeTime(event.timestamp)}</div>
             </div>
             <div className="aet-message">{event.message}</div>
-            {event.link ? <div className="aet-link">Open admin route {"->"}</div> : null}
+            {event.link ? <div className="aet-link">Open controller route {"->"}</div> : null}
           </div>
           <div className="aet-progress" />
         </button>

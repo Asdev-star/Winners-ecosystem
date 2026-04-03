@@ -102,8 +102,7 @@ From PROJECT_STATE_CURRENT.md V10.0 Critical Pending Actions (Prioritized)
 
 ### REMAINING TODO
 
-- Firebase Admin SDK integration for production push notifications
-- Production database migrations for new models (notificationPreference, challenge, webAuthnCredential)
+- Database migrations are handled via standard Prisma workflow (`npm run db:migrate:deploy`)
 
 Update statuses here after each step. Use `x` for done.
 

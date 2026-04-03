@@ -1,6 +1,7 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
+import { closeOpenSocket, createAuthenticatedSocketUrl } from "../../lib/regulation";
 import { getAuthHeaders, useAuthStore } from "../auth/authStore";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 import FourDocumentsBlueprint from "../../components/docs/FourDocumentsBlueprint";
@@ -441,8 +442,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!token) return;
-    const url = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws?token=${token}`;
-    const socket = new WebSocket(url);
+    const socket = new WebSocket(createAuthenticatedSocketUrl(token));
+    let isOpen = false;
+    let shouldClose = false;
+
+    socket.onopen = () => {
+      isOpen = true;
+      if (shouldClose) {
+        socket.close();
+      }
+    };
+
+    socket.onerror = () => {
+      // Silent fallback: the dashboard still works without live ecosystem signals.
+    };
     socket.onmessage = (event) => {
       try {
         const parsed = JSON.parse(event.data) as { event?: string; signal?: AdminSignal };
@@ -452,7 +465,12 @@ export default function DashboardPage() {
         });
       } catch {}
     };
-    return () => socket.close();
+    return () => {
+      shouldClose = true;
+      if (isOpen) {
+        closeOpenSocket(socket);
+      }
+    };
   }, [token]);
 
   async function refresh() {

@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { API_BASE } from "../../lib/api";
 import { getAuthHeaders } from "../auth/authStore";
+import { getRegulatedResponsiveContainerProps } from "../../lib/regulation";
 
 type RevenueSnapshot = {
   generatedAt: string;
@@ -555,7 +556,7 @@ export default function AdminRevenuePage() {
                 </div>
 
                 <div className="arc-chart-wrap">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={360}>
+                  <ResponsiveContainer {...getRegulatedResponsiveContainerProps(360)}>
                     <LineChart data={snapshot.chart.series} margin={{ top: 16, right: 18, left: -12, bottom: 8 }}>
                       <CartesianGrid stroke={palette.grid} vertical={false} strokeDasharray="3 3" />
                       <XAxis
@@ -722,7 +723,7 @@ export default function AdminRevenuePage() {
                     </div>
                   </div>
                   <div className="arc-mini-wrap">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer {...getRegulatedResponsiveContainerProps(280)}>
                       <BarChart data={snapshot.layers}>
                         <CartesianGrid stroke={palette.grid} vertical={false} strokeDasharray="3 3" />
                         <XAxis dataKey="name" tick={{ fill: palette.dim, fontSize: 11, fontFamily: "Space Mono" }} axisLine={false} tickLine={false} />
@@ -742,7 +743,7 @@ export default function AdminRevenuePage() {
                     </div>
                   </div>
                   <div className="arc-mini-wrap">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer {...getRegulatedResponsiveContainerProps(280)}>
                       <PieChart>
                         <Pie data={planSeries} dataKey="tenantCount" nameKey="plan" innerRadius={62} outerRadius={92} paddingAngle={3}>
                           {planSeries.map((entry, index) => (
@@ -763,7 +764,7 @@ export default function AdminRevenuePage() {
                     </div>
                   </div>
                   <div className="arc-mini-wrap">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer {...getRegulatedResponsiveContainerProps(280)}>
                       <AreaChart data={weeklyAreaSeries}>
                         <CartesianGrid stroke={palette.grid} vertical={false} strokeDasharray="3 3" />
                         <XAxis dataKey="label" tick={{ fill: palette.dim, fontSize: 11, fontFamily: "Space Mono" }} axisLine={false} tickLine={false} />

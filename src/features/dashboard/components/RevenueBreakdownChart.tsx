@@ -1,5 +1,6 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Link } from "react-router-dom";
+import { getRegulatedResponsiveContainerProps } from "../../../lib/regulation";
 
 type RevenueSeriesItem = {
   label: string;
@@ -61,7 +62,7 @@ export default function RevenueBreakdownChart({ revenueSeries, note, layers, mon
       ) : (
         <>
           <div className="aov-chart-wrap">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={260}>
+            <ResponsiveContainer {...getRegulatedResponsiveContainerProps(260)}>
               <AreaChart data={revenueSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="rgba(255,255,255,.08)" vertical={false} />
                 <XAxis dataKey="label" stroke="var(--text-dim)" tick={{ fontSize: 10, fontFamily: "Space Mono, monospace" }} />

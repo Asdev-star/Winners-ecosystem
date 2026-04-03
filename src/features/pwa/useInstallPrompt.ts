@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { shouldCaptureInstallPrompt } from "../../lib/regulation";
+import { trackAppDownload } from "../../lib/ecosystemTelemetry";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -36,11 +38,11 @@ export const useInstallPrompt = () => {
     if (typeof window === "undefined") return undefined;
 
     const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-
-      if (dismissed || getDisplayMode() === "standalone") {
+      if (!shouldCaptureInstallPrompt({ dismissed, displayMode: getDisplayMode() })) {
         return;
       }
+
+      event.preventDefault();
 
       setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
@@ -89,6 +91,11 @@ export const useInstallPrompt = () => {
     setDeferredPrompt(null);
     if (choice.outcome === "accepted") {
       setIsInstalled(true);
+      trackAppDownload({
+        platform: "pwa",
+        appVersion: "web",
+        isFirstDownload: true,
+      });
       resetInstallPrompt();
     } else {
       dismissInstallPrompt();

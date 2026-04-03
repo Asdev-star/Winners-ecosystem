@@ -11,6 +11,8 @@ import SuperAdminRoute from "./app/SuperAdminRoute";
 import LayerRouteGate from "./app/LayerRouteGate";
 import LayerThemeBridge from "./app/LayerThemeBridge";
 import HiddenNotFoundPage from "./app/HiddenNotFoundPage";
+import EcosystemLocaleBridge from "./components/analytics/EcosystemLocaleBridge";
+import EcosystemTelemetryBridge from "./components/analytics/EcosystemTelemetryBridge";
 import AIBackdrop from "./components/ui/AIBackdrop";
 import RealtimeNotifications from "./components/ui/RealtimeNotifications";
 import InstallPrompt from "./features/mobile/InstallPrompt";
@@ -121,6 +123,7 @@ import ForgeIntelligencePage from "./features/admin/ForgeIntelligencePage";
 import SystemHealthPage from "./features/admin/SystemHealthPage";
 import BroadcastPage from "./features/admin/BroadcastPage";
 import SecurityPage from "./features/admin/SecurityPage";
+import AdminSettingsPage from "./features/admin/AdminSettingsPage";
 import { AdminPlatformLayerPage } from "./features/admin/AdminRoutePages";
 
 function DashboardRealmRoute() {
@@ -157,6 +160,8 @@ function App() {
   return (
     <div className="app-shell">
       <LayerThemeBridge />
+      <EcosystemLocaleBridge />
+      <EcosystemTelemetryBridge />
       <AIBackdrop />
       <RealtimeNotifications />
       <Toaster position="top-center" toastOptions={{ duration: 4500 }} />
@@ -209,10 +214,7 @@ function App() {
             <Route path="health" element={<SystemHealthPage />} />
             <Route path="broadcast" element={<BroadcastPage />} />
             <Route path="security" element={<SecurityPage />} />
-            <Route
-              path="settings"
-              element={<Navigate to="/settings/core" replace />}
-            />
+            <Route path="settings" element={<AdminSettingsPage />} />
             <Route
               path="platform-launch"
               element={<Navigate to="/admin/platform" replace />}

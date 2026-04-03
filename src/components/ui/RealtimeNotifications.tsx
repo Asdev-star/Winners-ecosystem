@@ -1,9 +1,10 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { toast } from "react-hot-toast";
+import { useEffect, useRef } from "react";
+import { toast, type Renderable } from "react-hot-toast";
 import { useAuthStore } from "../../features/auth/authStore";
 import { useNotificationStore, type Notification } from "../../features/notifications/notificationStore";
 import { getAuthHeaders } from "../../features/auth/authStore";
 import { API_BASE } from "../../lib/api";
+import { closeOpenSocket, createAuthenticatedSocketUrl } from "../../lib/regulation";
 import {
   Sparkles,
   MessageSquare,
@@ -19,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 type RealtimeEvent = {
   type: string;
   message: string;
-  icon: ReactNode;
+  icon: Renderable;
   duration?: number;
   path?: string;
   key: string;
@@ -44,8 +45,9 @@ export default function RealtimeNotifications() {
   useEffect(() => {
     if (!token) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socketUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
+    const socketUrl = createAuthenticatedSocketUrl(token);
+    let isOpen = false;
+    let shouldClose = false;
 
     const showToast = (event: RealtimeEvent) => {
       lastToastAtRef.current = Date.now();
@@ -207,6 +209,13 @@ export default function RealtimeNotifications() {
       const socket = new WebSocket(socketUrl);
       socketRef.current = socket;
 
+      socket.onopen = () => {
+        isOpen = true;
+        if (shouldClose) {
+          socket.close();
+        }
+      };
+
       socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -227,7 +236,7 @@ export default function RealtimeNotifications() {
       };
 
       socket.onerror = () => {
-        socket.close();
+        // Allow the socket to fail silently; reconnects are driven by onclose.
       };
     };
 
@@ -249,6 +258,7 @@ export default function RealtimeNotifications() {
     connect();
 
     return () => {
+      shouldClose = true;
       if (reconnectTimerRef.current) {
         window.clearTimeout(reconnectTimerRef.current);
       }
@@ -258,7 +268,9 @@ export default function RealtimeNotifications() {
       queuedEventsRef.current = [];
       if (socketRef.current) {
         socketRef.current.onclose = null;
-        socketRef.current.close();
+        if (isOpen) {
+          closeOpenSocket(socketRef.current);
+        }
       }
     };
   }, [token, user?.id, navigate]);

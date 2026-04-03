@@ -138,32 +138,32 @@ function pageLabel(pathname: string) {
   if (pathname.startsWith("/admin/broadcast")) return "Broadcast";
   if (pathname.startsWith("/admin/security")) return "Security";
   if (pathname.startsWith("/admin/settings")) return "Settings";
-  return "Overview";
+  return "Controller";
 }
 
 function fallbackInsight(pathname: string) {
   if (pathname.startsWith("/admin/platform")) {
-    return "FORGE is recalibrating the platform launch queue and will return with a fresh command sentence in a moment.";
+    return "FORGE is recalibrating the platform launch queue and will return with a fresh controller sentence in a moment.";
   }
   if (pathname.startsWith("/admin/tenants")) {
-    return "FORGE is reloading tenant signals so this surface opens with the most relevant workspace insight.";
+    return "FORGE is reloading tenant signals so this surface opens with the most relevant controller insight.";
   }
   if (pathname.startsWith("/admin/users")) {
-    return "FORGE is rebuilding the live user signal map for this admin page.";
+    return "FORGE is rebuilding the live user signal map for this controller page.";
   }
   if (pathname.startsWith("/admin/revenue")) {
-    return "FORGE is refreshing the revenue projection and recurring income signal for this view.";
+    return "FORGE is refreshing the revenue projection and recurring income signal for this controller view.";
   }
   if (pathname.startsWith("/admin/broadcast")) {
-    return "FORGE is scanning broadcast reach and open-rate performance for the latest command sentence.";
+    return "FORGE is scanning broadcast reach and open-rate performance for the latest controller sentence.";
   }
   if (pathname.startsWith("/admin/security")) {
-    return "FORGE is checking the security console for the next operator-priority gap.";
+    return "FORGE is checking the security console for the next controller-priority gap.";
   }
   if (pathname.startsWith("/ops") || pathname.startsWith("/admin/health")) {
-    return "FORGE is reviewing health telemetry to surface the single most important system status line.";
+    return "FORGE is reviewing health telemetry to surface the single most important controller status line.";
   }
-  return "FORGE is assembling a fresh operator insight for this admin surface.";
+  return "FORGE is assembling a fresh controller insight for this admin surface.";
 }
 
 export default function ForgeInsightBar() {
@@ -243,7 +243,7 @@ export default function ForgeInsightBar() {
           <div className="fib-mark">F</div>
           <div className="fib-copy">
             <div className="fib-top">
-              <div className="fib-kicker">FORGE Insight Bar</div>
+              <div className="fib-kicker">Ecosystem Controller Insight</div>
               <div className="fib-context admin-badge">{label}</div>
             </div>
             <div className="fib-line">

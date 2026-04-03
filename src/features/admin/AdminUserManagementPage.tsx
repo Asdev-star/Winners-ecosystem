@@ -46,26 +46,26 @@ type UserListResponse = {
 
 const css = `
   .umg-root{max-width:1440px;margin:0 auto;padding:26px 22px 88px;color:var(--text);font-family:'Syne',sans-serif}
-  .umg-shell{border:1px solid rgba(201,168,76,.18);border-radius:26px;overflow:hidden;background:linear-gradient(180deg,rgba(9,16,28,.98),rgba(12,22,36,.96));box-shadow:0 24px 80px rgba(0,0,0,.28)}
-  .umg-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:24px;border-bottom:1px solid rgba(201,168,76,.16);background:radial-gradient(circle at top right,rgba(201,168,76,.14),transparent 32%),linear-gradient(135deg,rgba(17,29,46,.94),rgba(13,24,38,.92))}
+  .umg-shell{border:1px solid rgba(201,168,76,.18);border-radius:32px;overflow:hidden;background:linear-gradient(180deg,rgba(9,16,28,.98),rgba(12,22,36,.96));box-shadow:0 28px 90px rgba(0,0,0,.28)}
+  .umg-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:24px 26px;border-bottom:1px solid rgba(201,168,76,.16);background:radial-gradient(circle at top right,rgba(201,168,76,.14),transparent 32%),linear-gradient(135deg,rgba(17,29,46,.94),rgba(13,24,38,.92))}
   .umg-kicker{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
   .umg-title{margin:10px 0 0;font-size:34px;font-weight:800;letter-spacing:-.05em}
   .umg-sub{margin:10px 0 0;color:var(--text-dim);font-size:14px;line-height:1.6;max-width:780px}
   .umg-actions,.umg-row-actions,.umg-toolbar,.umg-filters,.umg-bulk{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .umg-body{padding:22px}
-  .umg-banner{margin-bottom:16px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03);font-size:13px}
+  .umg-body{padding:24px}
+  .umg-banner{margin-bottom:16px;padding:12px 14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.03);font-size:13px}
   .umg-banner.error{border-color:rgba(224,90,78,.26);color:#ffcbc5;background:rgba(224,90,78,.08)}
   .umg-btn,.umg-link,.umg-select{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid rgba(201,168,76,.22);background:rgba(201,168,76,.08);color:var(--gold);font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;cursor:pointer}
   .umg-btn.ghost,.umg-link.ghost{background:rgba(255,255,255,.03);border-color:var(--border);color:var(--text-dim)}
   .umg-btn.danger{border-color:rgba(224,90,78,.24);background:rgba(224,90,78,.1);color:#ff978f}
   .umg-btn:disabled{opacity:.55;cursor:not-allowed}
   .umg-select{appearance:none;background:rgba(13,24,38,.92);text-transform:none;color:var(--text)}
-  .umg-signal{margin-bottom:18px;padding:18px 20px;border-radius:18px;border:1px solid rgba(201,168,76,.22);background:radial-gradient(circle at top right,rgba(137,196,225,.12),transparent 34%),linear-gradient(135deg,rgba(17,29,46,.94),rgba(13,24,38,.92))}
+  .umg-signal{margin-bottom:18px;padding:20px 22px;border-radius:24px;border:1px solid rgba(201,168,76,.22);background:radial-gradient(circle at top right,rgba(137,196,225,.12),transparent 34%),linear-gradient(135deg,rgba(17,29,46,.94),rgba(13,24,38,.92))}
   .umg-signal-copy{margin:8px 0 0;color:#f4f0df;font-size:15px;line-height:1.7}
   .umg-filter-pill{display:inline-flex;align-items:center;justify-content:center;padding:9px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text-dim);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
   .umg-filter-pill.active{border-color:rgba(201,168,76,.26);background:rgba(201,168,76,.1);color:var(--gold)}
-  .umg-search{min-width:260px;border-radius:10px;border:1px solid var(--border);background:rgba(13,24,38,.86);color:var(--text);padding:10px 12px}
-  .umg-table-wrap{overflow:auto;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(17,29,46,.74),rgba(13,24,38,.78))}
+  .umg-search{min-width:260px;border-radius:14px;border:1px solid var(--border);background:rgba(13,24,38,.86);color:var(--text);padding:10px 12px}
+  .umg-table-wrap{overflow:auto;border-radius:24px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(17,29,46,.74),rgba(13,24,38,.78))}
   .umg-table{width:100%;border-collapse:collapse;min-width:1240px}
   .umg-table th,.umg-table td{padding:14px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;font-size:13px}
   .umg-table th{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
@@ -86,8 +86,8 @@ const css = `
   .umg-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
   .umg-badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.05);font-family:'Space Mono',monospace;font-size:10px;color:var(--text-dim)}
   .umg-check{width:16px;height:16px}
-  .umg-pagination{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px;border-top:1px solid var(--border)}
-  .umg-empty{padding:20px;border:1px dashed var(--border);border-radius:14px;color:var(--text-dim);background:rgba(255,255,255,.03)}
+  .umg-pagination{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 18px;border-top:1px solid var(--border)}
+  .umg-empty{padding:20px;border:1px dashed var(--border);border-radius:18px;color:var(--text-dim);background:rgba(255,255,255,.03)}
   @media (max-width:760px){.umg-body,.umg-head{padding:16px}.umg-title{font-size:28px}.umg-toolbar,.umg-pagination{align-items:stretch;flex-direction:column}.umg-search{width:100%;min-width:0}}
 `;
 
@@ -321,9 +321,9 @@ export default function AdminUserManagementPage() {
       <div className="umg-shell">
         <div className="umg-head">
           <div>
-            <div className="umg-kicker">Admin / Users</div>
+            <div className="umg-kicker">Ecosystem Controller / Users</div>
             <h1 className="umg-title">User Management</h1>
-            <p className="umg-sub">Canonical sovereign control for user trust, access, role changes, plan control, and intervention across the ecosystem.</p>
+            <p className="umg-sub">Canonical control for user trust, access, role changes, plan changes, and intervention across the ecosystem.</p>
           </div>
           <div className="umg-actions">
             <Link className="umg-link ghost" to="/admin/overview">Back to overview</Link>

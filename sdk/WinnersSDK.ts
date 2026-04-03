@@ -603,7 +603,7 @@ class WebhookResource {
     if (!body || typeof body !== "object") return null;
     const b = body as Record<string, unknown>;
     if (!b.event || !b.timestamp || !b.data) return null;
-    return b as WebhookEvent;
+    return b as unknown as WebhookEvent;
   }
 }
 
@@ -746,7 +746,232 @@ class WhiteLabelResource {
 
 // ─── Main SDK Class ────────────────────────────────────────────────────────────
 
+export interface AuthSessionUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  tenantId: string;
+  tenantName?: string;
+}
+
+export interface AuthSession {
+  token: string;
+  refreshToken: string;
+  user: AuthSessionUser;
+}
+
+export interface TenantSummary {
+  id: string;
+  name: string;
+  plan: string;
+  createdAt?: string;
+  memberCount?: number;
+}
+
+export interface UserProfileData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  country?: string | null;
+  city?: string | null;
+  bio?: string | null;
+  skills?: string[];
+  industry?: string | null;
+  isPublicProfile?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: string;
+  link?: string;
+}
+
+export interface SocialAccount {
+  id: string;
+  platform: string;
+  username?: string;
+  displayName?: string;
+  createdAt?: string;
+}
+
+export interface JobListing {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  currency?: string;
+}
+
+export interface ContractData {
+  id: string;
+  title?: string;
+  status?: string;
+  createdAt?: string;
+}
+
+export interface CloudOverviewData {
+  apiKeys?: number;
+  connectors?: number;
+  activeAutomations?: number;
+  activeAgents?: number;
+  creditsUsed30d?: number;
+  apiCalls30d?: number;
+}
+
+class AuthResource {
+  constructor(private readonly http: HTTPClient) {}
+  register(data: { email: string; password: string; name: string; refCode?: string }) { return this.http.post<AuthSession>("/auth/register", data); }
+  login(data: { email: string; password: string }) { return this.http.post<AuthSession>("/auth/login", data); }
+  refresh(data: { refreshToken: string }) { return this.http.post<AuthSession>("/auth/refresh", data); }
+  me() { return this.http.get<{ user: AuthSessionUser }>("/auth/me"); }
+  acceptInvite(data: { token: string; name: string; password: string }) { return this.http.post<{ message: string; user?: AuthSessionUser }>("/auth/accept-invite", data); }
+  googleExchange(data: { code: string; redirectUri?: string }) { return this.http.post<AuthSession>("/auth/google/exchange", data); }
+  facebookExchange(data: { code: string; redirectUri?: string }) { return this.http.post<AuthSession>("/auth/facebook/exchange", data); }
+}
+
+class TenantsResource {
+  constructor(private readonly http: HTTPClient) {}
+  getCurrent() { return this.http.get<TenantSummary>("/tenants/me"); }
+  updateCurrent(data: { name?: string; settings?: { timezone?: string; currency?: string; fiscalMonth?: number } }) { return this.http.patch<{ message: string; tenant: TenantSummary }>("/tenants/me", data); }
+  listMembers() { return this.http.get<{ tenantId: string; members: Array<{ id: string; name: string; email: string; role: string; createdAt: string }>; total: number }>("/tenants/me/members"); }
+  getBilling() { return this.http.get<{ tenantId: string; plan: string; status: string; nextBillingDate: string; seats: { used: number; limit: number }; monthlyCost: number }>("/tenants/me/billing"); }
+  deleteCurrent() { return this.http.delete<{ message: string; tenantId: string; deletedAt: string }>("/tenants/me"); }
+}
+
+class ProfileResource {
+  constructor(private readonly http: HTTPClient) {}
+  get() { return this.http.get<{ profile: UserProfileData }>("/profile"); }
+  saveOnboarding(data: Record<string, unknown>) { return this.http.post<{ message: string; route: string; supervisor: string; welcomeMessage?: string }>("/profile/onboarding", data); }
+  update(data: Partial<UserProfileData>) { return this.http.patch<{ message: string; profile: UserProfileData }>("/profile", data); }
+  updatePassword(data: { currentPassword: string; newPassword: string }) { return this.http.patch<{ message: string }>("/profile/password", data); }
+  delete() { return this.http.delete<{ message: string }>("/profile"); }
+}
+
+class NotificationsResource {
+  constructor(private readonly http: HTTPClient) {}
+  list() { return this.http.get<{ notifications: NotificationItem[]; total: number; unread: number }>("/notifications"); }
+  registerDeviceToken(data: { token: string; platform?: string; userAgent?: string }) { return this.http.post<{ success: boolean }>("/notifications/device-token", data); }
+  unregisterDeviceToken(token: string) { return this.http.request<{ success: boolean }>("DELETE", "/notifications/device-token", { token }); }
+  markRead(notificationId: string) { return this.http.patch<{ message: string }>(`/notifications/${notificationId}/read`, {}); }
+  markAllRead() { return this.http.patch<{ message: string }>("/notifications/read-all", {}); }
+  delete(notificationId: string) { return this.http.delete<{ message: string }>(`/notifications/${notificationId}`); }
+  clearAll() { return this.http.delete<{ message: string }>("/notifications"); }
+  create(data: Record<string, unknown>) { return this.http.post<{ notification: NotificationItem }>("/notifications", data); }
+  getPreferences() { return this.http.get<Record<string, unknown>>("/notifications/preferences"); }
+  updatePreferences(patch: Record<string, boolean | undefined>) { return this.http.patch<Record<string, unknown>>("/notifications/preferences", patch); }
+  testPush(data: { title: string; body: string; userId?: string; type?: string }) { return this.http.post<{ success: boolean }>("/notifications/push/test", data); }
+}
+
+class SocialResource {
+  constructor(private readonly http: HTTPClient) {}
+  listAccounts() { return this.http.get<SocialAccount[]>("/social/accounts"); }
+  connectAccount(data: { platform: string }) { return this.http.post<{ authUrl: string; platform: string; message: string }>("/social/accounts/connect", data); }
+  connectDemoAccount(data: { platform: string; username: string }) { return this.http.post<{ id: string; platform: string; username: string; displayName: string; message: string }>("/social/accounts/connect/demo", data); }
+  disconnectAccount(accountId: string) { return this.http.delete<{ message: string }>(`/social/accounts/${accountId}`); }
+  syncAccount(accountId: string) { return this.http.post<{ message: string; lastSynced: string }>(`/social/accounts/${accountId}/sync`, {}); }
+  publish(data: { content: string; mediaUrls?: string[]; communityPostId?: string; platforms: string[] }) { return this.http.post<{ results: Array<{ platform: string; status: string; message?: string; error?: string }> }>("/social/publish", data); }
+  schedule(data: { content: string; mediaUrls?: string[]; communityPostId?: string; platform: string; scheduledFor: string }) { return this.http.post<{ id: string; platform: string; scheduledFor: string; message: string }>("/social/schedule", data); }
+  listScheduled() { return this.http.get<{ scheduled: Array<{ id: string; platform: string; scheduledFor: string }> }>("/social/scheduled"); }
+  deleteScheduled(scheduleId: string) { return this.http.delete<{ success: boolean }>(`/social/scheduled/${scheduleId}`); }
+  getAnalyticsOverview() { return this.http.get<Record<string, unknown>>("/social/analytics/overview"); }
+  getAnalyticsByPlatform(platform: string) { return this.http.get<Record<string, unknown>>(`/social/analytics/platform/${platform}`); }
+  getAnalyticsPosts() { return this.http.get<Record<string, unknown>>("/social/analytics/posts"); }
+  getAnalyticsGrowth() { return this.http.get<Record<string, unknown>>("/social/analytics/growth"); }
+  getAnalyticsBestTimes() { return this.http.get<Record<string, unknown>>("/social/analytics/best-times"); }
+  getNovaInsights() { return this.http.get<Record<string, unknown>>("/social/nova/insights"); }
+  createNovaPrediction(data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>("/social/nova/prediction", data); }
+  getNovaRoiReport() { return this.http.get<Record<string, unknown>>("/social/nova/roi-report"); }
+  getNovaWeeklyBriefing() { return this.http.get<Record<string, unknown>>("/social/nova/weekly-briefing"); }
+  listConnections() { return this.http.get<Record<string, unknown>>("/social/connections"); }
+  deleteConnection(connectionId: string) { return this.http.delete<{ success: boolean }>(`/social/connections/${connectionId}`); }
+  connect(data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>("/social/connect", data); }
+  getSuggestions() { return this.http.get<Record<string, unknown>>("/social/suggestions"); }
+  updateCollab(collabId: string, data: Record<string, unknown>) { return this.http.patch<Record<string, unknown>>(`/social/collab/${collabId}`, data); }
+}
+
+class WorkResource {
+  constructor(private readonly http: HTTPClient) {}
+  listJobs(params?: { page?: number; limit?: number; category?: string; jobType?: string; search?: string; status?: string }) {
+    const query = new URLSearchParams(Object.entries(params ?? {}).reduce<Record<string, string>>((acc, [key, value]) => { if (value !== undefined && value !== null) acc[key] = String(value); return acc; }, {})).toString();
+    return this.http.get<{ jobs: JobListing[]; total: number; page?: number; pages?: number }>(`/work/jobs${query ? `?${query}` : ""}`);
+  }
+  getJob(jobId: string) { return this.http.get<JobListing>(`/work/jobs/${jobId}`); }
+  createJob(data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>("/work/jobs", data); }
+  updateJob(jobId: string, data: Record<string, unknown>) { return this.http.patch<Record<string, unknown>>(`/work/jobs/${jobId}`, data); }
+  deleteJob(jobId: string) { return this.http.delete<{ success: boolean }>(`/work/jobs/${jobId}`); }
+  listFreelancers(params?: { page?: number; limit?: number; search?: string; skill?: string }) {
+    const query = new URLSearchParams(Object.entries(params ?? {}).reduce<Record<string, string>>((acc, [key, value]) => { if (value !== undefined && value !== null) acc[key] = String(value); return acc; }, {})).toString();
+    return this.http.get<{ freelancers: Array<Record<string, unknown>>; total?: number }>(`/work/freelancers${query ? `?${query}` : ""}`);
+  }
+  getMyFreelancerProfile() { return this.http.get<{ freelancer: Record<string, unknown> }>("/work/freelancers/me"); }
+  createFreelancerProfile(data: Record<string, unknown>) { return this.http.post<{ freelancer: Record<string, unknown> }>("/work/freelancers", data); }
+  getFreelancer(freelancerId: string) { return this.http.get<Record<string, unknown>>(`/work/freelancers/${freelancerId}`); }
+  createPortfolio(data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>("/work/freelancers/portfolio", data); }
+  applyToJob(jobId: string, data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>(`/work/jobs/${jobId}/apply`, data); }
+  listJobApplications(jobId: string) { return this.http.get<Record<string, unknown>>(`/work/jobs/${jobId}/applications`); }
+  listMyApplications() { return this.http.get<Record<string, unknown>>("/work/applications/mine"); }
+  updateApplicationStatus(applicationId: string, data: Record<string, unknown>) { return this.http.patch<Record<string, unknown>>(`/work/applications/${applicationId}/status`, data); }
+  listContracts(params?: { page?: number; limit?: number; status?: string }) {
+    const query = new URLSearchParams(Object.entries(params ?? {}).reduce<Record<string, string>>((acc, [key, value]) => { if (value !== undefined && value !== null) acc[key] = String(value); return acc; }, {})).toString();
+    return this.http.get<{ contracts: ContractData[] }>(`/work/contracts${query ? `?${query}` : ""}`);
+  }
+  getContract(contractId: string) { return this.http.get<ContractData>(`/work/contracts/${contractId}`); }
+  getCircuitRecommendations() { return this.http.get<Record<string, unknown>>("/work/circuit/recommendations"); }
+  createCircuitProposal(jobId: string, data?: Record<string, unknown>) { return this.http.post<Record<string, unknown>>(`/work/circuit/proposal/${jobId}`, data ?? {}); }
+  reviewContract(contractId: string, data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>(`/work/contracts/${contractId}/review`, data); }
+  getContractReviews(contractId: string) { return this.http.get<Record<string, unknown>>(`/work/contracts/${contractId}/reviews`); }
+  getStats() { return this.http.get<Record<string, unknown>>("/work/stats"); }
+}
+
+class CloudResource {
+  constructor(private readonly http: HTTPClient) {}
+  getOverview() { return this.http.get<CloudOverviewData>("/cloud/overview"); }
+  listApiKeys() { return this.http.get<{ keys: Array<Record<string, unknown>> }>("/cloud/keys"); }
+  createApiKey(data: { name: string; scopes?: string[]; rateLimitRpm?: number; expiresAt?: string }) { return this.http.post<{ key: Record<string, unknown>; message: string }>("/cloud/keys", data); }
+  revokeApiKey(keyId: string) { return this.http.delete<{ success: boolean }>(`/cloud/keys/${keyId}`); }
+  listConnectors(params?: { category?: string; search?: string }) {
+    const query = new URLSearchParams(Object.entries(params ?? {}).reduce<Record<string, string>>((acc, [key, value]) => { if (value !== undefined && value !== null) acc[key] = String(value); return acc; }, {})).toString();
+    return this.http.get<{ connectors: Array<Record<string, unknown>> }>(`/cloud/connectors${query ? `?${query}` : ""}`);
+  }
+  listInstalledConnectors() { return this.http.get<{ installs: Array<Record<string, unknown>> }>("/cloud/connectors/installed"); }
+  installConnector(connectorId: string) { return this.http.post<{ install: Record<string, unknown> }>(`/cloud/connectors/${connectorId}/install`, {}); }
+  uninstallConnector(installId: string) { return this.http.delete<{ success: boolean }>(`/cloud/connectors/installed/${installId}`); }
+  listWebhooks() { return this.http.get<{ webhooks: Array<Record<string, unknown>> }>("/cloud/webhooks"); }
+  createWebhook(data: { url: string; events: string[] }) { return this.http.post<{ webhook: Record<string, unknown> }>("/cloud/webhooks", data); }
+  deleteWebhook(webhookId: string) { return this.http.delete<{ success: boolean }>(`/cloud/webhooks/${webhookId}`); }
+  getWebhookDeliveries(webhookId: string) { return this.http.get<{ deliveries: Array<Record<string, unknown>> }>(`/cloud/webhooks/${webhookId}/deliveries`); }
+  listAutomations() { return this.http.get<{ automations: Array<Record<string, unknown>> }>("/cloud/automations"); }
+  createAutomation(data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>("/cloud/automations", data); }
+  updateAutomation(automationId: string, data: Record<string, unknown>) { return this.http.patch<Record<string, unknown>>(`/cloud/automations/${automationId}`, data); }
+  deleteAutomation(automationId: string) { return this.http.delete<{ success: boolean }>(`/cloud/automations/${automationId}`); }
+  getAutomationRuns(automationId: string) { return this.http.get<Record<string, unknown>>(`/cloud/automations/${automationId}/runs`); }
+  listAgents() { return this.http.get<{ agents: Array<Record<string, unknown>> }>("/cloud/agents"); }
+  createAgent(data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>("/cloud/agents", data); }
+  updateAgent(agentId: string, data: Record<string, unknown>) { return this.http.patch<Record<string, unknown>>(`/cloud/agents/${agentId}`, data); }
+  deleteAgent(agentId: string) { return this.http.delete<{ success: boolean }>(`/cloud/agents/${agentId}`); }
+  getAgentRuns(agentId: string) { return this.http.get<Record<string, unknown>>(`/cloud/agents/${agentId}/runs`); }
+  getUsage() { return this.http.get<Record<string, unknown>>("/cloud/usage"); }
+  getSites() { return this.http.get<Record<string, unknown>>("/cloud/sites"); }
+  listDnsZones() { return this.http.get<Record<string, unknown>>("/cloud/dns"); }
+  createDnsZone(data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>("/cloud/dns", data); }
+  createDnsRecord(zoneId: string, data: Record<string, unknown>) { return this.http.post<Record<string, unknown>>(`/cloud/dns/${zoneId}/records`, data); }
+}
+
 export class WinnersSDK {
+  public readonly auth: AuthResource;
+  public readonly tenants: TenantsResource;
+  public readonly profile: ProfileResource;
+  public readonly notifications: NotificationsResource;
+  public readonly social: SocialResource;
+  public readonly work: WorkResource;
+  public readonly cloud: CloudResource;
   public readonly analytics: AnalyticsResource;
   public readonly community: CommunityResource;
   public readonly users: UsersResource;
@@ -774,6 +999,13 @@ export class WinnersSDK {
     };
 
     this.http = new HTTPClient(resolved);
+    this.auth = new AuthResource(this.http);
+    this.tenants = new TenantsResource(this.http);
+    this.profile = new ProfileResource(this.http);
+    this.notifications = new NotificationsResource(this.http);
+    this.social = new SocialResource(this.http);
+    this.work = new WorkResource(this.http);
+    this.cloud = new CloudResource(this.http);
     this.analytics = new AnalyticsResource(this.http);
     this.community = new CommunityResource(this.http);
     this.users = new UsersResource(this.http);
@@ -786,6 +1018,16 @@ export class WinnersSDK {
     this.webhooks = new WebhookResource(this.http);
     this.plugins = new PluginResource(this.http);
     this.whitelabel = new WhiteLabelResource(this.http);
+  }
+
+  /** Escape hatch for any route exposed by the API gateway. */
+  request<T>(method: string, path: string, body?: unknown) {
+    return this.http.request<T>(method, path, body);
+  }
+
+  /** Stream any route that supports chunked or SSE-style responses. */
+  stream(method: string, path: string, body?: unknown, onChunk?: (chunk: string) => void) {
+    return this.http.stream(method, path, body, onChunk);
   }
 
   /** Get API health status */

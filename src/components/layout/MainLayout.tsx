@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
-import { Activity, Bell, BellOff, Compass, Home, LayoutGrid, Search, Settings, Signal, Users } from "lucide-react";
+import { Activity, Bell, BellOff, Compass, Eye, EyeOff, Home, LayoutGrid, PanelLeft, PanelLeftClose, Search, Settings, Signal, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import TenantSwitcher from "../ui/TenantSwitcher";
@@ -87,6 +87,40 @@ const shellCss = `
     background: color-mix(in srgb, var(--surface) 95%, transparent);
     border-right: 1px solid var(--border);
     backdrop-filter: blur(18px);
+    transition: width 200ms ease, opacity 200ms ease;
+  }
+
+  .ml-sidebar.collapsed {
+    width: 64px;
+    opacity: 0.6;
+  }
+
+  .ml-sidebar.collapsed:hover {
+    opacity: 1;
+  }
+
+  .ml-sidebar-toggle {
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: all 160ms ease;
+    z-index: 10;
+  }
+
+  .ml-sidebar-toggle:hover {
+    background: var(--gold);
+    color: var(--bg);
+    border-color: var(--gold);
   }
 
   .ml-brand {
@@ -144,6 +178,36 @@ const shellCss = `
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--text-dim);
+  }
+
+  .ml-sidebar.collapsed .ml-section-label {
+    display: none;
+  }
+
+  .ml-sidebar.collapsed .ml-nav-link {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .ml-sidebar.collapsed .ml-nav-label {
+    display: none;
+  }
+
+  .ml-sidebar.collapsed .ml-nav-icon {
+    margin: 0;
+  }
+
+  .ml-sidebar.collapsed .ml-user {
+    justify-content: center;
+    padding: 8px;
+  }
+
+  .ml-sidebar.collapsed .ml-user > div:last-child {
+    display: none;
+  }
+
+  .ml-sidebar.collapsed .ml-signout {
+    font-size: 0;
   }
 
   .ml-nav-link {
@@ -405,6 +469,10 @@ const shellCss = `
     padding: 20px;
   }
 
+  .ml-content.hidden {
+    display: none;
+  }
+
   .ml-hero-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.75fr);
@@ -640,6 +708,9 @@ const shellCss = `
     .ml-sidebar {
       width: 248px;
     }
+    .ml-sidebar.collapsed {
+      width: 64px;
+    }
   }
 
   @media (max-width: 860px) {
@@ -653,6 +724,20 @@ const shellCss = `
 
     .ml-sidebar.open {
       transform: translateX(0);
+    }
+
+    .ml-sidebar.collapsed {
+      width: 64px;
+      transform: translateX(-100%);
+    }
+
+    .ml-sidebar.collapsed.open {
+      transform: translateX(0);
+    }
+
+    .ml-sidebar-toggle {
+      display: none;
+    }
       box-shadow: 8px 0 40px rgba(0, 0, 0, 0.35);
     }
 
@@ -705,7 +790,9 @@ export default function MainLayout() {
   const logout = useAuthStore((state) => state.logout);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [mainContentVisible, setMainContentVisible] = useState(true);
   const [omegaWelcome, setOmegaWelcome] = useState<OmegaLaunchWelcome | null>(null);
   const { health } = useEcosystemHealth();
   const {
@@ -804,49 +891,56 @@ export default function MainLayout() {
   return (
     <div className={`ml-root${shellPath.startsWith("/admin") ? " admin-realm" : ""}`}>
       <style>{shellCss}</style>
-      <div className={`ml-sidebar${sidebarOpen ? " open" : ""}`}>
-        <div className="ml-brand">
-          <div className="ml-brand-mark">⚔</div>
-          <div style={{ minWidth: 0 }}>
-            <div className="ml-brand-name">Winners Ecosystem</div>
-            <div className="ml-brand-copy">Guide fast. Feel easy. Reward quickly.</div>
-          </div>
-        </div>
+      <div className={`ml-sidebar${sidebarOpen ? " open" : ""}${sidebarCollapsed ? " collapsed" : ""}`}>
+        <button
+          className="ml-sidebar-toggle"
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {sidebarCollapsed ? <PanelLeft size={14} /> : <PanelLeftClose size={14} />}
+        </button>
+        {!sidebarCollapsed && (
+          <>
+            <div className="ml-brand">
+              <div className="ml-brand-mark">⚔</div>
+              <div style={{ minWidth: 0 }}>
+                <div className="ml-brand-name">Winners Ecosystem</div>
+                <div className="ml-brand-copy">Guide fast. Feel easy. Reward quickly.</div>
+              </div>
+            </div>
 
-        <div className="ml-switcher">
-          <TenantSwitcher
-            onCreateNew={() => {
-              navigate("/onboarding");
-              closeSidebar();
-            }}
-          />
-        </div>
+            <div className="ml-switcher">
+              <TenantSwitcher
+                onCreateNew={() => {
+                  navigate("/onboarding");
+                  closeSidebar();
+                }}
+              />
+            </div>
+          </>
+        )}
 
         <div className="ml-nav">
-          <div className="ml-section-label">Primary</div>
           {PRIMARY_NAV.map((item) => (
             <NavItem key={item.path} {...item} />
           ))}
-
-          <div className="ml-section-label">Shortcuts</div>
-          {QUICK_NAV.map((item) => (
-            <NavItem key={item.path} {...item} />
-          ))}
         </div>
 
-        <div className="ml-footer">
-          <div className="ml-user" onClick={() => { navigate("/profile"); closeSidebar(); }}>
-            <div className="ml-user-avatar">{initials}</div>
-            <div style={{ minWidth: 0 }}>
-              <p className="ml-user-name">{user?.name ?? "Winner"}</p>
-              <p className="ml-user-role">{user?.role ?? "Member"}</p>
+        {!sidebarCollapsed && (
+          <div className="ml-footer">
+            <div className="ml-user" onClick={() => { navigate("/profile"); closeSidebar(); }}>
+              <div className="ml-user-avatar">{initials}</div>
+              <div style={{ minWidth: 0 }}>
+                <p className="ml-user-name">{user?.name ?? "Winner"}</p>
+                <p className="ml-user-role">{user?.role ?? "Member"}</p>
+              </div>
             </div>
-          </div>
 
-          <button className="ml-signout" type="button" onClick={signOut}>
-            Sign out
-          </button>
-        </div>
+            <button className="ml-signout" type="button" onClick={signOut}>
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="ml-main">
@@ -868,6 +962,15 @@ export default function MainLayout() {
           </div>
 
           <div className="ml-header-right">
+            <button
+              type="button"
+              className="ml-chip"
+              onClick={() => setMainContentVisible(!mainContentVisible)}
+              title={mainContentVisible ? "Hide content" : "Show content"}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              {mainContentVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+            </button>
             <div className="ml-chip primary">{modeLabel}</div>
             <div className="ml-chip">{aiStatusLabel}</div>
             <button type="button" className="ml-chip" onClick={() => setCommandPaletteOpen(true)}>
@@ -942,7 +1045,7 @@ export default function MainLayout() {
           </section>
         )}
 
-        <main className="ml-content">
+        <main className={`ml-content${!mainContentVisible ? " hidden" : ""}`}>
           <LayerSubNav config={layerSubNav} />
           <Outlet />
         </main>

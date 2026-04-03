@@ -1813,4 +1813,240 @@ router.get("/errors", async (_req, res) => {
   }
 });
 
+// --- ECOSYSTEM SETTINGS ---
+export const DEFAULT_ECOSYSTEM_SETTINGS = {
+  language: "en",
+  defaultCurrency: "USD",
+  defaultTimezone: "UTC",
+  brandColor: "#C9A84C",
+  accentColor: "#89C4E1",
+  darkMode: false,
+  adaptiveLanguage: true,
+  mobileAppVersion: "1.0.0",
+  pushNotifications: true,
+  analyticsTracking: true,
+  publicRegistration: true,
+  requireEmailVerification: false,
+  defaultTheme: "light",
+  countryLanguageMapping: [
+    { country: "US", language: "en" },
+    { country: "GB", language: "en" },
+    { country: "NG", language: "en" },
+    { country: "KE", language: "en" },
+    { country: "GH", language: "en" },
+    { country: "ZA", language: "en" },
+    { country: "EG", language: "ar" },
+    { country: "SA", language: "ar" },
+    { country: "AE", language: "ar" },
+    { country: "FR", language: "fr" },
+    { country: "ES", language: "es" },
+    { country: "DE", language: "de" },
+    { country: "CN", language: "zh" },
+    { country: "JP", language: "ja" },
+    { country: "BR", language: "pt" },
+  ],
+  mobileBehaviors: {
+    offlineMode: true,
+    biometricLogin: true,
+    pushNotifications: true,
+    autoUpdate: true,
+    analyticsTracking: true,
+    crashReporting: true,
+  },
+  personalization: {
+    recommendedContent: true,
+    learningPath: true,
+    notifications: true,
+  },
+};
+
+router.get("/settings", async (_req, res) => {
+  try {
+    const settingsRecords = await db.ecosystemSettings.findMany();
+    const settings: Record<string, unknown> = {};
+    for (const record of settingsRecords) {
+      settings[record.key] = record.value;
+    }
+    const merged = { ...DEFAULT_ECOSYSTEM_SETTINGS, ...settings };
+    return res.json(merged);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.put("/settings", async (req, res) => {
+  try {
+    const actor = getAdminActor(req);
+    const updates = req.body as Record<string, unknown>;
+    for (const [key, value] of Object.entries(updates)) {
+      await db.ecosystemSettings.upsert({
+        where: { key },
+        create: { key, value, updatedBy: actor.email },
+        update: { value, updatedBy: actor.email, updatedAt: new Date() },
+      });
+    }
+    await recordAdminAction({ actor, action: "ECOSYSTEM_SETTINGS_UPDATED", summary: "Updated ecosystem settings", metadata: { keys: Object.keys(updates) } });
+    return res.json({ message: "Settings updated", keys: Object.keys(updates) });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.get("/settings/country-mapping", async (_req, res) => {
+  try {
+    const record = await db.ecosystemSettings.findUnique({ where: { key: "countryLanguageMapping" } });
+    return res.json(record?.value ?? DEFAULT_ECOSYSTEM_SETTINGS.countryLanguageMapping);
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.put("/settings/country-mapping", async (req, res) => {
+  try {
+    const actor = getAdminActor(req);
+    const mapping = req.body as Array<{ country: string; language: string }>;
+    await db.ecosystemSettings.upsert({
+      where: { key: "countryLanguageMapping" },
+      create: { key: "countryLanguageMapping", value: mapping, updatedBy: actor.email },
+      update: { value: mapping, updatedBy: actor.email, updatedAt: new Date() },
+    });
+    await recordAdminAction({ actor, action: "COUNTRY_MAPPING_UPDATED", summary: "Updated country-language mapping", metadata: { count: mapping.length } });
+    return res.json({ message: "Mapping updated", count: mapping.length });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+// --- ANALYTICS DASHBOARD ---
+router.get("/analytics/dashboard", async (_req, res) => {
+  try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [totalDownloads, downloadsThisMonth, uniqueUsers, activeUsers, activitiesByType, activitiesByCountry, issues] = await Promise.all([
+      db.appDownload.count(),
+      db.appDownload.count({ where: { installedAt: { gte: thirtyDaysAgo } } }),
+      db.userActivity.findMany({ where: { createdAt: { gte: thirtyDaysAgo } }, select: { userId: true }, distinct: ["userId"] }),
+      db.userActivity.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      db.userActivity.groupBy({ by: ["event"], _count: true, where: { createdAt: { gte: thirtyDaysAgo } } }),
+      db.userActivity.groupBy({ by: ["country"], _count: true, where: { createdAt: { gte: thirtyDaysAgo }, country: { not: null } } }),
+      db.userActivity.findMany({ where: { issueType: { not: null }, createdAt: { gte: thirtyDaysAgo } }, orderBy: { createdAt: "desc" }, take: 50 }),
+    ]);
+
+    const platformStats = await db.appDownload.groupBy({ by: ["platform"], _count: true });
+    const activityStats = await db.userActivity.groupBy({ by: ["activity"], _count: true, where: { createdAt: { gte: thirtyDaysAgo } } });
+
+    return res.json({
+      downloads: { total: totalDownloads, thisMonth: downloadsThisMonth },
+      users: { unique: uniqueUsers.length, active: activeUsers },
+      platforms: platformStats,
+      activities: activityStats,
+      events: activitiesByType,
+      countries: activitiesByCountry,
+      issues: issues.map((i) => ({ ...i, issueData: i.issueData as Record<string, unknown> | null })),
+    });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.get("/analytics/activities", async (req, res) => {
+  try {
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 50);
+    const userId = req.query.userId as string | undefined;
+    const activity = req.query.activity as string | undefined;
+    const issueType = req.query.issueType as string | undefined;
+
+    const where: Record<string, unknown> = {};
+    if (userId) where.userId = userId;
+    if (activity) where.activity = activity;
+    if (issueType) where.issueType = issueType;
+
+    const [activities, total] = await Promise.all([
+      db.userActivity.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      db.userActivity.count({ where }),
+    ]);
+
+    return res.json({ activities, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.get("/analytics/downloads", async (req, res) => {
+  try {
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 50);
+    const platform = req.query.platform as string | undefined;
+
+    const where: Record<string, unknown> = {};
+    if (platform) where.platform = platform;
+
+    const [downloads, total] = await Promise.all([
+      db.appDownload.findMany({ where, orderBy: { installedAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      db.appDownload.count({ where }),
+    ]);
+
+    return res.json({ downloads, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/analytics/track", async (req, res) => {
+  try {
+    const actor = getAdminActor(req);
+    const { userId, tenantId, sessionId, event, activity, page, metadata, country, city, duration, issueType, issueData } = req.body;
+
+    await db.userActivity.create({
+      data: {
+        userId: userId ?? actor.userId,
+        tenantId: tenantId ?? actor.tenantId,
+        sessionId,
+        event: event ?? "unknown",
+        activity: activity ?? "unknown",
+        page,
+        metadata: metadata ?? {},
+        country,
+        city,
+        duration,
+        issueType,
+        issueData: issueData ?? {},
+      },
+    });
+
+    return res.json({ message: "Activity tracked" });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
+router.post("/analytics/app-download", async (req, res) => {
+  try {
+    const { userId, tenantId, platform, platformVersion, appVersion, country, city, deviceModel, osVersion, language, isFirstDownload } = req.body;
+
+    await db.appDownload.create({
+      data: {
+        userId,
+        tenantId,
+        platform,
+        platformVersion,
+        appVersion: appVersion ?? "1.0.0",
+        country,
+        city,
+        deviceModel,
+        osVersion,
+        language,
+        isFirstDownload: isFirstDownload ?? false,
+      },
+    });
+
+    return res.json({ message: "Download recorded" });
+  } catch (err) {
+    return res.status(500).json({ message: errorMessage(err) });
+  }
+});
+
 export default router;

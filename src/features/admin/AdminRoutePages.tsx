@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+﻿import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
@@ -186,16 +186,11 @@ type ConsoleLink = {
 };
 
 const CONSOLE_LINKS: ConsoleLink[] = [
-  { path: "/admin/overview", icon: "⬡", title: "Overview", desc: "Ecosystem command view" },
+  { path: "/admin/overview", icon: "⬡", title: "Overview", desc: "Command view" },
   { path: "/admin/platform", icon: "🚀", title: "Platform", desc: "Layer launch control" },
-  { path: "/admin/tenants", icon: "🏢", title: "Tenants", desc: "Workspace management" },
-  { path: "/admin/users", icon: "👥", title: "Users", desc: "Identity management" },
-  { path: "/admin/revenue", icon: "💰", title: "Revenue", desc: "Cross-layer revenue" },
-  { path: "/admin/forge", icon: "🤖", title: "FORGE", desc: "Supervisor panel" },
-  { path: "/admin/health", icon: "🩺", title: "Health", desc: "System uptime and services" },
-  { path: "/admin/broadcast", icon: "📢", title: "Broadcast", desc: "OMEGA-wide messages" },
-  { path: "/admin/security", icon: "🛡", title: "Security", desc: "RLS, GDPR, audit" },
-  { path: "/admin/settings", icon: "⚙", title: "Settings", desc: "Platform config" },
+  { path: "/admin/tenants", icon: "🏢", title: "Tenants", desc: "Workspace control" },
+  { path: "/admin/users", icon: "👥", title: "Users", desc: "Identity control" },
+  { path: "/admin/revenue", icon: "💰", title: "Revenue", desc: "Ecosystem revenue" },
 ];
 
 const AI_SUPERVISORS = [
@@ -212,7 +207,7 @@ const AI_SUPERVISORS = [
 
 const css = `
   .act-root {
-    max-width: 1160px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 24px 20px 80px;
     font-family: 'Syne', sans-serif;
@@ -225,8 +220,8 @@ const css = `
     gap: 16px;
     flex-wrap: wrap;
     margin-bottom: 18px;
-    padding: 22px 24px;
-    border-radius: 12px;
+    padding: 24px 26px;
+    border-radius: 20px;
     border: 1px solid rgba(201, 168, 76, 0.18);
     background: linear-gradient(135deg, rgba(13, 24, 38, 0.94), rgba(17, 29, 46, 0.92));
   }
@@ -262,7 +257,7 @@ const css = `
     border: 1px solid rgba(201, 168, 76, 0.28);
     background: rgba(201, 168, 76, 0.08);
     color: var(--gold);
-    border-radius: 8px;
+    border-radius: 999px;
     padding: 10px 14px;
     font-family: 'Space Mono', monospace;
     font-size: 11px;
@@ -289,7 +284,7 @@ const css = `
   .act-alert {
     margin-bottom: 14px;
     padding: 12px 14px;
-    border-radius: 10px;
+    border-radius: 16px;
     border: 1px solid var(--border);
     background: rgba(13, 24, 38, 0.72);
     font-size: 13px;
@@ -304,9 +299,9 @@ const css = `
   }
   .act-section {
     margin-top: 18px;
-    padding: 18px;
+    padding: 20px;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 20px;
     background: rgba(13, 24, 38, 0.62);
   }
   .act-section-title {
@@ -324,8 +319,8 @@ const css = `
   }
   .act-card {
     grid-column: span 3;
-    padding: 16px;
-    border-radius: 10px;
+    padding: 18px;
+    border-radius: 18px;
     border: 1px solid var(--border);
     background: var(--surface);
   }
@@ -389,7 +384,7 @@ const css = `
   .act-layer-card,
   .act-forge-card {
     padding: 16px;
-    border-radius: 10px;
+    border-radius: 18px;
     border: 1px solid var(--border);
     background: var(--surface);
     text-decoration: none;
@@ -475,7 +470,7 @@ const css = `
   }
   .act-table-wrap {
     overflow: hidden;
-    border-radius: 12px;
+    border-radius: 18px;
     border: 1px solid var(--border);
     background: var(--surface);
   }
@@ -484,12 +479,12 @@ const css = `
     justify-content: space-between;
     gap: 12px;
     align-items: center;
-    padding: 14px 16px;
+    padding: 16px 18px;
     border-bottom: 1px solid var(--border);
   }
   .act-search {
     min-width: 240px;
-    border-radius: 8px;
+    border-radius: 14px;
     border: 1px solid var(--border);
     background: rgba(13, 24, 38, 0.86);
     color: var(--text);
@@ -580,7 +575,7 @@ const css = `
   .act-textarea,
   .act-select {
     width: 100%;
-    border-radius: 8px;
+    border-radius: 14px;
     border: 1px solid var(--border);
     background: rgba(13, 24, 38, 0.86);
     color: var(--text);
@@ -602,8 +597,8 @@ const css = `
   }
   .atm-signal {
     margin-bottom: 18px;
-    padding: 18px 20px;
-    border-radius: 14px;
+    padding: 20px 22px;
+    border-radius: 20px;
     border: 1px solid rgba(201, 168, 76, 0.22);
     background:
       radial-gradient(circle at top right, rgba(137, 196, 225, 0.12), transparent 34%),
@@ -633,8 +628,8 @@ const css = `
     margin-bottom: 18px;
   }
   .atm-stat {
-    padding: 16px;
-    border-radius: 12px;
+    padding: 18px;
+    border-radius: 18px;
     border: 1px solid var(--border);
     background: linear-gradient(180deg, rgba(17, 29, 46, 0.88), rgba(13, 24, 38, 0.86));
   }
@@ -674,7 +669,7 @@ const css = `
   }
   .atm-select {
     min-width: 160px;
-    border-radius: 8px;
+    border-radius: 14px;
     border: 1px solid var(--border);
     background: rgba(13, 24, 38, 0.86);
     color: var(--text);
@@ -683,7 +678,7 @@ const css = `
   }
   .atm-table-wrap {
     overflow: hidden;
-    border-radius: 14px;
+    border-radius: 18px;
     border: 1px solid var(--border);
     background: linear-gradient(180deg, rgba(17, 29, 46, 0.74), rgba(13, 24, 38, 0.78));
   }
@@ -770,7 +765,7 @@ const css = `
   .atm-modal {
     width: min(420px, 100%);
     padding: 22px;
-    border-radius: 16px;
+    border-radius: 20px;
     border: 1px solid rgba(201, 168, 76, 0.22);
     background: linear-gradient(180deg, rgba(17, 29, 46, 0.98), rgba(11, 19, 31, 0.98));
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
@@ -787,9 +782,9 @@ const css = `
     font-size: 13px;
   }
   .act-empty {
-    padding: 18px;
+    padding: 20px;
     border: 1px dashed var(--border);
-    border-radius: 10px;
+    border-radius: 16px;
     color: var(--text-dim);
     background: rgba(13, 24, 38, 0.38);
   }
@@ -850,7 +845,7 @@ function fmtMoney(value: number, currency = "USD") {
 }
 
 function fmtDate(value?: string | null) {
-  if (!value) return "—";
+  if (!value) return "â€”";
   return new Date(value).toLocaleString();
 }
 
@@ -996,15 +991,15 @@ export function AdminOverviewPage() {
 
   return (
     <AdminConsoleShell
-      eyebrow="Admin Control Tower"
-      title="Ecosystem Command View"
-      subtitle="One sovereign surface for layer launches, workspace oversight, operator broadcasts, and platform-wide intelligence."
+      eyebrow="Ecosystem Controller"
+      title="Ecosystem Control View"
+      subtitle="One sovereign surface for the five primary decisions: launch layers, manage tenants, manage users, track revenue, and move fast on incidents."
       actions={<Link className="act-link-button ghost" to="/admin/platform">Open layer matrix</Link>}
     >
       <MessageBanner error={error} />
 
       {loading || !stats || !platforms ? (
-        <div className="act-empty">Loading sovereign overview…</div>
+        <div className="act-empty">Loading sovereign overviewâ€¦</div>
       ) : (
         <>
           <div className="act-grid">
@@ -1031,7 +1026,7 @@ export function AdminOverviewPage() {
           </div>
 
           <div className="act-section">
-            <h2 className="act-section-title">Sovereign Routes</h2>
+            <h2 className="act-section-title">Primary Control Routes</h2>
             <CommandDeck />
           </div>
 
@@ -1106,14 +1101,14 @@ export function AdminPlatformPage() {
 
   return (
     <AdminConsoleShell
-      eyebrow="Admin / Platform"
+      eyebrow="Ecosystem Controller / Platform"
       title="Layer Launch Control"
-      subtitle="Inspect readiness, dependencies, and sovereign launch status for every ecosystem layer."
+      subtitle="Inspect readiness, dependencies, and launch posture for every ecosystem layer."
     >
       <MessageBanner error={error} />
 
       {!data ? (
-        <div className="act-empty">Loading layer registry…</div>
+        <div className="act-empty">Loading layer registryâ€¦</div>
       ) : (
         <div className="act-layer-grid">
           {data.layers.map((layer) => (
@@ -1168,14 +1163,14 @@ export function AdminRevenuePage() {
 
   return (
     <AdminConsoleShell
-      eyebrow="Admin / Revenue"
+      eyebrow="Ecosystem Controller / Revenue"
       title="Revenue Across All Layers"
-      subtitle="Monitor sovereign revenue totals, plan distribution, and the latest multi-tenant revenue movement."
+      subtitle="Monitor revenue totals, plan distribution, and the latest multi-tenant movement."
     >
       <MessageBanner error={error} />
 
       {!stats ? (
-        <div className="act-empty">Loading revenue telemetry…</div>
+        <div className="act-empty">Loading revenue telemetryâ€¦</div>
       ) : (
         <>
           <div className="act-grid">
@@ -1312,9 +1307,9 @@ export function AdminPlatformLayerPage() {
 
   return (
     <AdminConsoleShell
-      eyebrow={`Admin / Platform / ${layerId || "layer"}`}
+      eyebrow={`Ecosystem Controller / Platform / ${layerId || "layer"}`}
       title={layer?.name ?? "Layer Deep-Dive"}
-      subtitle={layer?.description ?? "Inspect readiness, dependencies, activation state, and the sovereign directives available for this layer."}
+      subtitle={layer?.description ?? "Inspect readiness, dependencies, activation state, and the directives available for this layer."}
       actions={
         <>
           <button className="act-button ghost" onClick={() => navigate("/admin/platform")}>Back to layers</button>
@@ -1480,21 +1475,21 @@ export function AdminTenantsPage() {
 
   return (
     <AdminConsoleShell
-      eyebrow="Admin / Tenants"
+      eyebrow="Ecosystem Controller / Tenants"
       title="Workspace Management"
-      subtitle="Inspect every tenant in the ecosystem, monitor revenue, and step into a single workspace for sovereign action."
+      subtitle="Inspect every tenant in the ecosystem, monitor revenue, and step into a single workspace for action."
     >
       <MessageBanner error={error} />
 
       {!data ? (
-        <div className="act-empty">Loading tenants…</div>
+        <div className="act-empty">Loading tenantsâ€¦</div>
       ) : (
         <div className="act-table-wrap">
           <div className="act-table-header">
             <strong>{data.total} workspaces</strong>
             <input
               className="act-search"
-              placeholder="Search workspace name…"
+              placeholder="Search workspace nameâ€¦"
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
@@ -1576,21 +1571,21 @@ export function AdminUsersPage() {
 
   return (
     <AdminConsoleShell
-      eyebrow="Admin / Users"
-      title="All User Management"
+      eyebrow="Ecosystem Controller / Users"
+      title="Identity Management"
       subtitle="Browse every identity in the ecosystem, inspect tenant assignment, and drill into a specific user profile."
     >
       <MessageBanner error={error} />
 
       {!data ? (
-        <div className="act-empty">Loading users…</div>
+        <div className="act-empty">Loading usersâ€¦</div>
       ) : (
         <div className="act-table-wrap">
           <div className="act-table-header">
             <strong>{data.total} users</strong>
             <input
               className="act-search"
-              placeholder="Search name or email…"
+              placeholder="Search name or emailâ€¦"
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
@@ -1616,8 +1611,8 @@ export function AdminUsersPage() {
                   <td>{user.name}</td>
                   <td>{user.email}</td>
                   <td>{user.role}</td>
-                  <td>{user.tenant?.name ?? "—"}</td>
-                  <td>{user.tenant?.plan ?? "—"}</td>
+                  <td>{user.tenant?.name ?? "â€”"}</td>
+                  <td>{user.tenant?.plan ?? "â€”"}</td>
                   <td>{fmtDate(user.createdAt)}</td>
                   <td>
                     <button className="act-button ghost" onClick={() => navigate(`/admin/users/${user.id}`)}>
@@ -1705,9 +1700,9 @@ export function AdminTenantDetailPage() {
 
   return (
     <AdminConsoleShell
-      eyebrow={`Admin / Tenants / ${id || "tenant"}`}
+      eyebrow={`Ecosystem Controller / Tenants / ${id || "tenant"}`}
       title={tenant?.name ?? "Tenant Detail"}
-      subtitle="Sovereign view of a single workspace, including members, billing context, and recent revenue activity."
+      subtitle="Control view of a single workspace, including members, billing context, and recent revenue activity."
       actions={
         <>
           <button className="act-button ghost" onClick={() => navigate("/admin/tenants")}>Back to tenants</button>
@@ -1718,7 +1713,7 @@ export function AdminTenantDetailPage() {
       <MessageBanner error={error} success={success} />
 
       {!tenant ? (
-        <div className="act-empty">Loading tenant detail…</div>
+        <div className="act-empty">Loading tenant detailâ€¦</div>
       ) : (
         <>
           <div className="act-grid">
@@ -1751,8 +1746,8 @@ export function AdminTenantDetailPage() {
               <div className="act-mini-row"><span className="act-mini-label">Currency</span><span className="act-mini-value">{tenant.currency ?? "USD"}</span></div>
               <div className="act-mini-row"><span className="act-mini-label">Fiscal Month</span><span className="act-mini-value">{tenant.fiscalMonth ?? 1}</span></div>
               <div className="act-mini-row"><span className="act-mini-label">Created</span><span className="act-mini-value">{fmtDate(tenant.createdAt)}</span></div>
-              <div className="act-mini-row"><span className="act-mini-label">Stripe Customer</span><span className="act-mini-value">{tenant.stripeCustomerId ?? "—"}</span></div>
-              <div className="act-mini-row"><span className="act-mini-label">Stripe Subscription</span><span className="act-mini-value">{tenant.stripeSubscriptionId ?? "—"}</span></div>
+              <div className="act-mini-row"><span className="act-mini-label">Stripe Customer</span><span className="act-mini-value">{tenant.stripeCustomerId ?? "â€”"}</span></div>
+              <div className="act-mini-row"><span className="act-mini-label">Stripe Subscription</span><span className="act-mini-value">{tenant.stripeSubscriptionId ?? "â€”"}</span></div>
             </div>
             <div className="act-card wide">
               <div className="act-section-title">Workspace Footprint</div>
@@ -1820,7 +1815,7 @@ export function AdminTenantDetailPage() {
                     <tr key={record.id}>
                       <td>{fmtDate(record.recordedAt)}</td>
                       <td>{record.source}</td>
-                      <td>{record.description ?? "—"}</td>
+                      <td>{record.description ?? "â€”"}</td>
                       <td>{fmtMoney(record.amount, record.currency)}</td>
                     </tr>
                   ))}
@@ -1867,9 +1862,9 @@ export function AdminUserDetailPage() {
 
   return (
     <AdminConsoleShell
-      eyebrow={`Admin / Users / ${id || "user"}`}
+      eyebrow={`Ecosystem Controller / Users / ${id || "user"}`}
       title={user?.name ?? "User Detail"}
-      subtitle="Sovereign identity view including tenant placement, profile metadata, and ecosystem activity signals."
+      subtitle="Identity view including tenant placement, profile metadata, and ecosystem activity signals."
       actions={
         <>
           <button className="act-button ghost" onClick={() => navigate("/admin/users")}>Back to users</button>
@@ -1880,7 +1875,7 @@ export function AdminUserDetailPage() {
       <MessageBanner error={error} />
 
       {!user ? (
-        <div className="act-empty">Loading user detail…</div>
+        <div className="act-empty">Loading user detailâ€¦</div>
       ) : (
         <>
           <div className="act-grid">
@@ -1911,8 +1906,8 @@ export function AdminUserDetailPage() {
               <div className="act-section-title">Identity</div>
               <div className="act-mini-row"><span className="act-mini-label">Email</span><span className="act-mini-value">{user.email}</span></div>
               <div className="act-mini-row"><span className="act-mini-label">Joined</span><span className="act-mini-value">{fmtDate(user.createdAt)}</span></div>
-              <div className="act-mini-row"><span className="act-mini-label">Industry</span><span className="act-mini-value">{user.industry ?? "—"}</span></div>
-              <div className="act-mini-row"><span className="act-mini-label">Location</span><span className="act-mini-value">{[user.city, user.country].filter(Boolean).join(", ") || "—"}</span></div>
+              <div className="act-mini-row"><span className="act-mini-label">Industry</span><span className="act-mini-value">{user.industry ?? "â€”"}</span></div>
+              <div className="act-mini-row"><span className="act-mini-label">Location</span><span className="act-mini-value">{[user.city, user.country].filter(Boolean).join(", ") || "â€”"}</span></div>
             </div>
             <div className="act-card wide">
               <div className="act-section-title">Tenant</div>
@@ -1950,7 +1945,7 @@ export function AdminForgePage() {
 
   return (
     <AdminConsoleShell
-      eyebrow="Admin / FORGE"
+      eyebrow="Ecosystem Controller / FORGE"
       title="FORGE Supervisor Panel"
       subtitle="Technical sovereignty for the ecosystem AI layer, with supervisor visibility, model mix, and routing posture."
       actions={<Link className="act-link-button" to="/intelligence/platform">Open AI Platform</Link>}
@@ -1997,9 +1992,9 @@ export function AdminBroadcastPage() {
 
   return (
     <AdminConsoleShell
-      eyebrow="Admin / Broadcast"
+      eyebrow="Ecosystem Controller / Broadcast"
       title="OMEGA Ecosystem Broadcast"
-      subtitle="Issue high-priority sovereign announcements and operational directives across the ecosystem."
+      subtitle="Issue high-priority announcements and operational directives across the ecosystem."
     >
       <MessageBanner success={success} />
 
@@ -2008,7 +2003,7 @@ export function AdminBroadcastPage() {
           <div className="act-section-title">Compose Broadcast</div>
           <textarea
             className="act-textarea"
-            placeholder="Write the ecosystem-wide message or directive…"
+            placeholder="Write the ecosystem-wide message or directiveâ€¦"
             value={message}
             onChange={(event) => setMessage(event.target.value)}
           />
@@ -2046,9 +2041,9 @@ export function AdminBroadcastPage() {
 export function AdminSecurityPage() {
   return (
     <AdminConsoleShell
-      eyebrow="Admin / Security"
+      eyebrow="Ecosystem Controller / Security"
       title="Security Governance"
-      subtitle="Central sovereignty view for hidden admin access, GDPR posture, rate-limit surfaces, and audit-sensitive control paths."
+      subtitle="Central sovereignty view for hidden admin access, GDPR posture, rate limits, and audit-sensitive control paths."
     >
       <div className="act-layer-grid">
         <div className="act-layer-card">
@@ -2092,36 +2087,36 @@ export function AdminSecurityPage() {
 export function AdminSettingsPage() {
   return (
     <AdminConsoleShell
-      eyebrow="Admin / Settings"
+      eyebrow="Ecosystem Controller / Settings"
       title="Platform Configuration"
-      subtitle="Jump to the admin-adjacent control surfaces that influence billing, notifications, and operator-facing platform behavior."
+      subtitle="Jump to the control surfaces that influence billing, notifications, and operator-facing platform behavior."
     >
       <div className="act-grid">
         <div className="act-card wide">
           <div className="act-section-title">Connected Surfaces</div>
           <div className="act-command-grid">
-            <Link to="/settings" className="act-command">
-              <div className="act-command-icon">⚙</div>
+            <Link to="/admin/settings" className="act-command">
+              <div className="act-command-icon">âš™</div>
               <div className="act-command-title">Workspace Settings</div>
               <div className="act-command-desc">Brand, tenant, and primary workspace controls.</div>
             </Link>
             <Link to="/stripe" className="act-command">
-              <div className="act-command-icon">💳</div>
+              <div className="act-command-icon">ðŸ’³</div>
               <div className="act-command-title">Stripe</div>
               <div className="act-command-desc">Billing status and revenue integrations.</div>
             </Link>
             <Link to="/slack" className="act-command">
-              <div className="act-command-icon">💬</div>
+              <div className="act-command-icon">ðŸ’¬</div>
               <div className="act-command-title">Slack</div>
               <div className="act-command-desc">Operator channel delivery and alerts.</div>
             </Link>
             <Link to="/changelog" className="act-command">
-              <div className="act-command-icon">🗞</div>
+              <div className="act-command-icon">ðŸ—ž</div>
               <div className="act-command-title">Changelog</div>
               <div className="act-command-desc">Platform release notes and governance messaging.</div>
             </Link>
             <Link to="/cloud/keys" className="act-command">
-              <div className="act-command-icon">🔑</div>
+              <div className="act-command-icon">ðŸ”‘</div>
               <div className="act-command-title">API Keys</div>
               <div className="act-command-desc">Developer platform credentials and key inventory.</div>
             </Link>
@@ -2138,3 +2133,4 @@ export function AdminSettingsPage() {
     </AdminConsoleShell>
   );
 }
+
