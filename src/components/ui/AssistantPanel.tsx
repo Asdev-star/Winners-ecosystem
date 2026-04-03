@@ -548,7 +548,7 @@ export default function AssistantPanel({
               max-height: 70vh;
               background: var(--surface);
               border: 1px solid var(--border);
-              border-radius: 12px;
+              border-radius: var(--card-radius, 12px);
               box-shadow: 0 16px 64px rgba(0,0,0,0.5);
               z-index: 101;
               display: flex;
@@ -594,7 +594,7 @@ export default function AssistantPanel({
             }
 
             .assistant-name {
-              font-family: 'Syne', sans-serif;
+              font-family: var(--font-body), 'Syne', sans-serif;
               font-size: 16px;
               font-weight: 700;
               margin: 0;
@@ -602,7 +602,7 @@ export default function AssistantPanel({
             }
 
             .assistant-tagline {
-              font-family: 'Space Mono', monospace;
+              font-family: var(--font-mono), 'Space Mono', monospace;
               font-size: 9px;
               letter-spacing: 0.1em;
               text-transform: uppercase;
@@ -633,7 +633,7 @@ export default function AssistantPanel({
               padding: 8px 16px;
               background: rgba(155, 111, 255, 0.08);
               border-bottom: 1px solid var(--border);
-              font-family: 'Space Mono', monospace;
+              font-family: var(--font-mono), 'Space Mono', monospace;
               font-size: 9px;
               color: var(--purple);
             }
@@ -680,7 +680,7 @@ export default function AssistantPanel({
             .message-bubble {
               max-width: 85%;
               padding: 10px 14px;
-              border-radius: 12px;
+              border-radius: var(--card-radius, 12px);
               font-size: 13.5px;
               line-height: 1.5;
               white-space: pre-wrap;
@@ -697,7 +697,7 @@ export default function AssistantPanel({
             .message.user .message-bubble {
               background: linear-gradient(135deg, var(--gold), var(--gold-dim));
               color: var(--bg);
-              border-radius: 12px 12px 4px 12px;
+              border-radius: var(--card-radius, 12px) var(--card-radius, 12px) 4px var(--card-radius, 12px);
             }
 
             .assistant-input-wrapper {
@@ -720,7 +720,7 @@ export default function AssistantPanel({
             .attachment-name {
               flex: 1;
               color: var(--purple);
-              font-family: 'Space Mono', monospace;
+              font-family: var(--font-mono), 'Space Mono', monospace;
               font-size: 10px;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -805,7 +805,7 @@ export default function AssistantPanel({
               border: 1px solid var(--border);
               border-radius: 8px;
               padding: 10px 12px;
-              font-family: 'Syne', sans-serif;
+              font-family: var(--font-body), 'Syne', sans-serif;
               font-size: 13px;
               color: var(--text);
               resize: none;

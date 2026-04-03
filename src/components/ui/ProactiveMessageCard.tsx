@@ -187,7 +187,7 @@ const css = `
   .pmc-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--card-radius, 6px);
     padding: 16px;
     position: relative;
     overflow: hidden;
@@ -252,7 +252,7 @@ const css = `
     font-size: 12px;
     padding: 2px 8px;
     border-radius: 4px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -284,7 +284,7 @@ const css = `
   }
 
   .pmc-assistant-name {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -296,7 +296,7 @@ const css = `
   }
 
   .pmc-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-weight: 600;
     font-size: 14px;
     color: var(--text);
@@ -305,7 +305,7 @@ const css = `
   }
 
   .pmc-message {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-size: 13px;
     color: var(--text-dim);
     margin: 0;
@@ -318,9 +318,9 @@ const css = `
     gap: 6px;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     padding: 8px 12px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 11px;
     color: var(--text);
     cursor: pointer;
@@ -366,7 +366,7 @@ const css = `
     position: absolute;
     bottom: 8px;
     right: 12px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     color: var(--text-dim);
     opacity: 0.6;

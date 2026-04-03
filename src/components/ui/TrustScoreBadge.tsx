@@ -153,7 +153,7 @@ export default function TrustScoreBadge({
         }
 
         .trust-label {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-weight: 600;
           letter-spacing: 0.1em;
           text-transform: uppercase;
@@ -163,7 +163,7 @@ export default function TrustScoreBadge({
           position: absolute;
           top: -8px;
           right: -8px;
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 8px;
           padding: 2px 4px;
           border-radius: 4px;

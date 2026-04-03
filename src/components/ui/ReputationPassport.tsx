@@ -322,7 +322,7 @@ const css = `
   .rp-passport {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--card-radius, 6px);
     padding: 20px;
     position: relative;
     overflow: hidden;
@@ -358,7 +358,7 @@ const css = `
   }
 
   .rp-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-weight: 700;
     font-size: 16px;
     color: var(--text);
@@ -373,7 +373,7 @@ const css = `
   }
 
   .rp-subtitle {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -386,9 +386,9 @@ const css = `
     gap: 6px;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     padding: 6px 10px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text);
     cursor: pointer;
@@ -412,7 +412,7 @@ const css = `
     position: relative;
     width: 100px;
     height: 100px;
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     border: 3px solid;
     padding: 4px;
   }
@@ -452,7 +452,7 @@ const css = `
   }
 
   .rp-score-label {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 8px;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -464,7 +464,7 @@ const css = `
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    border-radius: 12px;
+    border-radius: var(--card-radius, 12px);
     border: 1px solid;
   }
 
@@ -473,7 +473,7 @@ const css = `
   }
 
   .rp-level-text {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.05em;
@@ -488,7 +488,7 @@ const css = `
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--green);
     text-transform: uppercase;
@@ -500,7 +500,7 @@ const css = `
     height: 14px;
     background: var(--green);
     color: var(--bg);
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -512,7 +512,7 @@ const css = `
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -524,7 +524,7 @@ const css = `
     height: 14px;
     background: var(--text-dim);
     color: var(--bg);
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -540,9 +540,9 @@ const css = `
     width: 100%;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     padding: 8px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
     cursor: pointer;
@@ -575,7 +575,7 @@ const css = `
   }
 
   .rp-section-title {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -593,8 +593,8 @@ const css = `
     padding: 4px 8px;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    font-family: 'Space Mono', monospace;
+    border-radius: var(--card-radius, 4px);
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text);
   }
@@ -614,7 +614,7 @@ const css = `
     justify-content: center;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     font-size: 16px;
   }
 
@@ -630,7 +630,7 @@ const css = `
     height: 12px;
     background: var(--gold);
     color: var(--bg);
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     font-size: 8px;
     display: flex;
     align-items: center;
@@ -645,8 +645,8 @@ const css = `
     justify-content: center;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 50%;
-    font-family: 'Space Mono', monospace;
+    border-radius: var(--card-radius, 50%);
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
   }
@@ -664,7 +664,7 @@ const css = `
     padding: 10px;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     text-decoration: none;
     transition: all 0.2s ease;
   }
@@ -684,13 +684,13 @@ const css = `
   }
 
   .rp-cert-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-size: 12px;
     color: var(--text);
   }
 
   .rp-cert-date {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     color: var(--text-dim);
   }
@@ -716,7 +716,7 @@ const css = `
   }
 
   .rp-stat-label {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     color: var(--text-dim);
     text-transform: uppercase;
@@ -746,7 +746,7 @@ const css = `
   .rp-modal {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--card-radius, 8px);
     padding: 24px;
     max-width: 320px;
     width: 90%;
@@ -760,14 +760,14 @@ const css = `
   }
 
   .rp-modal-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-size: 18px;
     color: var(--text);
     margin: 0 0 8px 0;
   }
 
   .rp-modal-desc {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-size: 13px;
     color: var(--text-dim);
     margin: 0 0 20px 0;
@@ -776,7 +776,7 @@ const css = `
   .rp-modal-preview {
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--card-radius, 6px);
     padding: 16px;
     text-align: center;
     margin-bottom: 20px;
@@ -790,14 +790,14 @@ const css = `
   }
 
   .rp-preview-level {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 12px;
     color: var(--text);
     text-transform: uppercase;
   }
 
   .rp-preview-badges {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
   }
@@ -806,9 +806,9 @@ const css = `
     width: 100%;
     background: var(--gold);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     padding: 12px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 12px;
     color: var(--bg);
     cursor: pointer;
@@ -827,7 +827,7 @@ const css = `
   }
 
   .rp-social-label {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
     display: block;
@@ -843,10 +843,10 @@ const css = `
   .rp-social-btn {
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     border: 1px solid var(--border);
     background: var(--surface2);
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 14px;
     color: var(--text);
     cursor: pointer;

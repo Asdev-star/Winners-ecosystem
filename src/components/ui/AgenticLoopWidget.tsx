@@ -29,7 +29,7 @@ const css = `
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body), 'Syne', sans-serif;
 }
 
 .alw-header {
@@ -40,7 +40,7 @@ const css = `
 }
 
 .alw-eyebrow {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 8px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -48,7 +48,7 @@ const css = `
 }
 
 .alw-velocity {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 8px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -163,13 +163,13 @@ const css = `
   margin-top: 8px;
 }
 .alw-pct {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 9px;
   color: var(--gold);
   letter-spacing: 0.06em;
 }
 .alw-eta {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 9px;
   color: var(--text-dim);
   letter-spacing: 0.04em;

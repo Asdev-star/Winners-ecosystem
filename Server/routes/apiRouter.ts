@@ -62,7 +62,12 @@ import connectorRoutes from "./connectorRoutes.js";
 import tradingRoutes from "./tradingRoutes.js";
 import pluginRoutes from "./pluginRoutes.js";
 import notificationTokenRoutes from "./notificationTokenRoutes.js";
+import adminSettingsRoutes from "./adminSettingsRoutes.js";
+import geoDetectionRoutes from "./geoDetectionRoutes.js";
+import mobileAnalyticsRoutes from "./mobileAnalyticsRoutes.js";
 import { DEFAULT_ECOSYSTEM_SETTINGS } from "./adminRoutes.js";
+import { getEcosystemConfigSnapshot } from "../services/ecosystemConfigService.js";
+import { getTranslationOverrides } from "../services/languageService.js";
 
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireLayerAccess } from "../middleware/layerAccessMiddleware.js";
@@ -90,6 +95,9 @@ const gatewayRoutes = [
   "/activity",
   "/referral",
   "/admin",
+  "/admin/settings",
+  "/admin/geo",
+  "/admin/mobile-analytics",
   "/changelog",
   "/2fa",
   "/posts",
@@ -143,6 +151,8 @@ router.get("/public/ecosystem-settings", async (req, res) => {
   try {
     const country = typeof req.query.country === "string" ? req.query.country.trim().toUpperCase() : "";
     const records = await db.ecosystemSettings.findMany();
+    const ecosystemSnapshot = await getEcosystemConfigSnapshot();
+    const translationOverrides = await getTranslationOverrides();
     const stored = records.reduce<Record<string, unknown>>((acc, record) => {
       acc[record.key] = record.value;
       return acc;
@@ -150,7 +160,20 @@ router.get("/public/ecosystem-settings", async (req, res) => {
     const settings = {
       ...DEFAULT_ECOSYSTEM_SETTINGS,
       ...stored,
+    } as Record<string, unknown> & typeof DEFAULT_ECOSYSTEM_SETTINGS & {
+      theme?: unknown;
+      translationOverrides?: unknown;
     };
+    const publicTheme = ecosystemSnapshot.theme;
+    if (!settings.theme) {
+      settings.theme = publicTheme;
+    }
+    if (!settings.translationOverrides) {
+      settings.translationOverrides = translationOverrides;
+    }
+    settings.brandColor = publicTheme.brandColor ?? settings.brandColor;
+    settings.accentColor = publicTheme.accentColor ?? settings.accentColor;
+    settings.defaultTheme = publicTheme.defaultTheme ?? settings.defaultTheme;
     const mapping = Array.isArray(settings.countryLanguageMapping)
       ? settings.countryLanguageMapping as Array<{ country: string; language: string }>
       : DEFAULT_ECOSYSTEM_SETTINGS.countryLanguageMapping;
@@ -162,6 +185,7 @@ router.get("/public/ecosystem-settings", async (req, res) => {
       country,
       resolvedLanguage,
       countryLanguageMapping: mapping,
+      translationOverrides,
     });
   } catch (error) {
     return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to load ecosystem settings" });
@@ -243,6 +267,54 @@ router.post("/public/analytics/app-download", async (req, res) => {
   }
 });
 
+router.post("/analytics/event", async (req, res) => {
+  try {
+    const records = await db.ecosystemSettings.findMany();
+    const settings = records.reduce<Record<string, unknown>>((acc, record) => {
+      acc[record.key] = record.value;
+      return acc;
+    }, {});
+    const merged = { ...DEFAULT_ECOSYSTEM_SETTINGS, ...settings };
+
+    if (merged.analyticsTracking === false) {
+      return res.status(204).end();
+    }
+
+    const {
+      userId,
+      tenantId,
+      sessionId,
+      eventType,
+      layer,
+      feature,
+      metadata,
+      platform,
+      countryCode,
+    } = req.body ?? {};
+
+    await db.userActivity.create({
+      data: {
+        userId: typeof userId === "string" ? userId : null,
+        tenantId: typeof tenantId === "string" ? tenantId : null,
+        sessionId: typeof sessionId === "string" ? sessionId : null,
+        event: typeof eventType === "string" ? eventType : "unknown",
+        activity: typeof feature === "string" ? feature : typeof eventType === "string" ? eventType : "unknown",
+        page: typeof layer === "string" ? layer : typeof platform === "string" ? platform : null,
+        metadata: metadata && typeof metadata === "object" ? metadata : {},
+        country: typeof countryCode === "string" ? countryCode : null,
+        city: null,
+        duration: null,
+        issueType: null,
+        issueData: null,
+      },
+    });
+
+    return res.json({ message: "Analytics event recorded" });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to record analytics event" });
+  }
+});
+
 router.use("/auth/login", authLimiter);
 router.use("/auth/register", authLimiter);
 router.use("/auth", authRoutes);
@@ -263,6 +335,10 @@ router.use("/search", searchRoutes);
 router.use("/activity", activityRoutes);
 router.use("/referral", referralRoutes);
 router.use("/admin", adminRoutes);
+router.use("/admin/settings", adminSettingsRoutes);
+router.use("/admin/geo", geoDetectionRoutes);
+router.use("/admin/mobile-analytics", mobileAnalyticsRoutes);
+router.use("/admin/analytics/mobile", mobileAnalyticsRoutes);
 router.use("/changelog", changelogRoutes);
 router.use("/2fa", twoFactorRoutes);
 router.use("/posts", postLimiter, postRoutes);

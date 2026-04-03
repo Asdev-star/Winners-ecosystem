@@ -51,29 +51,56 @@ export default function RealtimeNotifications() {
 
     const showToast = (event: RealtimeEvent) => {
       lastToastAtRef.current = Date.now();
-      const toastId = toast(event.message, {
+      if (event.path) {
+        toast.custom(
+          (t) => (
+            <button
+              type="button"
+              onClick={async () => {
+                toast.dismiss(t.id);
+                if (event.key.startsWith("NEW_POST:") || event.key.startsWith("NEW_LIKE:") || event.key.startsWith("NEW_COMMENT:") || event.key.startsWith("NEW_FOLLOW:")) {
+                  const match = event.key.match(/:(.+)$/);
+                  if (match) {
+                    try {
+                      await fetch(`${API_BASE}/notifications`, { headers: getAuthHeaders() });
+                      const res = await fetch(`${API_BASE}/notifications`, { headers: getAuthHeaders() });
+                      const data = await res.json();
+                      const notifs = data.notifications ?? [];
+                      const matched = notifs.find((n: Notification) => n.title?.includes(match[1]) || n.body?.includes(match[1]));
+                      if (matched?.id) {
+                        await fetch(`${API_BASE}/notifications/${matched.id}/read`, { method: "PATCH", headers: getAuthHeaders() });
+                      }
+                    } catch {}
+                  }
+                }
+                navigate(event.path as string);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                maxWidth: 420,
+                padding: "12px 14px",
+                borderRadius: 16,
+                border: "1px solid rgba(255,255,255,.12)",
+                background: "rgba(10,16,24,.96)",
+                color: "var(--text)",
+                boxShadow: "0 18px 50px rgba(0,0,0,.32)",
+                cursor: "pointer",
+              }}
+            >
+              <span>{event.icon}</span>
+              <span style={{ textAlign: "left", lineHeight: 1.35 }}>{event.message}</span>
+            </button>
+          ),
+          { duration: event.duration ?? 4500 },
+        );
+        return;
+      }
+
+      toast(event.message, {
         icon: event.icon,
         duration: event.duration ?? 4500,
-        onClick: event.path
-          ? async () => {
-              if (event.key.startsWith("NEW_POST:") || event.key.startsWith("NEW_LIKE:") || event.key.startsWith("NEW_COMMENT:") || event.key.startsWith("NEW_FOLLOW:")) {
-                const match = event.key.match(/:(.+)$/);
-                if (match) {
-                  try {
-                    await fetch(`${API_BASE}/notifications`, { headers: getAuthHeaders() });
-                    const res = await fetch(`${API_BASE}/notifications`, { headers: getAuthHeaders() });
-                    const data = await res.json();
-                    const notifs = data.notifications ?? [];
-                    const matched = notifs.find((n: Notification) => n.title?.includes(match[1]) || n.body?.includes(match[1]));
-                    if (matched?.id) {
-                      await fetch(`${API_BASE}/notifications/${matched.id}/read`, { method: "PATCH", headers: getAuthHeaders() });
-                    }
-                  } catch {}
-                }
-              }
-              navigate(event.path as string);
-            }
-          : undefined,
       });
     };
 

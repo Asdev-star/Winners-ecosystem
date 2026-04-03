@@ -88,6 +88,7 @@ const shellCss = `
     border-right: 1px solid var(--border);
     backdrop-filter: blur(18px);
     transition: width 200ms ease, opacity 200ms ease;
+    font-family: var(--font-body), "Syne", sans-serif;
   }
 
   .ml-sidebar.collapsed {
@@ -106,7 +107,7 @@ const shellCss = `
     transform: translateY(-50%);
     width: 24px;
     height: 24px;
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--text-dim);
@@ -134,7 +135,7 @@ const shellCss = `
   .ml-brand-mark {
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: var(--card-radius, 12px);
     display: grid;
     place-items: center;
     background: linear-gradient(135deg, rgba(201,168,76,0.24), rgba(137,196,225,0.18));
@@ -153,7 +154,7 @@ const shellCss = `
 
   .ml-brand-copy {
     margin: 2px 0 0;
-    font-family: "Space Mono", monospace;
+    font-family: var(--font-mono), "Space Mono", monospace;
     font-size: 9px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -173,7 +174,7 @@ const shellCss = `
 
   .ml-section-label {
     margin: 10px 8px 2px;
-    font-family: "Space Mono", monospace;
+    font-family: var(--font-mono), "Space Mono", monospace;
     font-size: 9px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -216,7 +217,7 @@ const shellCss = `
     gap: 12px;
     min-height: 44px;
     padding: 0 12px;
-    border-radius: 12px;
+    border-radius: var(--card-radius, 12px);
     color: var(--text-dim);
     text-decoration: none;
     border: 1px solid transparent;
@@ -247,10 +248,11 @@ const shellCss = `
     flex: 1;
     font-size: 13px;
     font-weight: 600;
+    font-family: var(--font-body), "Syne", sans-serif;
   }
 
   .ml-nav-sub {
-    font-family: "Space Mono", monospace;
+    font-family: var(--font-mono), "Space Mono", monospace;
     font-size: 8px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -269,7 +271,7 @@ const shellCss = `
     gap: 10px;
     min-height: 40px;
     padding: 0 12px;
-    border-radius: 10px;
+    border-radius: var(--card-radius, 10px);
     border: 1px solid var(--border);
     background: color-mix(in srgb, var(--surface2) 72%, transparent);
     color: var(--text);
@@ -297,7 +299,7 @@ const shellCss = `
     align-items: center;
     gap: 12px;
     padding: 10px 12px;
-    border-radius: 12px;
+    border-radius: var(--card-radius, 12px);
     background: color-mix(in srgb, var(--surface2) 68%, transparent);
     border: 1px solid var(--border);
   }
@@ -305,7 +307,7 @@ const shellCss = `
   .ml-user-avatar {
     width: 34px;
     height: 34px;
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     display: grid;
     place-items: center;
     background: color-mix(in srgb, var(--gold) 16%, transparent);
@@ -323,7 +325,7 @@ const shellCss = `
 
   .ml-user-role {
     margin: 2px 0 0;
-    font-family: "Space Mono", monospace;
+    font-family: var(--font-mono), "Space Mono", monospace;
     font-size: 8px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -332,11 +334,11 @@ const shellCss = `
 
   .ml-signout {
     min-height: 40px;
-    border-radius: 10px;
+    border-radius: var(--card-radius, 10px);
     border: 1px solid var(--border);
     background: transparent;
     color: var(--text-dim);
-    font-family: "Space Mono", monospace;
+    font-family: var(--font-mono), "Space Mono", monospace;
     font-size: 10px;
     letter-spacing: 0.12em;
     text-transform: uppercase;

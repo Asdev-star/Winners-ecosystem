@@ -16,7 +16,7 @@ const css = `
     align-items: center;
     gap: 10px;
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: var(--card-radius, 16px);
     background: color-mix(in srgb, var(--surface) 92%, transparent);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
@@ -41,9 +41,9 @@ const css = `
     border: 1px solid transparent;
     background: transparent;
     color: var(--text-dim);
-    border-radius: 12px;
+    border-radius: var(--card-radius, 12px);
     padding: 8px 12px 8px 18px;
-    font-family: "Space Mono", monospace;
+    font-family: var(--font-mono), "Space Mono", monospace;
     font-size: 10px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -87,7 +87,7 @@ const css = `
   }
 
   .lsn-badge {
-    border-radius: 999px;
+    border-radius: var(--card-radius, 999px);
     font-size: 9px;
     line-height: 1;
     padding: 3px 6px;
@@ -120,7 +120,7 @@ const css = `
   .lsn-smart {
     min-width: 236px;
     border: 1px solid color-mix(in srgb, var(--lsn-accent) 35%, var(--border));
-    border-radius: 16px;
+    border-radius: var(--card-radius, 16px);
     background: color-mix(in srgb, var(--lsn-accent) 14%, var(--surface));
     color: var(--text);
     padding: 7px 10px;
@@ -140,7 +140,7 @@ const css = `
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: "Space Mono", monospace;
+    font-family: var(--font-mono), "Space Mono", monospace;
     text-transform: uppercase;
     font-size: 10px;
     letter-spacing: 0.08em;
@@ -159,14 +159,14 @@ const css = `
     margin-top: 4px;
     color: var(--text-dim);
     font-size: 11px;
-    font-family: "Syne", sans-serif;
+    font-family: var(--font-body), "Syne", sans-serif;
     letter-spacing: 0.01em;
   }
 
   .lsn-subrow {
     margin-top: 8px;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--card-radius, 14px);
     background: color-mix(in srgb, var(--surface2) 80%, transparent);
     padding: 6px;
     display: flex;
@@ -177,11 +177,11 @@ const css = `
 
   .lsn-subitem {
     border: 1px solid transparent;
-    border-radius: 999px;
+    border-radius: var(--card-radius, 999px);
     background: transparent;
     color: var(--text-dim);
     padding: 7px 9px;
-    font-family: "Space Mono", monospace;
+    font-family: var(--font-mono), "Space Mono", monospace;
     font-size: 9px;
     letter-spacing: 0.08em;
     text-transform: uppercase;

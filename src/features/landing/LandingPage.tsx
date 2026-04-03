@@ -22,6 +22,21 @@ type PublicEcosystemSettings = Partial<LandingPageConfig> & {
   language?: string;
   adaptiveLanguage?: boolean;
   countryLanguageMapping?: Array<{ country: string; language: string }>;
+  brandColor?: string;
+  accentColor?: string;
+  defaultTheme?: string;
+  theme?: {
+    brandColor?: string;
+    accentColor?: string;
+    defaultTheme?: "light" | "dark" | "auto";
+    palette?: Partial<Record<"gold" | "blue" | "ice" | "green" | "red" | "purple" | "bg" | "surface" | "surface2" | "border" | "text" | "textDim", string>>;
+    card?: Partial<Record<"borderRadius" | "topBorderWidth", number>> & {
+      topBorderStyle?: "gradient" | "solid" | "none";
+      shadowIntensity?: "none" | "subtle" | "medium" | "strong";
+    };
+    typography?: Partial<Record<"heading" | "display" | "mono" | "body", string>> & { scale?: number };
+    layerAccentOverrides?: Array<{ layerId: string; accentColor: string }>;
+  };
 };
 
 function assignDefined(target: Record<string, unknown>, source?: Record<string, unknown>) {
@@ -1280,16 +1295,18 @@ export default function LandingPage({ config: userConfig }: LandingPageProps = {
     };
 
     if (runtimeSettings) {
-      merged.theme.primary = runtimeSettings.brandColor ?? merged.theme.primary;
-      merged.theme.primaryHover = runtimeSettings.brandColor ?? merged.theme.primaryHover;
-      merged.theme.accent = runtimeSettings.accentColor ?? merged.theme.accent;
-      merged.theme.secondary = runtimeSettings.accentColor ?? merged.theme.secondary;
-      merged.theme.background = runtimeSettings.defaultTheme === "light" ? "#f7fafc" : merged.theme.background;
-      merged.theme.surface = runtimeSettings.defaultTheme === "light" ? "#ffffff" : merged.theme.surface;
-      merged.theme.surface2 = runtimeSettings.defaultTheme === "light" ? "#f1f5f9" : merged.theme.surface2;
-      merged.theme.text = runtimeSettings.defaultTheme === "light" ? "#0f172a" : merged.theme.text;
-      merged.theme.textDim = runtimeSettings.defaultTheme === "light" ? "#475569" : merged.theme.textDim;
-      merged.theme.border = runtimeSettings.defaultTheme === "light" ? "rgba(15,23,42,0.12)" : merged.theme.border;
+      const theme = (runtimeSettings.theme ?? {}) as NonNullable<PublicEcosystemSettings["theme"]>;
+      const palette = theme.palette ?? {};
+      merged.theme.primary = runtimeSettings.brandColor ?? theme.brandColor ?? palette.gold ?? merged.theme.primary;
+      merged.theme.primaryHover = runtimeSettings.brandColor ?? theme.brandColor ?? palette.gold ?? merged.theme.primaryHover;
+      merged.theme.accent = runtimeSettings.accentColor ?? theme.accentColor ?? palette.ice ?? merged.theme.accent;
+      merged.theme.secondary = runtimeSettings.accentColor ?? theme.accentColor ?? palette.ice ?? merged.theme.secondary;
+      merged.theme.background = palette.bg ?? (runtimeSettings.defaultTheme === "light" || theme.defaultTheme === "light" ? "#f7fafc" : merged.theme.background);
+      merged.theme.surface = palette.surface ?? (runtimeSettings.defaultTheme === "light" || theme.defaultTheme === "light" ? "#ffffff" : merged.theme.surface);
+      merged.theme.surface2 = palette.surface2 ?? (runtimeSettings.defaultTheme === "light" || theme.defaultTheme === "light" ? "#f1f5f9" : merged.theme.surface2);
+      merged.theme.text = palette.text ?? (runtimeSettings.defaultTheme === "light" || theme.defaultTheme === "light" ? "#0f172a" : merged.theme.text);
+      merged.theme.textDim = palette.textDim ?? (runtimeSettings.defaultTheme === "light" || theme.defaultTheme === "light" ? "#475569" : merged.theme.textDim);
+      merged.theme.border = palette.border ?? (runtimeSettings.defaultTheme === "light" || theme.defaultTheme === "light" ? "rgba(15,23,42,0.12)" : merged.theme.border);
     }
 
     const localeOverrides = {

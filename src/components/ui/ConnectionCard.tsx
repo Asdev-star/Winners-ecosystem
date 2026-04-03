@@ -194,7 +194,7 @@ const css = `
   .cc-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--card-radius, 6px);
     padding: 16px;
     position: relative;
     overflow: hidden;
@@ -223,7 +223,7 @@ const css = `
     cursor: pointer;
     padding: 4px;
     line-height: 1;
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     transition: all 0.2s ease;
     z-index: 1;
   }
@@ -248,7 +248,7 @@ const css = `
   .cc-avatar img {
     width: 100%;
     height: 100%;
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     object-fit: cover;
     border: 2px solid var(--border);
   }
@@ -259,12 +259,12 @@ const css = `
     right: -2px;
     background: var(--gold);
     color: var(--bg);
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     font-weight: bold;
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -277,7 +277,7 @@ const css = `
   }
 
   .cc-name {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-weight: 600;
     font-size: 14px;
     color: var(--text);
@@ -285,14 +285,14 @@ const css = `
   }
 
   .cc-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-size: 12px;
     color: var(--text-dim);
     margin: 0;
   }
 
   .cc-company {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--gold);
     margin: 2px 0 0 0;
@@ -304,7 +304,7 @@ const css = `
     gap: 8px;
     padding: 10px;
     background: var(--surface2);
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     margin-bottom: 12px;
   }
 
@@ -314,7 +314,7 @@ const css = `
   }
 
   .cc-why-text {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-size: 11px;
     color: var(--text-dim);
     line-height: 1.4;
@@ -331,15 +331,15 @@ const css = `
     padding: 2px 6px;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    font-family: 'Space Mono', monospace;
+    border-radius: var(--card-radius, 8px);
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     color: var(--text);
   }
 
   .cc-interest-more {
     padding: 2px 6px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     color: var(--text-dim);
   }
@@ -359,7 +359,7 @@ const css = `
   .cc-mutual-avatar {
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     background: var(--surface2);
     border: 2px solid var(--surface);
     margin-left: -8px;
@@ -370,7 +370,7 @@ const css = `
   }
 
   .cc-mutual-count {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     color: var(--text-dim);
   }
@@ -388,9 +388,9 @@ const css = `
     gap: 6px;
     background: var(--gold);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     padding: 8px 12px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 11px;
     color: var(--bg);
     cursor: pointer;
@@ -417,7 +417,7 @@ const css = `
     height: 12px;
     border: 2px solid var(--bg);
     border-top-color: transparent;
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     animation: cc-spin 0.8s linear infinite;
   }
 
@@ -429,9 +429,9 @@ const css = `
     flex: 1;
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: var(--card-radius, 4px);
     padding: 8px 12px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 11px;
     color: var(--text);
     cursor: pointer;
@@ -457,7 +457,7 @@ const css = `
   }
 
   .cs-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-weight: 600;
     font-size: 14px;
     color: var(--text);
@@ -472,7 +472,7 @@ const css = `
   }
 
   .cs-count {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
   }

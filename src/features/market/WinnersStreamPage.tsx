@@ -24,6 +24,8 @@ interface StreamItem {
   startedAt?: string;
   scheduledAt?: string;
   status: string;
+  isPPV?: boolean;
+  ppvPrice?: number;
 }
 
 interface VideoRoom {
@@ -621,7 +623,7 @@ export default function WinnersStreamPage() {
                 </div>
 
                 <div style={{ display: "flex", gap: 8 }}>
-                  {room.hostId === user?.id ? (
+                  {room.host.id === user?.id ? (
                     <button
                       onClick={() =>
                         room.status === "LIVE"

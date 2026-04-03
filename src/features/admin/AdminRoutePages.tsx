@@ -210,7 +210,7 @@ const css = `
     max-width: 1200px;
     margin: 0 auto;
     padding: 24px 20px 80px;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     color: var(--text);
   }
   .act-header {
@@ -221,12 +221,12 @@ const css = `
     flex-wrap: wrap;
     margin-bottom: 18px;
     padding: 24px 26px;
-    border-radius: 20px;
+    border-radius: var(--card-radius, 20px);
     border: 1px solid rgba(201, 168, 76, 0.18);
     background: linear-gradient(135deg, rgba(13, 24, 38, 0.94), rgba(17, 29, 46, 0.92));
   }
   .act-eyebrow {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -257,7 +257,7 @@ const css = `
     border: 1px solid rgba(201, 168, 76, 0.28);
     background: rgba(201, 168, 76, 0.08);
     color: var(--gold);
-    border-radius: 999px;
+    border-radius: var(--card-radius, 999px);
     padding: 10px 14px;
     font-family: 'Space Mono', monospace;
     font-size: 11px;
@@ -284,7 +284,7 @@ const css = `
   .act-alert {
     margin-bottom: 14px;
     padding: 12px 14px;
-    border-radius: 16px;
+    border-radius: var(--card-radius, 16px);
     border: 1px solid var(--border);
     background: rgba(13, 24, 38, 0.72);
     font-size: 13px;
@@ -301,12 +301,12 @@ const css = `
     margin-top: 18px;
     padding: 20px;
     border: 1px solid var(--border);
-    border-radius: 20px;
+    border-radius: var(--card-radius, 20px);
     background: rgba(13, 24, 38, 0.62);
   }
   .act-section-title {
     margin: 0 0 14px;
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 11px;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -320,7 +320,7 @@ const css = `
   .act-card {
     grid-column: span 3;
     padding: 18px;
-    border-radius: 18px;
+    border-radius: var(--card-radius, 18px);
     border: 1px solid var(--border);
     background: var(--surface);
   }
@@ -331,7 +331,7 @@ const css = `
     grid-column: 1 / -1;
   }
   .act-kpi-label {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -356,7 +356,7 @@ const css = `
   }
   .act-command {
     padding: 14px;
-    border-radius: 10px;
+    border-radius: var(--card-radius, 10px);
     border: 1px solid var(--border);
     background: var(--surface);
     text-decoration: none;

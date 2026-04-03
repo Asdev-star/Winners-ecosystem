@@ -60,7 +60,7 @@ export default function Badge({
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
-        fontFamily: "'Space Mono', monospace",
+        fontFamily: "var(--font-mono), 'Space Mono', monospace",
         fontSize: variantFontSize[variant],
         letterSpacing: "0.12em",
         textTransform: uppercase ? "uppercase" : "none",

@@ -140,6 +140,14 @@ model Tenant {
   videoRooms                    VideoRoom[]
   webhookSubscriptions          WebhookSubscription[]
   workReviews                   WorkReview[]
+  ecosystemConfigs              EcosystemConfig[]
+  languageRoutes                LanguageRoute[]
+  mobileSessions                MobileSession[]
+  appDownloads                  AppDownload[]
+  userActivities                UserActivity[]
+  countryRules                  CountryRule[]
+  featureFlags                  FeatureFlag[]
+  errorReports                  ErrorReport[]
   parentTenant                  Tenant?                        @relation("TenantHierarchy", fields: [parentTenantId], references: [id])
   subtenants                    Tenant[]                       @relation("TenantHierarchy")
   tenantConfig                  TenantConfig?
@@ -283,6 +291,9 @@ model User {
   withdrawalRequests         WithdrawalRequest[]
   videoRoomParticipations    VideoRoomParticipant[]
   hostedVideoRooms           VideoRoom[]
+  mobileSessions             MobileSession[]
+  userActivities             UserActivity[]
+  errorReports               ErrorReport[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -4035,6 +4046,8 @@ model AppDownload {
   installedAt          DateTime @default(now())
   lastActiveAt         DateTime?
   isActive             Boolean  @default(true)
+  tenant               Tenant?  @relation(fields: [tenantId], references: [id])
+  user                 User?    @relation(fields: [userId], references: [id])
 
   @@index([platform])
   @@index([installedAt])
@@ -4058,6 +4071,8 @@ model UserActivity {
   issueType String?
   issueData Json?
   createdAt DateTime @default(now())
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([tenantId])
@@ -4066,4 +4081,132 @@ model UserActivity {
   @@index([createdAt])
   @@index([issueType])
   @@map("user_activities")
+}
+
+model EcosystemConfig {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  key         String   @unique
+  value       String   @db.Text
+  valueType   String   // string | boolean | number | json | color
+  category    String   // theme | language | mobile | personalisation | analytics
+  description String?
+  updatedBy   String?  // admin userId
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@index([category])
+  @@index([tenantId])
+  @@map("ecosystem_configs")
+}
+
+model LanguageRoute {
+  id             String   @id @default(cuid())
+  tenantId       String?
+  countryCode    String   // ISO 3166-1 alpha-2: KE, NG, GH, ZA, TZ, UG, SN, CI...
+  countryName    String
+  primaryLanguage String  // en | sw | fr | ha | yo | zu | ar | pt | am
+  fallbackLanguage String @default("en")
+  supervisorLocale String? // affects FORGE/OMEGA/ARIA greeting language
+  paymentMethods  String[] // mpesa | mtn_momo | flutterwave | stripe...
+  currencyCode    String   // KES | NGN | GHS | ZAR | TZS | UGX | XOF | USD...
+  currencySymbol  String
+  dateFormat      String   @default("DD/MM/YYYY")
+  timeFormat      String   @default("24h")
+  isActive        Boolean  @default(true)
+  updatedBy       String?
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@unique([countryCode, tenantId])
+  @@index([primaryLanguage])
+  @@index([tenantId])
+  @@map("language_routes")
+}
+
+model TranslationOverride {
+  id           String   @id @default(cuid())
+  key          String   // e.g. "omega.greeting.morning" | "cta.enroll_now"
+  languageCode String   // sw | fr | ha | yo | zu | ar
+  value        String   @db.Text
+  context      String?  // layer or page context
+  updatedBy    String?
+  updatedAt    DateTime @updatedAt
+
+  @@unique([key, languageCode])
+  @@map("translation_overrides")
+}
+
+model MobileSession {
+  id          String   @id @default(cuid())
+  userId      String?
+  tenantId    String?
+  deviceId    String
+  os          String   // ios | android
+  osVersion   String
+  appVersion  String
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  duration    Int?     // in seconds
+  metadata    Json?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([deviceId])
+  @@map("mobile_sessions")
+}
+
+model CountryRule {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  countryCode String
+  config      Json     // custom per-country settings
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@unique([countryCode, tenantId])
+  @@index([tenantId])
+  @@map("country_rules")
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  key         String
+  description String?
+  isActive    Boolean  @default(false)
+  rules       Json?    // rollouts, audience targeting
+  category    String   // mobile | web | global
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+
+  @@unique([key, tenantId])
+  @@index([category])
+  @@index([tenantId])
+  @@map("feature_flags")
+}
+
+model ErrorReport {
+  id          String   @id @default(cuid())
+  userId      String?
+  tenantId    String?
+  platform    String   // web | mobile-ios | mobile-android
+  errorName   String
+  message     String   @db.Text
+  stack       String?  @db.Text
+  metadata    Json?
+  status      String   @default("open") // open | resolved | ignored
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([platform])
+  @@index([status])
+  @@map("error_reports")
 }

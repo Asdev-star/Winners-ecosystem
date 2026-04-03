@@ -285,7 +285,7 @@ class BiometricAuthService {
     for (let i = 0; i < bytes.length; i++) {
       buffer[i] = bytes.charCodeAt(i);
     }
-    return buffer;
+    return buffer.buffer.slice(0);
   }
 }
 

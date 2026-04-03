@@ -108,7 +108,7 @@ export function CardSkeleton() {
         .card-skeleton {
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 18px;
+          border-radius: var(--card-radius, 18px);
           padding: 20px;
           position: relative;
           overflow: hidden;

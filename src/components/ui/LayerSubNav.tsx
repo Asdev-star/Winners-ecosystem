@@ -59,7 +59,7 @@ const css = `
   gap: 7px;
   padding: 6px 13px;
   border-radius: 7px;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body), 'Syne', sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-dim);
@@ -84,7 +84,7 @@ const css = `
   background: var(--lsn-accent, var(--gold));
 }
 .lsn-badge {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 8px; font-weight: 700;
   min-width: 16px; height: 16px;
   padding: 0 4px; border-radius: 8px;
@@ -109,7 +109,7 @@ const css = `
   0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
 }
 .lsn-shortcut {
-  font-family: 'Space Mono', monospace; font-size: 8px;
+  font-family: var(--font-mono), 'Space Mono', monospace; font-size: 8px;
   color: rgba(90,122,150,0.4);
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.07);
@@ -121,7 +121,7 @@ const css = `
   padding: 5px 12px; border-radius: 7px;
   border: 1px solid rgba(255,255,255,0.07);
   background: rgba(255,255,255,0.02);
-  font-family: 'Space Mono', monospace; font-size: 9px;
+  font-family: var(--font-mono), 'Space Mono', monospace; font-size: 9px;
   color: var(--text-dim); letter-spacing: 0.05em;
   cursor: pointer; text-decoration: none;
   transition: all 0.18s; white-space: nowrap; flex-shrink: 0;

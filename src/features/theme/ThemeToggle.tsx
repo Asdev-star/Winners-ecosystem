@@ -5,7 +5,7 @@ import { useThemeStore, applyTheme } from "./themeStore";
 
 const componentCss = `
   .tt-btn {
-    width: 40px; height: 40px; border-radius: 12px;
+    width: 40px; height: 40px; border-radius: var(--card-radius, 12px);
     background: transparent; border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.15s; font-size: 16px;
@@ -26,7 +26,7 @@ const componentCss = `
   }
   .tt-switch input:checked + .tt-slider { background: var(--blue-dim); }
   .tt-switch input:checked + .tt-slider::before { transform: translateX(20px); background: var(--gold); }
-  .tt-label { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
+  .tt-label { font-family: var(--font-mono), 'Space Mono', monospace; font-size: 11px; color: var(--text-dim); }
 `;
 
 if (typeof document !== "undefined" && !document.getElementById("tt-styles")) {

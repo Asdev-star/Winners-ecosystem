@@ -1,7 +1,7 @@
 // Level II (V3.0) - Command Palette
 // Component: CommandPalette
 // Universal navigator via ⌘K with AI-powered suggestions
-// Design: CSS variables only · Syne + Space Mono fonts
+// Design: CSS variables only · runtime font tokens
 
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -205,7 +205,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
 
           {mode === "nav" && query.length === 0 && (
             <>
-              <div className="cmd-section">
+          <div className="cmd-section">
                 <div className="cmd-section-title">NAVIGATION</div>
                 {NAVIGATION_COMMANDS.slice(0, 6).map((cmd, index) => (
                   <div
@@ -326,7 +326,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           max-width: 640px;
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 18px;
+          border-radius: var(--card-radius, 18px);
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
           overflow: hidden;
           animation: cmdSlide 0.2s ease;
@@ -352,7 +352,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         }
 
         .cmd-icon {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 12px;
           color: var(--text-dim);
           background: var(--surface2);
@@ -365,7 +365,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           background: transparent;
           border: none;
           outline: none;
-          font-family: 'Syne', sans-serif;
+          font-family: var(--font-body), 'Syne', sans-serif;
           font-size: 16px;
           color: var(--text);
         }
@@ -398,7 +398,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         }
 
         .cmd-section-title {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 9px;
           color: var(--text-dim);
           padding: 8px 12px 4px;
@@ -411,7 +411,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
           align-items: center;
           gap: 12px;
           padding: 10px 12px;
-          border-radius: 14px;
+          border-radius: var(--card-radius, 14px);
           cursor: pointer;
           transition: background 0.15s;
         }
@@ -439,19 +439,19 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         }
 
         .cmd-item-label {
-          font-family: 'Syne', sans-serif;
+          font-family: var(--font-body), 'Syne', sans-serif;
           font-size: 14px;
           color: var(--text);
         }
 
         .cmd-item-desc {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 11px;
           color: var(--text-dim);
         }
 
         .cmd-item-layer {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 9px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -476,7 +476,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         }
 
         .cmd-empty-text {
-          font-family: 'Syne', sans-serif;
+          font-family: var(--font-body), 'Syne', sans-serif;
           font-size: 14px;
         }
 
@@ -495,7 +495,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         }
 
         .cmd-hint span {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 10px;
           color: var(--text-dim);
         }
@@ -506,10 +506,10 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
         }
 
         .cmd-mode {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 9px;
           padding: 2px 8px;
-          border-radius: 999px;
+          border-radius: var(--card-radius, 999px);
           background: var(--surface);
           color: var(--text-dim);
         }

@@ -37,9 +37,9 @@ const css = `
 .wn-tooltip-inner {
   background: var(--surface3);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--card-radius, 6px);
   padding: 8px 12px;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body), 'Syne', sans-serif;
   font-size: 11.5px;
   color: var(--text);
   line-height: 1.5;

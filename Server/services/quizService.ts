@@ -221,13 +221,14 @@ export async function submitQuizAttempt(
   const passed = percentage >= attempt.quiz.passingScore;
 
   // Update attempt
+  const answersJson: Prisma.InputJsonArray = gradedAnswers.map((answer) => ({ ...answer }));
   const updatedAttempt = await db.quizAttempt.update({
     where: { id: attemptId },
     data: {
       score: totalScore,
       percentage,
       passed,
-      answers: gradedAnswers as unknown as Prisma.InputJsonValue,
+      answers: answersJson,
       timeTakenSecs,
       completedAt: new Date()
     }

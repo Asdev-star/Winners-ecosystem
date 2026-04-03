@@ -62,7 +62,7 @@ export default function ContextBar({
           gap: 8px;
           padding: 4px 10px;
           border: 1px solid var(--border);
-          border-radius: 999px;
+          border-radius: var(--card-radius, 999px);
           font-family: "Space Mono", monospace;
           font-size: 9px;
           letter-spacing: 0.14em;

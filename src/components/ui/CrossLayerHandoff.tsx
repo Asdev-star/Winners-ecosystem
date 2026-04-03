@@ -32,7 +32,7 @@ const css = `
 }
 
 .handoff-card {
-  background: var(--surface); border-radius: 16px;
+  background: var(--surface); border-radius: var(--card-radius, 16px);
   max-width: 420px; width: 100%; position: relative;
   overflow: hidden; animation: handoff-slide-up 0.4s ease;
 }
@@ -63,7 +63,7 @@ const css = `
   padding: 20px 20px 0;
 }
 .handoff-icon {
-  width: 44px; height: 44px; border-radius: 12px;
+  width: 44px; height: 44px; border-radius: var(--card-radius, 12px);
   display: flex; align-items: center; justify-content: center;
   font-size: 20px;
 }
@@ -82,7 +82,7 @@ const css = `
 
 .handoff-meta { flex: 1; }
 .handoff-assistant {
-  font-family: 'Space Mono', monospace; font-size: 10px;
+  font-family: var(--font-mono), 'Space Mono', monospace; font-size: 10px;
   letter-spacing: 0.12em; text-transform: uppercase;
 }
 .handoff-card.academy .handoff-assistant { color: var(--green); }
@@ -90,7 +90,7 @@ const css = `
 .handoff-card.market .handoff-assistant { color: var(--gold); }
 
 .handoff-type {
-  font-family: 'Space Mono', monospace; font-size: 9px;
+  font-family: var(--font-mono), 'Space Mono', monospace; font-size: 9px;
   letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--text-dim); margin-top: 2px;
 }
@@ -114,7 +114,7 @@ const css = `
   line-height: 1.6; margin-bottom: 16px;
 }
 .handoff-details {
-  background: var(--surface2); border-radius: 10px;
+  background: var(--surface2); border-radius: var(--card-radius, 10px);
   padding: 14px; margin-bottom: 16px;
 }
 .handoff-detail-row {
@@ -125,7 +125,7 @@ const css = `
   border-bottom: 1px solid var(--border);
 }
 .handoff-detail-label {
-  font-family: 'Space Mono', monospace; font-size: 10px;
+  font-family: var(--font-mono), 'Space Mono', monospace; font-size: 10px;
   color: var(--text-dim); text-transform: uppercase;
 }
 .handoff-detail-value {
@@ -139,10 +139,10 @@ const css = `
 .handoff-draft {
   background: rgba(155, 111, 255, 0.06);
   border: 1px solid rgba(155, 111, 255, 0.15);
-  border-radius: 10px; padding: 12px; margin-bottom: 16px;
+  border-radius: var(--card-radius, 10px); padding: 12px; margin-bottom: 16px;
 }
 .handoff-draft-label {
-  font-family: 'Space Mono', monospace; font-size: 9px;
+  font-family: var(--font-mono), 'Space Mono', monospace; font-size: 9px;
   color: var(--purple); text-transform: uppercase;
   margin-bottom: 6px; display: flex; align-items: center; gap: 4px;
 }
@@ -156,7 +156,7 @@ const css = `
   margin-bottom: 16px;
 }
 .handoff-loop-label {
-  font-family: 'Space Mono', monospace; font-size: 10px;
+  font-family: var(--font-mono), 'Space Mono', monospace; font-size: 10px;
   color: var(--text-dim);
 }
 .handoff-loop-bar {
@@ -168,7 +168,7 @@ const css = `
   border-radius: 2px; transition: width 0.5s ease;
 }
 .handoff-loop-stage {
-  font-family: 'Space Mono', monospace; font-size: 10px;
+  font-family: var(--font-mono), 'Space Mono', monospace; font-size: 10px;
   color: var(--gold);
 }
 
@@ -177,8 +177,8 @@ const css = `
   display: flex; gap: 10px; padding: 0 20px 20px;
 }
 .handoff-btn {
-  flex: 1; padding: 12px 16px; border-radius: 10px;
-  font-family: 'Syne', sans-serif; font-size: 13px;
+  flex: 1; padding: 12px 16px; border-radius: var(--card-radius, 10px);
+  font-family: var(--font-body), 'Syne', sans-serif; font-size: 13px;
   font-weight: 700; cursor: pointer; transition: all 0.2s;
 }
 .handoff-btn.primary {
@@ -213,7 +213,7 @@ const css = `
 
 /* Mini Card Variant */
 .handoff-mini {
-  background: var(--surface); border-radius: 12px;
+  background: var(--surface); border-radius: var(--card-radius, 12px);
   border: 1px solid var(--border); padding: 14px;
   display: flex; align-items: center; gap: 12px;
   cursor: pointer; transition: all 0.2s;
@@ -233,7 +233,7 @@ const css = `
 }
 
 .handoff-mini-icon {
-  width: 36px; height: 36px; border-radius: 8px;
+  width: 36px; height: 36px; border-radius: var(--card-radius, 8px);
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; flex-shrink: 0;
 }

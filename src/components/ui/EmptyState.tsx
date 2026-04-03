@@ -72,7 +72,7 @@ export default function EmptyState({
         }
         
         .empty-state__title {
-          font-family: 'Syne', sans-serif;
+          font-family: var(--font-body), 'Syne', sans-serif;
           font-size: 28px;
           font-weight: 800;
           color: var(--text);
@@ -81,7 +81,7 @@ export default function EmptyState({
         }
         
         .empty-state__description {
-          font-family: 'Syne', sans-serif;
+          font-family: var(--font-body), 'Syne', sans-serif;
           font-size: 14px;
           color: var(--text-dim);
           margin: 0 0 24px;
@@ -90,12 +90,12 @@ export default function EmptyState({
         }
         
         .empty-state__message {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 11px;
           color: var(--text-dim);
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 4px;
+          border-radius: var(--card-radius, 4px);
           padding: 12px 16px;
           margin-bottom: 24px;
           max-width: 450px;
@@ -121,8 +121,8 @@ export default function EmptyState({
           background: ${config.color};
           color: var(--bg);
           border: none;
-          border-radius: 999px;
-          font-family: 'Syne', sans-serif;
+          border-radius: var(--card-radius, 999px);
+          font-family: var(--font-body), 'Syne', sans-serif;
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
@@ -143,8 +143,8 @@ export default function EmptyState({
           background: transparent;
           color: var(--text);
           border: 1px solid var(--border);
-          border-radius: 999px;
-          font-family: 'Syne', sans-serif;
+          border-radius: var(--card-radius, 999px);
+          font-family: var(--font-body), 'Syne', sans-serif;
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
@@ -165,7 +165,7 @@ export default function EmptyState({
           padding: 12px 20px;
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 6px;
+          border-radius: var(--card-radius, 6px);
         }
         
         .empty-state__assistant-icon {
@@ -173,7 +173,7 @@ export default function EmptyState({
         }
         
         .empty-state__assistant-text {
-          font-family: 'Space Mono', monospace;
+          font-family: var(--font-mono), 'Space Mono', monospace;
           font-size: 10px;
           letter-spacing: 0.1em;
           text-transform: uppercase;

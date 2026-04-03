@@ -175,7 +175,7 @@ const css = `
     justify-content: center;
     background: var(--surface);
     border: 2px solid var(--border);
-    border-radius: 50%;
+    border-radius: var(--card-radius, 50%);
     font-size: 14px;
     transition: all 0.3s ease;
   }
@@ -200,7 +200,7 @@ const css = `
   }
 
   .lsi-stage-label {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -227,7 +227,7 @@ const css = `
     margin-top: 16px;
     padding: 12px;
     background: var(--surface2);
-    border-radius: 6px;
+    border-radius: var(--card-radius, 6px);
     border: 1px solid var(--border);
   }
 
@@ -236,14 +236,14 @@ const css = `
   }
 
   .lsi-current-label {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-body), 'Syne', sans-serif;
     font-weight: 600;
     font-size: 14px;
     color: var(--text);
   }
 
   .lsi-current-desc {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
     margin-left: auto;
@@ -256,7 +256,7 @@ const css = `
     padding: 4px 10px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--card-radius, 12px);
   }
 
   .lsi-compact-icon {
@@ -264,7 +264,7 @@ const css = `
   }
 
   .lsi-compact-label {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -288,7 +288,7 @@ const css = `
   }
 
   .lsb-label {
-    font-family: 'Space Mono', monospace;
+    font-family: var(--font-mono), 'Space Mono', monospace;
     font-size: 8px;
     text-transform: uppercase;
     letter-spacing: 0.05em;

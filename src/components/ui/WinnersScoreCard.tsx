@@ -74,9 +74,9 @@ const css = `
 .wsc-root {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--card-radius, 12px);
   overflow: hidden;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body), 'Syne', sans-serif;
 }
 
 .wsc-header {
@@ -91,7 +91,7 @@ const css = `
 .wsc-header-left { flex: 1; min-width: 0; }
 
 .wsc-eyebrow {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 8px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -107,7 +107,7 @@ const css = `
 }
 
 .wsc-week {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 9px;
   color: var(--text-dim);
   letter-spacing: 0.04em;
@@ -129,7 +129,7 @@ const css = `
 }
 
 .wsc-grade-delta {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 9px;
   letter-spacing: 0.06em;
 }
@@ -201,7 +201,7 @@ const css = `
 }
 
 .wsc-layer-score {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 9px;
   color: var(--text-dim);
   width: 34px;
@@ -210,7 +210,7 @@ const css = `
 }
 
 .wsc-layer-delta {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono), 'Space Mono', monospace;
   font-size: 9px;
   width: 24px;
   text-align: right;

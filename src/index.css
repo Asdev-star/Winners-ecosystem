@@ -50,6 +50,20 @@
   --text-dim: #94A3B8;   /* Balanced muted text */
   --text-faint: #475569; /* Subtle text */
 
+  /* Runtime typography + card tokens */
+  --font-heading: "Cormorant Garamond";
+  --font-display: "Syne";
+  --font-mono: "Space Mono";
+  --font-body: "Syne";
+  --font-scale: 1;
+  --card-radius: 6px;
+  --card-top-border-width: 2px;
+  --card-top-border-style: gradient;
+  --card-shadow-intensity: medium;
+  --density: comfortable;
+  --animation-speed: 1;
+  --reduced-motion: false;
+
   /* Theme switch palettes consumed by themeStore.ts */
   --theme-light-bg: #F8FAFC;
   --theme-light-surface: #FFFFFF;
@@ -139,7 +153,8 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-body), 'Syne', sans-serif;
+  font-size: calc(16px * var(--font-scale, 1));
   min-height: 100vh;
   overflow-x: hidden;
 }

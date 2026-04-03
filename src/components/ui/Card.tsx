@@ -30,7 +30,7 @@ const baseStyle: CSSProperties = {
   position: "relative",
   background: "var(--surface)",
   border: "1px solid var(--border)",
-  borderRadius: 18,
+  borderRadius: "var(--card-radius, 18px)",
   overflow: "hidden",
   transition: "all 200ms ease",
 };
@@ -41,10 +41,11 @@ const headerTitleStyle: CSSProperties = {
   color: "var(--text)",
   marginBottom: 4,
   lineHeight: 1.4,
+  fontFamily: "var(--font-heading), 'Cormorant Garamond', serif",
 };
 
 const headerSubtitleStyle: CSSProperties = {
-  fontFamily: "'Space Mono', monospace",
+  fontFamily: "var(--font-mono), 'Space Mono', monospace",
   fontSize: 9,
   letterSpacing: "0.08em",
   color: "var(--text-dim)",
@@ -84,7 +85,7 @@ export default function Card({
           top: 0,
           left: 0,
           right: 0,
-          height: 2,
+          height: "var(--card-top-border-width, 2px)",
           background: accentGradient[accent],
         }}
       />

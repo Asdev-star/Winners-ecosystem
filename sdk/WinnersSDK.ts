@@ -826,7 +826,10 @@ export interface CloudOverviewData {
 }
 
 class AuthResource {
-  constructor(private readonly http: HTTPClient) {}
+  private readonly http: HTTPClient;
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
   register(data: { email: string; password: string; name: string; refCode?: string }) { return this.http.post<AuthSession>("/auth/register", data); }
   login(data: { email: string; password: string }) { return this.http.post<AuthSession>("/auth/login", data); }
   refresh(data: { refreshToken: string }) { return this.http.post<AuthSession>("/auth/refresh", data); }
@@ -837,7 +840,10 @@ class AuthResource {
 }
 
 class TenantsResource {
-  constructor(private readonly http: HTTPClient) {}
+  private readonly http: HTTPClient;
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
   getCurrent() { return this.http.get<TenantSummary>("/tenants/me"); }
   updateCurrent(data: { name?: string; settings?: { timezone?: string; currency?: string; fiscalMonth?: number } }) { return this.http.patch<{ message: string; tenant: TenantSummary }>("/tenants/me", data); }
   listMembers() { return this.http.get<{ tenantId: string; members: Array<{ id: string; name: string; email: string; role: string; createdAt: string }>; total: number }>("/tenants/me/members"); }
@@ -846,7 +852,10 @@ class TenantsResource {
 }
 
 class ProfileResource {
-  constructor(private readonly http: HTTPClient) {}
+  private readonly http: HTTPClient;
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
   get() { return this.http.get<{ profile: UserProfileData }>("/profile"); }
   saveOnboarding(data: Record<string, unknown>) { return this.http.post<{ message: string; route: string; supervisor: string; welcomeMessage?: string }>("/profile/onboarding", data); }
   update(data: Partial<UserProfileData>) { return this.http.patch<{ message: string; profile: UserProfileData }>("/profile", data); }
@@ -855,7 +864,10 @@ class ProfileResource {
 }
 
 class NotificationsResource {
-  constructor(private readonly http: HTTPClient) {}
+  private readonly http: HTTPClient;
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
   list() { return this.http.get<{ notifications: NotificationItem[]; total: number; unread: number }>("/notifications"); }
   registerDeviceToken(data: { token: string; platform?: string; userAgent?: string }) { return this.http.post<{ success: boolean }>("/notifications/device-token", data); }
   unregisterDeviceToken(token: string) { return this.http.request<{ success: boolean }>("DELETE", "/notifications/device-token", { token }); }
@@ -870,7 +882,10 @@ class NotificationsResource {
 }
 
 class SocialResource {
-  constructor(private readonly http: HTTPClient) {}
+  private readonly http: HTTPClient;
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
   listAccounts() { return this.http.get<SocialAccount[]>("/social/accounts"); }
   connectAccount(data: { platform: string }) { return this.http.post<{ authUrl: string; platform: string; message: string }>("/social/accounts/connect", data); }
   connectDemoAccount(data: { platform: string; username: string }) { return this.http.post<{ id: string; platform: string; username: string; displayName: string; message: string }>("/social/accounts/connect/demo", data); }
@@ -897,7 +912,10 @@ class SocialResource {
 }
 
 class WorkResource {
-  constructor(private readonly http: HTTPClient) {}
+  private readonly http: HTTPClient;
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
   listJobs(params?: { page?: number; limit?: number; category?: string; jobType?: string; search?: string; status?: string }) {
     const query = new URLSearchParams(Object.entries(params ?? {}).reduce<Record<string, string>>((acc, [key, value]) => { if (value !== undefined && value !== null) acc[key] = String(value); return acc; }, {})).toString();
     return this.http.get<{ jobs: JobListing[]; total: number; page?: number; pages?: number }>(`/work/jobs${query ? `?${query}` : ""}`);
@@ -931,7 +949,10 @@ class WorkResource {
 }
 
 class CloudResource {
-  constructor(private readonly http: HTTPClient) {}
+  private readonly http: HTTPClient;
+  constructor(http: HTTPClient) {
+    this.http = http;
+  }
   getOverview() { return this.http.get<CloudOverviewData>("/cloud/overview"); }
   listApiKeys() { return this.http.get<{ keys: Array<Record<string, unknown>> }>("/cloud/keys"); }
   createApiKey(data: { name: string; scopes?: string[]; rateLimitRpm?: number; expiresAt?: string }) { return this.http.post<{ key: Record<string, unknown>; message: string }>("/cloud/keys", data); }

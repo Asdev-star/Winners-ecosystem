@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import crypto from "crypto";
 import { Router, type Request, type Response } from "express";
 import jwt from "jsonwebtoken";
+import type { Prisma } from "@prisma/client";
 import db from "../db.js";
 import { concealedSuperAdminMiddleware } from "../middleware/superAdminMiddleware.js";
 import {
@@ -1821,13 +1822,17 @@ export const DEFAULT_ECOSYSTEM_SETTINGS = {
   brandColor: "#C9A84C",
   accentColor: "#89C4E1",
   darkMode: false,
+  fontFamily: "Syne",
+  cardStyle: "glass",
   adaptiveLanguage: true,
+  manualLanguageOverride: "",
   mobileAppVersion: "1.0.0",
   pushNotifications: true,
   analyticsTracking: true,
   publicRegistration: true,
   requireEmailVerification: false,
   defaultTheme: "light",
+  supportedLanguages: ["en", "fr", "ar", "ha", "yo", "ig", "zu", "pidgin"],
   countryLanguageMapping: [
     { country: "US", language: "en" },
     { country: "GB", language: "en" },
@@ -1845,6 +1850,15 @@ export const DEFAULT_ECOSYSTEM_SETTINGS = {
     { country: "JP", language: "ja" },
     { country: "BR", language: "pt" },
   ],
+  layerAccentOverrides: [
+    { layerId: "core", accentColor: "#C9A84C" },
+    { layerId: "community", accentColor: "#89C4E1" },
+  ],
+  perLayerLanguages: [
+    { layerId: "landing", language: "en" },
+    { layerId: "community", language: "fr" },
+    { layerId: "work", language: "en" },
+  ],
   mobileBehaviors: {
     offlineMode: true,
     biometricLogin: true,
@@ -1853,10 +1867,59 @@ export const DEFAULT_ECOSYSTEM_SETTINGS = {
     analyticsTracking: true,
     crashReporting: true,
   },
+  pwaInstallPrompts: true,
+  pushNotificationRules: {
+    enabled: true,
+    quietHoursStart: "22:00",
+    quietHoursEnd: "07:00",
+    highPriorityOnly: false,
+  },
+  offlineCachePolicy: "balanced",
+  reactNativeBuildFlags: {
+    enableHermes: true,
+    enableNewArchitecture: false,
+    enableOTAUpdates: true,
+  },
+  featureFlagsByPlatform: {
+    web: true,
+    ios: true,
+    android: true,
+  },
   personalization: {
     recommendedContent: true,
     learningPath: true,
     notifications: true,
+    onboardingFlowEnabled: true,
+    profileTypeWeights: [
+      { profileType: "creator", weight: 1.2 },
+      { profileType: "learner", weight: 1 },
+      { profileType: "supervisor", weight: 0.8 },
+    ],
+    supervisorTone: "measured",
+    recommendationAggressiveness: 55,
+  },
+  analyticsControls: {
+    downloads: true,
+    sessions: true,
+    activityHeatmaps: true,
+    featureUsage: true,
+    errorReporting: true,
+    issueTracking: true,
+    countryBreakdown: true,
+  },
+  geoAdaptive: {
+    countryLanguageRouting: true,
+    currencyDisplayMode: "localized",
+    paymentMethodSurfacing: [
+      { country: "NG", methods: ["paystack", "bank_transfer", "card"] },
+      { country: "KE", methods: ["mpesa", "card", "bank_transfer"] },
+      { country: "US", methods: ["card", "paypal", "bank_transfer"] },
+    ],
+    supervisorOpeningLines: [
+      { country: "NG", line: "Welcome, let's tailor the experience for you." },
+      { country: "FR", line: "Bienvenue, let's adapt the workspace for you." },
+      { country: "SA", line: "أهلاً بك، سنضبط التجربة حسب منطقتك." },
+    ],
   },
 };
 
@@ -1877,12 +1940,13 @@ router.get("/settings", async (_req, res) => {
 router.put("/settings", async (req, res) => {
   try {
     const actor = getAdminActor(req);
-    const updates = req.body as Record<string, unknown>;
+    const updates = req.body as Record<string, Prisma.InputJsonValue>;
     for (const [key, value] of Object.entries(updates)) {
+      const jsonValue = value as Prisma.InputJsonValue;
       await db.ecosystemSettings.upsert({
         where: { key },
-        create: { key, value, updatedBy: actor.email },
-        update: { value, updatedBy: actor.email, updatedAt: new Date() },
+        create: { key, value: jsonValue, updatedBy: actor.email },
+        update: { value: jsonValue, updatedBy: actor.email, updatedAt: new Date() },
       });
     }
     await recordAdminAction({ actor, action: "ECOSYSTEM_SETTINGS_UPDATED", summary: "Updated ecosystem settings", metadata: { keys: Object.keys(updates) } });
@@ -1905,10 +1969,11 @@ router.put("/settings/country-mapping", async (req, res) => {
   try {
     const actor = getAdminActor(req);
     const mapping = req.body as Array<{ country: string; language: string }>;
+    const jsonMapping = mapping as Prisma.InputJsonValue;
     await db.ecosystemSettings.upsert({
       where: { key: "countryLanguageMapping" },
-      create: { key: "countryLanguageMapping", value: mapping, updatedBy: actor.email },
-      update: { value: mapping, updatedBy: actor.email, updatedAt: new Date() },
+      create: { key: "countryLanguageMapping", value: jsonMapping, updatedBy: actor.email },
+      update: { value: jsonMapping, updatedBy: actor.email, updatedAt: new Date() },
     });
     await recordAdminAction({ actor, action: "COUNTRY_MAPPING_UPDATED", summary: "Updated country-language mapping", metadata: { count: mapping.length } });
     return res.json({ message: "Mapping updated", count: mapping.length });

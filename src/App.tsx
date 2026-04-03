@@ -123,7 +123,7 @@ import ForgeIntelligencePage from "./features/admin/ForgeIntelligencePage";
 import SystemHealthPage from "./features/admin/SystemHealthPage";
 import BroadcastPage from "./features/admin/BroadcastPage";
 import SecurityPage from "./features/admin/SecurityPage";
-import AdminSettingsPage from "./features/admin/AdminSettingsPage";
+import AdminSettingsPage from "./features/admin/settings/AdminSettingsPage";
 import { AdminPlatformLayerPage } from "./features/admin/AdminRoutePages";
 
 function DashboardRealmRoute() {

@@ -50,7 +50,7 @@ const css = `
     align-items:center;
     gap:12px;
     border:1px solid rgba(201,168,76,.22);
-    border-radius:12px;
+    border-radius:var(--card-radius, 12px);
     background:
       linear-gradient(135deg, rgba(20,29,42,.96), rgba(11,19,30,.94));
     backdrop-filter:blur(14px);
@@ -63,11 +63,11 @@ const css = `
     align-items:center;
     gap:8px;
     padding:10px 12px;
-    border-radius:10px;
+    border-radius:var(--card-radius, 10px);
     border:1px solid rgba(201,168,76,.16);
     background:linear-gradient(180deg, rgba(201,168,76,.12), rgba(201,168,76,.04));
     color:var(--gold);
-    font-family:"Space Mono", monospace;
+    font-family:var(--font-mono), "Space Mono", monospace;
     font-size:10px;
     letter-spacing:.12em;
     text-transform:uppercase;
@@ -97,9 +97,9 @@ const css = `
     border:1px solid transparent;
     background:transparent;
     color:rgba(232,238,245,.72);
-    border-radius:8px;
+    border-radius:var(--card-radius, 8px);
     padding:9px 12px 9px 18px;
-    font-family:"Space Mono", monospace;
+    font-family:var(--font-mono), "Space Mono", monospace;
     font-size:10px;
     letter-spacing:.06em;
     text-transform:uppercase;
@@ -139,7 +139,7 @@ const css = `
     justify-content:center;
     min-width:18px;
     padding:3px 6px;
-    border-radius:999px;
+    border-radius:var(--card-radius, 999px);
     border:1px solid rgba(201,168,76,.22);
     background:rgba(201,168,76,.12);
     color:var(--gold);
@@ -150,7 +150,7 @@ const css = `
     min-width:260px;
     max-width:320px;
     border:1px solid rgba(201,168,76,.28);
-    border-radius:10px;
+    border-radius:var(--card-radius, 10px);
     background:linear-gradient(135deg, rgba(201,168,76,.14), rgba(201,168,76,.06));
     color:var(--text);
     padding:10px 12px;
@@ -168,7 +168,7 @@ const css = `
     display:flex;
     align-items:center;
     gap:8px;
-    font-family:"Space Mono", monospace;
+    font-family:var(--font-mono), "Space Mono", monospace;
     font-size:10px;
     letter-spacing:.1em;
     text-transform:uppercase;

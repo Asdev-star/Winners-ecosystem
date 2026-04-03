@@ -4,6 +4,45 @@ import { create } from "zustand";
 
 type Theme = "dark" | "light";
 
+type RuntimeThemeTokens = {
+  brandColor?: string;
+  accentColor?: string;
+  defaultTheme?: "light" | "dark" | "auto";
+  palette?: Partial<{
+    gold: string;
+    blue: string;
+    ice: string;
+    green: string;
+    red: string;
+    purple: string;
+    bg: string;
+    surface: string;
+    surface2: string;
+    border: string;
+    text: string;
+    textDim: string;
+  }>;
+  typography?: Partial<{
+    heading: string;
+    display: string;
+    mono: string;
+    body: string;
+    scale: number;
+  }>;
+  card?: Partial<{
+    borderRadius: number;
+    topBorderWidth: number;
+    topBorderStyle: "gradient" | "solid" | "none";
+    shadowIntensity: "none" | "subtle" | "medium" | "strong";
+  }>;
+  density?: "compact" | "comfortable" | "spacious";
+  animation?: Partial<{
+    reducedMotion: boolean;
+    speed: number;
+  }>;
+  layerAccentOverrides?: Array<{ layerId: string; accentColor: string }>;
+};
+
 interface ThemeState {
   theme: Theme;
   toggleTheme: () => void;
@@ -20,7 +59,11 @@ const getInitialTheme = (): Theme => {
   return "dark";
 };
 
+let currentTheme: Theme = getInitialTheme();
+let runtimeThemeTokens: RuntimeThemeTokens | null = null;
+
 export function applyTheme(theme: Theme, animate = true) {
+  currentTheme = theme;
   const root = document.documentElement;
 
   if (animate) {
@@ -67,6 +110,74 @@ export function applyTheme(theme: Theme, animate = true) {
     root.classList.add("dark");
     root.classList.remove("light");
   }
+
+  if (runtimeThemeTokens) {
+    applyRuntimeThemeTokens(root, runtimeThemeTokens);
+  }
+}
+
+function applyRuntimeThemeTokens(root: HTMLElement, tokens: RuntimeThemeTokens) {
+  const palette = tokens.palette ?? {};
+
+  const colorMap: Array<[string, string | undefined]> = [
+    ["--gold", tokens.brandColor ?? palette.gold],
+    ["--blue", palette.blue],
+    ["--ice", tokens.accentColor ?? palette.ice],
+    ["--green", palette.green],
+    ["--red", palette.red],
+    ["--purple", palette.purple],
+    ["--bg", palette.bg],
+    ["--surface", palette.surface],
+    ["--surface2", palette.surface2],
+    ["--border", palette.border],
+    ["--text", palette.text],
+    ["--text-dim", palette.textDim],
+  ];
+
+  for (const [name, value] of colorMap) {
+    if (value) {
+      root.style.setProperty(name, value);
+    }
+  }
+
+  const typography = tokens.typography ?? {};
+  if (typography.heading) root.style.setProperty("--font-heading", typography.heading);
+  if (typography.display) root.style.setProperty("--font-display", typography.display);
+  if (typography.mono) root.style.setProperty("--font-mono", typography.mono);
+  if (typography.body) root.style.setProperty("--font-body", typography.body);
+  if (typeof typography.scale === "number") root.style.setProperty("--font-scale", String(typography.scale));
+
+  const card = tokens.card ?? {};
+  if (typeof card.borderRadius === "number") root.style.setProperty("--card-radius", `${card.borderRadius}px`);
+  if (typeof card.topBorderWidth === "number") root.style.setProperty("--card-top-border-width", `${card.topBorderWidth}px`);
+  if (card.topBorderStyle) root.style.setProperty("--card-top-border-style", card.topBorderStyle);
+  if (card.shadowIntensity) root.style.setProperty("--card-shadow-intensity", card.shadowIntensity);
+
+  if (tokens.density) {
+    root.style.setProperty("--density", tokens.density);
+  }
+
+  if (tokens.animation) {
+    if (typeof tokens.animation.speed === "number") {
+      root.style.setProperty("--animation-speed", String(tokens.animation.speed));
+    }
+    if (typeof tokens.animation.reducedMotion === "boolean") {
+      root.style.setProperty("--reduced-motion", String(tokens.animation.reducedMotion));
+    }
+  }
+
+  if (tokens.layerAccentOverrides?.length) {
+    for (const layer of tokens.layerAccentOverrides) {
+      if (layer.layerId && layer.accentColor) {
+        root.style.setProperty(`--layer-${layer.layerId}-accent`, layer.accentColor);
+      }
+    }
+  }
+}
+
+export function applyRuntimeTheme(tokens: RuntimeThemeTokens | null, animate = false) {
+  runtimeThemeTokens = tokens;
+  applyTheme(currentTheme, animate);
 }
 
 // Apply immediately on load — prevents FOUC

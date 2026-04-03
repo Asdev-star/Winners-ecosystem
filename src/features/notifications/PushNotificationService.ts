@@ -5,7 +5,7 @@
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || "";
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 
-export interface PushSubscription {
+export interface StoredPushSubscription {
   id: string;
   endpoint: string;
   keys: {
@@ -31,7 +31,7 @@ export interface NotificationPreferences {
 
 class PushNotificationService {
   private registration: ServiceWorkerRegistration | null = null;
-  private subscription: PushSubscription | null = null;
+  private subscription: StoredPushSubscription | null = null;
   private token: string | null = null;
 
   /** Initialize push notifications */
@@ -80,7 +80,7 @@ class PushNotificationService {
       // Subscribe with VAPID key
       const subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(VAPID_KEY),
+        applicationServerKey: this.urlBase64ToUint8Array(VAPID_KEY) as BufferSource,
       });
 
       console.log("[Push] Subscribed successfully");
@@ -126,7 +126,7 @@ class PushNotificationService {
 
   /** Save subscription to server */
   private async saveSubscription(
-    subscription: PushSubscription,
+    subscription: globalThis.PushSubscription,
     userToken: string
   ): Promise<void> {
     const jsonSubscription = subscription.toJSON();
@@ -148,7 +148,7 @@ class PushNotificationService {
 
     if (response.ok) {
       const data = await response.json();
-      this.subscription = data.subscription;
+      this.subscription = data.subscription as StoredPushSubscription;
       this.token = userToken;
       console.log("[Push] Subscription saved to server");
     }
@@ -245,7 +245,7 @@ class PushNotificationService {
   }
 
   /** Get current subscription status */
-  getSubscriptionStatus(): { subscribed: boolean; subscription: PushSubscription | null } {
+  getSubscriptionStatus(): { subscribed: boolean; subscription: StoredPushSubscription | null } {
     return {
       subscribed: !!this.subscription,
       subscription: this.subscription,
