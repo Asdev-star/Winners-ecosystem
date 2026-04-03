@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
-import { defaultConfig, LandingPageConfig } from "../../config/landingConfig";
+import { defaultConfig, type LandingPageConfig } from "../../config/landingConfig";
 import {
   detectBrowserCountry,
   getLandingDirection,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { API_BASE } from "../lib/api";
-import { getAuthHeaders } from "./auth/authStore";
+import { API_BASE } from "../../lib/api";
+import { getAuthHeaders } from "../auth/authStore";
 
 type EcosystemSettings = {
   language: string;
