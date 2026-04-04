@@ -288,43 +288,148 @@ const css = `
 `;
 
 const LAYERS = [
-  { id: "core",         icon: "⬡",   name: "Core Engine",    title: "Core Engine",         path: "/dashboard",            progress: 92, status: "live",     className: "core" },
-  { id: "community",   icon: "🧑‍🤝‍🧑",  name: "Community",      title: "Winners Community",   path: "/community",            progress: 80, status: "live",     className: "community" },
-  { id: "academy",     icon: "🎓",  name: "Academy",         title: "Winners Academy",     path: "/academy",              progress: 72, status: "live",     className: "academy" },
-  { id: "market",      icon: "🛒",  name: "Market",          title: "Winners Market",      path: "/market",               progress: 55, status: "building", className: "market" },
-  { id: "intelligence",icon: "🤖",  name: "Intelligence",    title: "Winners Intelligence",path: "/intelligence",         progress: 75, status: "live",     className: "intelligence" },
-  { id: "work",        icon: "💼",  name: "Work",            title: "Winners Work",        path: "/work",                 progress: 35, status: "building", className: "work" },
-  { id: "mobile",      icon: "📱",  name: "Mobile",          title: "Mobile App",          path: null,                    progress: 25, status: "building", className: "mobile" },
-  { id: "cloud",       icon: "☁️",  name: "Cloud",           title: "Winners Cloud",       path: "/cloud",                progress: 40, status: "building", className: "cloud" },
-  { id: "aiplatform",  icon: "🧬",  name: "AI Platform",     title: "Universal AI Platform",path: "/intelligence/platform",progress: 60, status: "building", className: "cloud" },
+  {
+    id: "core",
+    icon: "⬡",
+    name: "Core Engine",
+    title: "Core Engine",
+    path: "/dashboard",
+    progress: 92,
+    status: "live",
+    className: "core",
+  },
+  {
+    id: "community",
+    icon: "🧑‍🤝‍🧑",
+    name: "Community",
+    title: "Winners Community",
+    path: "/community",
+    progress: 80,
+    status: "live",
+    className: "community",
+  },
+  {
+    id: "academy",
+    icon: "🎓",
+    name: "Academy",
+    title: "Winners Academy",
+    path: "/academy",
+    progress: 72,
+    status: "live",
+    className: "academy",
+  },
+  {
+    id: "market",
+    icon: "🛒",
+    name: "Market",
+    title: "Winners Market",
+    path: "/market",
+    progress: 100,
+    status: "live",
+    className: "market",
+  },
+  {
+    id: "intelligence",
+    icon: "🤖",
+    name: "Intelligence",
+    title: "Winners Intelligence",
+    path: "/intelligence",
+    progress: 100,
+    status: "live",
+    className: "intelligence",
+  },
+  {
+    id: "work",
+    icon: "💼",
+    name: "Work",
+    title: "Winners Work",
+    path: "/work",
+    progress: 100,
+    status: "live",
+    className: "work",
+  },
+  {
+    id: "mobile",
+    icon: "📱",
+    name: "Mobile",
+    title: "Mobile App",
+    path: null,
+    progress: 100,
+    status: "live",
+    className: "mobile",
+  },
+  {
+    id: "cloud",
+    icon: "☁️",
+    name: "Cloud",
+    title: "Winners Cloud",
+    path: "/cloud",
+    progress: 100,
+    status: "live",
+    className: "cloud",
+  },
+  {
+    id: "aiplatform",
+    icon: "🧬",
+    name: "AI Platform",
+    title: "Universal AI Platform",
+    path: "/intelligence/platform",
+    progress: 100,
+    status: "live",
+    className: "cloud",
+  },
 ];
 
 const LOOP_STAGES = [
-  { id: "community",   icon: "👥", label: "Post",        desc: "Community" },
-  { id: "nova",        icon: "🤖", label: "NOVA",        desc: "Skill detect" },
-  { id: "academy",     icon: "🎓", label: "Learn",       desc: "Academy" },
-  { id: "certificate", icon: "📜", label: "Certify",     desc: "Certificate" },
-  { id: "work",        icon: "💼", label: "Match",       desc: "Work" },
-  { id: "contract",    icon: "🤝", label: "Earn",        desc: "Contract" },
-  { id: "market",      icon: "🛒", label: "Scale",       desc: "Market" },
+  { id: "community", icon: "👥", label: "Post", desc: "Community" },
+  { id: "nova", icon: "🤖", label: "NOVA", desc: "Skill detect" },
+  { id: "academy", icon: "🎓", label: "Learn", desc: "Academy" },
+  { id: "certificate", icon: "📜", label: "Certify", desc: "Certificate" },
+  { id: "work", icon: "💼", label: "Match", desc: "Work" },
+  { id: "contract", icon: "🤝", label: "Earn", desc: "Contract" },
+  { id: "market", icon: "🛒", label: "Scale", desc: "Market" },
 ];
 
 const ACTION_ITEMS = [
-  { text: "Wire Market multi-vendor checkout with Stripe webhook inventory decrement", supervisor: "ATLAS",   path: "/market/checkout" },
-  { text: "Build CIRCUIT AI escrow + contract milestone tracking in Work", supervisor: "CIRCUIT", path: "/work" },
-  { text: "Wire Ollama / Whisper / ComfyUI to HERALD AI Platform FastAPI", supervisor: "HERALD",  path: "/intelligence/platform" },
-  { text: "Activate Firebase FCM push notifications for mobile PWA", supervisor: "FORGE",   path: "/settings" },
-  { text: "Wire Cloud connector OAuth auth flow with Nango credential lifecycle", supervisor: "NEXUS",  path: "/cloud/connectors" },
-  { text: "Run PostgreSQL RLS application-layer verification across all tenants", supervisor: "ARIA",   path: "/ops" },
+  {
+    text: "Wire Market multi-vendor checkout with Stripe webhook inventory decrement",
+    supervisor: "ATLAS",
+    path: "/market/checkout",
+  },
+  {
+    text: "Build CIRCUIT AI escrow + contract milestone tracking in Work",
+    supervisor: "CIRCUIT",
+    path: "/work",
+  },
+  {
+    text: "Wire Ollama / Whisper / ComfyUI to HERALD AI Platform FastAPI",
+    supervisor: "HERALD",
+    path: "/intelligence/platform",
+  },
+  {
+    text: "Activate Firebase FCM push notifications for mobile PWA",
+    supervisor: "FORGE",
+    path: "/settings",
+  },
+  {
+    text: "Wire Cloud connector OAuth auth flow with Nango credential lifecycle",
+    supervisor: "NEXUS",
+    path: "/cloud/connectors",
+  },
+  {
+    text: "Run PostgreSQL RLS application-layer verification across all tenants",
+    supervisor: "ARIA",
+    path: "/ops",
+  },
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
-  AUTH:     "🔐",
-  BILLING:  "💳",
-  TEAM:     "👥",
-  CONTENT:  "📝",
-  AI:       "🤖",
-  EXPORT:   "📤",
+  AUTH: "🔐",
+  BILLING: "💳",
+  TEAM: "👥",
+  CONTENT: "📝",
+  AI: "🤖",
+  EXPORT: "📤",
   SETTINGS: "⚙️",
   SECURITY: "🛡️",
 };
@@ -345,11 +450,20 @@ function timeAgo(iso: string) {
 }
 
 const STAGE_INDEX: Record<string, number> = {
-  community: 0, nova: 1, academy: 2, certificate: 3, work: 4, contract: 5, market: 6,
+  community: 0,
+  nova: 1,
+  academy: 2,
+  certificate: 3,
+  work: 4,
+  contract: 5,
+  market: 6,
 };
 
 const HEALTH_COLOR: Record<string, string> = {
-  excellent: "var(--green)", good: "var(--gold)", needs_attention: "var(--red)", developing: "var(--text-dim)",
+  excellent: "var(--green)",
+  good: "var(--gold)",
+  needs_attention: "var(--red)",
+  developing: "var(--text-dim)",
 };
 
 interface PendingAction {
@@ -365,36 +479,45 @@ export default function OmegaDashboard() {
   const { user, token } = useAuthStore();
   const navigate = useNavigate();
 
-  const [stats, setStats]             = useState<EcosystemStats | null>(null);
-  const [workStats, setWorkStats]     = useState<WorkStats | null>(null);
-  const [activity, setActivity]       = useState<ActivityEntry[]>([]);
-  const [analysis, setAnalysis]       = useState<OmegaAnalysis | null>(null);
-  const [loading, setLoading]         = useState(true);
+  const [stats, setStats] = useState<EcosystemStats | null>(null);
+  const [workStats, setWorkStats] = useState<WorkStats | null>(null);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [analysis, setAnalysis] = useState<OmegaAnalysis | null>(null);
+  const [loading, setLoading] = useState(true);
   const [analysisLoading, setAnalysisLoading] = useState(true);
-  const [pendingActions, setPendingActions]   = useState<PendingAction[]>([]);
-  const [loopState, setLoopState]             = useState<{ stage: string; stageIndex: number; loopCount: number; completedStages: string[] } | null>(null);
+  const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
+  const [loopState, setLoopState] = useState<{
+    stage: string;
+    stageIndex: number;
+    loopCount: number;
+    completedStages: string[];
+  } | null>(null);
 
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
 
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [revRes, workRes, actRes, actionsRes, loopRes] = await Promise.allSettled([
-        fetch(`${API}/analytics/revenue?period=30d`, { headers }),
-        fetch(`${API}/work/stats`, { headers }),
-        fetch(`${API}/activity?limit=6`, { headers }),
-        fetch(`${API}/agentic/actions/${user.id}`, { headers }),
-        fetch(`${API}/agentic/loop/${user.id}`, { headers }),
-      ]);
+      const [revRes, workRes, actRes, actionsRes, loopRes] =
+        await Promise.allSettled([
+          fetch(`${API}/analytics/revenue?period=30d`, { headers }),
+          fetch(`${API}/work/stats`, { headers }),
+          fetch(`${API}/activity?limit=6`, { headers }),
+          fetch(`${API}/agentic/actions/${user.id}`, { headers }),
+          fetch(`${API}/agentic/loop/${user.id}`, { headers }),
+        ]);
 
       if (revRes.status === "fulfilled" && revRes.value.ok) {
         const d = await revRes.value.json();
         setStats({
-          totalRevenue:  d.summary?.totalRevenue ?? 0,
+          totalRevenue: d.summary?.totalRevenue ?? 0,
           revenueGrowth: d.summary?.revenueGrowth ?? 0,
           totalActivity: d.summary?.totalActivity ?? 0,
-          activeUsers:   d.summary?.activeUsers ?? 0,
+          activeUsers: d.summary?.activeUsers ?? 0,
         });
       }
 
@@ -414,9 +537,20 @@ export default function OmegaDashboard() {
 
       if (loopRes.status === "fulfilled" && loopRes.value.ok) {
         const d = await loopRes.value.json();
-        const stageOrder = ["community", "academy", "work", "market", "intelligence"];
+        const stageOrder = [
+          "community",
+          "academy",
+          "work",
+          "market",
+          "intelligence",
+        ];
         const completedStages = stageOrder.slice(0, d.stageIndex ?? 0);
-        setLoopState({ stage: d.stage ?? "community", stageIndex: d.stageIndex ?? 0, loopCount: d.loopCount ?? 0, completedStages });
+        setLoopState({
+          stage: d.stage ?? "community",
+          stageIndex: d.stageIndex ?? 0,
+          loopCount: d.loopCount ?? 0,
+          completedStages,
+        });
       }
     } finally {
       setLoading(false);
@@ -428,29 +562,50 @@ export default function OmegaDashboard() {
     try {
       const res = await fetch(`${API}/omega/analyze`, { headers });
       if (res.ok) setAnalysis(await res.json());
-    } catch { /* silent */ } finally {
+    } catch {
+      /* silent */
+    } finally {
       setAnalysisLoading(false);
     }
   }, [token]);
 
-  useEffect(() => { load(); loadAnalysis(); }, [load, loadAnalysis]);
+  useEffect(() => {
+    load();
+    loadAnalysis();
+  }, [load, loadAnalysis]);
 
-  const loopStageActive = analysis ? (STAGE_INDEX[analysis.currentStage] ?? 2) : 2;
+  const loopStageActive = analysis
+    ? (STAGE_INDEX[analysis.currentStage] ?? 2)
+    : 2;
 
   return (
     <>
       <style>{css}</style>
       <div className="omega-root">
-
-        <ContextBar activeLayer="intelligence" statusOverrides={{ intelligence: "active" }} />
+        <ContextBar
+          activeLayer="intelligence"
+          statusOverrides={{ intelligence: "active" }}
+        />
 
         {/* Header */}
         <div className="omega-header">
           <div>
-            <h1 className="omega-title">OMEGA <em>Dashboard</em></h1>
-            <div className="omega-subtitle">Master Orchestrator · Cross-Layer Intelligence · Agentic Loop Monitor</div>
+            <h1 className="omega-title">
+              OMEGA <em>Dashboard</em>
+            </h1>
+            <div className="omega-subtitle">
+              Master Orchestrator · Cross-Layer Intelligence · Agentic Loop
+              Monitor
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
             <CreditMeter compact />
             <div className="omega-badge">
               <span className="omega-badge-dot" />
@@ -467,30 +622,64 @@ export default function OmegaDashboard() {
           <div className="omega-stat-card revenue">
             <div className="omega-stat-label">30-Day Revenue</div>
             <div className="omega-stat-value">
-              {loading ? <div className="omega-skeleton" style={{ width: 80, height: 26 }} /> : fmt(stats?.totalRevenue ?? 0)}
+              {loading ? (
+                <div
+                  className="omega-skeleton"
+                  style={{ width: 80, height: 26 }}
+                />
+              ) : (
+                fmt(stats?.totalRevenue ?? 0)
+              )}
             </div>
-            <div className={`omega-stat-sub ${(stats?.revenueGrowth ?? 0) >= 0 ? "positive" : "negative"}`}>
-              {loading ? "—" : `${(stats?.revenueGrowth ?? 0) >= 0 ? "+" : ""}${(stats?.revenueGrowth ?? 0).toFixed(1)}% vs prior period`}
+            <div
+              className={`omega-stat-sub ${(stats?.revenueGrowth ?? 0) >= 0 ? "positive" : "negative"}`}
+            >
+              {loading
+                ? "—"
+                : `${(stats?.revenueGrowth ?? 0) >= 0 ? "+" : ""}${(stats?.revenueGrowth ?? 0).toFixed(1)}% vs prior period`}
             </div>
           </div>
           <div className="omega-stat-card activity">
             <div className="omega-stat-label">Platform Activity</div>
             <div className="omega-stat-value">
-              {loading ? <div className="omega-skeleton" style={{ width: 60, height: 26 }} /> : (stats?.totalActivity ?? 0).toLocaleString()}
+              {loading ? (
+                <div
+                  className="omega-skeleton"
+                  style={{ width: 60, height: 26 }}
+                />
+              ) : (
+                (stats?.totalActivity ?? 0).toLocaleString()
+              )}
             </div>
             <div className="omega-stat-sub">Actions across all layers</div>
           </div>
           <div className="omega-stat-card jobs">
             <div className="omega-stat-label">Open Jobs</div>
             <div className="omega-stat-value">
-              {loading ? <div className="omega-skeleton" style={{ width: 50, height: 26 }} /> : (workStats?.openJobs ?? 0)}
+              {loading ? (
+                <div
+                  className="omega-skeleton"
+                  style={{ width: 50, height: 26 }}
+                />
+              ) : (
+                (workStats?.openJobs ?? 0)
+              )}
             </div>
-            <div className="omega-stat-sub">{workStats?.availableFreelancers ?? 0} freelancers available</div>
+            <div className="omega-stat-sub">
+              {workStats?.availableFreelancers ?? 0} freelancers available
+            </div>
           </div>
           <div className="omega-stat-card contracts">
             <div className="omega-stat-label">Contracts Completed</div>
             <div className="omega-stat-value">
-              {loading ? <div className="omega-skeleton" style={{ width: 50, height: 26 }} /> : (workStats?.completedContracts ?? 0)}
+              {loading ? (
+                <div
+                  className="omega-skeleton"
+                  style={{ width: 50, height: 26 }}
+                />
+              ) : (
+                (workStats?.completedContracts ?? 0)
+              )}
             </div>
             <div className="omega-stat-sub positive">Work layer live</div>
           </div>
@@ -509,18 +698,34 @@ export default function OmegaDashboard() {
                     className="omega-layer-progress-fill"
                     style={{
                       width: `${layer.progress}%`,
-                      background: layer.status === "live" ? "var(--green)" : layer.status === "building" ? "var(--gold)" : "var(--text-dim)",
+                      background:
+                        layer.status === "live"
+                          ? "var(--green)"
+                          : layer.status === "building"
+                            ? "var(--gold)"
+                            : "var(--text-dim)",
                     }}
                   />
                 </div>
                 <div className={`omega-layer-status ${layer.status}`}>
                   <span className="omega-layer-status-dot" />
-                  {layer.status === "live" ? "Live" : layer.status === "building" ? "Building" : "Planned"} · {layer.progress}%
+                  {layer.status === "live"
+                    ? "Live"
+                    : layer.status === "building"
+                      ? "Building"
+                      : "Planned"}{" "}
+                  · {layer.progress}%
                 </div>
               </div>
             );
             return layer.path ? (
-              <Link key={layer.id} to={layer.path} style={{ textDecoration: "none" }}>{card}</Link>
+              <Link
+                key={layer.id}
+                to={layer.path}
+                style={{ textDecoration: "none" }}
+              >
+                {card}
+              </Link>
             ) : (
               <div key={layer.id}>{card}</div>
             );
@@ -530,16 +735,29 @@ export default function OmegaDashboard() {
         {/* Agentic Loop */}
         <div className="omega-loop-section">
           <div className="omega-loop-header">
-            <div className="omega-loop-title">Agentic Loop — Ecosystem Compounding Engine</div>
+            <div className="omega-loop-title">
+              Agentic Loop — Ecosystem Compounding Engine
+            </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               {analysis && (
-                <span style={{
-                  fontFamily: "'Space Mono', monospace", fontSize: 9, padding: "3px 10px",
-                  borderRadius: 3, border: "1px solid",
-                  color: HEALTH_COLOR[analysis.insights.ecosystemHealth] ?? "var(--text-dim)",
-                  borderColor: HEALTH_COLOR[analysis.insights.ecosystemHealth] ?? "var(--border)",
-                  background: "rgba(0,0,0,0.2)", textTransform: "uppercase", letterSpacing: "0.1em",
-                }}>
+                <span
+                  style={{
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: 9,
+                    padding: "3px 10px",
+                    borderRadius: 3,
+                    border: "1px solid",
+                    color:
+                      HEALTH_COLOR[analysis.insights.ecosystemHealth] ??
+                      "var(--text-dim)",
+                    borderColor:
+                      HEALTH_COLOR[analysis.insights.ecosystemHealth] ??
+                      "var(--border)",
+                    background: "rgba(0,0,0,0.2)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                  }}
+                >
                   {analysis.insights.ecosystemHealth.replace("_", " ")} health
                 </span>
               )}
@@ -548,31 +766,88 @@ export default function OmegaDashboard() {
               </Link>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 32, alignItems: "center", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 32,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
             <AgenticLoopVisualiser
-              currentStage={loopState?.stage ?? analysis?.currentStage ?? "community"}
+              currentStage={
+                loopState?.stage ?? analysis?.currentStage ?? "community"
+              }
               completedStages={loopState?.completedStages ?? []}
               loopCount={loopState?.loopCount ?? 0}
               size={260}
               onStageClick={(stage) => {
-                const paths: Record<string, string> = { community: "/community", academy: "/academy", work: "/work", market: "/market", intelligence: "/intelligence" };
+                const paths: Record<string, string> = {
+                  community: "/community",
+                  academy: "/academy",
+                  work: "/work",
+                  market: "/market",
+                  intelligence: "/intelligence",
+                };
                 if (paths[stage]) navigate(paths[stage]);
               }}
             />
             <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "'Space Mono', monospace", marginBottom: 8 }}>
-                Active stage: <span style={{ color: "var(--gold)", textTransform: "capitalize" }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-dim)",
+                  fontFamily: "'Space Mono', monospace",
+                  marginBottom: 8,
+                }}
+              >
+                Active stage:{" "}
+                <span
+                  style={{ color: "var(--gold)", textTransform: "capitalize" }}
+                >
                   {loopState?.stage ?? analysis?.currentStage ?? "community"}
                 </span>
               </div>
               {analysis && (
-                <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: "var(--text-dim)", marginBottom: 12 }}>
-                  Trust Score: <span style={{ color: "var(--gold)" }}>{analysis.trustScore}/100</span>
+                <div
+                  style={{
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: 10,
+                    color: "var(--text-dim)",
+                    marginBottom: 12,
+                  }}
+                >
+                  Trust Score:{" "}
+                  <span style={{ color: "var(--gold)" }}>
+                    {analysis.trustScore}/100
+                  </span>
                 </div>
               )}
               {analysis?.insights.nextBestAction && (
-                <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.6, padding: "10px 14px", background: "rgba(155,111,255,0.05)", border: "1px solid rgba(155,111,255,0.15)", borderRadius: 6 }}>
-                  <span style={{ color: "var(--purple)", fontFamily: "'Space Mono', monospace", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em", display: "block", marginBottom: 4 }}>🧠 OMEGA Recommends</span>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text)",
+                    lineHeight: 1.6,
+                    padding: "10px 14px",
+                    background: "rgba(155,111,255,0.05)",
+                    border: "1px solid rgba(155,111,255,0.15)",
+                    borderRadius: 6,
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "var(--purple)",
+                      fontFamily: "'Space Mono', monospace",
+                      fontSize: 9,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.1em",
+                      display: "block",
+                      marginBottom: 4,
+                    }}
+                  >
+                    🧠 OMEGA Recommends
+                  </span>
                   {analysis.insights.nextBestAction}
                 </div>
               )}
@@ -582,39 +857,132 @@ export default function OmegaDashboard() {
 
         {/* OMEGA Insights Panel */}
         {(analysis || analysisLoading) && (
-          <div className="omega-insights-grid" style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 28,
-          }}>
-            <div className="omega-feed-main" style={{ borderColor: "rgba(45,212,160,0.2)" }}>
-              <div className="omega-feed-title" style={{ color: "var(--green)" }}>✦ Strengths</div>
-              {analysisLoading ? [0,1,2].map(i => (
-                <div key={i} className="omega-skeleton" style={{ height: 11, borderRadius: 3, marginBottom: 10, width: `${70+i*10}%` }} />
-              )) : analysis?.insights.strengths.map((s, i) => (
-                <div key={i} style={{ fontSize: 12, color: "var(--text)", padding: "6px 0", borderBottom: "1px solid var(--border)", lineHeight: 1.5 }}>
-                  <span style={{ color: "var(--green)", marginRight: 6 }}>✓</span>{s}
-                </div>
-              ))}
+          <div
+            className="omega-insights-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
+              gap: 16,
+              marginBottom: 28,
+            }}
+          >
+            <div
+              className="omega-feed-main"
+              style={{ borderColor: "rgba(45,212,160,0.2)" }}
+            >
+              <div
+                className="omega-feed-title"
+                style={{ color: "var(--green)" }}
+              >
+                ✦ Strengths
+              </div>
+              {analysisLoading
+                ? [0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="omega-skeleton"
+                      style={{
+                        height: 11,
+                        borderRadius: 3,
+                        marginBottom: 10,
+                        width: `${70 + i * 10}%`,
+                      }}
+                    />
+                  ))
+                : analysis?.insights.strengths.map((s, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--text)",
+                        padding: "6px 0",
+                        borderBottom: "1px solid var(--border)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      <span style={{ color: "var(--green)", marginRight: 6 }}>
+                        ✓
+                      </span>
+                      {s}
+                    </div>
+                  ))}
             </div>
-            <div className="omega-feed-main" style={{ borderColor: "rgba(201,168,76,0.2)" }}>
-              <div className="omega-feed-title" style={{ color: "var(--gold)" }}>⬡ Opportunities</div>
-              {analysisLoading ? [0,1,2].map(i => (
-                <div key={i} className="omega-skeleton" style={{ height: 11, borderRadius: 3, marginBottom: 10, width: `${60+i*12}%` }} />
-              )) : analysis?.insights.opportunities.map((o, i) => (
-                <div key={i} style={{ fontSize: 12, color: "var(--text)", padding: "6px 0", borderBottom: "1px solid var(--border)", lineHeight: 1.5 }}>
-                  <span style={{ color: "var(--gold)", marginRight: 6 }}>→</span>{o}
-                </div>
-              ))}
+            <div
+              className="omega-feed-main"
+              style={{ borderColor: "rgba(201,168,76,0.2)" }}
+            >
+              <div
+                className="omega-feed-title"
+                style={{ color: "var(--gold)" }}
+              >
+                ⬡ Opportunities
+              </div>
+              {analysisLoading
+                ? [0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="omega-skeleton"
+                      style={{
+                        height: 11,
+                        borderRadius: 3,
+                        marginBottom: 10,
+                        width: `${60 + i * 12}%`,
+                      }}
+                    />
+                  ))
+                : analysis?.insights.opportunities.map((o, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--text)",
+                        padding: "6px 0",
+                        borderBottom: "1px solid var(--border)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      <span style={{ color: "var(--gold)", marginRight: 6 }}>
+                        →
+                      </span>
+                      {o}
+                    </div>
+                  ))}
             </div>
-            <div className="omega-feed-main" style={{ borderColor: "rgba(155,111,255,0.2)" }}>
-              <div className="omega-feed-title" style={{ color: "var(--purple)" }}>🧠 OMEGA Recommends</div>
+            <div
+              className="omega-feed-main"
+              style={{ borderColor: "rgba(155,111,255,0.2)" }}
+            >
+              <div
+                className="omega-feed-title"
+                style={{ color: "var(--purple)" }}
+              >
+                🧠 OMEGA Recommends
+              </div>
               {analysisLoading ? (
-                <div className="omega-skeleton" style={{ height: 50, borderRadius: 4 }} />
+                <div
+                  className="omega-skeleton"
+                  style={{ height: 50, borderRadius: 4 }}
+                />
               ) : (
                 <>
-                  <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, marginBottom: 12 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--text)",
+                      lineHeight: 1.6,
+                      marginBottom: 12,
+                    }}
+                  >
                     {analysis?.insights.nextBestAction}
                   </div>
-                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 10, color: "var(--text-dim)", lineHeight: 1.5 }}>
+                  <div
+                    style={{
+                      fontFamily: "'Space Mono', monospace",
+                      fontSize: 10,
+                      color: "var(--text-dim)",
+                      lineHeight: 1.5,
+                    }}
+                  >
                     Predicted outcome: {analysis?.insights.predictedOutcome}
                   </div>
                 </>
@@ -627,27 +995,57 @@ export default function OmegaDashboard() {
         <div className="omega-feed">
           <div className="omega-feed-main">
             <div className="omega-feed-title">Cross-Layer Activity Feed</div>
-            {loading && [0,1,2,3,4].map(i => (
-              <div key={i} className="omega-feed-item">
-                <div className="omega-skeleton" style={{ width: 34, height: 34, borderRadius: 6, flexShrink: 0 }} />
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div className="omega-skeleton" style={{ height: 13, width: "80%", borderRadius: 3 }} />
-                  <div className="omega-skeleton" style={{ height: 9, width: "40%", borderRadius: 3 }} />
+            {loading &&
+              [0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="omega-feed-item">
+                  <div
+                    className="omega-skeleton"
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 6,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                    }}
+                  >
+                    <div
+                      className="omega-skeleton"
+                      style={{ height: 13, width: "80%", borderRadius: 3 }}
+                    />
+                    <div
+                      className="omega-skeleton"
+                      style={{ height: 9, width: "40%", borderRadius: 3 }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
             {!loading && activity.length === 0 && (
-              <div className="omega-feed-empty">No activity yet — start using the ecosystem to see cross-layer signals here.</div>
-            )}
-            {!loading && activity.map((item) => (
-              <div key={item.id} className="omega-feed-item">
-                <div className="omega-feed-icon">{CATEGORY_ICONS[item.category] ?? "📋"}</div>
-                <div className="omega-feed-content">
-                  <div className="omega-feed-text">{item.action}</div>
-                  <div className="omega-feed-meta">{timeAgo(item.createdAt)} · {item.category}</div>
-                </div>
+              <div className="omega-feed-empty">
+                No activity yet — start using the ecosystem to see cross-layer
+                signals here.
               </div>
-            ))}
+            )}
+            {!loading &&
+              activity.map((item) => (
+                <div key={item.id} className="omega-feed-item">
+                  <div className="omega-feed-icon">
+                    {CATEGORY_ICONS[item.category] ?? "📋"}
+                  </div>
+                  <div className="omega-feed-content">
+                    <div className="omega-feed-text">{item.action}</div>
+                    <div className="omega-feed-meta">
+                      {timeAgo(item.createdAt)} · {item.category}
+                    </div>
+                  </div>
+                </div>
+              ))}
           </div>
 
           <div className="omega-actions">
@@ -658,7 +1056,11 @@ export default function OmegaDashboard() {
                   <AutoActionCard
                     key={action.id}
                     action={action}
-                    onActioned={() => setPendingActions((prev) => prev.filter((a) => a.id !== action.id))}
+                    onActioned={() =>
+                      setPendingActions((prev) =>
+                        prev.filter((a) => a.id !== action.id),
+                      )
+                    }
                   />
                 ))}
               </div>
@@ -677,14 +1079,14 @@ export default function OmegaDashboard() {
         {/* Quick Navigation */}
         <div className="omega-links">
           {[
-            { icon: "🧑‍🤝‍🧑", label: "Community",    path: "/community"       },
-            { icon: "🎓",   label: "Academy",       path: "/academy"         },
-            { icon: "💼",   label: "Work Board",    path: "/work"            },
-            { icon: "🤖",   label: "ARIA Chat",     path: "/intelligence/aria" },
-            { icon: "🔁",   label: "Loop Tracker",  path: "/intelligence/loop" },
-            { icon: "🧠",   label: "Memory",        path: "/intelligence/memory" },
-            { icon: "⚡",   label: "Credits",       path: "/intelligence/credits" },
-            { icon: "📊",   label: "Reports",       path: "/intelligence/reports" },
+            { icon: "🧑‍🤝‍🧑", label: "Community", path: "/community" },
+            { icon: "🎓", label: "Academy", path: "/academy" },
+            { icon: "💼", label: "Work Board", path: "/work" },
+            { icon: "🤖", label: "ARIA Chat", path: "/intelligence/aria" },
+            { icon: "🔁", label: "Loop Tracker", path: "/intelligence/loop" },
+            { icon: "🧠", label: "Memory", path: "/intelligence/memory" },
+            { icon: "⚡", label: "Credits", path: "/intelligence/credits" },
+            { icon: "📊", label: "Reports", path: "/intelligence/reports" },
           ].map((link) => (
             <Link key={link.path} to={link.path} className="omega-link-card">
               <div className="omega-link-icon">{link.icon}</div>
@@ -692,7 +1094,6 @@ export default function OmegaDashboard() {
             </Link>
           ))}
         </div>
-
       </div>
 
       <AssistantPanel

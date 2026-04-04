@@ -13,7 +13,11 @@ import ResumptionCards from "./components/ResumptionCards";
 import ProgressRow from "./components/ProgressRow";
 import EcosystemStatusBar from "./components/EcosystemStatusBar";
 import PortfolioCard from "./components/PortfolioCard";
-import { getOmegaProfileContext, getOmegaProfileEntryPath, type OmegaLayerKey } from "../onboarding/omegaProfileContext";
+import {
+  getOmegaProfileContext,
+  getOmegaProfileEntryPath,
+  type OmegaLayerKey,
+} from "../onboarding/omegaProfileContext";
 
 type LayerStatus = "live" | "building" | "coming";
 
@@ -57,13 +61,73 @@ interface ResumptionCard {
 }
 
 const LAYERS: LayerCard[] = [
-  { key: "community", icon: "👥", label: "Community", path: "/community", status: "live", summary: "Share progress, build signal, and let NOVA map your strengths.", highlight: "Conversation, reputation, and discovery all start here." },
-  { key: "academy", icon: "🎓", label: "Academy", path: "/academy", status: "live", summary: "Learn with SAGE, finish paths, and earn portable proof of skill.", highlight: "Certificates and streaks compound your trust over time." },
-  { key: "market", icon: "🛒", label: "Market", path: "/market", status: "building", summary: "Sell products, test offers, and let ATLAS sharpen positioning.", highlight: "Monetization unlocks faster once your signal is established." },
-  { key: "work", icon: "💼", label: "Work", path: "/work", status: "building", summary: "Turn skills into contracts with CIRCUIT-guided matching.", highlight: "Portfolio depth and trust score increase job-quality matches." },
-  { key: "intelligence", icon: "🤖", label: "Intelligence", path: "/intelligence", status: "live", summary: "OMEGA, ARIA, and your supervisors coordinate what to do next.", highlight: "This is where daily guidance and cross-layer insights converge." },
-  { key: "cloud", icon: "☁️", label: "Cloud", path: "/cloud", status: "building", summary: "Build integrations, keys, and automation around your workflow.", highlight: "Developer surfaces deepen as your ecosystem usage matures." },
-  { key: "mobile", icon: "📱", label: "Mobile", path: "/home", status: "coming", summary: "Carry the ecosystem with you through reminders, alerts, and quick returns.", highlight: "Mobile continuity is being prepared as an always-on companion layer." },
+  {
+    key: "community",
+    icon: "👥",
+    label: "Community",
+    path: "/community",
+    status: "live",
+    summary: "Share progress, build signal, and let NOVA map your strengths.",
+    highlight: "Conversation, reputation, and discovery all start here.",
+  },
+  {
+    key: "academy",
+    icon: "🎓",
+    label: "Academy",
+    path: "/academy",
+    status: "live",
+    summary: "Learn with SAGE, finish paths, and earn portable proof of skill.",
+    highlight: "Certificates and streaks compound your trust over time.",
+  },
+  {
+    key: "market",
+    icon: "🛒",
+    label: "Market",
+    path: "/market",
+    status: "live",
+    summary: "Sell products, run offers, and let ATLAS optimize positioning.",
+    highlight:
+      "Monetization is live; build revenue through market intelligence.",
+  },
+  {
+    key: "work",
+    icon: "💼",
+    label: "Work",
+    path: "/work",
+    status: "building",
+    summary: "Turn skills into contracts with CIRCUIT-guided matching.",
+    highlight: "Portfolio depth and trust score increase job-quality matches.",
+  },
+  {
+    key: "intelligence",
+    icon: "🤖",
+    label: "Intelligence",
+    path: "/intelligence",
+    status: "live",
+    summary: "OMEGA, ARIA, and your supervisors coordinate what to do next.",
+    highlight:
+      "This is where daily guidance and cross-layer insights converge.",
+  },
+  {
+    key: "cloud",
+    icon: "☁️",
+    label: "Cloud",
+    path: "/cloud",
+    status: "building",
+    summary: "Build integrations, keys, and automation around your workflow.",
+    highlight: "Developer surfaces deepen as your ecosystem usage matures.",
+  },
+  {
+    key: "mobile",
+    icon: "📱",
+    label: "Mobile",
+    path: "/home",
+    status: "coming",
+    summary:
+      "Carry the ecosystem with you through reminders, alerts, and quick returns.",
+    highlight:
+      "Mobile continuity is being prepared as an always-on companion layer.",
+  },
 ];
 
 const HOME_NAV: HomeNavItem[] = [
@@ -102,9 +166,7 @@ function formatBriefingDate(now: Date) {
 }
 
 function titleCase(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return value.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function trustTierLabelForScore(score: number) {
@@ -120,7 +182,9 @@ export default function UserHomePage() {
   const user = useAuthStore((state) => state.user);
   const { score, tier, breakdown, isLoading: trustLoading } = useTrustScore();
   const [now, setNow] = useState(new Date());
-  const [apiBriefing, setApiBriefing] = useState<HomeBriefingResponse | null>(null);
+  const [apiBriefing, setApiBriefing] = useState<HomeBriefingResponse | null>(
+    null,
+  );
   const [resumptionCards, setResumptionCards] = useState<ResumptionCard[]>([]);
 
   useEffect(() => {
@@ -135,13 +199,18 @@ export default function UserHomePage() {
     let active = true;
 
     Promise.all([
-      fetch(`${API_BASE}/omega/briefing`, { headers }).then((res) => (res.ok ? res.json() : null)),
-      fetch(`${API_BASE}/omega/resumption`, { headers }).then((res) => (res.ok ? res.json() : null)),
+      fetch(`${API_BASE}/omega/briefing`, { headers }).then((res) =>
+        res.ok ? res.json() : null,
+      ),
+      fetch(`${API_BASE}/omega/resumption`, { headers }).then((res) =>
+        res.ok ? res.json() : null,
+      ),
     ])
       .then(([briefing, resumption]) => {
         if (!active) return;
         if (briefing) setApiBriefing(briefing);
-        if (Array.isArray(resumption?.cards)) setResumptionCards(resumption.cards);
+        if (Array.isArray(resumption?.cards))
+          setResumptionCards(resumption.cards);
       })
       .catch(() => undefined);
 
@@ -151,65 +220,220 @@ export default function UserHomePage() {
   }, [user?.id]);
 
   const firstName = user?.name?.split(" ")[0] ?? "Winner";
-  const profileContext = useMemo(() => getOmegaProfileContext(user?.onboardingProfileType), [user?.onboardingProfileType]);
-  const resumePath = getOmegaProfileEntryPath(user?.onboardingProfileType, user?.onboardingPrimaryPath);
-  const supervisor = user?.onboardingAssignedSupervisor ?? profileContext?.primarySupervisor ?? "OMEGA";
+  const profileContext = useMemo(
+    () => getOmegaProfileContext(user?.onboardingProfileType),
+    [user?.onboardingProfileType],
+  );
+  const resumePath = getOmegaProfileEntryPath(
+    user?.onboardingProfileType,
+    user?.onboardingPrimaryPath,
+  );
+  const supervisor =
+    user?.onboardingAssignedSupervisor ??
+    profileContext?.primarySupervisor ??
+    "OMEGA";
   const primaryLayer = profileContext?.primaryLayer ?? "core";
-  const planLabel = (user?.onboardingSelectedPlan ?? "FREE").replaceAll("_", " ");
+  const planLabel = (user?.onboardingSelectedPlan ?? "FREE").replaceAll(
+    "_",
+    " ",
+  );
 
   const prioritizedLayers = useMemo(() => {
     const order = profileContext?.sidebarOrder ?? [];
     return [...LAYERS].sort((left, right) => {
       const leftIndex = order.indexOf(left.key as OmegaLayerKey);
       const rightIndex = order.indexOf(right.key as OmegaLayerKey);
-      return (leftIndex === -1 ? 99 : leftIndex) - (rightIndex === -1 ? 99 : rightIndex);
+      return (
+        (leftIndex === -1 ? 99 : leftIndex) -
+        (rightIndex === -1 ? 99 : rightIndex)
+      );
     });
   }, [profileContext]);
 
   const profileCompletion = Math.min(
     96,
-    28 + (user?.onboardingProfileType ? 18 : 0) + (user?.onboardingPrimaryPath ? 14 : 0) + (user?.onboardingAssignedSupervisor ? 14 : 0) + Math.round(score * 0.32),
+    28 +
+      (user?.onboardingProfileType ? 18 : 0) +
+      (user?.onboardingPrimaryPath ? 14 : 0) +
+      (user?.onboardingAssignedSupervisor ? 14 : 0) +
+      Math.round(score * 0.32),
   );
-  const nextTrustMilestone = [40, 60, 80, 90].find((value) => value > score) ?? 100;
+  const nextTrustMilestone =
+    [40, 60, 80, 90].find((value) => value > score) ?? 100;
   const trustGap = Math.max(0, nextTrustMilestone - score);
   const certificates = Math.max(1, Math.round(breakdown.academy / 9));
-  const milestones = Math.max(1, Math.round((breakdown.community + breakdown.work) / 6));
+  const milestones = Math.max(
+    1,
+    Math.round((breakdown.community + breakdown.work) / 6),
+  );
   const topMatchScore = Math.min(95, score + 18);
   const contractValue = 3200 + score * 5;
-  const courseCompletionAverage = Math.min(96, Math.max(24, Math.round((breakdown.academy / 30) * 100 + 18)));
+  const courseCompletionAverage = Math.min(
+    96,
+    Math.max(24, Math.round((breakdown.academy / 30) * 100 + 18)),
+  );
   const activeCourses = Math.max(1, Math.round(breakdown.academy / 9) + 1);
-  const portfolioSkills = (user?.skills?.length ? user.skills : profileContext?.preActivatedFeatures ?? [])
-    .map((item) => item.replace(/^Community feed \+ |Basic freelancer profile \+ |Browse products \+ |Free launch state across every layer|SAGE AI tutor \(20 queries\/month on Free\)|NOVA skill detection \(passive on Free\)|ATLAS product research \(3 queries\/month on Free\)|API access by request only on Free|@winners\/sdk docs access|Webhook catalogue preview|NEXUS AI chat unlocks on Pro/g, "").trim())
+  const portfolioSkills = (
+    user?.skills?.length
+      ? user.skills
+      : (profileContext?.preActivatedFeatures ?? [])
+  )
+    .map((item) =>
+      item
+        .replace(
+          /^Community feed \+ |Basic freelancer profile \+ |Browse products \+ |Free launch state across every layer|SAGE AI tutor \(20 queries\/month on Free\)|NOVA skill detection \(passive on Free\)|ATLAS product research \(3 queries\/month on Free\)|API access by request only on Free|@winners\/sdk docs access|Webhook catalogue preview|NEXUS AI chat unlocks on Pro/g,
+          "",
+        )
+        .trim(),
+    )
     .filter(Boolean)
     .slice(0, 5);
   const loopStages = [
-    { id: "community", label: "Community", status: score >= 20 ? "done" : "current" },
-    { id: "academy", label: "Academy", status: breakdown.academy >= 12 ? "done" : score >= 20 ? "current" : "future" },
-    { id: "work", label: "Work", status: breakdown.work >= 14 ? "current" : "future" },
-    { id: "market", label: "Market", status: breakdown.work >= 18 ? "future" : "future" },
-    { id: "intelligence", label: "Intelligence", status: breakdown.community >= 10 ? "done" : "future" },
+    {
+      id: "community",
+      label: "Community",
+      status: score >= 20 ? "done" : "current",
+    },
+    {
+      id: "academy",
+      label: "Academy",
+      status:
+        breakdown.academy >= 12 ? "done" : score >= 20 ? "current" : "future",
+    },
+    {
+      id: "work",
+      label: "Work",
+      status: breakdown.work >= 14 ? "current" : "future",
+    },
+    {
+      id: "market",
+      label: "Market",
+      status: breakdown.work >= 18 ? "future" : "future",
+    },
+    {
+      id: "intelligence",
+      label: "Intelligence",
+      status: breakdown.community >= 10 ? "done" : "future",
+    },
     { id: "scale", label: "Scale", status: "future" },
   ] as const;
-  const currentLoopIndex = Math.min(5, Math.max(0, Math.round((breakdown.community + breakdown.academy + breakdown.work) / 18)));
+  const currentLoopIndex = Math.min(
+    5,
+    Math.max(
+      0,
+      Math.round(
+        (breakdown.community + breakdown.academy + breakdown.work) / 18,
+      ),
+    ),
+  );
   const loopStageNumber = Math.min(6, Math.max(1, currentLoopIndex + 1));
-  const currentLoopLabel = ["Community", "Academy", "Work", "Market", "Intelligence", "Scale"][loopStageNumber - 1];
-  const nextLoopStep = ["Build stronger signal", "Complete one more course", "Win first contract", "Activate Market revenue", "Turn insight into scale", "Compound the ecosystem loop"][Math.min(5, loopStageNumber)];
+  const currentLoopLabel = [
+    "Community",
+    "Academy",
+    "Work",
+    "Market",
+    "Intelligence",
+    "Scale",
+  ][loopStageNumber - 1];
+  const nextLoopStep = [
+    "Build stronger signal",
+    "Complete one more course",
+    "Win first contract",
+    "Activate Market revenue",
+    "Turn insight into scale",
+    "Compound the ecosystem loop",
+  ][Math.min(5, loopStageNumber)];
   const ecosystemStatuses = [
-    { icon: "⬡", label: "Core Engine", state: "live", note: "Always active for your account", cta: "Open", path: "/home" },
-    { icon: "👥", label: "Community", state: "live", note: "Profiles, posts, replies, and DMs", cta: "Open", path: "/community", ssoSourcePath: "/community" },
-    { icon: "🎓", label: "Academy", state: "live", note: "Courses, certificates, and SAGE", cta: "Open", path: "/academy", ssoSourcePath: "/academy" },
-    { icon: "🤖", label: "Intelligence", state: "live", note: "OMEGA, ARIA, and supervisor guidance", cta: "Open", path: "/intelligence" },
-    { icon: "🛒", label: "Market", state: "preview", note: "Coming soon for your route", cta: "Preview", path: "/market" },
-    { icon: "💼", label: "Work", state: score >= 70 ? "preview" : "locked", note: score >= 70 ? "Opening as your trust strengthens" : "Depends on your Academy + trust progress", cta: "Learn more", path: "/work" },
-    { icon: "📱", label: "Mobile", state: "locked", note: "App download and continuity layer", cta: "Learn more", path: "/home" },
-    { icon: "☁️", label: "Cloud", state: profileContext?.primaryLayer === "cloud" ? "preview" : "locked", note: profileContext?.primaryLayer === "cloud" ? "Developer APIs are warming up for you" : "Developer API and automation surfaces", cta: "Learn more", path: "/cloud" },
+    {
+      icon: "⬡",
+      label: "Core Engine",
+      state: "live",
+      note: "Always active for your account",
+      cta: "Open",
+      path: "/home",
+    },
+    {
+      icon: "👥",
+      label: "Community",
+      state: "live",
+      note: "Profiles, posts, replies, and DMs",
+      cta: "Open",
+      path: "/community",
+      ssoSourcePath: "/community",
+    },
+    {
+      icon: "🎓",
+      label: "Academy",
+      state: "live",
+      note: "Courses, certificates, and SAGE",
+      cta: "Open",
+      path: "/academy",
+      ssoSourcePath: "/academy",
+    },
+    {
+      icon: "🤖",
+      label: "Intelligence",
+      state: "live",
+      note: "OMEGA, ARIA, and supervisor guidance",
+      cta: "Open",
+      path: "/intelligence",
+    },
+    {
+      icon: "🛒",
+      label: "Market",
+      state: "preview",
+      note: "Coming soon for your route",
+      cta: "Preview",
+      path: "/market",
+    },
+    {
+      icon: "💼",
+      label: "Work",
+      state: score >= 70 ? "preview" : "locked",
+      note:
+        score >= 70
+          ? "Opening as your trust strengthens"
+          : "Depends on your Academy + trust progress",
+      cta: "Learn more",
+      path: "/work",
+    },
+    {
+      icon: "📱",
+      label: "Mobile",
+      state: "locked",
+      note: "App download and continuity layer",
+      cta: "Learn more",
+      path: "/home",
+    },
+    {
+      icon: "☁️",
+      label: "Cloud",
+      state: profileContext?.primaryLayer === "cloud" ? "preview" : "locked",
+      note:
+        profileContext?.primaryLayer === "cloud"
+          ? "Developer APIs are warming up for you"
+          : "Developer API and automation surfaces",
+      cta: "Learn more",
+      path: "/cloud",
+    },
   ] as const;
   const portfolioHeadline = [
     user?.industry,
     profileContext?.profileType?.replace("The ", ""),
-    user?.city ? `Based in ${user.city}` : user?.country ? `Based in ${user.country}` : null,
-  ].filter(Boolean).join(" · ");
-  const initials = (user?.name ?? "Winner").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+    user?.city
+      ? `Based in ${user.city}`
+      : user?.country
+        ? `Based in ${user.country}`
+        : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const initials = (user?.name ?? "Winner")
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
   const fallbackBriefingMessage = profileContext
     ? `You are building momentum on the ${profileContext.profileType} route. ${supervisor} has identified ${Math.max(3, Math.round(breakdown.work / 4) + 3)} promising opportunities connected to your current signal, and ${Math.max(1, Math.round(breakdown.academy / 8))} certificate milestone${certificates > 1 ? "s" : ""} is already strengthening your next handoff. Your strongest opening right now is inside ${profileContext.primaryLayer}, and ${trustGap === 0 ? "your trust tier is already in a strong position for the next unlock." : `one more focused push could move your Trust Score ${trustGap} points closer to the next tier.`}`
     : "OMEGA is watching your first meaningful signals across the ecosystem. A single completed action today will sharpen your route, your recommendations, and the layers that unlock next.";
@@ -220,19 +444,30 @@ export default function UserHomePage() {
       path: profileContext?.primaryLayer === "work" ? "/work/jobs" : resumePath,
     },
     {
-      label: profileContext?.primaryLayer === "academy" ? "Complete your next SAGE module" : "Continue your strongest learning path",
+      label:
+        profileContext?.primaryLayer === "academy"
+          ? "Complete your next SAGE module"
+          : "Continue your strongest learning path",
       action: "Continue Course",
       path: "/academy",
     },
     {
       label: `Act on the highest-priority opportunity before Friday`,
       action: "View Contract",
-      path: profileContext?.primaryLayer === "work" ? "/work/contracts" : "/intelligence",
+      path:
+        profileContext?.primaryLayer === "work"
+          ? "/work/contracts"
+          : "/intelligence",
     },
   ].map((item, index) => ({
     label: item.label,
     url: item.path,
-    priority: index === 0 ? "high" as const : index === 1 ? "medium" as const : "low" as const,
+    priority:
+      index === 0
+        ? ("high" as const)
+        : index === 1
+          ? ("medium" as const)
+          : ("low" as const),
   }));
   const briefingMessage = apiBriefing?.briefing ?? fallbackBriefingMessage;
   const briefingRecommendations = apiBriefing?.recommendations?.length
@@ -241,8 +476,16 @@ export default function UserHomePage() {
   const quickActions = [
     { label: "Resume your route", note: resumePath, path: resumePath },
     { label: "Ask OMEGA", note: "Open Intelligence", path: "/intelligence" },
-    { label: "Review notifications", note: "Alerts and approvals", path: "/notifications" },
-    { label: "Tune your profile", note: "Account and preferences", path: "/settings/account" },
+    {
+      label: "Review notifications",
+      note: "Alerts and approvals",
+      path: "/notifications",
+    },
+    {
+      label: "Tune your profile",
+      note: "Account and preferences",
+      path: "/settings/account",
+    },
   ];
 
   return (
@@ -352,13 +595,25 @@ export default function UserHomePage() {
               ))}
             </nav>
             <div className="omega-toptools">
-              <button className="omega-tool-btn" onClick={() => navigate("/notifications")} aria-label="Notifications">🔔</button>
-              <button className="omega-tool-btn" onClick={() => navigate("/settings/account")} aria-label="Profile">👤</button>
+              <button
+                className="omega-tool-btn"
+                onClick={() => navigate("/notifications")}
+                aria-label="Notifications"
+              >
+                🔔
+              </button>
+              <button
+                className="omega-tool-btn"
+                onClick={() => navigate("/settings/account")}
+                aria-label="Profile"
+              >
+                👤
+              </button>
             </div>
           </header>
 
           <ContextBar activeLayer="core" />
-          
+
           {score < 15 && (
             <section
               className="omega-panel"
@@ -381,7 +636,11 @@ export default function UserHomePage() {
                 <div style={{ fontSize: "32px" }}>✨</div>
                 <div>
                   <h3
-                    style={{ margin: 0, fontSize: "18px", color: "var(--gold)" }}
+                    style={{
+                      margin: 0,
+                      fontSize: "18px",
+                      color: "var(--gold)",
+                    }}
                   >
                     Welcome to your Sovereign Journey
                   </h3>
@@ -394,7 +653,11 @@ export default function UserHomePage() {
                       lineHeight: 1.7,
                     }}
                   >
-                    Winners Ecosystem is a Digital OS that grows with you. Post in <strong>Community</strong> to build signal, learn in <strong>Academy</strong> to earn proof, and <strong>OMEGA</strong> will orchestrate your commercial unlocks.
+                    Winners Ecosystem is a Digital OS that grows with you. Post
+                    in <strong>Community</strong> to build signal, learn in{" "}
+                    <strong>Academy</strong> to earn proof, and{" "}
+                    <strong>OMEGA</strong> will orchestrate your commercial
+                    unlocks.
                   </p>
                 </div>
                 <button
@@ -421,13 +684,19 @@ export default function UserHomePage() {
             <aside className="omega-panel omega-side">
               <div className="omega-briefing-badge">Quick actions</div>
               <p className="omega-side-copy">
-                Jump straight into the action OMEGA considers highest leverage right now.
+                Jump straight into the action OMEGA considers highest leverage
+                right now.
               </p>
               {quickActions.map((item) => (
                 <div className="omega-quick-card" key={item.label}>
                   <p className="omega-card-label">{item.label}</p>
                   <p className="omega-focus-value">{item.note}</p>
-                  <button className="omega-inline-link" onClick={() => navigate(item.path)}>Open</button>
+                  <button
+                    className="omega-inline-link"
+                    onClick={() => navigate(item.path)}
+                  >
+                    Open
+                  </button>
                 </div>
               ))}
             </aside>
@@ -443,7 +712,8 @@ export default function UserHomePage() {
                     </Tooltip>
                   </h2>
                   <p className="omega-section-copy">
-                    OMEGA tracks your signal across all layers to ensure you never lose momentum.
+                    OMEGA tracks your signal across all layers to ensure you
+                    never lose momentum.
                   </p>
                 </div>
               </div>
@@ -458,12 +728,38 @@ export default function UserHomePage() {
                 ]}
                 resumePath={resumePath}
                 resumeTitle={`Return to ${profileContext?.primaryLayer ?? "your next step"} with one click.`}
-                resumeCopy={profileContext?.firstAction ?? "OMEGA recommends one high-signal action today so the route becomes more accurate and more valuable."}
-                cards={resumptionCards.length ? resumptionCards : [
-                  { layer: "academy", title: "Resume your current Academy track", sub: "Pick up from your latest lesson", url: resumePath, cta: "Continue", pct: profileCompletion },
-                  { layer: "community", title: "Review your latest interactions", sub: "Community is waiting for your reply", url: "/community", cta: "View Replies" },
-                  { layer: "market", title: "Saved opportunities in Market", sub: "Return to your cart and next purchase", url: "/market/cart", cta: "Checkout" },
-                ]}
+                resumeCopy={
+                  profileContext?.firstAction ??
+                  "OMEGA recommends one high-signal action today so the route becomes more accurate and more valuable."
+                }
+                cards={
+                  resumptionCards.length
+                    ? resumptionCards
+                    : [
+                        {
+                          layer: "academy",
+                          title: "Resume your current Academy track",
+                          sub: "Pick up from your latest lesson",
+                          url: resumePath,
+                          cta: "Continue",
+                          pct: profileCompletion,
+                        },
+                        {
+                          layer: "community",
+                          title: "Review your latest interactions",
+                          sub: "Community is waiting for your reply",
+                          url: "/community",
+                          cta: "View Replies",
+                        },
+                        {
+                          layer: "market",
+                          title: "Saved opportunities in Market",
+                          sub: "Return to your cart and next purchase",
+                          url: "/market/cart",
+                          cta: "Checkout",
+                        },
+                      ]
+                }
                 onNavigate={navigate}
               />
 
@@ -489,7 +785,11 @@ export default function UserHomePage() {
                 nextLoopStep={nextLoopStep}
                 score={score}
                 trustTierLabel={titleCase(tier)}
-                trustGapLabel={trustGap === 0 ? "Top visible tier reached." : `+${trustGap} to ${trustTierLabelForScore(nextTrustMilestone)}`}
+                trustGapLabel={
+                  trustGap === 0
+                    ? "Top visible tier reached."
+                    : `+${trustGap} to ${trustTierLabelForScore(nextTrustMilestone)}`
+                }
                 certificates={certificates}
                 activeCourses={activeCourses}
                 courseCompletionAverage={courseCompletionAverage}
@@ -502,22 +802,28 @@ export default function UserHomePage() {
                 <div>
                   <h2 className="omega-section-title">Your Ecosystem</h2>
                   <p className="omega-section-copy">
-                    What is already live for you, what is opening next, and which surfaces still
-                    depend on trust, plan, or profile progress.
+                    What is already live for you, what is opening next, and
+                    which surfaces still depend on trust, plan, or profile
+                    progress.
                   </p>
                 </div>
               </div>
 
-              <EcosystemStatusBar items={ecosystemStatuses} onNavigate={navigate} />
+              <EcosystemStatusBar
+                items={ecosystemStatuses}
+                onNavigate={navigate}
+              />
             </div>
 
             <div className="omega-section">
               <div className="omega-section-header">
                 <div>
-                  <h2 className="omega-section-title">Your Ecosystem Portfolio</h2>
+                  <h2 className="omega-section-title">
+                    Your Ecosystem Portfolio
+                  </h2>
                   <p className="omega-section-copy">
-                    Your public Winners profile in one card: trust, learning, verified skills,
-                    work proof, and community signal.
+                    Your public Winners profile in one card: trust, learning,
+                    verified skills, work proof, and community signal.
                   </p>
                 </div>
               </div>
@@ -528,8 +834,15 @@ export default function UserHomePage() {
                 planLabel={planLabel}
                 score={score}
                 trustTierLabel={titleCase(tier)}
-                headline={portfolioHeadline || "Ecosystem member building signal across Winners."}
-                skills={portfolioSkills.length ? portfolioSkills : ["React", "TypeScript", "Node.js"]}
+                headline={
+                  portfolioHeadline ||
+                  "Ecosystem member building signal across Winners."
+                }
+                skills={
+                  portfolioSkills.length
+                    ? portfolioSkills
+                    : ["React", "TypeScript", "Node.js"]
+                }
                 certificates={certificates}
                 earned={Math.round(contractValue * 1.5)}
                 contractsCompleted={Math.max(1, Math.round(breakdown.work / 5))}
@@ -543,10 +856,12 @@ export default function UserHomePage() {
             <div className="omega-section">
               <div className="omega-section-header">
                 <div>
-                  <h2 className="omega-section-title">Agentic Loop Visualiser</h2>
+                  <h2 className="omega-section-title">
+                    Agentic Loop Visualiser
+                  </h2>
                   <p className="omega-section-copy">
-                    A visual explanation of your current place in the ecosystem journey and what
-                    OMEGA expects to happen next.
+                    A visual explanation of your current place in the ecosystem
+                    journey and what OMEGA expects to happen next.
                   </p>
                 </div>
               </div>
@@ -555,8 +870,18 @@ export default function UserHomePage() {
                 <article className="omega-panel omega-achievement-card">
                   <p className="omega-card-label">Loop map</p>
                   <AgenticLoopVisualiser
-                    currentStage={["community", "academy", "work", "market", "intelligence"][Math.min(loopStageNumber - 1, 4)]}
-                    completedStages={loopStages.filter((stage) => stage.status === "done").map((stage) => stage.id)}
+                    currentStage={
+                      [
+                        "community",
+                        "academy",
+                        "work",
+                        "market",
+                        "intelligence",
+                      ][Math.min(loopStageNumber - 1, 4)]
+                    }
+                    completedStages={loopStages
+                      .filter((stage) => stage.status === "done")
+                      .map((stage) => stage.id)}
                     loopCount={milestones}
                     pendingAction={`You are here: Stage ${loopStageNumber} - ${currentLoopLabel} (${nextLoopStep})`}
                     size={260}
@@ -567,25 +892,48 @@ export default function UserHomePage() {
                   <p className="omega-card-label">Journey states</p>
                   <div className="omega-loop-strip">
                     {loopStages.map((stage) => (
-                      <div key={stage.id} className={`omega-loop-step ${stage.status === "done" ? "done" : stage.status === "current" ? "current" : ""}`}>
+                      <div
+                        key={stage.id}
+                        className={`omega-loop-step ${stage.status === "done" ? "done" : stage.status === "current" ? "current" : ""}`}
+                      >
                         <div className="omega-loop-icon">
-                          {stage.status === "done" ? "✅" : stage.status === "current" ? "🔄" : "⏳"}
+                          {stage.status === "done"
+                            ? "✅"
+                            : stage.status === "current"
+                              ? "🔄"
+                              : "⏳"}
                         </div>
                         <div className="omega-loop-label">{stage.label}</div>
-                        <div className="omega-loop-status">{stage.status === "done" ? "Complete" : stage.status === "current" ? "You are here" : "Waiting"}</div>
+                        <div className="omega-loop-status">
+                          {stage.status === "done"
+                            ? "Complete"
+                            : stage.status === "current"
+                              ? "You are here"
+                              : "Waiting"}
+                        </div>
                       </div>
                     ))}
                   </div>
 
                   <div className="omega-loop-story">
-                    <p className="omega-focus-value">You are here: Stage {loopStageNumber} — {currentLoopLabel}</p>
-                    <p className="omega-card-copy">
-                      NOVA detected your signal, SAGE strengthened it with learning, and OMEGA is now pushing toward the next commercial unlock.
+                    <p className="omega-focus-value">
+                      You are here: Stage {loopStageNumber} — {currentLoopLabel}
                     </p>
                     <p className="omega-card-copy">
-                      Next: {nextLoopStep} → trust growth → richer recommendations → broader ecosystem access.
+                      NOVA detected your signal, SAGE strengthened it with
+                      learning, and OMEGA is now pushing toward the next
+                      commercial unlock.
                     </p>
-                    <button className="omega-inline-link" onClick={() => navigate("/intelligence")}>Open OMEGA guidance →</button>
+                    <p className="omega-card-copy">
+                      Next: {nextLoopStep} → trust growth → richer
+                      recommendations → broader ecosystem access.
+                    </p>
+                    <button
+                      className="omega-inline-link"
+                      onClick={() => navigate("/intelligence")}
+                    >
+                      Open OMEGA guidance →
+                    </button>
                   </div>
                 </article>
               </div>
@@ -596,7 +944,8 @@ export default function UserHomePage() {
                 <div>
                   <h2 className="omega-section-title">Full OMEGA Briefing</h2>
                   <p className="omega-section-copy">
-                    The detailed autonomous report still lives here when you want the deeper overnight context.
+                    The detailed autonomous report still lives here when you
+                    want the deeper overnight context.
                   </p>
                 </div>
               </div>

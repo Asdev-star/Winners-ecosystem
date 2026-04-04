@@ -28,7 +28,13 @@ interface OrderItem {
 interface Order {
   id: string;
   orderNumber: string;
-  status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  status:
+    | "PENDING"
+    | "CONFIRMED"
+    | "PROCESSING"
+    | "SHIPPED"
+    | "DELIVERED"
+    | "CANCELLED";
   total: number;
   items: OrderItem[];
   createdAt: string;
@@ -36,13 +42,40 @@ interface Order {
   trackingNumber?: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING: { label: "Pending", color: "var(--gold)", bg: "color-mix(in srgb, var(--gold) 12%, transparent)" },
-  CONFIRMED: { label: "Confirmed", color: "var(--green)", bg: "color-mix(in srgb, var(--green) 12%, transparent)" },
-  PROCESSING: { label: "Processing", color: "var(--ice)", bg: "color-mix(in srgb, var(--ice) 12%, transparent)" },
-  SHIPPED: { label: "Shipped", color: "var(--purple)", bg: "color-mix(in srgb, var(--purple) 12%, transparent)" },
-  DELIVERED: { label: "Delivered", color: "var(--green)", bg: "color-mix(in srgb, var(--green) 12%, transparent)" },
-  CANCELLED: { label: "Cancelled", color: "var(--red)", bg: "color-mix(in srgb, var(--red) 12%, transparent)" },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
+  PENDING: {
+    label: "Pending",
+    color: "var(--gold)",
+    bg: "color-mix(in srgb, var(--gold) 12%, transparent)",
+  },
+  CONFIRMED: {
+    label: "Confirmed",
+    color: "var(--green)",
+    bg: "color-mix(in srgb, var(--green) 12%, transparent)",
+  },
+  PROCESSING: {
+    label: "Processing",
+    color: "var(--ice)",
+    bg: "color-mix(in srgb, var(--ice) 12%, transparent)",
+  },
+  SHIPPED: {
+    label: "Shipped",
+    color: "var(--purple)",
+    bg: "color-mix(in srgb, var(--purple) 12%, transparent)",
+  },
+  DELIVERED: {
+    label: "Delivered",
+    color: "var(--green)",
+    bg: "color-mix(in srgb, var(--green) 12%, transparent)",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    color: "var(--red)",
+    bg: "color-mix(in srgb, var(--red) 12%, transparent)",
+  },
 };
 
 function normalizeOrder(raw: any): Order {
@@ -50,7 +83,9 @@ function normalizeOrder(raw: any): Order {
     ? raw.items.map((item: any) => ({
         id: String(item.id),
         productId: String(item.productId ?? item.product?.id ?? ""),
-        productName: String(item.name ?? item.productName ?? item.product?.name ?? "Product"),
+        productName: String(
+          item.name ?? item.productName ?? item.product?.name ?? "Product",
+        ),
         productSlug:
           typeof item.productSlug === "string"
             ? item.productSlug
@@ -59,8 +94,13 @@ function normalizeOrder(raw: any): Order {
               : undefined,
         quantity: Number(item.quantity ?? 0),
         price: Number(item.price ?? 0),
-        variant: typeof item.variant?.name === "string" ? item.variant.name : undefined,
-        canReview: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"].includes(String(raw?.status ?? "").toUpperCase()),
+        variant:
+          typeof item.variant?.name === "string"
+            ? item.variant.name
+            : undefined,
+        canReview: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"].includes(
+          String(raw?.status ?? "").toUpperCase(),
+        ),
       }))
     : [];
 
@@ -86,7 +126,8 @@ function normalizeOrder(raw: any): Order {
     total: Number(raw?.total ?? 0),
     items,
     createdAt: String(raw?.createdAt ?? new Date().toISOString()),
-    shippingAddress: shippingParts.length > 0 ? shippingParts.join(", ") : undefined,
+    shippingAddress:
+      shippingParts.length > 0 ? shippingParts.join(", ") : undefined,
     trackingNumber,
   };
 }
@@ -115,7 +156,11 @@ export default function OrdersPage() {
       });
       if (!res.ok) throw new Error("Failed to load orders");
       const data = await res.json();
-      const rawOrders = Array.isArray(data?.orders) ? data.orders : Array.isArray(data) ? data : [];
+      const rawOrders = Array.isArray(data?.orders)
+        ? data.orders
+        : Array.isArray(data)
+          ? data
+          : [];
       setOrders(rawOrders.map(normalizeOrder));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load orders");
@@ -152,7 +197,10 @@ export default function OrdersPage() {
     return (
       <div className="orders-page">
         <div className="orders-container">
-          <ContextBar activeLayer="market" statusOverrides={{ market: "active", work: "building" }} />
+          <ContextBar
+            activeLayer="market"
+            statusOverrides={{ market: "active", work: "live" }}
+          />
           <div className="orders-login-prompt">
             <div className="prompt-icon">🔐</div>
             <h2>Sign in to view your orders</h2>
@@ -170,7 +218,10 @@ export default function OrdersPage() {
     <div className="orders-page">
       <div className="orders-container">
         {/* Context Bar */}
-        <ContextBar activeLayer="market" statusOverrides={{ market: "active", work: "building" }} />
+        <ContextBar
+          activeLayer="market"
+          statusOverrides={{ market: "active", work: "live" }}
+        />
         <div className="orders-header">
           <h1>Your Orders</h1>
           <AIInsightBanner page="market" assistant="atlas" />
@@ -203,13 +254,16 @@ export default function OrdersPage() {
         ) : (
           <div className="orders-list">
             {orders.map((order) => {
-              const status = STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
+              const status =
+                STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
               return (
                 <div key={order.id} className="order-card">
                   <div className="order-header">
                     <div className="order-info">
                       <span className="order-number">{order.orderNumber}</span>
-                      <span className="order-date">{formatDate(order.createdAt)}</span>
+                      <span className="order-date">
+                        {formatDate(order.createdAt)}
+                      </span>
                     </div>
                     <span
                       className="order-status"
@@ -241,7 +295,7 @@ export default function OrdersPage() {
                       >
                         View Details
                       </button>
-                     {order.status === "PENDING" && (
+                      {order.status === "PENDING" && (
                         <button
                           className="order-cancel-btn"
                           onClick={() => cancelOrder(order.id)}
@@ -259,7 +313,10 @@ export default function OrdersPage() {
 
         {/* Order Detail Modal */}
         {selectedOrder && (
-          <div className="order-modal-overlay" onClick={() => setSelectedOrder(null)}>
+          <div
+            className="order-modal-overlay"
+            onClick={() => setSelectedOrder(null)}
+          >
             <div className="order-modal" onClick={(e) => e.stopPropagation()}>
               <button
                 className="modal-close"
@@ -288,7 +345,11 @@ export default function OrdersPage() {
                 {selectedOrder.items.map((item) => (
                   <div key={item.id} className="modal-item">
                     <Link
-                      to={item.productSlug ? `/market/products/${item.productSlug}` : `/market/products/${item.productId}`}
+                      to={
+                        item.productSlug
+                          ? `/market/products/${item.productSlug}`
+                          : `/market/products/${item.productId}`
+                      }
                       className="modal-item-name"
                     >
                       {item.productName}
@@ -302,7 +363,11 @@ export default function OrdersPage() {
                     </span>
                     {item.canReview && (item.productSlug || item.productId) && (
                       <Link
-                        to={item.productSlug ? `/market/products/${item.productSlug}` : `/market/products/${item.productId}`}
+                        to={
+                          item.productSlug
+                            ? `/market/products/${item.productSlug}`
+                            : `/market/products/${item.productId}`
+                        }
                         className="order-view-btn"
                       >
                         Review Item
@@ -315,14 +380,18 @@ export default function OrdersPage() {
               {selectedOrder.shippingAddress && (
                 <div className="modal-section">
                   <h3>Shipping Address</h3>
-                  <p className="modal-address">{selectedOrder.shippingAddress}</p>
+                  <p className="modal-address">
+                    {selectedOrder.shippingAddress}
+                  </p>
                 </div>
               )}
 
               {selectedOrder.trackingNumber && (
                 <div className="modal-section">
                   <h3>Tracking</h3>
-                  <p className="modal-tracking">{selectedOrder.trackingNumber}</p>
+                  <p className="modal-tracking">
+                    {selectedOrder.trackingNumber}
+                  </p>
                 </div>
               )}
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
-import { Activity, Bell, BellOff, Compass, Eye, EyeOff, Home, LayoutGrid, LogOut, PanelLeft, PanelLeftClose, Search, Settings, Signal, Users } from "lucide-react";
+import { Activity, BarChart, Bell, BellOff, Briefcase, Cloud, Compass, CreditCard, Eye, EyeOff, Home, Layers, LayoutGrid, LogOut, PanelLeft, PanelLeftClose, Search, Settings, Signal, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import TenantSwitcher from "../ui/TenantSwitcher";
@@ -24,7 +24,15 @@ const PRIMARY_NAV = [
   { path: "/community", label: "Community", icon: Users },
   { path: "/academy", label: "Academy", icon: Compass },
   { path: "/market", label: "Market", icon: LayoutGrid },
+  { path: "/work", label: "Work", icon: Briefcase },
   { path: "/intelligence", label: "AI", icon: Signal },
+  { path: "/cloud", label: "Cloud", icon: Cloud },
+] as const;
+
+const EXTENDED_NAV = [
+  { path: "/analytics", label: "Analytics", icon: BarChart },
+  { path: "/billing", label: "Billing", icon: CreditCard },
+  { path: "/ui-quality", label: "Architecture", icon: Layers },
 ] as const;
 
 const QUICK_NAV = [
@@ -41,11 +49,12 @@ function getAssistantForPath(pathname: string): AssistantKey {
   if (pathname.startsWith("/work")) return "circuit";
   if (pathname.startsWith("/intelligence")) return "forge";
   if (pathname.startsWith("/cloud")) return "nexus";
+  if (pathname.startsWith("/analytics")) return "herald";
   return "aria";
 }
 
 function getPageLabel(pathname: string) {
-  const match = PRIMARY_NAV.find((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
+  const match = [...PRIMARY_NAV, ...EXTENDED_NAV, ...QUICK_NAV].find((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
   if (match) return match.label;
   if (pathname.startsWith("/settings/core")) return "Core Settings";
   if (pathname.startsWith("/settings")) return "Settings";
@@ -923,7 +932,18 @@ export default function MainLayout() {
         )}
 
         <div className="ml-nav">
+          <div className="ml-section-label">Main</div>
           {PRIMARY_NAV.map((item) => (
+            <NavItem key={item.path} {...item} />
+          ))}
+
+          <div className="ml-section-label">Explore</div>
+          {EXTENDED_NAV.map((item) => (
+            <NavItem key={item.path} {...item} />
+          ))}
+
+          <div className="ml-section-label">Options</div>
+          {QUICK_NAV.map((item) => (
             <NavItem key={item.path} {...item} />
           ))}
         </div>

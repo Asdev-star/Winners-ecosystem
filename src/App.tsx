@@ -344,21 +344,85 @@ function App() {
               element={<StudentDashboardPage />}
             />
             <Route path="academy/courses/:slug" element={<CoursePage />} />
-            <Route path="intelligence" element={<WinnersIntelligencePage />} />
-            <Route path="intelligence/aria" element={<WinnersChat />} />
-            <Route path="intelligence/omega" element={<OmegaDashboard />} />
-            <Route path="intelligence/platform" element={<AIPlatformPage />} />
+            <Route
+              path="intelligence"
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <WinnersIntelligencePage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="intelligence/aria"
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <WinnersChat />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="intelligence/omega"
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <OmegaDashboard />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="intelligence/platform"
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <AIPlatformPage />
+                </LayerRouteGate>
+              }
+            />
             <Route
               path="intelligence/agents/:name"
-              element={<SupervisorPage />}
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <SupervisorPage />
+                </LayerRouteGate>
+              }
             />
-            <Route path="intelligence/loop" element={<LoopTrackerPage />} />
-            <Route path="intelligence/memory" element={<MemoryManagerPage />} />
-            <Route path="intelligence/credits" element={<CreditsPage />} />
-            <Route path="intelligence/reports" element={<ReportsPage />} />
+            <Route
+              path="intelligence/loop"
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <LoopTrackerPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="intelligence/memory"
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <MemoryManagerPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="intelligence/credits"
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <CreditsPage />
+                </LayerRouteGate>
+              }
+            />
+            <Route
+              path="intelligence/reports"
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <ReportsPage />
+                </LayerRouteGate>
+              }
+            />
             <Route
               path="intelligence/analytics"
-              element={<IntelligenceAnalytics />}
+              element={
+                <LayerRouteGate layerId="intelligence">
+                  <IntelligenceAnalytics />
+                </LayerRouteGate>
+              }
             />
             <Route
               path="academy/instructor"

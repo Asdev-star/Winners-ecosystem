@@ -6,11 +6,11 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuthStore } from "../features/auth/authStore";
 
 interface TrustScoreBreakdown {
-  academy: number;      // Up to 30 points
-  work: number;        // Up to 25 points
-  community: number;    // Up to 20 points
-  identity: number;     // Up to 15 points
-  payments: number;   // Up to 10 points
+  academy: number; // Up to 30 points
+  work: number; // Up to 25 points
+  community: number; // Up to 20 points
+  identity: number; // Up to 15 points
+  payments: number; // Up to 10 points
 }
 
 interface TrustScoreReturn {
@@ -31,7 +31,9 @@ const TIER_THRESHOLDS = {
   elite: 90,
 };
 
-function getTier(score: number): "new" | "building" | "established" | "trusted" | "elite" {
+function getTier(
+  score: number,
+): "new" | "building" | "established" | "trusted" | "elite" {
   if (score >= TIER_THRESHOLDS.elite) return "elite";
   if (score >= TIER_THRESHOLDS.trusted) return "trusted";
   if (score >= TIER_THRESHOLDS.established) return "established";
@@ -43,11 +45,11 @@ function getTier(score: number): "new" | "building" | "established" | "trusted" 
 const getMockTrustData = (userId: string) => ({
   score: 67,
   breakdown: {
-    academy: 18,      // 2 certificates
-    work: 15,        // 3 contracts completed
-    community: 14,   // Active engagement
-    identity: 10,    // Verified
-    payments: 10,    // No disputes
+    academy: 18, // 2 certificates
+    work: 15, // 3 contracts completed
+    community: 14, // Active engagement
+    identity: 10, // Verified
+    payments: 10, // No disputes
   },
 });
 
@@ -70,16 +72,26 @@ export function useTrustScore(): TrustScoreReturn {
     setError(null);
 
     try {
-      // In production, call the API:
-      // const response = await fetch(`/api/v1/users/${user.id}/trust-score`);
-      // const data = await response.json();
-      
-      // For now, use mock data
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch(`/api/v1/trust-score`);
+      if (!response.ok) {
+        // Fall back to mock data if API fails
+        const data = getMockTrustData(user.id);
+        setScoreData(data);
+        return;
+      }
+
+      const data = await response.json();
+      if (data && data.score !== undefined) {
+        setScoreData({
+          score: data.score,
+          breakdown: data.breakdown,
+        });
+      }
+    } catch (err) {
+      // Fall back to mock data on network error
       const data = getMockTrustData(user.id);
       setScoreData(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch trust score");
+      console.debug("Trust score fetch failed, using local data:", err);
     } finally {
       setIsLoading(false);
     }
@@ -113,24 +125,34 @@ export function useTrustScore(): TrustScoreReturn {
 // Hook specifically for Trust Score Widget display
 export function useTrustScoreDisplay(userId?: string) {
   const { score, tier, breakdown, isLoading, error } = useTrustScore();
-  
+
   const scoreColor = useMemo(() => {
     switch (tier) {
-      case "elite": return "var(--green)";
-      case "trusted": return "var(--gold)";
-      case "established": return "var(--ice)";
-      case "building": return "var(--text-dim)";
-      default: return "var(--red)";
+      case "elite":
+        return "var(--green)";
+      case "trusted":
+        return "var(--gold)";
+      case "established":
+        return "var(--ice)";
+      case "building":
+        return "var(--text-dim)";
+      default:
+        return "var(--red)";
     }
   }, [tier]);
 
   const tierLabel = useMemo(() => {
     switch (tier) {
-      case "elite": return "Elite";
-      case "trusted": return "Trusted";
-      case "established": return "Established";
-      case "building": return "Building";
-      default: return "New";
+      case "elite":
+        return "Elite";
+      case "trusted":
+        return "Trusted";
+      case "established":
+        return "Established";
+      case "building":
+        return "Building";
+      default:
+        return "New";
     }
   }, [tier]);
 

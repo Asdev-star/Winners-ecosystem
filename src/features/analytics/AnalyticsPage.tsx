@@ -22,7 +22,11 @@ import {
   calcAverage,
   detectAnomalies,
 } from "../../lib/analyticsEngine";
-import type { Period, DataPoint, ForecastPoint } from "../../lib/analyticsEngine";
+import type {
+  Period,
+  DataPoint,
+  ForecastPoint,
+} from "../../lib/analyticsEngine";
 import { getAuthHeaders, useAuthStore } from "../auth/authStore";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
@@ -310,7 +314,9 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     setApiLoading(true);
-    fetch(`/api/v1/analytics/revenue?period=${period}`, { headers: getAuthHeaders() })
+    fetch(`/api/v1/analytics/revenue?period=${period}`, {
+      headers: getAuthHeaders(),
+    })
       .then((r) => r.json())
       .then((body) => {
         if (body.data) setCurrentData(body.data as DataPoint[]);
@@ -320,7 +326,10 @@ export default function AnalyticsPage() {
       .finally(() => setApiLoading(false));
   }, [period]);
 
-  const forecastData = useMemo(() => generateForecast(currentData, 7), [currentData]);
+  const forecastData = useMemo(
+    () => generateForecast(currentData, 7),
+    [currentData],
+  );
   const insights = useMemo(
     () => generateInsights(currentData, previousData, period),
     [currentData, previousData, period],
@@ -386,7 +395,10 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
-        <ContextBar activeLayer="core" statusOverrides={{ core: "live", market: "building", work: "building" }} />
+        <ContextBar
+          activeLayer="core"
+          statusOverrides={{ core: "live", market: "live", work: "live" }}
+        />
 
         {/* KPIs */}
         <div className="an-kpis">
@@ -645,8 +657,16 @@ export default function AnalyticsPage() {
               >
                 <defs>
                   <linearGradient id="actGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--blue)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--blue)" stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor="var(--blue)"
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--blue)"
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 </defs>
                 <CartesianGrid

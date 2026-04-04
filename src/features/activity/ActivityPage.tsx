@@ -169,28 +169,33 @@ const css = `
 `;
 
 const CATEGORIES = [
-  { id: "all",      label: "All",      icon: "📋" },
-  { id: "auth",     label: "Auth",     icon: "🔐" },
-  { id: "team",     label: "Team",     icon: "👥" },
-  { id: "billing",  label: "Billing",  icon: "💳" },
-  { id: "stripe",   label: "Stripe",   icon: "💰" },
-  { id: "export",   label: "Exports",  icon: "📦" },
+  { id: "all", label: "All", icon: "📋" },
+  { id: "auth", label: "Auth", icon: "🔐" },
+  { id: "team", label: "Team", icon: "👥" },
+  { id: "billing", label: "Billing", icon: "💳" },
+  { id: "stripe", label: "Stripe", icon: "💰" },
+  { id: "export", label: "Exports", icon: "📦" },
   { id: "settings", label: "Settings", icon: "⚙️" },
 ];
 
 const CAT_ICONS: Record<string, string> = {
-  auth: "🔐", team: "👥", billing: "💳", stripe: "💰", export: "📦", settings: "⚙️",
+  auth: "🔐",
+  team: "👥",
+  billing: "💳",
+  stripe: "💰",
+  export: "📦",
+  settings: "⚙️",
 };
 
 function timeAgo(date: string): string {
-  const diff  = Date.now() - new Date(date).getTime();
-  const mins  = Math.floor(diff / 60000);
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-  if (mins < 1)   return "just now";
-  if (mins < 60)  return `${mins}m ago`;
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
-  if (days < 7)   return `${days}d ago`;
+  if (days < 7) return `${days}d ago`;
   return new Date(date).toLocaleDateString();
 }
 
@@ -207,18 +212,22 @@ interface Log {
 
 export default function ActivityPage() {
   const token = useAuthStore((s) => s.token);
-  const user  = useAuthStore((s) => s.user);
+  const user = useAuthStore((s) => s.user);
 
-  const [logs, setLogs]         = useState<Log[]>([]);
-  const [total, setTotal]       = useState(0);
-  const [page, setPage]         = useState(1);
-  const [pages, setPages]       = useState(1);
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [category, setCategory] = useState("all");
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
 
   // Level 4 AI Assistant hook
-  const { sendMessage, messages, isLoading: aiLoading } = useAssistant({
+  const {
+    sendMessage,
+    messages,
+    isLoading: aiLoading,
+  } = useAssistant({
     supervisor: "ARIA",
     autoGreeting: true,
   });
@@ -234,7 +243,9 @@ export default function ActivityPage() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: "25" });
       if (category !== "all") params.set("category", category);
-      const res  = await fetch(`${API}/activity?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API}/activity?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       setLogs(data.logs ?? []);
@@ -247,31 +258,50 @@ export default function ActivityPage() {
     }
   }, [token, page, category]);
 
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const handleClear = async () => {
     if (!confirm("Clear all activity logs? This cannot be undone.")) return;
     setClearing(true);
     try {
-      await fetch(`${API}/activity`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-      setLogs([]); setTotal(0);
-    } finally { setClearing(false); }
+      await fetch(`${API}/activity`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLogs([]);
+      setTotal(0);
+    } finally {
+      setClearing(false);
+    }
   };
 
   return (
     <>
       <style>{css}</style>
       <div className="ac-root">
-
         {/* Header */}
         <div className="ac-header">
-          <h1 className="ac-title">Activity <span>Log</span></h1>
-          <p className="ac-subtitle">Winners Ecosystem · Core Engine · Complete audit trail of workspace actions</p>
+          <h1 className="ac-title">
+            Activity <span>Log</span>
+          </h1>
+          <p className="ac-subtitle">
+            Winners Ecosystem · Core Engine · Complete audit trail of workspace
+            actions
+          </p>
         </div>
 
         <ContextBar
           activeLayer="core"
-          statusOverrides={{ core: "live", community: "live", academy: "active", market: "building", intelligence: "active", work: "planned" }}
+          statusOverrides={{
+            core: "live",
+            community: "live",
+            academy: "active",
+            market: "live",
+            intelligence: "active",
+            work: "live",
+          }}
           showLabels={true}
         />
 
@@ -282,7 +312,12 @@ export default function ActivityPage() {
           type="market"
           title="Explore the Market"
           subtitle="Discover products and services"
-          details={<p>Browse the Winners Market to find tools, courses, and services to grow your business.</p>}
+          details={
+            <p>
+              Browse the Winners Market to find tools, courses, and services to
+              grow your business.
+            </p>
+          }
           actionLabel="Visit Market"
           actionHref="/market/dropshipping"
           loopStage={6}
@@ -303,7 +338,9 @@ export default function ActivityPage() {
             <div className="ac-stat-lbl">Team Events</div>
           </div>
           <div className="ac-stat purple">
-            <div className="ac-stat-val">{(catCounts["billing"] ?? 0) + (catCounts["stripe"] ?? 0)}</div>
+            <div className="ac-stat-val">
+              {(catCounts["billing"] ?? 0) + (catCounts["stripe"] ?? 0)}
+            </div>
             <div className="ac-stat-lbl">Billing Events</div>
           </div>
         </div>
@@ -314,7 +351,10 @@ export default function ActivityPage() {
             <button
               key={cat.id}
               className={`ac-tab${category === cat.id ? " active" : ""}`}
-              onClick={() => { setCategory(cat.id); setPage(1); }}
+              onClick={() => {
+                setCategory(cat.id);
+                setPage(1);
+              }}
             >
               {cat.icon} {cat.label}
             </button>
@@ -331,56 +371,82 @@ export default function ActivityPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span className="ac-count">{total} events</span>
               {user?.role === "owner" && total > 0 && (
-                <button className="ac-clear-btn" onClick={handleClear} disabled={clearing}>
+                <button
+                  className="ac-clear-btn"
+                  onClick={handleClear}
+                  disabled={clearing}
+                >
                   {clearing ? "Clearing..." : "🗑 Clear All"}
                 </button>
               )}
             </div>
           </div>
 
-          {loading
-            ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="ac-skeleton" />)
-            : logs.length === 0
-              ? (
-                <div className="ac-empty">
-                  No activity logged yet.<br />
-                  <span style={{ fontSize: 9 }}>Events will appear here as your team uses the ecosystem.</span>
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="ac-skeleton" />
+            ))
+          ) : logs.length === 0 ? (
+            <div className="ac-empty">
+              No activity logged yet.
+              <br />
+              <span style={{ fontSize: 9 }}>
+                Events will appear here as your team uses the ecosystem.
+              </span>
+            </div>
+          ) : (
+            logs.map((log) => (
+              <div key={log.id} className="ac-log-item">
+                <div className={`ac-icon ${log.category}`}>
+                  {CAT_ICONS[log.category] ?? "📋"}
                 </div>
-              )
-              : logs.map((log) => (
-                <div key={log.id} className="ac-log-item">
-                  <div className={`ac-icon ${log.category}`}>
-                    {CAT_ICONS[log.category] ?? "📋"}
+                <div className="ac-log-body">
+                  <div className="ac-log-action">{log.action}</div>
+                  <div className="ac-log-meta">
+                    {log.userName && <span>👤 {log.userName}</span>}
+                    {log.userEmail && <span>✉️ {log.userEmail}</span>}
+                    {log.ip && <span>🌐 {log.ip}</span>}
+                    <span className={`ac-cat-badge ${log.category}`}>
+                      {log.category}
+                    </span>
+                    {log.metadata && Object.keys(log.metadata).length > 0 && (
+                      <span>
+                        {Object.entries(log.metadata)
+                          .slice(0, 2)
+                          .map(([k, v]) => `${k}: ${v}`)
+                          .join(" · ")}
+                      </span>
+                    )}
                   </div>
-                  <div className="ac-log-body">
-                    <div className="ac-log-action">{log.action}</div>
-                    <div className="ac-log-meta">
-                      {log.userName  && <span>👤 {log.userName}</span>}
-                      {log.userEmail && <span>✉️ {log.userEmail}</span>}
-                      {log.ip        && <span>🌐 {log.ip}</span>}
-                      <span className={`ac-cat-badge ${log.category}`}>{log.category}</span>
-                      {log.metadata && Object.keys(log.metadata).length > 0 && (
-                        <span>{Object.entries(log.metadata).slice(0, 2).map(([k, v]) => `${k}: ${v}`).join(" · ")}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="ac-log-time">{timeAgo(log.createdAt)}</div>
                 </div>
-              ))
-          }
+                <div className="ac-log-time">{timeAgo(log.createdAt)}</div>
+              </div>
+            ))
+          )}
 
           {pages > 1 && (
             <div className="ac-pagination">
-              <button className="ac-page-btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>← Prev</button>
-              <span className="ac-count">Page {page} of {pages}</span>
-              <button className="ac-page-btn" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>Next →</button>
+              <button
+                className="ac-page-btn"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                ← Prev
+              </button>
+              <span className="ac-count">
+                Page {page} of {pages}
+              </span>
+              <button
+                className="ac-page-btn"
+                disabled={page >= pages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next →
+              </button>
             </div>
           )}
         </div>
-
       </div>
     </>
   );
 }
-
-

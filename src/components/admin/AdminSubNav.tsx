@@ -27,7 +27,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { id: "overview", label: "Overview", to: "/admin/overview", aliases: ["/admin"] },
-  { id: "platform", label: "Platform", to: "/admin/platform" },
+  { id: "platform", label: "Launcher", to: "/admin/platform" },
   { id: "tenants", label: "Tenants", to: "/admin/tenants", badgeKey: "tenants" },
   { id: "users", label: "Users", to: "/admin/users", badgeKey: "users" },
   { id: "revenue", label: "Revenue", to: "/admin/revenue" },

@@ -37,17 +37,17 @@
   --gold-light: #F5C842;    /* Lighter gold for hover states */
 
   /* ── Surfaces ── */
-  --bg:       #0A101C;   /* Deep slate base */
-  --surface:  #111927;   /* Elevated base */
-  --surface2: #1C2533;   /* Components base */
-  --surface3: #262F3F;   /* Highlighted base */
-  --border:   rgba(255, 255, 255, 0.08); /* Clean thin borders */
+  --bg:       #0D1424;   /* Deep slate base - increased luminosity */
+  --surface:  #152033;   /* Elevated base - increased luminosity */
+  --surface2: #222D42;   /* Components base - increased luminosity */
+  --surface3: #2D3952;   /* Highlighted base - increased luminosity */
+  --border:   rgba(255, 255, 255, 0.12); /* Brighter borders */
   --border-gold: rgba(240, 180, 41, 0.35);
   --border-blue: rgba(74, 158, 255, 0.35);
 
   /* ── Text ── */
   --text:     #F8FAFC;   /* Crisp white text */
-  --text-dim: #94A3B8;   /* Balanced muted text */
+  --text-dim: #A1AFBF;   /* Brighter muted text for increased luminosity */
   --text-faint: #475569; /* Subtle text */
 
   /* Runtime typography + card tokens */
@@ -81,10 +81,10 @@
   --theme-light-green: #15803D;
   --theme-light-purple: #7C3AED;
 
-  --theme-dark-bg: #0A101C;
-  --theme-dark-surface: #111927;
-  --theme-dark-surface2: #1C2533;
-  --theme-dark-border: rgba(255, 255, 255, 0.08);
+  --theme-dark-bg: #0D1424;
+  --theme-dark-surface: #152033;
+  --theme-dark-surface2: #222D42;
+  --theme-dark-border: rgba(255, 255, 255, 0.12);
   --theme-dark-text: #F8FAFC;
   --theme-dark-text-dim: #94A3B8;
   --theme-dark-gold: #F0B429;

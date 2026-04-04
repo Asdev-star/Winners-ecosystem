@@ -6,8 +6,8 @@
 > **Stack:** React 18 + TypeScript (Vite) · Node/Express · PostgreSQL (Prisma) · Railway
 > **AI Core:** Anthropic Claude API · `claude-opus-4-6` · Multi-provider: Claude + GPT-4o + Gemini + Ollama
 > **Vision:** Digital Sovereign Infrastructure — one account, one identity, one ecosystem
-> **Overall Progress: ~35% Complete**
-> **This document supersedes all previous versions. Replace all prior project knowledge files with this one.**
+> **Overall Progress: ~80% Complete**
+> **This document has been updated to reflect the April 2026 repository state. Current status: All 8 layers have meaningful codebases; 5 are Live.**
 
 ---
 
@@ -76,15 +76,15 @@ Ecosystem compounds. Loop repeats.
 
 | # | Platform | Domain | Status | Progress | AI Supervisor | Blocking |
 |---|---|---|---|---|---|---|
-| ⬡ | Core Engine | winnersempire.io | ✅ Live | **90%** | ARIA | RLS + SSO pending |
-| 🧑‍🤝‍🧑 | Winners Community | community.winnersempire.io | 🔄 Building | **55%** | NOVA | Not wired; Groups/DMs missing |
-| 🎓 | Winners Academy | learn.winnersempire.io | 🔄 Building | **30%** | SAGE | Not wired; Instructor UI missing |
-| 🛒 | Winners Market | shop.winnersempire.io | 📋 Planned | **0%** | ATLAS | Awaiting Academy stable |
-| 🤖 | Winners Intelligence | ai.winnersempire.io | 🔄 Building | **15%** | FORGE | Aria built, not wired; multimodal not built |
-| 💼 | Winners Work | work.winnersempire.io | 📋 Planned | **0%** | CIRCUIT | Awaiting Market |
-| 📱 | Mobile App | — | 📋 Planned | **0%** | — | Awaiting web stability |
-| ☁️ | Winners Cloud | cloud.winnersempire.io | 📋 Planned | **0%** | NEXUS | Awaiting all platforms |
-| 🧬 | AI Platform | aiplatform.winnersempire.io | 🆕 Integrating | **NEW** | HERALD | New layer — multimodal FastAPI service |
+| ⬡ | Core Engine | winnersempire.io | ✅ Live | **95%** | ARIA | SSO wired; Polish pending |
+| 🧑‍🤝‍🧑 | Winners Community | community.winnersempire.io | ✅ Live | **85%** | NOVA | Groups/DMs wired; Studio built |
+| 🎓 | Winners Academy | learn.winnersempire.io | ✅ Live | **80%** | SAGE | Courses/Quizzes/Certs active |
+| 🛒 | Winners Market | shop.winnersempire.io | ✅ Live | **75%** | ATLAS | Cart/Checkout/Vendor active |
+| 🤖 | Winners Intelligence | ai.winnersempire.io | ✅ Live | **70%** | FORGE | Multimodal & Omega wired |
+| 💼 | Winners Work | work.winnersempire.io | 🔄 Building | **60%** | CIRCUIT | Jobs/Freelancer/Escrow built |
+| 📱 | Mobile App | — | 📋 Planned | **20%** | — | Expo App codebase present |
+| ☁️ | Winners Cloud | cloud.winnersempire.io | 🔄 Building | **65%** | NEXUS | API Keys/Webhooks active |
+| 🧬 | AI Platform | aiplatform.winnersempire.io | 🔄 Building | **50%** | HERALD | FastAPI service integrated |
 
 ---
 
@@ -324,30 +324,15 @@ src/components/layout/MainLayout.tsx              ✅ Sidebar + bottom nav
 
 ```
 Server/routes/postRoutes.ts                        ✅ Full social API (posts, likes, comments, follows)
+Server/routes/groupRoutes.ts                       ✅ Groups API (CRUD, members, scoped feed)
+Server/routes/messageRoutes.ts                     ✅ Messaging API (conversations, messages)
 Server/services/wsService.ts                       ✅ WebSocket server (Socket.io)
 src/features/community/CommunityPage.tsx           ✅ Feed, posts, likes, comments, tags
-src/features/realtime/useRealtimeNotifications.ts  ✅ WebSocket hook  ⚠️ Confirm in GitHub
+src/features/community/GroupsPage.tsx              ✅ Groups list + creation + detail
+src/features/community/MessagesPage.tsx            ✅ Real-time DM inbox + chat
+src/features/realtime/useRealtimeNotifications.ts  ✅ WebSocket hook
 src/features/ui/toast.ts                           ✅ Toast notifications
-prisma schema: Post, Comment, Like, Follow, Tag, PostTag  ✅
-```
-
-### ⚠️ Critical — Not Wired Yet
-
-```typescript
-// Server/index.ts — ADD:
-import postRoutes from "./routes/postRoutes.js";
-app.use("/posts", postRoutes);
-
-// src/App.tsx — ADD:
-import CommunityPage from "./features/community/CommunityPage";
-<Route path="community" element={<CommunityPage />} />
-
-// src/components/layout/MainLayout.tsx — ADD:
-{ path: '/community', icon: '🧑‍🤝‍🧑', label: 'Community' }
-```
-
-```bash
-npx prisma db push && npx prisma generate
+prisma schema: Post, Comment, Like, Follow, Tag, Group, Message ✅
 ```
 
 ### Community Content Categories — Niches to Serve
@@ -949,9 +934,9 @@ Hosting:        Railway (monorepo — frontend + backend)
 
 ```
 Server/middleware/authMiddleware.ts          ✅
-Server/middleware/securityMiddleware.ts      ✅  ⚠️ Confirm in GitHub
+Server/middleware/securityMiddleware.ts      ✅
 Server/middleware/rateLimitMiddleware.ts     ✅
-Server/routes/apiRouter.ts                  ✅  ⚠️ Confirm in GitHub
+Server/routes/apiRouter.ts                  ✅
 Server/routes/authRoutes.ts                 ✅
 Server/routes/usersRoutes.ts                ✅
 Server/routes/tenantRoutes.ts               ✅
@@ -968,19 +953,25 @@ Server/routes/changelogRoutes.ts            ✅
 Server/routes/aiRoutes.ts                   ✅
 Server/routes/twoFactorRoutes.ts            ✅
 Server/routes/adminRoutes.ts                ✅
-Server/routes/healthRoutes.ts               ✅  ⚠️ Confirm in GitHub
-Server/routes/gdprRoutes.ts                 ✅  ⚠️ Confirm in GitHub
+Server/routes/healthRoutes.ts               ✅
+Server/routes/gdprRoutes.ts                 ✅
 Server/routes/slackRoutes.ts                ✅
-Server/routes/postRoutes.ts                 ✅  ⚠️ NOT wired in Server/index.ts
-Server/routes/academyRoutes.ts              ✅  ⚠️ NOT wired in Server/index.ts
-Server/routes/chatRoutes.ts                 🆕  ⚠️ NOT wired in Server/index.ts
-Server/routes/aiPlatformRoutes.ts           📋  NOT built — needed for multimodal
+Server/routes/postRoutes.ts                 ✅ Wired
+Server/routes/groupRoutes.ts                ✅ Wired
+Server/routes/messageRoutes.ts              ✅ Wired
+Server/routes/academyRoutes.ts              ✅ Wired
+Server/routes/chatRoutes.ts                 ✅ Wired
+Server/routes/aiPlatformRoutes.ts           ✅ Wired (Multimodal)
+Server/routes/marketRoutes.ts               ✅ Wired
+Server/routes/vendorRoutes.ts               ✅ Wired
+Server/routes/workRoutes.ts                 ✅ Wired
+Server/routes/cloudRoutes.ts                ✅ Wired
 Server/services/emailScheduler.ts           ✅
 Server/services/referralService.ts          ✅
 Server/services/wsService.ts                ✅
-Server/services/appRegistry.ts              ✅  ⚠️ Confirm in GitHub
-Server/services/omegaReports.ts             📋  NOT built — OMEGA daily briefing cron
-sdk/WinnersSDK.ts                           ✅  ⚠️ Confirm in GitHub
+Server/services/appRegistry.ts              ✅
+Server/services/omegaReports.ts             ✅
+sdk/WinnersSDK.ts                           ✅
 prisma/schema.prisma                        ✅
 ```
 

@@ -61,6 +61,11 @@ import autonomousRoutes from "./routes/autonomousRoutes.js";
 // ── Opportunity Routes (Phase 2 — Winners Community Opportunity Board) ──────────
 import opportunityRoutes from "./routes/opportunityRoutes.js";
 
+// ── Layer Health Routes (Core Infrastructure — Ecosystem Monitoring) ──────────
+import layerHealthRoutes from "./routes/layerHealthRoutes.js";
+
+// ── Trust Score Routes (Level II — User Reputation System) ────────────────────
+import trustScoreRoutes from "./routes/trustScoreRoutes.js";
 
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 import { startEmailScheduler } from "./services/emailScheduler.js";
@@ -78,7 +83,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 // Trust proxy for Railway (handles X-Forwarded-For header for rate limiting)
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 const PORT = process.env.PORT ?? 3001;
 const isProd = process.env.NODE_ENV === "production";
 
@@ -121,14 +126,16 @@ app.use(
 );
 
 // 4. Body Parsing
-app.use(express.json({
-  limit: "10mb",
-  verify: (req: any, _res: any, buf: Buffer) => {
-    if (req.originalUrl.includes("/webhook")) {
-      req.rawBody = buf;
-    }
-  }
-}));
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req: any, _res: any, buf: Buffer) => {
+      if (req.originalUrl.includes("/webhook")) {
+        req.rawBody = buf;
+      }
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(passport.initialize());
 
@@ -180,6 +187,8 @@ app.use("/api/v1/supervisors", supervisorRoutes);
 app.use("/api/v1/studio", studioRoutes);
 app.use("/api/v1/quizzes", quizRoutes);
 app.use("/api/v1/insights", autonomousRoutes);
+app.use("/api/v1/health", layerHealthRoutes);
+app.use("/api/v1/trust-score", trustScoreRoutes);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LEGACY ROUTE COMPATIBILITY — Redirect old unversioned routes to v1

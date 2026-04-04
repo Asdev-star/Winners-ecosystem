@@ -10,37 +10,155 @@ import { API_BASE } from "../../lib/api";
 const API = API_BASE;
 
 const ECOSYSTEM_PLATFORMS = [
-  { icon: "⬡", name: "Core Engine",   path: "/admin",       color: "#F0B429", status: "live",     desc: "Auth · Billing · Analytics · 52 Routes",        routes: 52 },
-  { icon: "🧑‍🤝‍🧑", name: "Community", path: "/community",   color: "#89C4E1", status: "live",     desc: "Feed · Groups · DMs · Studio · NOVA AI",        routes: 18 },
-  { icon: "🎓", name: "Academy",       path: "/academy",     color: "#9B6FFF", status: "live",     desc: "Courses · Paths · Live Sessions · SAGE AI",     routes: 14 },
-  { icon: "🛒", name: "Market",        path: "/market",      color: "#2DD4A0", status: "building", desc: "10 Verticals · Vendors · Cart · Escrow",         routes: 12 },
-  { icon: "💼", name: "Work",          path: "/work",        color: "#F0B429", status: "building", desc: "Freelance · Contracts · Escrow · Profiles",      routes: 5  },
-  { icon: "☁️", name: "Cloud",         path: "/cloud",       color: "#89C4E1", status: "live",     desc: "Connectors · Agents · API Keys · Webhooks",      routes: 8  },
-  { icon: "🤖", name: "Intelligence",  path: "/intelligence",color: "#9B6FFF", status: "live",     desc: "9 Supervisors · OMEGA · SSE Streaming",          routes: 10 },
-  { icon: "⚙️", name: "Ops",           path: "/ops",         color: "#E05A4E", status: "live",     desc: "Core Ops · Health · Config · System Control",    routes: 4  },
+  {
+    icon: "⬡",
+    name: "Core Engine",
+    path: "/admin",
+    color: "#F0B429",
+    status: "live",
+    desc: "Auth · Billing · Analytics · 52 Routes",
+    routes: 52,
+  },
+  {
+    icon: "🧑‍🤝‍🧑",
+    name: "Community",
+    path: "/community",
+    color: "#89C4E1",
+    status: "live",
+    desc: "Feed · Groups · DMs · Studio · NOVA AI",
+    routes: 18,
+  },
+  {
+    icon: "🎓",
+    name: "Academy",
+    path: "/academy",
+    color: "#9B6FFF",
+    status: "live",
+    desc: "Courses · Paths · Live Sessions · SAGE AI",
+    routes: 14,
+  },
+  {
+    icon: "🛒",
+    name: "Market",
+    path: "/market",
+    color: "#2DD4A0",
+    status: "live",
+    desc: "10 Verticals · Vendors · Cart · Escrow · AI commerce intelligence",
+    routes: 12,
+  },
+  {
+    icon: "💼",
+    name: "Work",
+    path: "/work",
+    color: "#F0B429",
+    status: "building",
+    desc: "Freelance · Contracts · Escrow · Profiles",
+    routes: 5,
+  },
+  {
+    icon: "☁️",
+    name: "Cloud",
+    path: "/cloud",
+    color: "#89C4E1",
+    status: "live",
+    desc: "Connectors · Agents · API Keys · Webhooks",
+    routes: 8,
+  },
+  {
+    icon: "🤖",
+    name: "Intelligence",
+    path: "/intelligence",
+    color: "#9B6FFF",
+    status: "live",
+    desc: "9 Supervisors · OMEGA · SSE Streaming",
+    routes: 10,
+  },
+  {
+    icon: "⚙️",
+    name: "Ops",
+    path: "/ops",
+    color: "#E05A4E",
+    status: "live",
+    desc: "Core Ops · Health · Config · System Control",
+    routes: 4,
+  },
 ];
 
 const AI_SUPERVISORS = [
-  { name: "ARIA",    role: "General Intelligence",   model: "claude-3-5-sonnet", status: "active",  calls: 1842 },
-  { name: "NOVA",    role: "Community Intelligence", model: "claude-3-5-sonnet", status: "active",  calls: 934  },
-  { name: "SAGE",    role: "Academy Intelligence",   model: "claude-3-5-sonnet", status: "active",  calls: 621  },
-  { name: "OMEGA",   role: "Autonomous Supervisor",  model: "claude-3-opus",     status: "standby", calls: 312  },
-  { name: "ATLAS",   role: "Market Intelligence",    model: "claude-3-5-haiku",  status: "active",  calls: 289  },
-  { name: "CIRCUIT", role: "Engineering Supervisor", model: "claude-3-5-haiku",  status: "standby", calls: 178  },
-  { name: "PHANTOM", role: "Security Monitor",       model: "claude-3-5-haiku",  status: "active",  calls: 99   },
-  { name: "NEXUS",   role: "Cloud Orchestrator",     model: "claude-3-5-haiku",  status: "standby", calls: 67   },
-  { name: "HERALD",  role: "Notification Engine",    model: "claude-3-5-haiku",  status: "active",  calls: 445  },
+  {
+    name: "ARIA",
+    role: "General Intelligence",
+    model: "claude-3-5-sonnet",
+    status: "active",
+    calls: 1842,
+  },
+  {
+    name: "NOVA",
+    role: "Community Intelligence",
+    model: "claude-3-5-sonnet",
+    status: "active",
+    calls: 934,
+  },
+  {
+    name: "SAGE",
+    role: "Academy Intelligence",
+    model: "claude-3-5-sonnet",
+    status: "active",
+    calls: 621,
+  },
+  {
+    name: "OMEGA",
+    role: "Autonomous Supervisor",
+    model: "claude-3-opus",
+    status: "standby",
+    calls: 312,
+  },
+  {
+    name: "ATLAS",
+    role: "Market Intelligence",
+    model: "claude-3-5-haiku",
+    status: "active",
+    calls: 289,
+  },
+  {
+    name: "CIRCUIT",
+    role: "Engineering Supervisor",
+    model: "claude-3-5-haiku",
+    status: "standby",
+    calls: 178,
+  },
+  {
+    name: "PHANTOM",
+    role: "Security Monitor",
+    model: "claude-3-5-haiku",
+    status: "active",
+    calls: 99,
+  },
+  {
+    name: "NEXUS",
+    role: "Cloud Orchestrator",
+    model: "claude-3-5-haiku",
+    status: "standby",
+    calls: 67,
+  },
+  {
+    name: "HERALD",
+    role: "Notification Engine",
+    model: "claude-3-5-haiku",
+    status: "active",
+    calls: 445,
+  },
 ];
 
 const QUICK_ACTIONS = [
-  { icon: "📢", label: "Broadcast Message",  sub: "All platform users" },
-  { icon: "🔒", label: "Lock Platform",      sub: "Maintenance mode" },
-  { icon: "💾", label: "Export Full Data",   sub: "All tenants + users" },
-  { icon: "🔄", label: "Sync AI Agents",     sub: "Refresh supervisors" },
-  { icon: "📊", label: "Generate Report",    sub: "Executive summary" },
-  { icon: "🧹", label: "Purge Cache",        sub: "Clear system cache" },
-  { icon: "🌐", label: "Deploy Update",      sub: "Push live changes" },
-  { icon: "🔑", label: "Rotate Secrets",     sub: "API keys & tokens" },
+  { icon: "📢", label: "Broadcast Message", sub: "All platform users" },
+  { icon: "🔒", label: "Lock Platform", sub: "Maintenance mode" },
+  { icon: "💾", label: "Export Full Data", sub: "All tenants + users" },
+  { icon: "🔄", label: "Sync AI Agents", sub: "Refresh supervisors" },
+  { icon: "📊", label: "Generate Report", sub: "Executive summary" },
+  { icon: "🧹", label: "Purge Cache", sub: "Clear system cache" },
+  { icon: "🌐", label: "Deploy Update", sub: "Push live changes" },
+  { icon: "🔑", label: "Rotate Secrets", sub: "API keys & tokens" },
 ];
 
 const css = `
@@ -301,7 +419,9 @@ function fmt(n: number) {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  FREE: "var(--text-dim)", PRO: "var(--gold)", ENTERPRISE: "var(--purple)",
+  FREE: "var(--text-dim)",
+  PRO: "var(--gold)",
+  ENTERPRISE: "var(--purple)",
 };
 
 type Tab = "overview" | "platforms" | "users" | "tenants" | "ai" | "directives";
@@ -327,21 +447,27 @@ function getTabForPath(pathname: string): Tab {
 
 export default function AdminPage() {
   const token = useAuthStore((s) => s.token);
-  const user  = useAuthStore((s) => s.user);
+  const user = useAuthStore((s) => s.user);
   const location = useLocation();
   const navigate = useNavigate();
-  const launchedUserRealmPlatforms = ECOSYSTEM_PLATFORMS.filter((platform) => !["/admin", "/ops"].includes(platform.path));
+  const launchedUserRealmPlatforms = ECOSYSTEM_PLATFORMS.filter(
+    (platform) => !["/admin", "/ops"].includes(platform.path),
+  );
 
-  const [tab, setTab]         = useState<Tab>(() => getTabForPath(location.pathname));
-  const [stats, setStats]     = useState<any>(null);
+  const [tab, setTab] = useState<Tab>(() => getTabForPath(location.pathname));
+  const [stats, setStats] = useState<any>(null);
   const [tenants, setTenants] = useState<any>(null);
-  const [users, setUsers]     = useState<any>(null);
+  const [users, setUsers] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [search, setSearch]   = useState("");
-  const [page, setPage]       = useState(1);
-  const [modal, setModal]     = useState<{ tenantId: string; name: string; plan: string } | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [modal, setModal] = useState<{
+    tenantId: string;
+    name: string;
+    plan: string;
+  } | null>(null);
   const [newPlan, setNewPlan] = useState("PRO");
   const [directive, setDirective] = useState("");
   const [directTarget, setDirectTarget] = useState("all");
@@ -364,47 +490,68 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab === "overview" && !stats) loadStats();
     if (tab === "tenants") loadTenants();
-    if (tab === "users")   loadUsers();
+    if (tab === "users") loadUsers();
   }, [tab, page, search]);
 
   const loadStats = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const res = await fetch(`${API}/admin/stats`, { headers });
       if ([401, 403, 404].includes(res.status)) {
-        setError("Admin sovereign boundary rejected this identity. Verify ADMIN_EMAILS before entering the Core Engine.");
+        setError(
+          "Admin sovereign boundary rejected this identity. Verify ADMIN_EMAILS before entering the Core Engine.",
+        );
         return;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setStats(await res.json());
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
 
   const loadTenants = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
-      const res = await fetch(`${API}/admin/tenants?page=${page}&q=${encodeURIComponent(search)}`, { headers });
+      const res = await fetch(
+        `${API}/admin/tenants?page=${page}&q=${encodeURIComponent(search)}`,
+        { headers },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setTenants(await res.json());
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, [token, page, search]);
 
   const loadUsers = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
-      const res = await fetch(`${API}/admin/users?page=${page}&q=${encodeURIComponent(search)}`, { headers });
+      const res = await fetch(
+        `${API}/admin/users?page=${page}&q=${encodeURIComponent(search)}`,
+        { headers },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setUsers(await res.json());
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, [token, page, search]);
 
   const changePlan = async () => {
     if (!modal) return;
     await fetch(`${API}/admin/tenants/${modal.tenantId}/plan`, {
-      method: "PATCH", headers: { ...headers, "Content-Type": "application/json" },
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ plan: newPlan }),
     });
     setModal(null);
@@ -421,27 +568,35 @@ export default function AdminPage() {
 
   const handleDirective = () => {
     if (!directive.trim()) return;
-    setSuccess(`Directive queued for ${directTarget === "all" ? "all platforms" : directTarget}.`);
+    setSuccess(
+      `Directive queued for ${directTarget === "all" ? "all platforms" : directTarget}.`,
+    );
     setDirective("");
     setTimeout(() => setSuccess(""), 4000);
   };
 
-  const maxRevenue    = stats ? Math.max(...(stats.revenueByDay?.map((d: any) => d.amount) ?? [1]), 1) : 1;
-  const totalPlanCount = stats ? Math.max(stats.planDistribution.reduce((s: number, p: any) => s + p.count, 0), 1) : 1;
+  const maxRevenue = stats
+    ? Math.max(...(stats.revenueByDay?.map((d: any) => d.amount) ?? [1]), 1)
+    : 1;
+  const totalPlanCount = stats
+    ? Math.max(
+        stats.planDistribution.reduce((s: number, p: any) => s + p.count, 0),
+        1,
+      )
+    : 1;
   const maxCalls = Math.max(...AI_SUPERVISORS.map((a) => a.calls), 1);
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: "platforms",  label: "🚀 Platform Launch"   },
-    { id: "tenants",    label: "🏢 Tenants"           },
-    { id: "users",      label: "👥 Users"             },
-    { id: "overview",   label: "💰 Revenue"           },
-    { id: "ai",         label: "🤖 FORGE Intelligence" },
-    { id: "directives", label: "📢 OMEGA Broadcast"   },
+    { id: "platforms", label: "🚀 Platform Launch" },
+    { id: "tenants", label: "🏢 Tenants" },
+    { id: "users", label: "👥 Users" },
+    { id: "overview", label: "💰 Revenue" },
+    { id: "ai", label: "🤖 FORGE Intelligence" },
+    { id: "directives", label: "📢 OMEGA Broadcast" },
   ];
 
   return (
     <div className="adm-root">
-
       {/* ── Command Header ── */}
       <div className="adm-header">
         <div className="adm-header-row">
@@ -449,10 +604,14 @@ export default function AdminPage() {
             <h1 className="adm-title">
               ⬡ <span className="adm-title-gold">Admin Control Tower</span>
               <span className="adm-badge">SUPERADMIN</span>
-              <span className="adm-badge-live"><span className="adm-badge-dot" />LIVE</span>
+              <span className="adm-badge-live">
+                <span className="adm-badge-dot" />
+                LIVE
+              </span>
             </h1>
             <p className="adm-subtitle">
-              Full sovereign control panel for the sole ecosystem operator. Users never enter this realm.
+              Full sovereign control panel for the sole ecosystem operator.
+              Users never enter this realm.
             </p>
           </div>
           <div className="adm-header-right">
@@ -477,7 +636,7 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {error   && <div className="adm-error">⚠ {error}</div>}
+      {error && <div className="adm-error">⚠ {error}</div>}
       {success && <div className="adm-success">✓ {success}</div>}
 
       {/* ── Tabs ── */}
@@ -506,11 +665,36 @@ export default function AdminPage() {
         <>
           <div className="adm-kpis">
             {[
-              { icon: "🏢", label: "Total Tenants",  value: stats.totals.tenants,      sub: `+${stats.totals.newThisWeek} this week`   },
-              { icon: "👥", label: "Total Users",     value: stats.totals.users,        sub: "across all workspaces"                     },
-              { icon: "💰", label: "Total Revenue",   value: fmt(stats.totals.revenue), sub: "lifetime value"                            },
-              { icon: "📅", label: "New This Month",  value: stats.totals.newThisMonth, sub: "new workspaces"                            },
-              { icon: "⚡", label: "New This Week",   value: stats.totals.newThisWeek,  sub: "growth rate"                               },
+              {
+                icon: "🏢",
+                label: "Total Tenants",
+                value: stats.totals.tenants,
+                sub: `+${stats.totals.newThisWeek} this week`,
+              },
+              {
+                icon: "👥",
+                label: "Total Users",
+                value: stats.totals.users,
+                sub: "across all workspaces",
+              },
+              {
+                icon: "💰",
+                label: "Total Revenue",
+                value: fmt(stats.totals.revenue),
+                sub: "lifetime value",
+              },
+              {
+                icon: "📅",
+                label: "New This Month",
+                value: stats.totals.newThisMonth,
+                sub: "new workspaces",
+              },
+              {
+                icon: "⚡",
+                label: "New This Week",
+                value: stats.totals.newThisWeek,
+                sub: "growth rate",
+              },
             ].map((k) => (
               <div className="adm-kpi" key={k.label}>
                 <div className="adm-kpi-icon">{k.icon}</div>
@@ -530,8 +714,11 @@ export default function AdminPage() {
               <div className="adm-sparkline">
                 {stats.revenueByDay.map((d: any) => (
                   <div
-                    key={d.date} className="adm-spark-bar"
-                    style={{ height: `${Math.max(4, (d.amount / maxRevenue) * 100)}%` }}
+                    key={d.date}
+                    className="adm-spark-bar"
+                    style={{
+                      height: `${Math.max(4, (d.amount / maxRevenue) * 100)}%`,
+                    }}
                     title={`${d.date}: ${fmt(d.amount)}`}
                   />
                 ))}
@@ -544,10 +731,19 @@ export default function AdminPage() {
                 <div className="adm-plan-bar" key={p.plan}>
                   <div className="adm-plan-bar-label">
                     <span>{p.plan}</span>
-                    <span>{p.count} ws ({Math.round((p.count / totalPlanCount) * 100)}%)</span>
+                    <span>
+                      {p.count} ws (
+                      {Math.round((p.count / totalPlanCount) * 100)}%)
+                    </span>
                   </div>
                   <div className="adm-plan-bar-track">
-                    <div className="adm-plan-bar-fill" style={{ width: `${(p.count / totalPlanCount) * 100}%`, background: PLAN_COLORS[p.plan] ?? "var(--text-dim)" }} />
+                    <div
+                      className="adm-plan-bar-fill"
+                      style={{
+                        width: `${(p.count / totalPlanCount) * 100}%`,
+                        background: PLAN_COLORS[p.plan] ?? "var(--text-dim)",
+                      }}
+                    />
                   </div>
                 </div>
               ))}
@@ -568,15 +764,28 @@ export default function AdminPage() {
               onClick={() => navigate(p.path)}
               style={{ cursor: "pointer" }}
             >
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: p.color }} />
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 2,
+                  background: p.color,
+                }}
+              />
               <div className="adm-platform-top">
                 <span className="adm-platform-icon">{p.icon}</span>
-                <span className={`adm-plat-stat ${p.status}`}>{p.status.toUpperCase()}</span>
+                <span className={`adm-plat-stat ${p.status}`}>
+                  {p.status.toUpperCase()}
+                </span>
               </div>
               <div className="adm-platform-name">{p.name}</div>
               <div className="adm-platform-desc">{p.desc}</div>
               <div className="adm-platform-foot">
-                <span><b>{p.routes}</b> routes</span>
+                <span>
+                  <b>{p.routes}</b> routes
+                </span>
                 <span className="adm-platform-nav">→</span>
               </div>
             </div>
@@ -590,46 +799,111 @@ export default function AdminPage() {
       {!loading && tab === "tenants" && tenants && (
         <div className="adm-table-wrap">
           <div className="adm-table-hdr">
-            <div className="adm-table-title">🏢 All Tenants ({tenants.total})</div>
+            <div className="adm-table-title">
+              🏢 All Tenants ({tenants.total})
+            </div>
             <input
-              className="adm-search" placeholder="Search tenants…" value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="adm-search"
+              placeholder="Search tenants…"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
           <table>
             <thead>
               <tr>
-                <th>Workspace</th><th>Plan</th><th>Users</th>
-                <th>Revenue</th><th>Created</th><th>Actions</th>
+                <th>Workspace</th>
+                <th>Plan</th>
+                <th>Users</th>
+                <th>Revenue</th>
+                <th>Created</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {tenants.tenants.length === 0
-                ? <tr><td colSpan={6}><div className="adm-empty">No tenants found</div></td></tr>
-                : tenants.tenants.map((t: any) => (
+              {tenants.tenants.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="adm-empty">No tenants found</div>
+                  </td>
+                </tr>
+              ) : (
+                tenants.tenants.map((t: any) => (
                   <tr key={t.id}>
                     <td>
-                      <strong>{t.name}</strong><br />
-                      <span style={{ fontFamily: "Space Mono, monospace", fontSize: 9, color: "var(--text-dim)" }}>{t.id}</span>
+                      <strong>{t.name}</strong>
+                      <br />
+                      <span
+                        style={{
+                          fontFamily: "Space Mono, monospace",
+                          fontSize: 9,
+                          color: "var(--text-dim)",
+                        }}
+                      >
+                        {t.id}
+                      </span>
                     </td>
-                    <td><span className={`adm-plan-tag ${t.plan}`}>{t.plan}</span></td>
+                    <td>
+                      <span className={`adm-plan-tag ${t.plan}`}>{t.plan}</span>
+                    </td>
                     <td>{t._count?.users ?? 0}</td>
                     <td>{fmt(t.totalRevenue)}</td>
-                    <td style={{ fontFamily: "Space Mono, monospace", fontSize: 9 }}>{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td
+                      style={{
+                        fontFamily: "Space Mono, monospace",
+                        fontSize: 9,
+                      }}
+                    >
+                      {new Date(t.createdAt).toLocaleDateString()}
+                    </td>
                     <td>
-                      <button className="adm-action-btn" onClick={() => { setModal({ tenantId: t.id, name: t.name, plan: t.plan }); setNewPlan(t.plan); }}>Plan</button>
-                      <button className="adm-action-btn danger" onClick={() => deleteTenant(t.id)}>Delete</button>
+                      <button
+                        className="adm-action-btn"
+                        onClick={() => {
+                          setModal({
+                            tenantId: t.id,
+                            name: t.name,
+                            plan: t.plan,
+                          });
+                          setNewPlan(t.plan);
+                        }}
+                      >
+                        Plan
+                      </button>
+                      <button
+                        className="adm-action-btn danger"
+                        onClick={() => deleteTenant(t.id)}
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))
-              }
+              )}
             </tbody>
           </table>
           <div className="adm-pagination">
-            <span>Page {tenants.page} of {tenants.pages} · {tenants.total} total</span>
+            <span>
+              Page {tenants.page} of {tenants.pages} · {tenants.total} total
+            </span>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="adm-page-btn" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Prev</button>
-              <button className="adm-page-btn" disabled={page >= tenants.pages} onClick={() => setPage((p) => p + 1)}>Next →</button>
+              <button
+                className="adm-page-btn"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                ← Prev
+              </button>
+              <button
+                className="adm-page-btn"
+                disabled={page >= tenants.pages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next →
+              </button>
             </div>
           </div>
         </div>
@@ -643,35 +917,96 @@ export default function AdminPage() {
           <div className="adm-table-hdr">
             <div className="adm-table-title">👥 All Users ({users.total})</div>
             <input
-              className="adm-search" placeholder="Search users…" value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="adm-search"
+              placeholder="Search users…"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
           <table>
             <thead>
-              <tr><th>Name</th><th>Email</th><th>Role</th><th>Workspace</th><th>Plan</th><th>Joined</th></tr>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Workspace</th>
+                <th>Plan</th>
+                <th>Joined</th>
+              </tr>
             </thead>
             <tbody>
-              {users.users.length === 0
-                ? <tr><td colSpan={6}><div className="adm-empty">No users found</div></td></tr>
-                : users.users.map((u: any) => (
+              {users.users.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="adm-empty">No users found</div>
+                  </td>
+                </tr>
+              ) : (
+                users.users.map((u: any) => (
                   <tr key={u.id}>
-                    <td><strong>{u.name}</strong></td>
-                    <td style={{ fontFamily: "Space Mono, monospace", fontSize: 10 }}>{u.email}</td>
-                    <td style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)" }}>{u.role}</td>
+                    <td>
+                      <strong>{u.name}</strong>
+                    </td>
+                    <td
+                      style={{
+                        fontFamily: "Space Mono, monospace",
+                        fontSize: 10,
+                      }}
+                    >
+                      {u.email}
+                    </td>
+                    <td
+                      style={{
+                        fontFamily: "Space Mono, monospace",
+                        fontSize: 10,
+                        color: "var(--text-dim)",
+                      }}
+                    >
+                      {u.role}
+                    </td>
                     <td>{u.tenant?.name ?? "—"}</td>
-                    <td><span className={`adm-plan-tag ${u.tenant?.plan ?? "FREE"}`}>{u.tenant?.plan ?? "—"}</span></td>
-                    <td style={{ fontFamily: "Space Mono, monospace", fontSize: 9 }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <span
+                        className={`adm-plan-tag ${u.tenant?.plan ?? "FREE"}`}
+                      >
+                        {u.tenant?.plan ?? "—"}
+                      </span>
+                    </td>
+                    <td
+                      style={{
+                        fontFamily: "Space Mono, monospace",
+                        fontSize: 9,
+                      }}
+                    >
+                      {new Date(u.createdAt).toLocaleDateString()}
+                    </td>
                   </tr>
                 ))
-              }
+              )}
             </tbody>
           </table>
           <div className="adm-pagination">
-            <span>Page {users.page} of {users.pages} · {users.total} total</span>
+            <span>
+              Page {users.page} of {users.pages} · {users.total} total
+            </span>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="adm-page-btn" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Prev</button>
-              <button className="adm-page-btn" disabled={page >= users.pages} onClick={() => setPage((p) => p + 1)}>Next →</button>
+              <button
+                className="adm-page-btn"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                ← Prev
+              </button>
+              <button
+                className="adm-page-btn"
+                disabled={page >= users.pages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next →
+              </button>
             </div>
           </div>
         </div>
@@ -682,12 +1017,39 @@ export default function AdminPage() {
       ══════════════════════════════════════════════════════ */}
       {!loading && tab === "ai" && (
         <>
-          <div className="adm-kpis" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+          <div
+            className="adm-kpis"
+            style={{ gridTemplateColumns: "repeat(4, 1fr)" }}
+          >
             {[
-              { icon: "🤖", label: "Total Supervisors", value: AI_SUPERVISORS.length,                                                   sub: "ecosystem-wide"      },
-              { icon: "✅", label: "Active Now",         value: AI_SUPERVISORS.filter((a) => a.status === "active").length,             sub: "online agents"       },
-              { icon: "⚡", label: "Total API Calls",    value: AI_SUPERVISORS.reduce((s, a) => s + a.calls, 0).toLocaleString(),       sub: "session total"       },
-              { icon: "🧠", label: "Models Used",        value: [...new Set(AI_SUPERVISORS.map((a) => a.model))].length,               sub: "distinct models"     },
+              {
+                icon: "🤖",
+                label: "Total Supervisors",
+                value: AI_SUPERVISORS.length,
+                sub: "ecosystem-wide",
+              },
+              {
+                icon: "✅",
+                label: "Active Now",
+                value: AI_SUPERVISORS.filter((a) => a.status === "active")
+                  .length,
+                sub: "online agents",
+              },
+              {
+                icon: "⚡",
+                label: "Total API Calls",
+                value: AI_SUPERVISORS.reduce(
+                  (s, a) => s + a.calls,
+                  0,
+                ).toLocaleString(),
+                sub: "session total",
+              },
+              {
+                icon: "🧠",
+                label: "Models Used",
+                value: [...new Set(AI_SUPERVISORS.map((a) => a.model))].length,
+                sub: "distinct models",
+              },
             ].map((k) => (
               <div className="adm-kpi" key={k.label}>
                 <div className="adm-kpi-icon">{k.icon}</div>
@@ -703,16 +1065,23 @@ export default function AdminPage() {
               <div className="adm-ai-card" key={a.name}>
                 <div className="adm-ai-top">
                   <div className="adm-ai-name">{a.name}</div>
-                  <div className={`adm-ai-stat ${a.status}`}>{a.status.toUpperCase()}</div>
+                  <div className={`adm-ai-stat ${a.status}`}>
+                    {a.status.toUpperCase()}
+                  </div>
                 </div>
                 <div className="adm-ai-role">{a.role}</div>
                 <div className="adm-ai-model">⚙ {a.model}</div>
                 <div className="adm-ai-calls">
                   <span>API Calls</span>
-                  <span className="adm-ai-calls-val">{a.calls.toLocaleString()}</span>
+                  <span className="adm-ai-calls-val">
+                    {a.calls.toLocaleString()}
+                  </span>
                 </div>
                 <div className="adm-ai-bar-track">
-                  <div className="adm-ai-bar-fill" style={{ width: `${(a.calls / maxCalls) * 100}%` }} />
+                  <div
+                    className="adm-ai-bar-fill"
+                    style={{ width: `${(a.calls / maxCalls) * 100}%` }}
+                  />
                 </div>
               </div>
             ))}
@@ -741,7 +1110,9 @@ export default function AdminPage() {
               >
                 <option value="all">All Platforms</option>
                 {launchedUserRealmPlatforms.map((p) => (
-                  <option key={p.name} value={p.name}>{p.icon} {p.name}</option>
+                  <option key={p.name} value={p.name}>
+                    {p.icon} {p.name}
+                  </option>
                 ))}
               </select>
               <button
@@ -800,19 +1171,26 @@ export default function AdminPage() {
         <div className="adm-modal-overlay" onClick={() => setModal(null)}>
           <div className="adm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="adm-modal-title">Change Plan — {modal.name}</div>
-            <select className="adm-modal-select" value={newPlan} onChange={(e) => setNewPlan(e.target.value)}>
+            <select
+              className="adm-modal-select"
+              value={newPlan}
+              onChange={(e) => setNewPlan(e.target.value)}
+            >
               <option value="FREE">FREE</option>
               <option value="PRO">PRO</option>
               <option value="ENTERPRISE">ENTERPRISE</option>
             </select>
             <div className="adm-modal-btns">
-              <button className="adm-btn ghost" onClick={() => setModal(null)}>Cancel</button>
-              <button className="adm-btn" onClick={changePlan}>Save Plan</button>
+              <button className="adm-btn ghost" onClick={() => setModal(null)}>
+                Cancel
+              </button>
+              <button className="adm-btn" onClick={changePlan}>
+                Save Plan
+              </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

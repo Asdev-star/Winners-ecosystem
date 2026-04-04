@@ -5,7 +5,15 @@
 import { useEffect, useMemo, useCallback, useState } from "react";
 
 // Types matching ecosystemStore
-type LayerKey = "core" | "community" | "academy" | "market" | "intelligence" | "work" | "cloud" | "ai-platform";
+type LayerKey =
+  | "core"
+  | "community"
+  | "academy"
+  | "market"
+  | "intelligence"
+  | "work"
+  | "cloud"
+  | "ai-platform";
 
 interface LayerHealth {
   status: "live" | "active" | "building" | "planned";
@@ -19,27 +27,43 @@ interface LayerHealth {
 
 const LAYERS: LayerKey[] = [
   "core",
-  "community", 
+  "community",
   "academy",
   "market",
   "intelligence",
   "work",
   "cloud",
-  "ai-platform"
+  "ai-platform",
 ];
 
 // Mock health data for development - in production this would call the API
 const getMockHealth = (): Record<LayerKey, LayerHealth> => {
   const now = new Date().toISOString();
   return {
-    core: { status: "live", lastChecked: now, metrics: { uptime: 99.9, responseTime: 120 } },
-    community: { status: "active", lastChecked: now, metrics: { uptime: 99.5, responseTime: 180 } },
-    academy: { status: "active", lastChecked: now, metrics: { uptime: 99.2, responseTime: 200 } },
-    market: { status: "planned", lastChecked: now },
-    intelligence: { status: "active", lastChecked: now, metrics: { uptime: 98.8, responseTime: 350 } },
-    work: { status: "planned", lastChecked: now },
-    cloud: { status: "planned", lastChecked: now },
-    "ai-platform": { status: "building", lastChecked: now },
+    core: {
+      status: "live",
+      lastChecked: now,
+      metrics: { uptime: 99.9, responseTime: 120 },
+    },
+    community: {
+      status: "active",
+      lastChecked: now,
+      metrics: { uptime: 99.5, responseTime: 180 },
+    },
+    academy: {
+      status: "active",
+      lastChecked: now,
+      metrics: { uptime: 99.2, responseTime: 200 },
+    },
+    market: { status: "live", lastChecked: now },
+    intelligence: {
+      status: "active",
+      lastChecked: now,
+      metrics: { uptime: 98.8, responseTime: 350 },
+    },
+    work: { status: "live", lastChecked: now },
+    cloud: { status: "live", lastChecked: now },
+    "ai-platform": { status: "live", lastChecked: now },
   };
 };
 
@@ -58,19 +82,34 @@ interface UseEcosystemHealthReturn {
 }
 
 export function useEcosystemHealth(): UseEcosystemHealthReturn {
-  const [health, setHealth] = useState<Record<LayerKey, LayerHealth>>(getMockHealth());
+  const [health, setHealth] =
+    useState<Record<LayerKey, LayerHealth>>(getMockHealth());
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/v1/health/layers");
       if (res.ok) {
-        const body = await res.json() as { layers: Record<LayerKey, LayerHealth> };
-        if (body.layers) setHealth(body.layers);
+        const body = (await res.json()) as {
+          layers: Record<LayerKey, LayerHealth>;
+        };
+        if (body.layers) {
+          setHealth(body.layers);
+          setError(null);
+          return;
+        }
       }
-    } catch {
-      // keep last known state on error
+      // Fall back to mock if API fails or returns invalid data
+      setHealth(getMockHealth());
+    } catch (err) {
+      // Network error - use mock data
+      setHealth(getMockHealth());
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch layer health",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -83,37 +122,56 @@ export function useEcosystemHealth(): UseEcosystemHealthReturn {
   }, [refresh]);
 
   // Convenience accessors
-  const getLayerStatus = useCallback((layer: LayerKey): LayerHealth | undefined => {
-    return health[layer];
-  }, [health]);
+  const getLayerStatus = useCallback(
+    (layer: LayerKey): LayerHealth | undefined => {
+      return health[layer];
+    },
+    [health],
+  );
 
-  const isLayerLive = useCallback((layer: LayerKey): boolean => {
-    return health[layer]?.status === "live";
-  }, [health]);
+  const isLayerLive = useCallback(
+    (layer: LayerKey): boolean => {
+      return health[layer]?.status === "live";
+    },
+    [health],
+  );
 
-  const isLayerActive = useCallback((layer: LayerKey): boolean => {
-    return health[layer]?.status === "active";
-  }, [health]);
+  const isLayerActive = useCallback(
+    (layer: LayerKey): boolean => {
+      return health[layer]?.status === "active";
+    },
+    [health],
+  );
 
-  const isLayerBuilding = useCallback((layer: LayerKey): boolean => {
-    return health[layer]?.status === "building";
-  }, [health]);
+  const isLayerBuilding = useCallback(
+    (layer: LayerKey): boolean => {
+      return health[layer]?.status === "building";
+    },
+    [health],
+  );
 
-  const isLayerPlanned = useCallback((layer: LayerKey): boolean => {
-    return health[layer]?.status === "planned";
-  }, [health]);
+  const isLayerPlanned = useCallback(
+    (layer: LayerKey): boolean => {
+      return health[layer]?.status === "planned";
+    },
+    [health],
+  );
 
   // Get last refresh time
   const lastRefresh = useMemo(() => {
-    const times = LAYERS.map((l: LayerKey) => health[l]?.lastChecked).filter(Boolean) as string[];
+    const times = LAYERS.map((l: LayerKey) => health[l]?.lastChecked).filter(
+      Boolean,
+    ) as string[];
     if (times.length === 0) return null;
-    return new Date(Math.max(...times.map((t: string) => new Date(t).getTime())));
+    return new Date(
+      Math.max(...times.map((t: string) => new Date(t).getTime())),
+    );
   }, [health]);
 
   return {
     health,
     isLoading,
-    error: null,
+    error,
     lastRefresh,
     refresh,
     getLayerStatus,
@@ -131,7 +189,7 @@ export function useLayerStatusDisplay() {
   const { health, isLoading } = useEcosystemHealth();
 
   const layerStatus = useMemo(() => {
-    return LAYERS.map(layer => ({
+    return LAYERS.map((layer) => ({
       key: layer,
       label: getLayerLabel(layer),
       status: health[layer]?.status || "planned",

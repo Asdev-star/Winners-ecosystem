@@ -131,6 +131,7 @@ model Tenant {
   usageLogs                     UsageLog[]
   userFeedPreferences           UserFeedPreference[]
   userWallets                   UserWallet[]
+  winnersWallets                WinnersWallet[]
   users                         User[]
   vendorPayouts                 VendorPayout[]
   vendorReviews                 VendorReview[]
@@ -281,6 +282,7 @@ model User {
   twoFactorOTPs                 TwoFactorOTP[]
   tenant                        Tenant                         @relation(fields: [tenantId], references: [id])
   userWallets                   UserWallet[]
+  winnersWallets                WinnersWallet[]
   vendorReviews                 VendorReview[]
   vendors                       Vendor[]
   webAuthnCredentials           WebAuthnCredential[]
@@ -3736,29 +3738,75 @@ model VendorPayout {
 }
 
 model UserWallet {
-  id                 String              @id @default(cuid())
-  userId             String
-  tenantId           String
-  currency           String              @default("USD")
-  balance            Float               @default(0)
-  available          Float               @default(0)
-  pending            Float               @default(0)
-  totalEarned        Float               @default(0)
-  totalSpent         Float               @default(0)
-  stripeAccountId    String?
-  mPesaNumber        String?
-  bankAccount        String?
-  bankName           String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  user               User                @relation(fields: [userId], references: [id])
-  tenant             Tenant              @relation(fields: [tenantId], references: [id])
-  transactions       WalletTransaction[]
+  id               String                 @id @default(cuid())
+  userId           String
+  tenantId         String
+  balance          Float                  @default(0)
+  available        Float                  @default(0)
+  pending          Float                  @default(0)
+  totalEarned      Float                  @default(0)
+  totalSpent       Float                  @default(0)
+  currency         String                 @default("USD")
+  stripeAccountId  String?
+  mPesaNumber      String?
+  bankAccount      String?
+  bankName         String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  user             User                   @relation(fields: [userId], references: [id])
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id])
+  transactions     WalletTransaction[]
   withdrawalRequests WithdrawalRequest[]
 
   @@unique([userId, tenantId])
   @@index([tenantId, userId])
   @@map("user_wallets")
+}
+
+model WinnersWalletTransaction {
+  id            String         @id @default(cuid())
+  walletId      String
+  wallet        WinnersWallet  @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type          String
+  amount        Float
+  fee           Float          @default(0)
+  netAmount     Float
+  currency      String         @default("USD")
+  status        String         @default("pending")
+  description   String?
+  reference     String?
+  relatedUserId String?
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+  completedAt   DateTime?
+
+  @@index([walletId, createdAt])
+  @@index([walletId, type])
+  @@index([relatedUserId])
+  @@map("winners_wallet_transactions")
+}
+
+model WithdrawalRequest {
+  id            String        @id @default(cuid())
+  userId        String
+  tenantId      String
+  walletId      String
+  amount        Float
+  fee           Float         @default(0)
+  netAmount     Float
+  method        String
+  status        String        @default("pending")
+  payoutId      String?
+  failureReason String?
+  createdAt     DateTime      @default(now())
+  processedAt   DateTime?
+  user          User          @relation(fields: [userId], references: [id])
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  wallet        UserWallet @relation(fields: [walletId], references: [id])
+
+  @@index([userId, status])
+  @@index([tenantId, status])
+  @@map("withdrawal_requests")
 }
 
 model WalletTransaction {
@@ -3784,27 +3832,38 @@ model WalletTransaction {
   @@map("wallet_transactions")
 }
 
-model WithdrawalRequest {
-  id            String     @id @default(cuid())
-  userId        String
-  tenantId      String
-  walletId      String
-  amount        Float
-  fee           Float      @default(0)
-  netAmount     Float
-  method        String
-  status        String     @default("pending")
-  payoutId      String?
-  failureReason String?
-  createdAt     DateTime   @default(now())
-  processedAt   DateTime?
-  user          User       @relation(fields: [userId], references: [id])
-  tenant        Tenant     @relation(fields: [tenantId], references: [id])
-  wallet        UserWallet @relation(fields: [walletId], references: [id])
+model WinnersWallet {
+  id                 String              @id @default(cuid())
+  userId             String
+  tenantId           String
+  walletNumber       String              @unique // WW-xxxxxxxx
+  type               String              @default("personal")
+  status             String              @default("active")
+  kycLevel           Int                 @default(0)
+  pin                String              // bcrypt-hashed
+  balances           WalletBalance[]
+  transactions       WinnersWalletTransaction[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  user               User                @relation(fields: [userId], references: [id])
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
 
-  @@index([userId, status])
-  @@index([tenantId, status])
-  @@map("withdrawal_requests")
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@map("winners_wallets")
+}
+
+model WalletBalance {
+  id        String        @id @default(cuid())
+  walletId  String
+  wallet    WinnersWallet @relation(fields:[walletId], references:[id])
+  currency  String
+  available Float         @default(0)
+  pending   Float         @default(0)
+  reserved  Float         @default(0)
+  updatedAt DateTime      @updatedAt
+  @@unique([walletId, currency])
+  @@map("wallet_balances")
 }
 
 model SavingsGroup {

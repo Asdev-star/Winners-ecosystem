@@ -183,12 +183,12 @@ AppRegistry.register({
   phase: 4,
   status: "live",
   version: "1.0.0",
-  description: "Marketplace — digital products, dropshipping, vendor dashboards",
+  description: "Marketplace — digital products, dropshipping, vendor dashboards, events, property, trading",
   apiPrefix: "/api/v1/market",
   frontendPath: "/market",
   dependencies: ["core", "community", "academy"],
-  features: ["vendors", "products", "cart", "orders", "dropshipping"],
-  meta: {},
+  features: ["vendors", "products", "cart", "orders", "dropshipping", "events", "property", "trading", "store", "analytics", "checkout"],
+  meta: { completionDate: "2026-04-04" },
 });
 
 AppRegistry.register({
@@ -197,12 +197,12 @@ AppRegistry.register({
   phase: 5,
   status: "live",
   version: "1.0.0",
-  description: "AI orchestration — agents, recommendations, automation",
+  description: "AI orchestration — agents, recommendations, automation, supervisors, credits",
   apiPrefix: "/api/v1/ai",
   frontendPath: "/intelligence",
-  dependencies: ["core"],
-  features: ["claude-sdk", "omega-supervisor", "agentic-loops", "nova-community-intelligence", "ai-credits", "proactive-messages"],
-  meta: {},
+  dependencies: ["core", "community", "academy", "market"],
+  features: ["claude-sdk", "omega-supervisor", "agentic-loops", "nova-community-intelligence", "ai-credits", "proactive-messages", "chat", "image-generation", "speech-synthesis", "multimodal", "supervisors", "atlas-market", "reports", "analytics", "memory"],
+  meta: { completionDate: "2026-04-04" },
 });
 
 AppRegistry.register({
