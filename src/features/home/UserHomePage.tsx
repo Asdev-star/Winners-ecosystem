@@ -196,8 +196,8 @@ export default function UserHomePage() {
   const nextLoopStep = ["Build stronger signal", "Complete one more course", "Win first contract", "Activate Market revenue", "Turn insight into scale", "Compound the ecosystem loop"][Math.min(5, loopStageNumber)];
   const ecosystemStatuses = [
     { icon: "⬡", label: "Core Engine", state: "live", note: "Always active for your account", cta: "Open", path: "/home" },
-    { icon: "👥", label: "Community", state: "live", note: "Profiles, posts, replies, and DMs", cta: "Open", path: "/community" },
-    { icon: "🎓", label: "Academy", state: "live", note: "Courses, certificates, and SAGE", cta: "Open", path: "/academy" },
+    { icon: "👥", label: "Community", state: "live", note: "Profiles, posts, replies, and DMs", cta: "Open", path: "/community", ssoSourcePath: "/community" },
+    { icon: "🎓", label: "Academy", state: "live", note: "Courses, certificates, and SAGE", cta: "Open", path: "/academy", ssoSourcePath: "/academy" },
     { icon: "🤖", label: "Intelligence", state: "live", note: "OMEGA, ARIA, and supervisor guidance", cta: "Open", path: "/intelligence" },
     { icon: "🛒", label: "Market", state: "preview", note: "Coming soon for your route", cta: "Preview", path: "/market" },
     { icon: "💼", label: "Work", state: score >= 70 ? "preview" : "locked", note: score >= 70 ? "Opening as your trust strengthens" : "Depends on your Academy + trust progress", cta: "Learn more", path: "/work" },

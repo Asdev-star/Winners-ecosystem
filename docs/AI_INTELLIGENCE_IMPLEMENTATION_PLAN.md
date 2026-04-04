@@ -120,15 +120,15 @@ Based on comprehensive analysis of the live repository and documentation (MASTER
 
 ### Phase-Specific Gaps
 
-| Phase           | Feature              | Status         | Blocker                        |
-| --------------- | -------------------- | -------------- | ------------------------------ |
-| Community (65%) | DMs                  | ❌ Not Started | No message routes              |
-| Community (65%) | Online Presence      | ❌ Not Started | UI component missing           |
-| Academy (45%)   | Instructor Dashboard | ✅ Built       | —                              |
-| Academy (45%)   | Course Create        | ✅ Built       | —                              |
-| Academy (45%)   | Quiz System          | ❌ Not Started | Backend + UI needed            |
-| Academy (45%)   | Certificate PDF      | ❌ Not Started | PDFKit installed but not wired |
-| Market (0%)     | All                  | ❌ Not Started | Waiting on Phase 3             |
+| Phase           | Feature              | Status         | Blocker                    |
+| --------------- | -------------------- | -------------- | -------------------------- |
+| Community (65%) | DMs                  | ❌ Not Started | No message routes          |
+| Community (65%) | Online Presence      | ❌ Not Started | UI component missing       |
+| Academy (100%)  | Instructor Dashboard | ✅ Built       | —                          |
+| Academy (100%)  | Course Create        | ✅ Built       | —                          |
+| Academy (100%)  | Quiz System          | ✅ Built       | Backend + UI wired         |
+| Academy (100%)  | Certificate PDF      | ✅ Built       | PDFKit integrated and live |
+| Market (0%)     | All                  | ❌ Not Started | Waiting on Phase 3         |
 
 ### Design System Gaps
 

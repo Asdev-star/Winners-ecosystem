@@ -3,6 +3,7 @@
 // Unified cross-platform analytics with AI insights
 
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
 import { getAuthHeaders } from "../auth/authStore";
 import ContextBar from "../../components/ui/ContextBar";
@@ -306,8 +307,8 @@ export default function SocialIntelligenceDashboard() {
               <p style={{ color: "var(--text-dim)", marginBottom: 16 }}>
                 Connect your social accounts to see NOVA intelligence
               </p>
-              <a 
-                href="/community/social-accounts"
+              <Link
+                to="/community/social-accounts"
                 style={{
                   display: "inline-block",
                   background: "var(--gold)",
@@ -319,7 +320,7 @@ export default function SocialIntelligenceDashboard() {
                 }}
               >
                 Connect Accounts
-              </a>
+              </Link>
             </div>
           )}
         </div>

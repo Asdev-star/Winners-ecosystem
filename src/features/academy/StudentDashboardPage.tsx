@@ -151,7 +151,14 @@ export default function StudentDashboardPage() {
       const res = await fetch(`${API_BASE}/academy/certificates/${certId}/pdf`, {
         headers: getAuthHeaders(),
       });
-      if (!res.ok) throw new Error('Failed to generate PDF');
+      const contentType = res.headers.get("Content-Type") ?? "";
+      if (!res.ok) {
+        const errJson = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errJson?.error ?? `Certificate PDF failed (${res.status})`);
+      }
+      if (!contentType.includes("application/pdf")) {
+        throw new Error("Server did not return a PDF. Check certificate service configuration.");
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

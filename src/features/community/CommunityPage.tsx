@@ -4,6 +4,7 @@
 // Design: CSS variables only · zero hardcoded hex · Syne + Space Mono
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
@@ -1530,31 +1531,31 @@ function mapOpportunityBoard(opportunities?: CommunityOpportunitiesResponse["opp
       type: "skill",
       label: skillMatch?.label ?? "SKILL MATCH",
       supervisor: skillMatch?.supervisor ?? "CIRCUIT",
-      title: skillItem?.title ?? skillMatch?.title ?? DEMO_OPPORTUNITIES[0].title,
+      title: skillItem?.title ?? skillMatch?.title ?? SEED_OPPORTUNITIES[0].title,
       description:
         typeof skillItem?.budget !== "undefined" && skillItem?.budget !== null
           ? `${skillMatch?.description ?? "CIRCUIT matched this to your detected skills"} · Budget ${String(skillItem.budget)}`
-          : skillMatch?.description ?? DEMO_OPPORTUNITIES[0].description,
-      ctaLabel: skillMatch?.ctaLabel ?? DEMO_OPPORTUNITIES[0].ctaLabel,
-      ctaHref: skillItem?.link ?? skillMatch?.ctaHref ?? DEMO_OPPORTUNITIES[0].ctaHref,
+          : skillMatch?.description ?? SEED_OPPORTUNITIES[0].description,
+      ctaLabel: skillMatch?.ctaLabel ?? SEED_OPPORTUNITIES[0].ctaLabel,
+      ctaHref: skillItem?.link ?? skillMatch?.ctaHref ?? SEED_OPPORTUNITIES[0].ctaHref,
     },
     {
       type: "course",
       label: learningGap?.label ?? "LEARNING GAP",
       supervisor: learningGap?.supervisor ?? "SAGE",
-      title: courseItem?.title ?? learningGap?.title ?? DEMO_OPPORTUNITIES[1].title,
-      description: courseItem?.reason ?? learningGap?.description ?? DEMO_OPPORTUNITIES[1].description,
-      ctaLabel: learningGap?.ctaLabel ?? DEMO_OPPORTUNITIES[1].ctaLabel,
-      ctaHref: courseItem?.href ?? learningGap?.ctaHref ?? DEMO_OPPORTUNITIES[1].ctaHref,
+      title: courseItem?.title ?? learningGap?.title ?? SEED_OPPORTUNITIES[1].title,
+      description: courseItem?.reason ?? learningGap?.description ?? SEED_OPPORTUNITIES[1].description,
+      ctaLabel: learningGap?.ctaLabel ?? SEED_OPPORTUNITIES[1].ctaLabel,
+      ctaHref: courseItem?.href ?? learningGap?.ctaHref ?? SEED_OPPORTUNITIES[1].ctaHref,
     },
     {
       type: "market",
       label: marketOpening?.label ?? "MARKET OPENING",
       supervisor: marketOpening?.supervisor ?? "ATLAS",
-      title: marketOpening?.title ?? DEMO_OPPORTUNITIES[2].title,
-      description: marketOpening?.description ?? DEMO_OPPORTUNITIES[2].description,
-      ctaLabel: marketOpening?.ctaLabel ?? DEMO_OPPORTUNITIES[2].ctaLabel,
-      ctaHref: marketOpening?.ctaHref ?? DEMO_OPPORTUNITIES[2].ctaHref,
+      title: marketOpening?.title ?? SEED_OPPORTUNITIES[2].title,
+      description: marketOpening?.description ?? SEED_OPPORTUNITIES[2].description,
+      ctaLabel: marketOpening?.ctaLabel ?? SEED_OPPORTUNITIES[2].ctaLabel,
+      ctaHref: marketOpening?.ctaHref ?? SEED_OPPORTUNITIES[2].ctaHref,
     },
   ];
 }
@@ -1614,7 +1615,7 @@ function normalizePost(post: Partial<Post> & Record<string, unknown>, index: num
 }
 
 // ─── Static demo data ─────────────────────────────────────────────────────────
-const DEMO_OPPORTUNITIES: Opportunity[] = [
+const SEED_OPPORTUNITIES: Opportunity[] = [
   {
     type: "skill",
     label: "SKILL MATCH",
@@ -1644,7 +1645,7 @@ const DEMO_OPPORTUNITIES: Opportunity[] = [
   },
 ];
 
-const DEMO_TRENDING = [
+const SEED_TRENDING = [
   { tag: "#AfricanTech", count: 23 },
   { tag: "#NodeJS", count: 17 },
   { tag: "#DiasporaLife", count: 14 },
@@ -1652,7 +1653,7 @@ const DEMO_TRENDING = [
   { tag: "#WinnersCreators", count: 9 },
 ];
 
-const DEMO_GROUPS = [
+const SEED_GROUPS = [
   { name: "#AfricanTech", active: true, newPosts: 3 },
   { name: "#WinnersCreators", active: false, newPosts: 1 },
   { name: "#DiasporaLife", active: true, newPosts: 0 },
@@ -1670,6 +1671,80 @@ const NOVA_INSIGHTS = [
 ];
 
 // ─── Skeleton ──────────────────────────────────────────────────────────────────
+const SEED_POSTS: Post[] = [
+  normalizePost(
+    {
+      id: "seed-post-1",
+      content:
+        "Shipped the web fallback for the community feed so the page stays usable even when the API is quiet. Next step is connecting the same route to live posts and reactions.",
+      authorId: "seed-user-1",
+      author: { id: "seed-user-1", name: "Amina", role: "Creator" },
+      tags: [{ tag: { name: "buildinpublic" } }, { tag: { name: "frontend" } }],
+      likes: [{ userId: "seed-like-1" }, { userId: "seed-like-2" }],
+      comments: [
+        {
+          id: "seed-comment-1",
+          content: "This makes the route feel real now.",
+          author: { name: "Nova" },
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      isPinned: true,
+      createdAt: new Date().toISOString(),
+      _count: { likes: 14, comments: 3 },
+    } as Partial<Post> & Record<string, unknown>,
+    0,
+    undefined,
+  ),
+  normalizePost(
+    {
+      id: "seed-post-2",
+      content:
+        "Today’s update: the market, academy, and work pages now keep their flows accessible on the web even when the backend is unavailable. That means the app opens to useful content instead of dead ends.",
+      authorId: "seed-user-2",
+      author: { id: "seed-user-2", name: "Daniel", role: "Operator" },
+      tags: [{ tag: { name: "product" } }, { tag: { name: "webapp" } }],
+      likes: [{ userId: "seed-like-3" }],
+      comments: [],
+      isPinned: false,
+      createdAt: new Date().toISOString(),
+      _count: { likes: 7, comments: 1 },
+    } as Partial<Post> & Record<string, unknown>,
+    1,
+    undefined,
+  ),
+  normalizePost(
+    {
+      id: "seed-post-3",
+      content:
+        "If the backend is down, the frontend should still tell the story of the product clearly. Seeded content keeps the ecosystem navigable while live endpoints are tightened up.",
+      authorId: "seed-user-3",
+      author: { id: "seed-user-3", name: "Nia", role: "Member" },
+      tags: [{ tag: { name: "community" } }, { tag: { name: "ux" } }],
+      likes: [{ userId: "seed-like-4" }],
+      comments: [
+        {
+          id: "seed-comment-2",
+          content: "Exactly the right tradeoff.",
+          author: { name: "Atlas" },
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      isPinned: false,
+      createdAt: new Date().toISOString(),
+      _count: { likes: 9, comments: 2 },
+    } as Partial<Post> & Record<string, unknown>,
+    2,
+    undefined,
+  ),
+];
+
+const SEED_TOTAL_POSTS = SEED_POSTS.length;
+const SEED_TOTAL_LIKES = SEED_POSTS.reduce(
+  (sum, post) => sum + (post.likeCount ?? post.likes.length),
+  0,
+);
+
 function PostSkeleton() {
   return (
     <div className="cm-skeleton-card">
@@ -1724,12 +1799,12 @@ export default function CommunityPage() {
   const [showNovaBanner, setShowNovaBanner] = useState(true);
   const [handoffCards, setHandoffCards]   = useState<HandoffCard[]>([]);
   const [detectedSkills, setDetectedSkills] = useState<SkillDetection[]>([]);
-  const [opportunityBoard, setOpportunityBoard] = useState<Opportunity[]>(DEMO_OPPORTUNITIES);
+  const [opportunityBoard, setOpportunityBoard] = useState<Opportunity[]>(SEED_OPPORTUNITIES);
   const [opportunityUpdatedAt, setOpportunityUpdatedAt] = useState<string | null>(null);
   const [nextLoopAction, setNextLoopAction] = useState("Post more to trigger skill detection");
 
-  const [totalPosts, setTotalPosts]     = useState(127);
-  const [totalLikes, setTotalLikes]     = useState(891);
+  const [totalPosts, setTotalPosts]     = useState(SEED_TOTAL_POSTS);
+  const [totalLikes, setTotalLikes]     = useState(SEED_TOTAL_LIKES);
   const [loopStage, setLoopStage]       = useState(1);
   const [trustScore]                    = useState(67);
 
@@ -1775,6 +1850,8 @@ export default function CommunityPage() {
         setNextLoopAction(loopStatusData.nextAction ?? "Post more to trigger skill detection");
       }
     } catch {
+      setOpportunityBoard(SEED_OPPORTUNITIES);
+      setOpportunityUpdatedAt(new Date().toISOString());
     }
   }, [headers]);
 
@@ -1803,7 +1880,12 @@ export default function CommunityPage() {
       );
       if (append) setTotalPosts((n) => n + list.length);
     } catch {
-      setPosts([]);
+      if (p === 1) {
+        setPosts(SEED_POSTS);
+        setHasMore(false);
+        setTotalPosts(SEED_TOTAL_POSTS);
+        setTotalLikes(SEED_TOTAL_LIKES);
+      }
     } finally {
       setLoading(false);
     }
@@ -2179,15 +2261,15 @@ export default function CommunityPage() {
               <button className="cm-rail-btn primary" onClick={focusComposer}>
                 Write a post
               </button>
-              <a className="cm-rail-btn" href="/community/groups">
+              <Link className="cm-rail-btn" to="/community/groups">
                 Browse groups
-              </a>
-              <a className="cm-rail-btn" href="/messages">
+              </Link>
+              <Link className="cm-rail-btn" to="/messages">
                 Open messages
-              </a>
-              <a className="cm-rail-btn secondary" href="/community/spaces">
+              </Link>
+              <Link className="cm-rail-btn secondary" to="/community/spaces">
                 Join live spaces
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -2625,7 +2707,7 @@ export default function CommunityPage() {
           {/* Trending Topics */}
           <div className="cm-sidebar-card">
             <div className="cm-sidebar-title">Trending Now</div>
-            {DEMO_TRENDING.map((t, i) => (
+            {SEED_TRENDING.map((t, i) => (
               <div key={i} className="cm-trending-item" onClick={() => setTags(t.tag.replace("#", ""))}>
                 <span className="cm-trending-tag">{t.tag}</span>
                 <span className="cm-trending-count">
@@ -2659,7 +2741,7 @@ export default function CommunityPage() {
           {/* My Groups */}
           <div className="cm-sidebar-card">
             <div className="cm-sidebar-title">My Groups</div>
-            {DEMO_GROUPS.map((g, i) => (
+            {SEED_GROUPS.map((g, i) => (
               <div key={i} className="cm-group-item">
                 <div className={`cm-group-dot ${g.active ? "active" : ""}`} />
                 <span className="cm-group-name">{g.name}</span>
@@ -2670,8 +2752,8 @@ export default function CommunityPage() {
             ))}
             <button className="cm-group-join">+ Join a Group</button>
             <div className="cm-sidebar-actions">
-              <a className="cm-sidebar-btn" href="/community/groups">Open groups</a>
-              <a className="cm-sidebar-btn" href="/community/spaces">Live spaces</a>
+              <Link className="cm-sidebar-btn" to="/community/groups">Open groups</Link>
+              <Link className="cm-sidebar-btn" to="/community/spaces">Live spaces</Link>
             </div>
           </div>
 

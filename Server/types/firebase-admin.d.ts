@@ -2,6 +2,7 @@ declare module 'firebase-admin' {
   interface App {
     name: string;
   }
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface Credential {}
   interface ServiceAccount {
     projectId?: string;

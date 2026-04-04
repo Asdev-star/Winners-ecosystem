@@ -60,6 +60,8 @@ import atlasRoutes from "./atlasRoutes.js";
 import atlasMarketRoutes from "./atlasMarketRoutes.js";
 import connectorRoutes from "./connectorRoutes.js";
 import tradingRoutes from "./tradingRoutes.js";
+import eventRoutes from "./eventRoutes.js";
+import propertyRoutes from "./propertyRoutes.js";
 import pluginRoutes from "./pluginRoutes.js";
 import notificationTokenRoutes from "./notificationTokenRoutes.js";
 import adminSettingsRoutes from "./adminSettingsRoutes.js";
@@ -149,7 +151,10 @@ router.get("/", (_req, res) => {
 
 router.get("/public/ecosystem-settings", async (req, res) => {
   try {
-    const country = typeof req.query.country === "string" ? req.query.country.trim().toUpperCase() : "";
+    const country =
+      typeof req.query.country === "string"
+        ? req.query.country.trim().toUpperCase()
+        : "";
     const records = await db.ecosystemSettings.findMany();
     const ecosystemSnapshot = await getEcosystemConfigSnapshot();
     const translationOverrides = await getTranslationOverrides();
@@ -160,10 +165,11 @@ router.get("/public/ecosystem-settings", async (req, res) => {
     const settings = {
       ...DEFAULT_ECOSYSTEM_SETTINGS,
       ...stored,
-    } as Record<string, unknown> & typeof DEFAULT_ECOSYSTEM_SETTINGS & {
-      theme?: unknown;
-      translationOverrides?: unknown;
-    };
+    } as Record<string, unknown> &
+      typeof DEFAULT_ECOSYSTEM_SETTINGS & {
+        theme?: unknown;
+        translationOverrides?: unknown;
+      };
     const publicTheme = ecosystemSnapshot.theme;
     if (!settings.theme) {
       settings.theme = publicTheme;
@@ -175,10 +181,17 @@ router.get("/public/ecosystem-settings", async (req, res) => {
     settings.accentColor = publicTheme.accentColor ?? settings.accentColor;
     settings.defaultTheme = publicTheme.defaultTheme ?? settings.defaultTheme;
     const mapping = Array.isArray(settings.countryLanguageMapping)
-      ? settings.countryLanguageMapping as Array<{ country: string; language: string }>
+      ? (settings.countryLanguageMapping as Array<{
+          country: string;
+          language: string;
+        }>)
       : DEFAULT_ECOSYSTEM_SETTINGS.countryLanguageMapping;
     const resolvedLanguage =
-      (mapping.find((entry) => entry.country.toUpperCase() === country)?.language?.toLowerCase() ?? settings.language ?? DEFAULT_ECOSYSTEM_SETTINGS.language);
+      mapping
+        .find((entry) => entry.country.toUpperCase() === country)
+        ?.language?.toLowerCase() ??
+      settings.language ??
+      DEFAULT_ECOSYSTEM_SETTINGS.language;
 
     return res.json({
       settings,
@@ -188,7 +201,55 @@ router.get("/public/ecosystem-settings", async (req, res) => {
       translationOverrides,
     });
   } catch (error) {
-    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to load ecosystem settings" });
+    return res
+      .status(500)
+      .json({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to load ecosystem settings",
+      });
+  }
+});
+
+router.get("/theme/vars.css", async (_req, res) => {
+  try {
+    const snapshot = await getEcosystemConfigSnapshot();
+    const theme = snapshot.theme;
+    const css = [
+      ":root {",
+      `  --gold: ${theme.palette.gold};`,
+      `  --blue: ${theme.palette.blue};`,
+      `  --ice: ${theme.palette.ice};`,
+      `  --green: ${theme.palette.green};`,
+      `  --red: ${theme.palette.red};`,
+      `  --purple: ${theme.palette.purple};`,
+      `  --bg: ${theme.palette.bg};`,
+      `  --surface: ${theme.palette.surface};`,
+      `  --surface2: ${theme.palette.surface2};`,
+      `  --border: ${theme.palette.border};`,
+      `  --text: ${theme.palette.text};`,
+      `  --text-dim: ${theme.palette.textDim};`,
+      `  --font-heading: '${theme.typography.heading}', serif;`,
+      `  --font-display: '${theme.typography.display}', sans-serif;`,
+      `  --font-mono: '${theme.typography.mono}', monospace;`,
+      `  --font-body: '${theme.typography.body}', sans-serif;`,
+      `  --card-radius: ${theme.card.borderRadius}px;`,
+      `  --card-top-border-width: ${theme.card.topBorderWidth}px;`,
+      `  --card-top-border-style: ${theme.card.topBorderStyle};`,
+      `  --font-scale: ${theme.typography.scale};`,
+      "}",
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/css; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=60");
+    return res.send(css);
+  } catch (error) {
+    return res
+      .status(500)
+      .send(
+        error instanceof Error ? error.message : "Failed to load theme vars",
+      );
   }
 });
 
@@ -205,7 +266,20 @@ router.post("/public/analytics/track", async (req, res) => {
       return res.status(204).end();
     }
 
-    const { userId, tenantId, sessionId, event, activity, page, metadata, country, city, duration, issueType, issueData } = req.body ?? {};
+    const {
+      userId,
+      tenantId,
+      sessionId,
+      event,
+      activity,
+      page,
+      metadata,
+      country,
+      city,
+      duration,
+      issueType,
+      issueData,
+    } = req.body ?? {};
 
     await db.userActivity.create({
       data: {
@@ -226,7 +300,12 @@ router.post("/public/analytics/track", async (req, res) => {
 
     return res.json({ message: "Activity tracked" });
   } catch (error) {
-    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to track activity" });
+    return res
+      .status(500)
+      .json({
+        message:
+          error instanceof Error ? error.message : "Failed to track activity",
+      });
   }
 });
 
@@ -243,14 +322,27 @@ router.post("/public/analytics/app-download", async (req, res) => {
       return res.status(204).end();
     }
 
-    const { userId, tenantId, platform, platformVersion, appVersion, country, city, deviceModel, osVersion, language, isFirstDownload } = req.body ?? {};
+    const {
+      userId,
+      tenantId,
+      platform,
+      platformVersion,
+      appVersion,
+      country,
+      city,
+      deviceModel,
+      osVersion,
+      language,
+      isFirstDownload,
+    } = req.body ?? {};
 
     await db.appDownload.create({
       data: {
         userId: typeof userId === "string" ? userId : null,
         tenantId: typeof tenantId === "string" ? tenantId : null,
         platform: typeof platform === "string" ? platform : "unknown",
-        platformVersion: typeof platformVersion === "string" ? platformVersion : null,
+        platformVersion:
+          typeof platformVersion === "string" ? platformVersion : null,
         appVersion: typeof appVersion === "string" ? appVersion : "1.0.0",
         country: typeof country === "string" ? country : null,
         city: typeof city === "string" ? city : null,
@@ -263,7 +355,12 @@ router.post("/public/analytics/app-download", async (req, res) => {
 
     return res.json({ message: "Download recorded" });
   } catch (error) {
-    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to record download" });
+    return res
+      .status(500)
+      .json({
+        message:
+          error instanceof Error ? error.message : "Failed to record download",
+      });
   }
 });
 
@@ -298,8 +395,18 @@ router.post("/analytics/event", async (req, res) => {
         tenantId: typeof tenantId === "string" ? tenantId : null,
         sessionId: typeof sessionId === "string" ? sessionId : null,
         event: typeof eventType === "string" ? eventType : "unknown",
-        activity: typeof feature === "string" ? feature : typeof eventType === "string" ? eventType : "unknown",
-        page: typeof layer === "string" ? layer : typeof platform === "string" ? platform : null,
+        activity:
+          typeof feature === "string"
+            ? feature
+            : typeof eventType === "string"
+              ? eventType
+              : "unknown",
+        page:
+          typeof layer === "string"
+            ? layer
+            : typeof platform === "string"
+              ? platform
+              : null,
         metadata: metadata && typeof metadata === "object" ? metadata : {},
         country: typeof countryCode === "string" ? countryCode : null,
         city: null,
@@ -311,7 +418,14 @@ router.post("/analytics/event", async (req, res) => {
 
     return res.json({ message: "Analytics event recorded" });
   } catch (error) {
-    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to record analytics event" });
+    return res
+      .status(500)
+      .json({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to record analytics event",
+      });
   }
 });
 
@@ -334,6 +448,7 @@ router.use("/stripe", stripeRoutes);
 router.use("/search", searchRoutes);
 router.use("/activity", activityRoutes);
 router.use("/referral", referralRoutes);
+router.use("/admin/analytics", mobileAnalyticsRoutes);
 router.use("/admin", adminRoutes);
 router.use("/admin/settings", adminSettingsRoutes);
 router.use("/admin/geo", geoDetectionRoutes);
@@ -388,6 +503,24 @@ router.use(
   authMiddleware,
   requireLayerAccess("market"),
   checkoutRoutes,
+);
+router.use(
+  "/events",
+  authMiddleware,
+  requireLayerAccess("market"),
+  eventRoutes,
+);
+router.use(
+  "/properties",
+  authMiddleware,
+  requireLayerAccess("market"),
+  propertyRoutes,
+);
+router.use(
+  "/trading",
+  authMiddleware,
+  requireLayerAccess("market"),
+  tradingRoutes,
 );
 router.use(
   "/orders",

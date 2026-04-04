@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
+import { CrossAppSsoActions } from "../auth/CrossAppSsoActions";
 import { API_BASE } from "../../lib/api";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
@@ -185,6 +186,8 @@ export default function TeamPage() {
       <div style={{ marginTop: 16 }}>
         <ProgressRing progress={members.length > 0 ? 100 : 0} size={48} label="Team" />
       </div>
+
+      <CrossAppSsoActions variant="team" />
 
       {/* Invite card */}
       {canManage && (

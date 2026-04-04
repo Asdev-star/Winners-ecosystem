@@ -1,3 +1,5 @@
+import { getPlatformSsoTarget, getSsoLaunchError, startSsoLaunch } from "../../auth/ssoLaunch";
+
 interface EcosystemItem {
   icon: string;
   label: string;
@@ -5,6 +7,8 @@ interface EcosystemItem {
   note: string;
   cta: string;
   path: string;
+  /** When set and `VITE_SSO_*` targets a dedicated origin, show cross-app SSO launch. */
+  ssoSourcePath?: string;
 }
 
 interface Props {
@@ -29,7 +33,29 @@ export default function EcosystemStatusBar({ items, onNavigate }: Props) {
             </span>
           </div>
           <p className="omega-layer-copy">{item.note}</p>
-          <button className="omega-inline-link" onClick={() => onNavigate(item.path)}>{item.cta}</button>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+            <button type="button" className="omega-inline-link" onClick={() => onNavigate(item.path)}>
+              {item.cta}
+            </button>
+            {item.ssoSourcePath && getPlatformSsoTarget(item.ssoSourcePath) ? (
+              <button
+                type="button"
+                className="omega-inline-link"
+                style={{ opacity: 0.88 }}
+                onClick={async () => {
+                  const target = getPlatformSsoTarget(item.ssoSourcePath!);
+                  if (!target) return;
+                  try {
+                    await startSsoLaunch({ targetOrigin: target, nextPath: item.path });
+                  } catch (e) {
+                    window.alert(getSsoLaunchError(e));
+                  }
+                }}
+              >
+                Continue with SSO →
+              </button>
+            ) : null}
+          </div>
         </article>
       ))}
     </div>

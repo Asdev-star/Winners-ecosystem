@@ -52,7 +52,7 @@ export default function ReputationPassport({
   const user = useAuthStore(state => state.user);
   const targetUserId = userId || user?.id;
 
-  // Use provided data or mock for demo
+  // Use provided data or seeded fallback data when none is supplied.
   const data = propData || getMockReputationData();
 
   const levelColor = useMemo(() => {

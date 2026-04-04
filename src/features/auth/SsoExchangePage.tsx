@@ -94,12 +94,20 @@ export default function SsoExchangePage() {
   const [params] = useSearchParams();
   const [error, setError] = useState("");
   const handoffToken = params.get("token");
+  const stateParam = params.get("state");
+  const nonceParam = params.get("nonce");
   const nextPath = useMemo(() => sanitizeNext(params.get("next")), [params]);
 
   useEffect(() => {
     const run = async () => {
       if (!handoffToken) {
         setError("Missing SSO token.");
+        return;
+      }
+      if (!stateParam || !nonceParam) {
+        setError(
+          "Missing SSO state or nonce. Use the link from the app that started the handoff.",
+        );
         return;
       }
 
@@ -110,6 +118,8 @@ export default function SsoExchangePage() {
           body: JSON.stringify({
             handoffToken,
             audience: window.location.host,
+            state: stateParam,
+            nonce: nonceParam,
           }),
         });
 
@@ -140,7 +150,7 @@ export default function SsoExchangePage() {
     };
 
     void run();
-  }, [handoffToken, navigate, nextPath]);
+  }, [handoffToken, stateParam, nonceParam, navigate, nextPath]);
 
   return (
     <div className="sso-wrap">

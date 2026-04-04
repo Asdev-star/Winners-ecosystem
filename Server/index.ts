@@ -69,6 +69,7 @@ import { syncAppRegistryWithPersistedLayerStatus } from "./services/platformLaye
 // ── WebSocket Server (Phase 2 V1.1 — Real-time) ────────────────────────────────
 import { initWebSocketServer } from "./services/wsService.js";
 import { telemetryRequestMiddleware } from "./services/requestTelemetryService.js";
+import { geoMiddleware } from "./middleware/geoMiddleware.js";
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,7 @@ app.use(xssSanitizer);
 
 // 5.5. Request telemetry — powers admin health counters and recent error logs
 app.use(telemetryRequestMiddleware);
+app.use(geoMiddleware);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIVENESS PROBE — Must be outside the rate limiter and auth for container health

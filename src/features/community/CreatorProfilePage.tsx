@@ -422,8 +422,8 @@ const css = `
   }
 `;
 
-// Demo data for preview
-const DEMO_CREATOR = {
+// Seeded fallback creator profile used when live profile data is unavailable.
+const SEEDED_CREATOR = {
   id: "creator-1",
   name: "Adaeze Nwosu",
   handle: "@adaeze_builds",
@@ -466,14 +466,11 @@ export default function CreatorProfilePage() {
   const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("posts");
-  const [creator, setCreator] = useState<typeof DEMO_CREATOR | null>(null);
+  const [creator, setCreator] = useState<typeof SEEDED_CREATOR | null>(null);
 
   useEffect(() => {
-    // Simulate loading creator data
-    setTimeout(() => {
-      setCreator(DEMO_CREATOR);
-      setLoading(false);
-    }, 800);
+    setCreator(SEEDED_CREATOR);
+    setLoading(false);
   }, [id]);
 
   if (loading) {

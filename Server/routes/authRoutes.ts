@@ -33,6 +33,8 @@ function signToken(payload: Omit<JwtPayload, "iat" | "exp">, expiresIn: string) 
   return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions);
 }
 
+export { signToken };
+
 function buildPayload(user: { id: string; email: string; role: string; tenantId: string; tenant: { name: string } }) {
   return {
     userId:     user.id,

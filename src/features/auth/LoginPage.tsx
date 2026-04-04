@@ -75,10 +75,6 @@ const css = `
   .lp-loading { display: inline-flex; align-items: center; gap: 8px; }
   .lp-spinner { width: 13px; height: 13px; border: 2px solid rgba(8,11,16,0.3); border-top-color: var(--bg); border-radius: 50%; animation: lp-spin 0.7s linear infinite; }
 
-  .lp-demo { width: 100%; background: transparent; border: 1px solid var(--border); border-radius: 999px; padding: 10px 14px; font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); cursor: pointer; transition: all 0.15s; text-align: center; letter-spacing: 0.5px; margin-top: 8px; }
-  .lp-demo:hover { border-color: var(--gold); color: var(--gold); }
-  .lp-demo span { color: var(--gold); }
-
   .lp-card-footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-dim); text-align: center; line-height: 1.5; }
   .lp-card-footer a { color: var(--gold); text-decoration: none; cursor: pointer; }
 
@@ -795,12 +791,6 @@ export default function LoginPage() {
     window.location.href = `${API_BASE}/auth/facebook`;
   };
 
-  const fillDemo = () => {
-    setEmail("demo@winners.io");
-    setPassword("demo1234");
-    setError("");
-    setFieldErr({ email: false, password: false });
-  };
   const doubled = [...TICKER, ...TICKER];
 
   return (
@@ -984,10 +974,6 @@ export default function LoginPage() {
                 <span className="lp-divider-text">or</span>
                 <div className="lp-divider-line" />
               </div>
-              <button className="lp-demo" onClick={fillDemo}>
-                Try demo → <span>demo@winners.io</span>
-              </button>
-
               <div className="lp-card-footer">
                 Don't have an account?{" "}
                 <button type="button" onClick={() => setShowRegister(true)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: "var(--gold)" }}>Create one free</button>

@@ -1,73 +1,116 @@
-# React + TypeScript + Vite
+# Winners Ecosystem
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive multi-tenant platform combining community, academy, marketplace, work, and AI intelligence features.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Frontend**: React 19, TypeScript, Vite, React Router 7, Zustand
+- **Backend**: Express 5, Prisma 7 (PostgreSQL)
+- **Authentication**: JWT, 2FA, Biometric (WebAuthn)
+- **Real-time**: WebSocket, LiveKit
+- **AI**: FastAPI (separate service)
+- **Mobile**: Expo PWA
+- **Desktop**: Electron
 
-## React Compiler
+## Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# Install dependencies
+npm install
 
-## Expanding the ESLint configuration
+# Generate Prisma client
+npx prisma generate
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Start development
+npm run dev:all
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# Build for production
+npm run build
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Start production server
+npm run start:prod
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment Variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Create `.env` with:
 ```
+DATABASE_URL=postgresql://...
+JWT_SECRET=your-secret
+STRIPE_SECRET_KEY=sk_...
+FIREBASE_VAPID_KEY=...
+```
+
+## Project Structure
+
+```
+src/                  # React frontend
+├── features/         # Feature modules (community, academy, market, work, cloud, intelligence)
+├── components/      # Shared UI components
+├── hooks/           # Custom React hooks
+├── stores/          # Zustand stores
+└── lib/             # Utilities and API client
+
+Server/               # Express API
+├── routes/          # API endpoints
+├── services/        # Business logic
+├── middleware/      # Express middleware
+└── db.ts            # Prisma client
+
+prisma/
+├── schema.prisma    # Database schema
+└── migrations/      # DB migrations
+
+mobile/WinnersApp/   # Expo mobile app
+electron/            # Electron desktop app
+ai-platform/         # FastAPI AI service
+sdk/                 # JS/TS SDK
+docs/                # Architecture docs
+```
+
+## Features
+
+### Community
+- Feed, posts, comments, likes
+- Groups and directories
+- Live spaces and video rooms
+- Messaging and chat
+
+### Academy
+- Courses and learning paths
+- Quizzes and certificates
+- Live sessions
+- Progress tracking
+
+### Market
+- Vendor stores
+- Products and categories
+- Cart and checkout
+- Orders and fulfillment
+
+### Work
+- Job listings
+- Freelancer profiles
+- Contracts and escrow
+- Applications
+
+### Cloud
+- API keys management
+- Connectors and integrations
+- Webhooks
+- Automations
+- AI Agents
+
+### Intelligence
+- AI assistants (ARIA, OMEGA)
+- Agentic loops
+- Credits system
+- Analytics and reports
+
+## API Documentation
+
+See `docs/API_REFERENCE.md` for complete API documentation.
+
+## License
+
+Proprietary - All rights reserved

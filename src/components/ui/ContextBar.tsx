@@ -2,7 +2,16 @@ import { Fragment } from "react";
 import { Link } from "react-router-dom";
 
 type LayerStatus = "live" | "active" | "building" | "planned";
-type LayerKey = "core" | "community" | "academy" | "market" | "intelligence" | "work" | "mobile" | "cloud" | "aiplatform";
+type LayerKey =
+  | "core"
+  | "community"
+  | "academy"
+  | "market"
+  | "intelligence"
+  | "work"
+  | "mobile"
+  | "cloud"
+  | "aiplatform";
 
 interface LayerConfig {
   key: LayerKey;
@@ -21,15 +30,69 @@ interface ContextBarProps {
 }
 
 const LAYERS: LayerConfig[] = [
-  { key: "core",         label: "Core Engine",   shortLabel: "CORE",   href: "/home",                  status: "live"     },
-  { key: "community",   label: "Community",      shortLabel: "COMM",   href: "/community",             status: "live"     },
-  { key: "academy",     label: "Academy",        shortLabel: "ACAD",   href: "/academy",               status: "live"     },
-  { key: "market",      label: "Market",         shortLabel: "MKT",    href: "/market",                status: "building" },
-  { key: "intelligence",label: "Intelligence",   shortLabel: "INTEL",  href: "/intelligence",          status: "live"     },
-  { key: "work",        label: "Work",           shortLabel: "WORK",   href: "/work",                  status: "building" },
-  { key: "mobile",      label: "Mobile",         shortLabel: "MOB",    href: "/home",                  status: "building" },
-  { key: "cloud",       label: "Cloud",          shortLabel: "CLOUD",  href: "/cloud",                 status: "building" },
-  { key: "aiplatform",  label: "AI Platform",    shortLabel: "AI PLT", href: "/intelligence/platform", status: "building" },
+  {
+    key: "core",
+    label: "Core Engine",
+    shortLabel: "CORE",
+    href: "/home",
+    status: "live",
+  },
+  {
+    key: "community",
+    label: "Community",
+    shortLabel: "COMM",
+    href: "/community",
+    status: "live",
+  },
+  {
+    key: "academy",
+    label: "Academy",
+    shortLabel: "ACAD",
+    href: "/academy",
+    status: "live",
+  },
+  {
+    key: "market",
+    label: "Market",
+    shortLabel: "MKT",
+    href: "/market",
+    status: "live",
+  },
+  {
+    key: "intelligence",
+    label: "Intelligence",
+    shortLabel: "INTEL",
+    href: "/intelligence",
+    status: "live",
+  },
+  {
+    key: "work",
+    label: "Work",
+    shortLabel: "WORK",
+    href: "/work",
+    status: "building",
+  },
+  {
+    key: "mobile",
+    label: "Mobile",
+    shortLabel: "MOB",
+    href: "/home",
+    status: "building",
+  },
+  {
+    key: "cloud",
+    label: "Cloud",
+    shortLabel: "CLOUD",
+    href: "/cloud",
+    status: "building",
+  },
+  {
+    key: "aiplatform",
+    label: "AI Platform",
+    shortLabel: "AI PLT",
+    href: "/intelligence/platform",
+    status: "building",
+  },
 ];
 
 export default function ContextBar({
@@ -147,16 +210,24 @@ export default function ContextBar({
           <Link
             to={layer.href}
             className={`ctx-badge ${layer.status} ${resolvedActiveLayer === layer.key ? "current" : ""}`}
-            aria-current={resolvedActiveLayer === layer.key ? "page" : undefined}
+            aria-current={
+              resolvedActiveLayer === layer.key ? "page" : undefined
+            }
             title={layer.label}
           >
             <span className="ctx-dot" aria-hidden="true" />
             <span className="ctx-label-desktop">
               {showLabels ? layer.label : layer.shortLabel}
             </span>
-            <span className="ctx-label-mobile">{compact || !showLabels ? layer.shortLabel : layer.label}</span>
+            <span className="ctx-label-mobile">
+              {compact || !showLabels ? layer.shortLabel : layer.label}
+            </span>
           </Link>
-          {index < resolved.length - 1 && <span className="ctx-sep" aria-hidden="true">&gt;</span>}
+          {index < resolved.length - 1 && (
+            <span className="ctx-sep" aria-hidden="true">
+              &gt;
+            </span>
+          )}
         </Fragment>
       ))}
     </div>

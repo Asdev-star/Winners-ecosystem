@@ -2,7 +2,7 @@
 // Phase 3: Academy Layer — Individual course view with enrollment and progress tracking
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
 import { API_BASE } from "../../lib/api";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
@@ -54,6 +54,7 @@ interface Enrollment {
 
 export default function CoursePage() {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [course, setCourse] = useState<Course | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +64,19 @@ export default function CoursePage() {
   const [activeTab, setActiveTab] = useState<'content' | 'quizzes'>('content');
   const [sageAnalysis, setSageAnalysis] = useState<AnalysisResult | null>(null);
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (location.hash !== "#sage-academy-tutor" || !course || !enrollment) return;
+    setActiveTab("content");
+    const first = course.modules?.[0]?.lessons?.[0];
+    if (first) {
+      setSelectedLesson((prev) => prev ?? first.id);
+    }
+    const t = window.setTimeout(() => {
+      document.getElementById("sage-academy-tutor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [location.hash, course, enrollment]);
 
   const fetchCourse = useCallback(async () => {
     if (!slug) return;
@@ -525,7 +539,7 @@ export default function CoursePage() {
 
           {/* SAGE Document Analysis - Per-lesson AI tutoring */}
           {selectedLesson && enrollment && (
-            <div style={{ marginTop: 24 }}>
+            <div id="sage-academy-tutor" style={{ marginTop: 24 }}>
               <div style={{
                 fontFamily: 'Syne, sans-serif',
                 fontSize: 14,

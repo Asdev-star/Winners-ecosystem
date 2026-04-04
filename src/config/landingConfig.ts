@@ -277,7 +277,8 @@ export const defaultConfig: LandingPageConfig = {
   },
 
   hero: {
-    eyebrow: "Digital Sovereign Infrastructure · AI-Powered · Trusted by 10,000+ Users",
+    eyebrow:
+      "Digital Sovereign Infrastructure · AI-Powered · Trusted by 10,000+ Users",
     title: "Build. Learn. Earn.",
     titleHighlight: "Earn.",
     subtitle: "The unified platform for creators and digital entrepreneurs",
@@ -296,7 +297,13 @@ export const defaultConfig: LandingPageConfig = {
 
   trustedBy: {
     label: "Trusted by leading companies worldwide",
-    companies: ["TechCorp", "InnovateCo", "FutureLabs", "DigitalEdge", "CloudNine"],
+    companies: [
+      "TechCorp",
+      "InnovateCo",
+      "FutureLabs",
+      "DigitalEdge",
+      "CloudNine",
+    ],
   },
 
   ecosystemBand: {
@@ -410,7 +417,7 @@ export const defaultConfig: LandingPageConfig = {
         name: "Winners Academy",
         phase: "Phase 3",
         status: "live",
-        pct: 72,
+        pct: 100,
         desc: "Complete learning platform. Courses, instructor dashboard, learning paths, study groups, live sessions, certificates, and SAGE AI tutor.",
         tags: ["Courses", "Certificates", "SAGE AI Tutor", "Live Sessions"],
       },
@@ -418,10 +425,10 @@ export const defaultConfig: LandingPageConfig = {
         icon: "🛒",
         name: "Winners Market",
         phase: "Phase 4",
-        status: "soon",
-        pct: 55,
-        desc: "10-vertical commerce engine. Vendor stores, cart, orders, dropshipping, digital marketing, CV tools, and business launcher — with ATLAS AI.",
-        tags: ["10 Verticals", "Dropshipping", "Vendor Stores", "ATLAS AI"],
+        status: "live",
+        pct: 100,
+        desc: "Complete e-commerce platform. Multi-vendor marketplace with Stripe Connect, dropshipping integration, product reviews, order fulfillment, and ATLAS AI commerce intelligence.",
+        tags: ["Multi-Vendor", "Stripe Connect", "Dropshipping", "ATLAS AI"],
       },
       {
         icon: "🤖",
@@ -430,7 +437,12 @@ export const defaultConfig: LandingPageConfig = {
         status: "live",
         pct: 75,
         desc: "9 AI supervisors live. OMEGA orchestrates the Agentic Loop. Token-by-token streaming, multi-turn memory, SSE — all 9 assistants active.",
-        tags: ["9 Supervisors", "OMEGA Dashboard", "Streaming AI", "Agentic Loop"],
+        tags: [
+          "9 Supervisors",
+          "OMEGA Dashboard",
+          "Streaming AI",
+          "Agentic Loop",
+        ],
       },
       {
         icon: "💼",
@@ -538,7 +550,8 @@ export const defaultConfig: LandingPageConfig = {
     eyebrow: "Build Status · February 2026",
     title: "Phase 2 of 8.",
     titleHighlight: "Active build.",
-    description: "Transparent progress. Every layer tracked. Shipped in order. Never abandoned.",
+    description:
+      "Transparent progress. Every layer tracked. Shipped in order. Never abandoned.",
   },
 
   pricing: {
@@ -604,7 +617,8 @@ export const defaultConfig: LandingPageConfig = {
     eyebrow: "Success Stories",
     title: "Loved by",
     titleHighlight: "thousands",
-    description: "Hear from users who have transformed their digital presence with Winners Ecosystem.",
+    description:
+      "Hear from users who have transformed their digital presence with Winners Ecosystem.",
     items: [
       {
         quote:
@@ -631,7 +645,8 @@ export const defaultConfig: LandingPageConfig = {
     eyebrow: "FAQ",
     title: "Common",
     titleHighlight: "questions.",
-    description: "Everything you need to know about the ecosystem before joining.",
+    description:
+      "Everything you need to know about the ecosystem before joining.",
     cta: "Join Free Today",
     items: [
       {
@@ -667,7 +682,8 @@ export const defaultConfig: LandingPageConfig = {
     subtitle: "Join thousands of creators, entrepreneurs, and businesses",
     ctaPrimary: "Get Started Free",
     ctaSecondary: "View Platforms →",
-    tagline: "Infrastructure → Engagement → Value → Monetization → Intelligence → Scale.",
+    tagline:
+      "Infrastructure → Engagement → Value → Monetization → Intelligence → Scale.",
   },
 
   footer: {
@@ -704,7 +720,8 @@ export const defaultConfig: LandingPageConfig = {
       instagram: "https://instagram.com/winnersecosystem",
       youtube: "https://youtube.com/@winnersecosystem",
     },
-    copyright: "© 2024–2026 Winners Ecosystem · Digital Sovereign Infrastructure · Built with discipline.",
+    copyright:
+      "© 2024–2026 Winners Ecosystem · Digital Sovereign Infrastructure · Built with discipline.",
     legalLinks: [
       { label: "Privacy Policy", href: "#" },
       { label: "Terms of Service", href: "#" },

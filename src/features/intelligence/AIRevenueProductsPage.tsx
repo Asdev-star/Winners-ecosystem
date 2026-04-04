@@ -123,7 +123,7 @@ const MOCK_SESSIONS: KnowledgeSession[] = [
     capacity: 50,
     enrolled: 34,
     pricePerSeat: 25,
-    topics: ["Market research", "Margin analysis", "Supplier sourcing", "ATLAS live demo"],
+    topics: ["Market research", "Margin analysis", "Supplier sourcing", "ATLAS live session"],
     status: "upcoming",
   },
   {

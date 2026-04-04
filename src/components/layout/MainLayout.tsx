@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
-import { Activity, Bell, BellOff, Compass, Eye, EyeOff, Home, LayoutGrid, PanelLeft, PanelLeftClose, Search, Settings, Signal, Users } from "lucide-react";
+import { Activity, Bell, BellOff, Compass, Eye, EyeOff, Home, LayoutGrid, LogOut, PanelLeft, PanelLeftClose, Search, Settings, Signal, Users } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../features/auth/authStore";
 import TenantSwitcher from "../ui/TenantSwitcher";
@@ -726,6 +726,7 @@ const shellCss = `
 
     .ml-sidebar.open {
       transform: translateX(0);
+      box-shadow: 8px 0 40px rgba(0, 0, 0, 0.35);
     }
 
     .ml-sidebar.collapsed {
@@ -740,8 +741,7 @@ const shellCss = `
     .ml-sidebar-toggle {
       display: none;
     }
-      box-shadow: 8px 0 40px rgba(0, 0, 0, 0.35);
-    }
+  }
 
     .ml-menu-btn {
       display: inline-flex;
@@ -977,6 +977,16 @@ export default function MainLayout() {
             <div className="ml-chip">{aiStatusLabel}</div>
             <button type="button" className="ml-chip" onClick={() => setCommandPaletteOpen(true)}>
               / Command
+            </button>
+            <button
+              type="button"
+              className="ml-chip"
+              onClick={signOut}
+              title="Sign out"
+              style={{ display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              <LogOut size={14} />
+              Logout
             </button>
             <ThemeToggle />
             <NotificationBell />

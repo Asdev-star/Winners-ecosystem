@@ -6,6 +6,7 @@
 import { Router, Request, Response } from "express";
 import db from "../db.js";
 import os from "os";
+import { getEcosystemConfigSnapshot } from "../services/ecosystemConfigService.js";
 
 const router = Router();
 
@@ -215,6 +216,43 @@ router.get("/layers", async (_req: Request, res: Response) => {
   };
 
   res.json({ layers, timestamp: now });
+});
+
+router.get("/theme/vars.css", async (_req: Request, res: Response) => {
+  try {
+    const snapshot = await getEcosystemConfigSnapshot();
+    const theme = snapshot.theme;
+    const css = [
+      ":root {",
+      `  --gold: ${theme.palette.gold};`,
+      `  --blue: ${theme.palette.blue};`,
+      `  --ice: ${theme.palette.ice};`,
+      `  --green: ${theme.palette.green};`,
+      `  --red: ${theme.palette.red};`,
+      `  --purple: ${theme.palette.purple};`,
+      `  --bg: ${theme.palette.bg};`,
+      `  --surface: ${theme.palette.surface};`,
+      `  --surface2: ${theme.palette.surface2};`,
+      `  --border: ${theme.palette.border};`,
+      `  --text: ${theme.palette.text};`,
+      `  --text-dim: ${theme.palette.textDim};`,
+      `  --font-heading: '${theme.typography.heading}', serif;`,
+      `  --font-display: '${theme.typography.display}', sans-serif;`,
+      `  --font-mono: '${theme.typography.mono}', monospace;`,
+      `  --font-body: '${theme.typography.body}', sans-serif;`,
+      `  --card-radius: ${theme.card.borderRadius}px;`,
+      `  --card-top-border-width: ${theme.card.topBorderWidth}px;`,
+      `  --card-top-border-style: ${theme.card.topBorderStyle};`,
+      `  --font-scale: ${theme.typography.scale};`,
+      "}",
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/css; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=60");
+    return res.send(css);
+  } catch (error) {
+    return res.status(500).send(error instanceof Error ? error.message : "Failed to load theme vars");
+  }
 });
 
 export default router;

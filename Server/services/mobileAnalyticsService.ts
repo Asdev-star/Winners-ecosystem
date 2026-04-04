@@ -64,6 +64,14 @@ async function getErrorRows(days = 30) {
   });
 }
 
+function normalizeFilter(value?: string | null) {
+  return value && value !== "all" ? value : null;
+}
+
+function dayKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
 export async function trackMobileSession(input: MobileSessionInput) {
   const os = input.os.toLowerCase();
   return db.userActivity.create({
@@ -73,7 +81,7 @@ export async function trackMobileSession(input: MobileSessionInput) {
       sessionId: sessionName(input.deviceId),
       event: `mobile_session_start:${os}`,
       activity: `mobile_session_start:${os}`,
-      page: "mobile",
+      page: os,
       metadata: input.metadata ?? {
         deviceId: input.deviceId,
         os: input.os,
@@ -173,6 +181,22 @@ export async function recordErrorReport(input: {
   });
 }
 
+export async function resolveAnalyticsError(id: string, resolvedBy?: string | null) {
+  return db.userActivity.update({
+    where: { id },
+    data: {
+      metadata: {
+        resolved: true,
+        resolvedBy: resolvedBy ?? null,
+      },
+      issueData: {
+        resolved: true,
+        resolvedBy: resolvedBy ?? null,
+      },
+    },
+  });
+}
+
 export async function recordAnalyticsEvent(input: AnalyticsEventInput) {
   return db.userActivity.create({
     data: {
@@ -208,39 +232,61 @@ export async function getMobileAnalytics() {
   };
 }
 
-export async function getMobileDownloads(periodDays = 30) {
+export async function getMobileDownloads(periodDays = 30, platform?: string | null) {
   const rows = await getDownloadRows(periodDays);
+  const platformFilter = normalizeFilter(platform);
   const byPlatform: Record<string, number> = {};
   const byCountry: Record<string, number> = {};
+  const byDay = new Map<string, { date: string; total: number; platforms: Record<string, number> }>();
+  const filteredRows = platformFilter ? rows.filter((row) => row.platform === platformFilter) : rows;
 
-  for (const row of rows) {
+  for (const row of filteredRows) {
     byPlatform[row.platform] = (byPlatform[row.platform] ?? 0) + 1;
     if (row.country) {
       byCountry[row.country] = (byCountry[row.country] ?? 0) + 1;
     }
+    const bucketKey = dayKey(row.installedAt);
+    const bucket = byDay.get(bucketKey) ?? { date: bucketKey, total: 0, platforms: {} };
+    bucket.total += 1;
+    bucket.platforms[row.platform] = (bucket.platforms[row.platform] ?? 0) + 1;
+    byDay.set(bucketKey, bucket);
   }
 
   return {
-    total: rows.length,
+    total: filteredRows.length,
     byPlatform,
     byCountry: Object.entries(byCountry).map(([country, count]) => ({ country, count })),
     bySource: [],
+    byDay: Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date)),
   };
 }
 
 export async function getMobileSessions(periodDays = 7, platform = "all") {
   const rows = await getActivityRows(periodDays);
-  const sessionEvents = rows.filter((row) => row.event.includes("session"));
+  const platformFilter = normalizeFilter(platform);
+  const sessionEvents = rows.filter((row) => {
+    const isSession = row.event.includes("session");
+    if (!isSession) return false;
+    if (!platformFilter) return true;
+    const marker = row.event.toLowerCase();
+    return marker.includes(platformFilter.toLowerCase()) || String(row.page ?? "").toLowerCase() === platformFilter.toLowerCase();
+  });
   const totalSessions = new Set(sessionEvents.map((row) => row.sessionId).filter(Boolean)).size || sessionEvents.length;
   const durations = sessionEvents.map((row) => row.duration ?? 0).filter((duration): duration is number => duration > 0);
   const avgDuration = durations.length > 0 ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length) : 0;
   const byPlatform: Record<string, number> = {};
   const byCountry: Record<string, number> = {};
+  const byDay = new Map<string, { date: string; total: number; platforms: Record<string, number> }>();
 
   for (const row of sessionEvents) {
     const key = row.page ?? platform;
     byPlatform[key] = (byPlatform[key] ?? 0) + 1;
     if (row.country) byCountry[row.country] = (byCountry[row.country] ?? 0) + 1;
+    const bucketKey = dayKey(row.createdAt);
+    const bucket = byDay.get(bucketKey) ?? { date: bucketKey, total: 0, platforms: {} };
+    bucket.total += 1;
+    bucket.platforms[key] = (bucket.platforms[key] ?? 0) + 1;
+    byDay.set(bucketKey, bucket);
   }
 
   return {
@@ -249,15 +295,20 @@ export async function getMobileSessions(periodDays = 7, platform = "all") {
     totalSessions,
     byPlatform,
     byCountry: Object.entries(byCountry).map(([country, count]) => ({ country, count })),
+    byDay: Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date)),
   };
 }
 
-export async function getMobileFeatures(periodDays = 30) {
+export async function getMobileFeatures(periodDays = 30, layer?: string | null) {
   const rows = await getActivityRows(periodDays);
+  const layerFilter = normalizeFilter(layer);
   const bucket = new Map<string, { layer: string; feature: string; count: number; uniqueUsers: Set<string>; totalDuration: number; durationSamples: number }>();
 
   for (const row of rows) {
     const layer = row.page ?? "unknown";
+    if (layerFilter && layer !== layerFilter) {
+      continue;
+    }
     const feature = row.activity ?? row.event;
     const key = `${layer}:${feature}`;
     const entry = bucket.get(key) ?? {
@@ -288,11 +339,16 @@ export async function getMobileFeatures(periodDays = 30) {
   };
 }
 
-export async function getMobileFunnel(steps: string[]) {
+export async function getMobileFunnel(steps: string[], layer?: string | null) {
   const rows = await getActivityRows(30);
+  const layerFilter = normalizeFilter(layer);
   const counts = steps.map((step) => ({
     name: step,
-    users: rows.filter((row) => row.event.includes(step) || row.activity.includes(step)).length,
+    users: rows.filter((row) => {
+      const layerName = row.page ?? "all";
+      if (layerFilter && layerName !== layerFilter) return false;
+      return row.event.includes(step) || row.activity.includes(step);
+    }).length,
     dropoffPct: 0,
     avgTimeToNext: 0,
   }));
@@ -300,11 +356,15 @@ export async function getMobileFunnel(steps: string[]) {
   return { steps: counts };
 }
 
-export async function getMobileErrors(periodDays = 7) {
+export async function getMobileErrors(periodDays = 7, layer?: string | null) {
   const rows = await getErrorRows(periodDays);
+  const layerFilter = normalizeFilter(layer);
   const grouped = new Map<string, { layer: string | null; feature: string | null; errorCode: string | null; count: number; lastSeen: string; sample: string }>();
 
   for (const row of rows) {
+    if (layerFilter && (row.page ?? "").toLowerCase() !== layerFilter.toLowerCase()) {
+      continue;
+    }
     const issueData = typeof row.issueData === "object" && row.issueData && !Array.isArray(row.issueData)
       ? row.issueData as Record<string, unknown>
       : {};
@@ -329,10 +389,12 @@ export async function getMobileErrors(periodDays = 7) {
   return { errors: Array.from(grouped.values()) };
 }
 
-export async function getMobileCountries() {
-  const rows = await getDownloadRows(30);
+export async function getMobileCountries(periodDays = 30, platform?: string | null) {
+  const rows = await getDownloadRows(periodDays);
+  const platformFilter = normalizeFilter(platform);
   const byCountry = new Map<string, number>();
   for (const row of rows) {
+    if (platformFilter && row.platform !== platformFilter) continue;
     const key = row.country ?? "Unknown";
     byCountry.set(key, (byCountry.get(key) ?? 0) + 1);
   }
@@ -349,12 +411,14 @@ export async function getMobileCountries() {
   };
 }
 
-export async function getMobileCrashes(periodDays = 30) {
+export async function getMobileCrashes(periodDays = 30, layer?: string | null) {
   const rows = await getErrorRows(periodDays);
+  const layerFilter = normalizeFilter(layer);
+  const filtered = layerFilter ? rows.filter((row) => (row.page ?? "").toLowerCase() === layerFilter.toLowerCase()) : rows;
   return {
-    total: rows.length,
-    crashFreeRate: rows.length === 0 ? 100 : Math.max(0, 100 - rows.length * 2),
-    crashes: rows.slice(0, 20).map((row) => ({
+    total: filtered.length,
+    crashFreeRate: filtered.length === 0 ? 100 : Math.max(0, 100 - filtered.length * 2),
+    crashes: filtered.slice(0, 20).map((row) => ({
       id: row.id,
       platform: row.page ?? "unknown",
       layer: row.page ?? null,
@@ -368,7 +432,18 @@ export async function getMobileCrashes(periodDays = 30) {
   };
 }
 
-export async function getUserJourney(userId: string) {
+export async function getUserJourney(userKey: string) {
+  const user = await db.user.findFirst({
+    where: {
+      OR: [
+        { id: userKey },
+        { email: userKey },
+      ],
+    },
+    select: { id: true },
+  });
+  const userId = user?.id ?? userKey;
+
   const [events, downloads] = await Promise.all([
     db.userActivity.findMany({
       where: { userId },

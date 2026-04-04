@@ -81,9 +81,9 @@ import LiveSessionsPage from "./features/academy/LiveSessionsPage";
 import CertificateVerificationPage from "./features/academy/CertificateVerificationPage";
 import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
 import MarketPage from "./features/market/MarketPage";
+import WinnersMarketExpanded from "./features/market/WinnersMarketExpanded";
 import ProductPage from "./features/market/ProductPage";
 import VendorDashboard from "./features/market/VendorDashboard";
-import WinnersMarketExpanded from "./features/market/WinnersMarketExpanded";
 import WinnersDropshipping from "./features/market/dropshipping/WinnersDropshipping";
 import CartPage from "./features/market/CartPage";
 import OrdersPage from "./features/market/OrdersPage";
@@ -111,9 +111,11 @@ import CloudAPIKeysPage from "./features/cloud/CloudAPIKeysPage";
 import CloudWebhooksPage from "./features/cloud/CloudWebhooksPage";
 import CloudUsagePage from "./features/cloud/CloudUsagePage";
 import APIMarketplacePage from "./features/cloud/APIMarketplacePage";
+import CoreOpsPage from "./features/ops/CoreOpsPage";
 import AIRevenueProductsPage from "./features/intelligence/AIRevenueProductsPage";
 import AdminLayout from "./features/admin/AdminLayout";
 import PlatformLaunchPage from "./features/admin/PlatformLaunchPage";
+import AdminPage from "./features/admin/AdminPage";
 import TenantListPage from "./features/admin/TenantListPage";
 import TenantDetailPage from "./features/admin/TenantDetailPage";
 import UserListPage from "./features/admin/UserListPage";
@@ -191,15 +193,9 @@ function App() {
               </SuperAdminRoute>
             }
           >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route
-              path="dashboard"
-              element={<Navigate to="/dashboard" replace />}
-            />
-            <Route
-              path="overview"
-              element={<Navigate to="/dashboard" replace />}
-            />
+            <Route index element={<AdminPage />} />
+            <Route path="dashboard" element={<AdminPage />} />
+            <Route path="overview" element={<AdminPage />} />
             <Route path="platform" element={<PlatformLaunchPage />} />
             <Route
               path="platform/:layerId"
@@ -237,7 +233,7 @@ function App() {
             path="ops"
             element={
               <SuperAdminRoute>
-                <Navigate to="/admin/health" replace />
+                <CoreOpsPage />
               </SuperAdminRoute>
             }
           />
@@ -580,7 +576,7 @@ function App() {
               path="market/trending"
               element={
                 <LayerRouteGate layerId="market">
-                  <WinnersMarketExpanded />
+                  <MarketPage />
                 </LayerRouteGate>
               }
             />
@@ -588,7 +584,7 @@ function App() {
               path="market/services"
               element={
                 <LayerRouteGate layerId="market">
-                  <WinnersMarketExpanded />
+                  <MarketPage />
                 </LayerRouteGate>
               }
             />

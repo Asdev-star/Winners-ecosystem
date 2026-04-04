@@ -295,6 +295,11 @@ model User {
   appDownloads               AppDownload[]
   userActivities             UserActivity[]
   errorReports               ErrorReport[]
+  eventsOrganized            Event[]
+  eventTickets               EventTicket[]
+  propertiesListed           Property[]
+  propertyFavorites          PropertyFavorite[]
+  propertyInquiries          PropertyInquiry[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -3310,6 +3315,145 @@ model DeveloperPayout {
 
   @@index([developerId, status])
   @@map("developer_payouts")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  tenantId    String
+  organizerId String
+  title       String
+  description String
+  category    String
+  startDate   DateTime
+  endDate     DateTime
+  location    String
+  virtualLink String?
+  capacity    Int
+  price       Float    @default(0)
+  currency    String   @default("USD")
+  status      String   @default("draft")
+  imageUrl    String?
+  tags        String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  organizer   User     @relation(fields: [organizerId], references: [id])
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tickets     EventTicket[]
+
+  @@index([tenantId])
+  @@index([organizerId])
+  @@index([startDate])
+  @@index([category])
+  @@map("events")
+}
+
+model EventTicket {
+  id        String   @id @default(cuid())
+  tenantId  String
+  eventId   String
+  userId    String
+  ticketType String
+  price     Float
+  currency  String   @default("USD")
+  quantity  Int      @default(1)
+  status    String   @default("active")
+  nftTokenId String?
+  purchasedAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_tickets")
+}
+
+model Property {
+  id            String   @id @default(cuid())
+  tenantId      String
+  agentId       String
+  title         String
+  description   String
+  propertyType  String
+  listingType   String   // "sale" or "rent"
+  price         Float
+  currency      String   @default("USD")
+  location      String
+  bedrooms      Int?
+  bathrooms     Int?
+  area          Float?
+  areaUnit      String?
+  yearBuilt     Int?
+  status        String   @default("active")
+  featured      Boolean  @default(false)
+  images        PropertyImage[]
+  favorites     PropertyFavorite[]
+  inquiries     PropertyInquiry[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  agent         User     @relation(fields: [agentId], references: [id])
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([agentId])
+  @@index([propertyType])
+  @@index([listingType])
+  @@index([location])
+  @@map("properties")
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  tenantId   String
+  propertyId String
+  url        String
+  alt        String?
+  position   Int      @default(0)
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([propertyId])
+  @@map("property_images")
+}
+
+model PropertyFavorite {
+  id         String   @id @default(cuid())
+  tenantId   String
+  propertyId String
+  userId     String
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("property_favorites")
+}
+
+model PropertyInquiry {
+  id         String   @id @default(cuid())
+  tenantId   String
+  propertyId String
+  userId     String
+  message    String
+  contactInfo Json
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([propertyId])
+  @@index([userId])
+  @@map("property_inquiries")
 }
 
 model ApiKey {

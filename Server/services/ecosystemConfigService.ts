@@ -238,6 +238,20 @@ export type AnalyticsConfig = {
 
 export type GeoConfig = {
   countryLanguageRouting: boolean;
+  geoDetectionEnabled: boolean;
+  detectionProvider: string;
+  cacheTtlHours: number;
+  anonymiseIps: boolean;
+  allowUserOverride: boolean;
+  autoLanguageDetection: boolean;
+  currencyDisplayByCountry: boolean;
+  paymentMethodReordering: boolean;
+  supervisorLanguageAdaptation: boolean;
+  atlasRegionalMarketSignals: boolean;
+  novaRegionalSkillsTrending: boolean;
+  dateTimeFormatByCountry: boolean;
+  rtlLayoutForArabicCountries: boolean;
+  mapZoom: string;
   paymentMethodSurfacing: Array<{ country: string; methods: string[] }>;
   supervisorOpeningLines: Array<{ country: string; line: string }>;
   countryRules: Array<{
@@ -494,6 +508,20 @@ const DEFAULT_SNAPSHOT: EcosystemSnapshot = {
   },
   geo: {
     countryLanguageRouting: true,
+    geoDetectionEnabled: true,
+    detectionProvider: "MaxMind GeoLite2",
+    cacheTtlHours: 24,
+    anonymiseIps: true,
+    allowUserOverride: true,
+    autoLanguageDetection: true,
+    currencyDisplayByCountry: true,
+    paymentMethodReordering: true,
+    supervisorLanguageAdaptation: true,
+    atlasRegionalMarketSignals: true,
+    novaRegionalSkillsTrending: true,
+    dateTimeFormatByCountry: true,
+    rtlLayoutForArabicCountries: true,
+    mapZoom: "Africa",
     paymentMethodSurfacing: [
       { country: "NG", methods: ["paystack", "bank_transfer", "card"] },
       { country: "KE", methods: ["mpesa", "card", "bank_transfer"] },

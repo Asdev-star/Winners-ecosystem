@@ -22,6 +22,36 @@ interface Quiz {
   questions: QuizQuestion[];
 }
 
+function normalizeQuestion(raw: Record<string, unknown>): QuizQuestion {
+  const optionsRaw = raw.options;
+  const options = Array.isArray(optionsRaw)
+    ? optionsRaw.map((o) => (typeof o === "string" ? o : String(o)))
+    : undefined;
+  const qt = String(raw.questionType ?? "MULTIPLE_CHOICE");
+  const type: QuizQuestion["type"] = qt === "TRUE_FALSE" ? "TRUE_FALSE" : "MULTIPLE_CHOICE";
+  return {
+    id: String(raw.id),
+    question: String(raw.question ?? ""),
+    type,
+    options,
+    points: Number(raw.points ?? 1),
+  };
+}
+
+function normalizeQuiz(raw: Record<string, unknown>): Quiz {
+  const qs = Array.isArray(raw.questions)
+    ? raw.questions.map((q) => normalizeQuestion(q as Record<string, unknown>))
+    : [];
+  return {
+    id: String(raw.id),
+    title: String(raw.title ?? "Quiz"),
+    description: typeof raw.description === "string" ? raw.description : undefined,
+    passingScore: Number(raw.passingScore ?? 70),
+    timeLimit: typeof raw.timeLimit === "number" ? raw.timeLimit : undefined,
+    questions: qs,
+  };
+}
+
 interface AttemptResult {
   score: number;
   passed: boolean;
@@ -46,29 +76,6 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
     void fetchQuizzes();
   }, [courseId]);
 
-  useEffect(() => {
-    if (!started || timeLeft === null) return;
-    if (timeLeft <= 0) {
-      void submitQuiz();
-      return;
-    }
-    const t = setTimeout(() => setTimeLeft((p) => (p ?? 1) - 1), 1000);
-    return () => clearTimeout(t);
-  }, [started, timeLeft]);
-
-  const fetchQuizzes = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/quizzes/courses/${courseId}/quizzes`);
-      if (!res.ok) throw new Error();
-      const data = await res.json() as Quiz[];
-      setQuizzes(data);
-    } catch {
-      // non-critical; quizzes may not exist yet
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const startQuiz = (quiz: Quiz) => {
     setActiveQuiz(quiz);
     setAnswers({});
@@ -81,14 +88,30 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
     if (!activeQuiz) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/quizzes/${activeQuiz.id}/attempt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-        body: JSON.stringify({ answers }),
+      const answerRows = activeQuiz.questions.map((q) => ({
+        questionId: q.id,
+        selectedAnswer: answers[q.id] ?? "",
+      }));
+      const res = await fetch(`${API_BASE}/quizzes/${activeQuiz.id}/attempts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ answers: answerRows }),
       });
-      if (!res.ok) throw new Error('Failed to submit quiz');
-      const data = await res.json() as AttemptResult;
-      setResult(data);
+      if (!res.ok) throw new Error("Failed to submit quiz");
+      const data = (await res.json()) as {
+        score: number;
+        passed: boolean;
+        gradedAnswers?: Array<{ questionId: string; isCorrect: boolean; points?: number }>;
+      };
+      setResult({
+        score: Math.round(data.score),
+        passed: data.passed,
+        answers: (data.gradedAnswers ?? []).map((g) => ({
+          questionId: g.questionId,
+          correct: g.isCorrect,
+          points: g.points ?? 0,
+        })),
+      });
       setStarted(false);
     } catch {
       setResult(null);
@@ -96,6 +119,29 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
       setSubmitting(false);
     }
   }, [activeQuiz, answers]);
+
+  useEffect(() => {
+    if (!started || timeLeft === null) return;
+    if (timeLeft <= 0) {
+      void submitQuiz();
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft((p) => (p ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [started, timeLeft, submitQuiz]);
+
+  const fetchQuizzes = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/quizzes/courses/${courseId}/quizzes`);
+      if (!res.ok) throw new Error();
+      const data = (await res.json()) as Record<string, unknown>[];
+      setQuizzes(data.map((row) => normalizeQuiz(row)));
+    } catch {
+      // non-critical; quizzes may not exist yet
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);

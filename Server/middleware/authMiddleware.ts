@@ -29,6 +29,7 @@ export type AuthRequest = Request & {
 
 // Extend Express.User so req.user resolves cleanly across middleware and passport types.
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   namespace Express {
     interface User extends AuthenticatedUser {}
   }

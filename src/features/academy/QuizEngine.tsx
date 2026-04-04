@@ -1,9 +1,11 @@
 // Phase 3: Winners Academy · learn.winnersempire.io
 // QuizEngine.tsx — Interactive quiz component for certification
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import ContextBar from '../../components/ui/ContextBar';
+import { API_BASE } from '../../lib/api';
+import { getAuthHeaders } from '../auth/authStore';
 
 interface QuizQuestion {
   id: string;
@@ -13,6 +15,12 @@ interface QuizQuestion {
   points: number;
 }
 
+interface QuizCourse {
+  id: string;
+  slug: string;
+  title: string;
+}
+
 interface Quiz {
   id: string;
   title: string;
@@ -20,6 +28,24 @@ interface Quiz {
   passingScore: number;
   timeLimit?: number;
   questions: QuizQuestion[];
+  course?: QuizCourse | null;
+}
+
+function normalizeQuizQuestion(raw: Record<string, unknown>): QuizQuestion {
+  const optionsRaw = raw.options;
+  const options = Array.isArray(optionsRaw)
+    ? optionsRaw.map((o) => (typeof o === "string" ? o : String(o)))
+    : undefined;
+  const qt = String(raw.questionType ?? "MULTIPLE_CHOICE");
+  const questionType: QuizQuestion["questionType"] =
+    qt === "TRUE_FALSE" ? "TRUE_FALSE" : "MULTIPLE_CHOICE";
+  return {
+    id: String(raw.id),
+    question: String(raw.question ?? ""),
+    questionType,
+    options,
+    points: Number(raw.points ?? 1),
+  };
 }
 
 interface QuizAttempt {
@@ -37,6 +63,7 @@ interface QuizAttempt {
 
 const QuizEngine = () => {
   const { quizId } = useParams<{ quizId: string }>();
+  const navigate = useNavigate();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
@@ -50,19 +77,31 @@ const QuizEngine = () => {
     const fetchQuiz = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/v1/academy/quizzes/${quizId}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+        const response = await fetch(`${API_BASE}/quizzes/${quizId}`, {
+          headers: getAuthHeaders(),
         });
-        
+
         if (!response.ok) throw new Error('Failed to load quiz');
-        
-        const data = await response.json();
-        setQuiz(data);
-        
+
+        const data = (await response.json()) as Record<string, unknown> & {
+          questions?: Record<string, unknown>[];
+        };
+        const questions = Array.isArray(data.questions)
+          ? data.questions.map((q) => normalizeQuizQuestion(q as Record<string, unknown>))
+          : [];
+        const courseRaw = data.course as QuizCourse | null | undefined;
+        setQuiz({
+          id: String(data.id),
+          title: String(data.title ?? "Quiz"),
+          description: typeof data.description === "string" ? data.description : undefined,
+          passingScore: Number(data.passingScore ?? 70),
+          timeLimit: typeof data.timeLimit === "number" ? data.timeLimit : undefined,
+          questions,
+          course: courseRaw && courseRaw.slug ? courseRaw : null,
+        });
+
         if (data.timeLimit) {
-          setTimeRemaining(data.timeLimit * 60);
+          setTimeRemaining(Number(data.timeLimit) * 60);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -71,19 +110,86 @@ const QuizEngine = () => {
       }
     };
 
-    if (quizId) fetchQuiz();
+    if (quizId) void fetchQuiz();
   }, [quizId]);
 
+  const submitQuiz = useCallback(async () => {
+    if (!quiz) return;
+
+    const answers = quiz.questions.map((q) => ({
+      questionId: q.id,
+      selectedAnswer: selectedAnswers[q.id] ?? "",
+    }));
+
+    try {
+      const response = await fetch(`${API_BASE}/quizzes/${quiz.id}/attempts`, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ answers }),
+      });
+
+      if (!response.ok) throw new Error("Failed to submit quiz");
+
+      const data = (await response.json()) as {
+        passed: boolean;
+        score: number;
+        passingScore: number;
+        attempt: {
+          id: string;
+          quizId: string;
+          userId: string;
+          score: number;
+          percentage: number;
+          timeTakenSecs?: number;
+        };
+        gradedAnswers?: Array<{
+          questionId: string;
+          selectedAnswer: string;
+          isCorrect: boolean;
+        }>;
+      };
+
+      const graded = data.gradedAnswers ?? [];
+      setResult({
+        id: data.attempt.id,
+        quizId: quiz.id,
+        userId: data.attempt.userId,
+        score: data.attempt.score,
+        percentage: Math.round(data.score),
+        passed: data.passed,
+        answers: graded.map((g) => ({
+          questionId: g.questionId,
+          selectedAnswer: g.selectedAnswer,
+          isCorrect: g.isCorrect,
+        })),
+        timeTakenSecs: data.attempt.timeTakenSecs,
+        startedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      });
+      setIsSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit quiz");
+    }
+  }, [quiz, selectedAnswers]);
+
+  const submitQuizRef = useRef(submitQuiz);
+  submitQuizRef.current = submitQuiz;
+
   useEffect(() => {
+    if (!quiz?.timeLimit) return;
     if (timeRemaining > 0 && !isSubmitted) {
       const timer = setInterval(() => {
-        setTimeRemaining(prev => prev - 1);
+        setTimeRemaining((prev) => prev - 1);
       }, 1000);
       return () => clearInterval(timer);
-    } else if (timeRemaining === 0 && !isSubmitted) {
-      handleSubmit();
     }
-  }, [timeRemaining, isSubmitted]);
+    if (timeRemaining === 0 && !isSubmitted) {
+      void submitQuizRef.current();
+    }
+  }, [timeRemaining, isSubmitted, quiz]);
 
   const handleSelectAnswer = (questionId: string, answer: string) => {
     setSelectedAnswers(prev => ({
@@ -92,40 +198,8 @@ const QuizEngine = () => {
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!quiz) return;
-
-    const answers = quiz.questions.map(q => ({
-      questionId: q.id,
-      selectedAnswer: selectedAnswers[q.id] || '',
-      isCorrect: selectedAnswers[q.id] === q.options?.[0]
-    }));
-
-    const score = answers.filter(a => a.isCorrect).reduce((acc, a) => acc + (quiz.questions.find(q => q.id === a.questionId)?.points || 0), 0);
-    const maxScore = quiz.questions.reduce((acc, q) => acc + q.points, 0);
-    const percentage = Math.round((score / maxScore) * 100);
-
-    try {
-      const response = await fetch(`/api/v1/academy/quizzes/${quiz.id}/attempt`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          answers,
-          timeTakenSecs: quiz.timeLimit ? (quiz.timeLimit * 60 - timeRemaining) : undefined
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to submit quiz');
-
-      const result = await response.json();
-      setResult(result);
-      setIsSubmitted(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit quiz');
-    }
+  const handleSubmit = () => {
+    void submitQuiz();
   };
 
   const formatTime = (seconds: number) => {
@@ -199,14 +273,34 @@ const QuizEngine = () => {
           {!result.passed && (
             <div className="retry-cta">
               <p>Review the material and try again. SAGE can help you understand the concepts you missed.</p>
-              <button className="btn-primary">Review with SAGE</button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  const slug = quiz.course?.slug;
+                  if (slug) navigate(`/academy/courses/${slug}#sage-academy-tutor`);
+                  else navigate("/academy");
+                }}
+              >
+                Review with SAGE
+              </button>
             </div>
           )}
 
           {result.passed && (
             <div className="success-cta">
               <p>You've passed this quiz! Your progress has been saved.</p>
-              <button className="btn-primary">Continue Course</button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  const slug = quiz.course?.slug;
+                  if (slug) navigate(`/academy/courses/${slug}`);
+                  else navigate("/academy");
+                }}
+              >
+                Continue Course
+              </button>
             </div>
           )}
         </div>

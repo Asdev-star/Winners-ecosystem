@@ -4,9 +4,13 @@ import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requirePro } from "../middleware/marketPlanGate.js";
 import db from "../db.js";
+import Stripe from "stripe";
 
 const router = Router();
 router.use(authMiddleware);
+
+const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY ?? "";
+const stripe = STRIPE_SECRET ? new Stripe(STRIPE_SECRET) : null;
 const getStringParam = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? value[0] : (value ?? "");
 
@@ -181,10 +185,8 @@ router.post("/deposit/stripe", async (req: Request, res: Response) => {
     if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
 
     const wallet = await getOrCreateWallet(userId, tenantId);
-    const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
-    if (!STRIPE_SECRET) return res.status(500).json({ error: "Stripe not configured" });
+    if (!stripe) return res.status(500).json({ error: "Stripe not configured" });
 
-    const stripe = require("stripe")(STRIPE_SECRET);
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency,
@@ -339,7 +341,7 @@ router.post("/admin/withdrawal/:id/approve", async (req, res) => {
     // Process payout based on method
     if (withdrawal.method === "stripe" && wallet?.stripeAccountId) {
       try {
-        const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+        if (!stripe) throw new Error("Stripe not configured");
         const transfer = await stripe.transfers.create({
           amount: Math.round(withdrawal.netAmount * 100),
           currency: "usd",

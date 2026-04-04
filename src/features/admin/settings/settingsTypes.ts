@@ -230,6 +230,20 @@ export type AnalyticsConfig = {
 
 export type GeoConfig = {
   countryLanguageRouting: boolean;
+  geoDetectionEnabled: boolean;
+  detectionProvider: string;
+  cacheTtlHours: number;
+  anonymiseIps: boolean;
+  allowUserOverride: boolean;
+  autoLanguageDetection: boolean;
+  currencyDisplayByCountry: boolean;
+  paymentMethodReordering: boolean;
+  supervisorLanguageAdaptation: boolean;
+  atlasRegionalMarketSignals: boolean;
+  novaRegionalSkillsTrending: boolean;
+  dateTimeFormatByCountry: boolean;
+  rtlLayoutForArabicCountries: boolean;
+  mapZoom: string;
   paymentMethodSurfacing: Array<{ country: string; methods: string[] }>;
   supervisorOpeningLines: Array<{ country: string; line: string }>;
   countryRules: Array<{

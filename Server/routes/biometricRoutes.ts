@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant } from "../middleware/rbacMiddleware.js";
+import { signToken } from "./authRoutes.js";
 
 const router = Router();
 
@@ -167,8 +168,13 @@ router.post("/biometric/authenticate/verify", authMiddleware, enforceTenant, asy
     });
 
     // Generate new JWT token
-    const jwt = require("../services/authService.js").generateToken;
-    const newToken = jwt({ userId, tenantId: req.user!.tenantId });
+    const newToken = signToken({
+      userId,
+      tenantId: req.user!.tenantId,
+      tenantName: req.user!.tenantName,
+      email: "",
+      role: "member",
+    }, "8h");
 
     res.json({ success: true, token: newToken });
   } catch (err) {

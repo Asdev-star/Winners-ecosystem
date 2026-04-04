@@ -1,6 +1,6 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { authMiddleware, requireRole } from "../middleware/authMiddleware.js";
+import { concealedSuperAdminMiddleware } from "../middleware/superAdminMiddleware.js";
 import {
   ecosystemConfigEvents,
   getEcosystemConfigSnapshot,
@@ -14,10 +14,10 @@ import {
   setLanguageRoutes,
 } from "../services/ecosystemConfigService.js";
 import { getMobileAnalytics } from "../services/mobileAnalyticsService.js";
+import { detectGeoContext } from "../services/geoDetectionService.js";
 import { getTranslationOverrides, upsertTranslationOverrides } from "../services/languageService.js";
 
 const router = Router();
-const adminOnly = [authMiddleware, requireRole("owner", "admin")] as const;
 const JWT_SECRET = process.env.JWT_SECRET ?? "winners_dev_secret_change_in_prod";
 
 function authenticateStreamToken(token?: string) {
@@ -66,7 +66,9 @@ router.get("/stream", async (req, res) => {
   });
 });
 
-router.get("/snapshot", ...adminOnly, async (_req, res) => {
+router.use(concealedSuperAdminMiddleware);
+
+router.get("/snapshot", async (_req, res) => {
   try {
     const [snapshot, languageRoutes, translationOverrides, featureFlags, countryRules, mobileAnalytics] = await Promise.all([
       getEcosystemConfigSnapshot(true),
@@ -90,7 +92,7 @@ router.get("/snapshot", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.get("/theme", ...adminOnly, async (_req, res) => {
+router.get("/theme", async (_req, res) => {
   try {
     const snapshot = await getEcosystemConfigSnapshot();
     return res.json(snapshot.theme);
@@ -99,7 +101,7 @@ router.get("/theme", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/theme", ...adminOnly, async (req, res) => {
+router.post("/theme", async (req, res) => {
   try {
     const next = await updateEcosystemSection("theme", { ...(await getEcosystemConfigSnapshot()).theme, ...(req.body ?? {}) }, actorId(req));
     return res.json({ message: "Theme settings updated", theme: next });
@@ -108,7 +110,16 @@ router.put("/theme", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/localization", ...adminOnly, async (_req, res) => {
+router.put("/theme", async (req, res) => {
+  try {
+    const next = await updateEcosystemSection("theme", { ...(await getEcosystemConfigSnapshot()).theme, ...(req.body ?? {}) }, actorId(req));
+    return res.json({ message: "Theme settings updated", theme: next });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to update theme settings" });
+  }
+});
+
+router.get("/localization", async (_req, res) => {
   try {
     const snapshot = await getEcosystemConfigSnapshot();
     return res.json({
@@ -121,7 +132,7 @@ router.get("/localization", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/localization", ...adminOnly, async (req, res) => {
+router.put("/localization", async (req, res) => {
   try {
     const current = await getEcosystemConfigSnapshot();
     const next = await updateEcosystemSection("localization", { ...current.localization, ...(req.body ?? {}) }, actorId(req));
@@ -131,7 +142,7 @@ router.put("/localization", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/personalisation", ...adminOnly, async (_req, res) => {
+router.get("/personalisation", async (_req, res) => {
   try {
     const snapshot = await getEcosystemConfigSnapshot();
     return res.json(snapshot.personalisation);
@@ -140,7 +151,7 @@ router.get("/personalisation", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/personalisation", ...adminOnly, async (req, res) => {
+router.put("/personalisation", async (req, res) => {
   try {
     const current = await getEcosystemConfigSnapshot();
     const next = await updateEcosystemSection("personalisation", { ...current.personalisation, ...(req.body ?? {}) }, actorId(req));
@@ -150,7 +161,7 @@ router.put("/personalisation", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/mobile", ...adminOnly, async (_req, res) => {
+router.get("/mobile", async (_req, res) => {
   try {
     const snapshot = await getEcosystemConfigSnapshot();
     return res.json({ ...snapshot.mobile, mobileAnalytics: await getMobileAnalytics() });
@@ -159,7 +170,7 @@ router.get("/mobile", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/mobile", ...adminOnly, async (req, res) => {
+router.put("/mobile", async (req, res) => {
   try {
     const current = await getEcosystemConfigSnapshot();
     const next = await updateEcosystemSection("mobile", { ...current.mobile, ...(req.body ?? {}) }, actorId(req));
@@ -169,7 +180,7 @@ router.put("/mobile", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/analytics", ...adminOnly, async (_req, res) => {
+router.get("/analytics", async (_req, res) => {
   try {
     const snapshot = await getEcosystemConfigSnapshot();
     return res.json({ ...snapshot.analytics, mobileAnalytics: await getMobileAnalytics() });
@@ -178,7 +189,7 @@ router.get("/analytics", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/analytics", ...adminOnly, async (req, res) => {
+router.put("/analytics", async (req, res) => {
   try {
     const current = await getEcosystemConfigSnapshot();
     const next = await updateEcosystemSection("analytics", { ...current.analytics, ...(req.body ?? {}) }, actorId(req));
@@ -188,7 +199,7 @@ router.put("/analytics", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/geo", ...adminOnly, async (_req, res) => {
+router.get("/geo", async (_req, res) => {
   try {
     const snapshot = await getEcosystemConfigSnapshot();
     return res.json({
@@ -201,7 +212,7 @@ router.get("/geo", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/geo", ...adminOnly, async (req, res) => {
+router.put("/geo", async (req, res) => {
   try {
     const current = await getEcosystemConfigSnapshot();
     const next = await updateEcosystemSection("geo", { ...current.geo, ...(req.body ?? {}) }, actorId(req));
@@ -211,7 +222,7 @@ router.put("/geo", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/language/routes", ...adminOnly, async (_req, res) => {
+router.get("/language", async (_req, res) => {
   try {
     return res.json(await getLanguageRoutes());
   } catch (error) {
@@ -219,7 +230,15 @@ router.get("/language/routes", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/language/routes", ...adminOnly, async (req, res) => {
+router.get("/language/routes", async (_req, res) => {
+  try {
+    return res.json(await getLanguageRoutes());
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to load language routes" });
+  }
+});
+
+router.post("/language", async (req, res) => {
   try {
     const routes = Array.isArray(req.body) ? req.body : [];
     const saved = await setLanguageRoutes(routes, actorId(req));
@@ -229,7 +248,37 @@ router.put("/language/routes", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/translations", ...adminOnly, async (_req, res) => {
+router.put("/language", async (req, res) => {
+  try {
+    const routes = Array.isArray(req.body) ? req.body : [];
+    const saved = await setLanguageRoutes(routes, actorId(req));
+    return res.json({ message: "Language routes updated", routes: saved });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to update language routes" });
+  }
+});
+
+router.put("/language/routes", async (req, res) => {
+  try {
+    const routes = Array.isArray(req.body) ? req.body : [];
+    const saved = await setLanguageRoutes(routes, actorId(req));
+    return res.json({ message: "Language routes updated", routes: saved });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to update language routes" });
+  }
+});
+
+router.post("/language/test", async (req, res) => {
+  try {
+    const ip = typeof req.body?.ip === "string" ? req.body.ip : "";
+    const context = await detectGeoContext(ip || req.socket.remoteAddress || "127.0.0.1");
+    return res.json(context);
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to test geo detection" });
+  }
+});
+
+router.get("/translations", async (_req, res) => {
   try {
     return res.json(await getTranslationOverrides());
   } catch (error) {
@@ -237,7 +286,7 @@ router.get("/translations", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/translations", ...adminOnly, async (req, res) => {
+router.post("/translations", async (req, res) => {
   try {
     const overrides = Array.isArray(req.body) ? req.body : [];
     const saved = await upsertTranslationOverrides(overrides, actorId(req));
@@ -247,7 +296,17 @@ router.put("/translations", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/country-rules", ...adminOnly, async (_req, res) => {
+router.put("/translations", async (req, res) => {
+  try {
+    const overrides = Array.isArray(req.body) ? req.body : [];
+    const saved = await upsertTranslationOverrides(overrides, actorId(req));
+    return res.json({ message: "Translation overrides updated", translationOverrides: saved });
+  } catch (error) {
+    return res.status(500).json({ message: error instanceof Error ? error.message : "Failed to update translation overrides" });
+  }
+});
+
+router.get("/country-rules", async (_req, res) => {
   try {
     return res.json(await getCountryRules());
   } catch (error) {
@@ -255,7 +314,7 @@ router.get("/country-rules", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/country-rules", ...adminOnly, async (req, res) => {
+router.put("/country-rules", async (req, res) => {
   try {
     const rules = Array.isArray(req.body) ? req.body : [];
     const saved = await upsertCountryRules(rules, actorId(req));
@@ -265,7 +324,7 @@ router.put("/country-rules", ...adminOnly, async (req, res) => {
   }
 });
 
-router.get("/feature-flags", ...adminOnly, async (_req, res) => {
+router.get("/feature-flags", async (_req, res) => {
   try {
     return res.json(await getFeatureFlags());
   } catch (error) {
@@ -273,7 +332,7 @@ router.get("/feature-flags", ...adminOnly, async (_req, res) => {
   }
 });
 
-router.put("/feature-flags", ...adminOnly, async (req, res) => {
+router.put("/feature-flags", async (req, res) => {
   try {
     const flags = Array.isArray(req.body) ? req.body : [];
     const saved = await upsertFeatureFlags(flags, actorId(req));

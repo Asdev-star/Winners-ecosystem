@@ -183,11 +183,7 @@ class HTTPClient {
 // ─── Resource Modules ─────────────────────────────────────────────────────────
 
 class AnalyticsResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** Get analytics overview for the tenant */
   getOverview(period: "7d" | "30d" | "90d" = "30d") {
@@ -201,11 +197,7 @@ class AnalyticsResource {
 }
 
 class CommunityResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** Get community feed */
   getFeed(page = 0, limit = 10) {
@@ -229,11 +221,7 @@ class CommunityResource {
 }
 
 class UsersResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** List tenant users */
   list() {
@@ -247,11 +235,7 @@ class UsersResource {
 }
 
 class BillingResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** Get current subscription details */
   getSubscription() {
@@ -265,11 +249,7 @@ class BillingResource {
 }
 
 class GDPRResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** Export all personal data for the authenticated user */
   exportMyData() {
@@ -308,11 +288,7 @@ export interface AIChatResponse {
 }
 
 class AIResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** Chat with any AI assistant */
   chat(request: AIChatRequest) {
@@ -370,11 +346,7 @@ export interface Certificate {
 }
 
 class AcademyResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** List all courses */
   listCourses(params?: { page?: number; limit?: number; level?: string; tag?: string }) {
@@ -453,11 +425,7 @@ export interface Order {
 }
 
 class MarketResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** List products */
   listProducts(params?: { page?: number; limit?: number; category?: string; vendorId?: string; search?: string }) {
@@ -510,11 +478,7 @@ class MarketResource {
 // ─── Cloud API: Certificate Verification Resource ───────────────────────────────
 
 class CertificateResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** Verify an Academy certificate */
   verify(certificateId: string) {
@@ -562,11 +526,7 @@ export interface WebhookSubscription {
 }
 
 class WebhookResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** List webhook subscriptions */
   list() {
@@ -644,11 +604,7 @@ export interface PluginReview {
 }
 
 class PluginResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** List published plugins */
   list(params?: { category?: string; search?: string }) {
@@ -717,11 +673,7 @@ export interface TenantConfig {
 }
 
 class WhiteLabelResource {
-  private readonly http: HTTPClient;
-
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
 
   /** Get tenant configuration */
   getConfig() {
@@ -826,10 +778,7 @@ export interface CloudOverviewData {
 }
 
 class AuthResource {
-  private readonly http: HTTPClient;
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
   register(data: { email: string; password: string; name: string; refCode?: string }) { return this.http.post<AuthSession>("/auth/register", data); }
   login(data: { email: string; password: string }) { return this.http.post<AuthSession>("/auth/login", data); }
   refresh(data: { refreshToken: string }) { return this.http.post<AuthSession>("/auth/refresh", data); }
@@ -840,10 +789,7 @@ class AuthResource {
 }
 
 class TenantsResource {
-  private readonly http: HTTPClient;
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
   getCurrent() { return this.http.get<TenantSummary>("/tenants/me"); }
   updateCurrent(data: { name?: string; settings?: { timezone?: string; currency?: string; fiscalMonth?: number } }) { return this.http.patch<{ message: string; tenant: TenantSummary }>("/tenants/me", data); }
   listMembers() { return this.http.get<{ tenantId: string; members: Array<{ id: string; name: string; email: string; role: string; createdAt: string }>; total: number }>("/tenants/me/members"); }
@@ -852,10 +798,7 @@ class TenantsResource {
 }
 
 class ProfileResource {
-  private readonly http: HTTPClient;
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
   get() { return this.http.get<{ profile: UserProfileData }>("/profile"); }
   saveOnboarding(data: Record<string, unknown>) { return this.http.post<{ message: string; route: string; supervisor: string; welcomeMessage?: string }>("/profile/onboarding", data); }
   update(data: Partial<UserProfileData>) { return this.http.patch<{ message: string; profile: UserProfileData }>("/profile", data); }
@@ -864,10 +807,7 @@ class ProfileResource {
 }
 
 class NotificationsResource {
-  private readonly http: HTTPClient;
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
   list() { return this.http.get<{ notifications: NotificationItem[]; total: number; unread: number }>("/notifications"); }
   registerDeviceToken(data: { token: string; platform?: string; userAgent?: string }) { return this.http.post<{ success: boolean }>("/notifications/device-token", data); }
   unregisterDeviceToken(token: string) { return this.http.request<{ success: boolean }>("DELETE", "/notifications/device-token", { token }); }
@@ -882,10 +822,7 @@ class NotificationsResource {
 }
 
 class SocialResource {
-  private readonly http: HTTPClient;
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
   listAccounts() { return this.http.get<SocialAccount[]>("/social/accounts"); }
   connectAccount(data: { platform: string }) { return this.http.post<{ authUrl: string; platform: string; message: string }>("/social/accounts/connect", data); }
   connectDemoAccount(data: { platform: string; username: string }) { return this.http.post<{ id: string; platform: string; username: string; displayName: string; message: string }>("/social/accounts/connect/demo", data); }
@@ -912,10 +849,7 @@ class SocialResource {
 }
 
 class WorkResource {
-  private readonly http: HTTPClient;
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
   listJobs(params?: { page?: number; limit?: number; category?: string; jobType?: string; search?: string; status?: string }) {
     const query = new URLSearchParams(Object.entries(params ?? {}).reduce<Record<string, string>>((acc, [key, value]) => { if (value !== undefined && value !== null) acc[key] = String(value); return acc; }, {})).toString();
     return this.http.get<{ jobs: JobListing[]; total: number; page?: number; pages?: number }>(`/work/jobs${query ? `?${query}` : ""}`);
@@ -949,10 +883,7 @@ class WorkResource {
 }
 
 class CloudResource {
-  private readonly http: HTTPClient;
-  constructor(http: HTTPClient) {
-    this.http = http;
-  }
+  constructor(readonly http: HTTPClient) {}
   getOverview() { return this.http.get<CloudOverviewData>("/cloud/overview"); }
   listApiKeys() { return this.http.get<{ keys: Array<Record<string, unknown>> }>("/cloud/keys"); }
   createApiKey(data: { name: string; scopes?: string[]; rateLimitRpm?: number; expiresAt?: string }) { return this.http.post<{ key: Record<string, unknown>; message: string }>("/cloud/keys", data); }

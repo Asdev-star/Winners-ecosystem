@@ -75,8 +75,13 @@ router.get("/quizzes/:quizId", async (req, res) => {
     if (!quiz) {
       return res.status(404).json({ error: "Quiz not found" });
     }
-    
-    res.json(quiz);
+
+    const course = await db.course.findFirst({
+      where: { id: quiz.courseId, deletedAt: null },
+      select: { id: true, slug: true, title: true },
+    });
+
+    res.json({ ...quiz, course });
   } catch (error) {
     console.error("Error fetching quiz:", error);
     res.status(500).json({ error: "Failed to fetch quiz" });

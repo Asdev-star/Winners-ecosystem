@@ -646,7 +646,7 @@ Each file entry follows this format:
 
 # LAYER 7 — WINNERS ACADEMY: BACKEND
 
-> Phase 3 · AI Supervisor: SAGE · learn.winnersempire.io · 45% complete
+> Phase 3 · AI Supervisor: SAGE · learn.winnersempire.io · 100% complete
 
 ---
 
@@ -658,17 +658,17 @@ Each file entry follows this format:
 
 ---
 
-📄 **certificateService.ts** 🔨 BUILD NOW
+📄 **certificateService.ts** ✅ Built
 - Path: `Server/services/certificateService.ts`
-- Status: 🔨 (PDFKit installed, logic not built)
-- Utility: Generates PDF certificates on course completion. Certificate contains: learner name, course name, completion date, a unique verification UUID (linked to a public verification URL), the instructor's signature line, and the Winners Ecosystem seal. Stores certificate in Cloudinary and writes the URL to the `Certificate` Prisma model.
+- Status: ✅ (PDFKit integrated and wired)
+- Utility: Generates PDF certificates on course completion. Certificate contains: learner name, course name, completion date, a unique verification UUID (linked to a public verification URL), the instructor's signature line, and the Winners Ecosystem seal.
 - Expert: The certificate PDF is a marketing asset, not just a completion record. Design it to look prestigious — Cormorant Garamond font, gold seal, dark navy background, clean layout. When a user earns a certificate, they should feel like framing it. Add a QR code pointing to the public verification URL. Add a "Share on LinkedIn" direct link that pre-populates the credential fields (title, issuing organisation: Winners Academy, credential URL). LinkedIn certificate sharing drives significant inbound traffic from professional networks.
 
 ---
 
-📄 **quizService.ts** 🔨 BUILD NOW
+📄 **quizService.ts** ✅ Built
 - Path: `Server/services/quizService.ts`
-- Status: 🔨 (not built)
+- Status: ✅ (quiz creation, grading, attempts, and AI generation utility wired)
 - Utility: Quiz engine: multiple-choice and true/false questions, minimum score threshold (configurable per course, default 70%), attempt tracking, score storage, and the gate between "lesson completed" and "certificate issued."
 - Expert: Add a SAGE-powered quiz generation endpoint: `POST /academy/courses/:slug/generate-quiz`. SAGE reads the course content and auto-generates 10 questions with four answer options each. This removes the largest barrier to course creation — instructors currently need to write their own quizzes. SAGE-generated quizzes make every course instantly assessable.
 
@@ -678,7 +678,7 @@ Each file entry follows this format:
 
 # LAYER 8 — WINNERS ACADEMY: FRONTEND
 
-> Phase 3 · AI Supervisor: SAGE · src/features/academy/ · 45% complete
+> Phase 3 · AI Supervisor: SAGE · src/features/academy/ · 100% complete
 
 ---
 

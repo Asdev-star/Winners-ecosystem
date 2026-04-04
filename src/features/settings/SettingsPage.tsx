@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSuperAdminAccess } from "../../app/useSuperAdminAccess";
 import { useAuthStore, getAuthHeaders } from "../auth/authStore";
+import { CrossAppSsoActions } from "../auth/CrossAppSsoActions";
 import { useInviteStore } from "../team/inviteStore";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
@@ -628,6 +629,7 @@ export default function SettingsPage() {
               <span className="st-chip">Workspace: {tenant?.name ?? "Loading"}</span>
             </div>
             <div className="st-copy" style={{ marginTop: 14 }}>{assistantSummary}</div>
+            {activeBranch.key === "account" ? <CrossAppSsoActions variant="settings" /> : null}
           </section>
 
           <section className="st-stats">

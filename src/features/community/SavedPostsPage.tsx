@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { API_BASE } from "../../lib/api";
 import { getAuthHeaders, useAuthStore } from "../auth/authStore";
 import ContextBar from "../../components/ui/ContextBar";
@@ -231,9 +232,9 @@ export default function SavedPostsPage() {
                 Save posts from the Community feed and they will appear here.
               </div>
               <div className="csp-actions" style={{ justifyContent: "center" }}>
-                <a className="csp-link" href="/community">
+                <Link className="csp-link" to="/community">
                   Go to feed
-                </a>
+                </Link>
               </div>
             </div>
           ) : (
@@ -259,9 +260,9 @@ export default function SavedPostsPage() {
                     <span>💬 {post.commentCount ?? 0}</span>
                   </div>
                   <div className="csp-actions">
-                    <a className="csp-link" href="/community">
+                    <Link className="csp-link" to="/community">
                       Back to feed
-                    </a>
+                    </Link>
                   </div>
                 </article>
               ))}

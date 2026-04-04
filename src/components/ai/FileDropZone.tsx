@@ -5,6 +5,7 @@
 // Extended with supervisor context for per-layer integration (NOVA, SAGE, CIRCUIT)
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from "react";
+import { API_BASE } from "../../lib/api";
 
 export type FileType = "image" | "pdf" | "audio" | "video";
 
@@ -284,7 +285,7 @@ export default function FileDropZone({
         if (supervisor) formData.append("supervisor", supervisor);
         if (context) formData.append("context", JSON.stringify(context));
 
-        const response = await fetch("/api/v1/ai-platform/analyze", {
+        const response = await fetch(`${API_BASE}/ai-platform/analyze`, {
           method: "POST",
           headers: token ? { "Authorization": `Bearer ${token}` } : {},
           body: formData,

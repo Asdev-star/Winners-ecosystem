@@ -9,10 +9,13 @@ import { usePresence } from "./usePresence";
 
 const API = API_BASE;
 
-function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem("token");
-  return token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+function getAuthHeaders(token?: string): Record<string, string> {
+  const authToken = token || localStorage.getItem("token");
+  return authToken
+    ? {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      }
     : { "Content-Type": "application/json" };
 }
 
@@ -274,7 +277,12 @@ const css = `
 
 function initials(name: string | null | undefined, email?: string) {
   const n = name || email || "?";
-  return n.split(" ").map((x) => x[0]).join("").toUpperCase().slice(0, 2);
+  return n
+    .split(" ")
+    .map((x) => x[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 function timeAgo(dateStr: string) {
@@ -288,7 +296,10 @@ function timeAgo(dateStr: string) {
 }
 
 function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(dateStr).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function MessagesPage() {
@@ -310,8 +321,11 @@ export default function MessagesPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const currentConv = conversations.find((c) => c.id === conversationId) ?? null;
-  const otherOnline = currentConv?.otherUser ? isOnline(currentConv.otherUser.id) : false;
+  const currentConv =
+    conversations.find((c) => c.id === conversationId) ?? null;
+  const otherOnline = currentConv?.otherUser
+    ? isOnline(currentConv.otherUser.id)
+    : false;
 
   const filteredConvs = conversations.filter((c) => {
     const name = c.otherUser?.name ?? c.otherUser?.email ?? c.title ?? "";
@@ -321,29 +335,45 @@ export default function MessagesPage() {
   const filteredUsers = tenantUsers.filter((u) => {
     if (u.id === user?.id) return false;
     const term = userSearch.toLowerCase();
-    return (u.name?.toLowerCase().includes(term) ?? false) || u.email.toLowerCase().includes(term);
+    return (
+      (u.name?.toLowerCase().includes(term) ?? false) ||
+      u.email.toLowerCase().includes(term)
+    );
   });
 
   const loadConversations = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/messages`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API}/messages`, {
+        headers: getAuthHeaders(token),
+      });
       if (res.ok) setConversations(await res.json());
-    } catch { /* silent */ } finally {
+    } catch {
+      /* silent */
+    } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
-  const loadMessages = useCallback(async (convId: string) => {
-    try {
-      const res = await fetch(`${API}/messages/${convId}`, { headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages ?? []);
+  const loadMessages = useCallback(
+    async (convId: string) => {
+      try {
+        const res = await fetch(`${API}/messages/${convId}`, {
+          headers: getAuthHeaders(token),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMessages(data.messages ?? []);
+        }
+      } catch {
+        /* silent */
       }
-    } catch { /* silent */ }
-  }, []);
+    },
+    [token],
+  );
 
-  useEffect(() => { loadConversations(); }, [loadConversations]);
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
 
   useEffect(() => {
     if (conversationId) {
@@ -376,10 +406,14 @@ export default function MessagesPage() {
           }
           loadConversations();
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
 
-    return () => { socket.close(); };
+    return () => {
+      socket.close();
+    };
   }, [token, conversationId, loadConversations]);
 
   const handleSend = useCallback(async () => {
@@ -397,15 +431,19 @@ export default function MessagesPage() {
     try {
       const res = await fetch(`${API}/messages/${conversationId}`, {
         method: "POST",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(token),
         body: JSON.stringify({ content: optimistic.content }),
       });
       if (res.ok) {
         const msg = await res.json();
-        setMessages((prev) => prev.map((m) => m.id === optimistic.id ? msg : m));
+        setMessages((prev) =>
+          prev.map((m) => (m.id === optimistic.id ? msg : m)),
+        );
         loadConversations();
       }
-    } catch { /* silent */ } finally {
+    } catch {
+      /* silent */
+    } finally {
       setSending(false);
     }
   }, [newMessage, conversationId, sending, user, loadConversations]);
@@ -415,12 +453,16 @@ export default function MessagesPage() {
     setUserSearch("");
     setUsersLoading(true);
     try {
-      const res = await fetch(`${API}/users`, { headers: getAuthHeaders() });
+      const res = await fetch(`${API}/users`, {
+        headers: getAuthHeaders(token),
+      });
       if (res.ok) {
         const data = await res.json();
         setTenantUsers(data.users ?? data ?? []);
       }
-    } catch { /* silent */ } finally {
+    } catch {
+      /* silent */
+    } finally {
       setUsersLoading(false);
     }
   };
@@ -430,7 +472,7 @@ export default function MessagesPage() {
     try {
       const res = await fetch(`${API}/messages`, {
         method: "POST",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders(token),
         body: JSON.stringify({ participantId }),
       });
       if (res.ok) {
@@ -438,11 +480,15 @@ export default function MessagesPage() {
         await loadConversations();
         navigate(`/messages/${conv.id}`);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   };
 
   const convName = (c: Conversation) =>
-    c.isGroup && c.title ? c.title : (c.otherUser?.name ?? c.otherUser?.email ?? "Unknown");
+    c.isGroup && c.title
+      ? c.title
+      : (c.otherUser?.name ?? c.otherUser?.email ?? "Unknown");
 
   return (
     <>
@@ -450,11 +496,19 @@ export default function MessagesPage() {
 
       {/* New Message Modal */}
       {showNewModal && (
-        <div className="dm-modal-overlay" onClick={() => setShowNewModal(false)}>
+        <div
+          className="dm-modal-overlay"
+          onClick={() => setShowNewModal(false)}
+        >
           <div className="dm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="dm-modal-header">
               <span className="dm-modal-title">New Message</span>
-              <button className="dm-modal-close" onClick={() => setShowNewModal(false)}>×</button>
+              <button
+                className="dm-modal-close"
+                onClick={() => setShowNewModal(false)}
+              >
+                ×
+              </button>
             </div>
             <div className="dm-modal-search">
               <input
@@ -466,22 +520,44 @@ export default function MessagesPage() {
             </div>
             <div className="dm-user-list">
               {usersLoading ? (
-                <div style={{ padding: "20px", color: "var(--text-dim)", fontSize: "13px", textAlign: "center" }}>
+                <div
+                  style={{
+                    padding: "20px",
+                    color: "var(--text-dim)",
+                    fontSize: "13px",
+                    textAlign: "center",
+                  }}
+                >
                   Loading...
                 </div>
               ) : filteredUsers.length === 0 ? (
-                <div style={{ padding: "20px", color: "var(--text-dim)", fontSize: "13px", textAlign: "center" }}>
+                <div
+                  style={{
+                    padding: "20px",
+                    color: "var(--text-dim)",
+                    fontSize: "13px",
+                    textAlign: "center",
+                  }}
+                >
                   No users found
                 </div>
-              ) : filteredUsers.slice(0, 20).map((u) => (
-                <div key={u.id} className="dm-user-item" onClick={() => startConversation(u.id)}>
-                  <div className="dm-user-avatar">{initials(u.name, u.email)}</div>
-                  <div>
-                    <div className="dm-user-name">{u.name ?? u.email}</div>
-                    <div className="dm-user-email">{u.email}</div>
+              ) : (
+                filteredUsers.slice(0, 20).map((u) => (
+                  <div
+                    key={u.id}
+                    className="dm-user-item"
+                    onClick={() => startConversation(u.id)}
+                  >
+                    <div className="dm-user-avatar">
+                      {initials(u.name, u.email)}
+                    </div>
+                    <div>
+                      <div className="dm-user-name">{u.name ?? u.email}</div>
+                      <div className="dm-user-email">{u.email}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -493,9 +569,17 @@ export default function MessagesPage() {
           <div className="dm-sidebar-header">
             <div>
               <div className="dm-sidebar-title">Messages</div>
-              <div className="dm-sidebar-sub">{conversations.length} conversations</div>
+              <div className="dm-sidebar-sub">
+                {conversations.length} conversations
+              </div>
             </div>
-            <button className="dm-new-btn" onClick={openNewModal} title="New Message">+</button>
+            <button
+              className="dm-new-btn"
+              onClick={openNewModal}
+              title="New Message"
+            >
+              +
+            </button>
           </div>
 
           <div className="dm-search">
@@ -509,47 +593,94 @@ export default function MessagesPage() {
           <div className="dm-conv-list">
             {loading ? (
               [0, 1, 2].map((i) => (
-                <div key={i} style={{ padding: "14px 16px", display: "flex", gap: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--surface2)", animation: "pulse 1.5s ease infinite" }} />
+                <div
+                  key={i}
+                  style={{ padding: "14px 16px", display: "flex", gap: 10 }}
+                >
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: "50%",
+                      background: "var(--surface2)",
+                      animation: "pulse 1.5s ease infinite",
+                    }}
+                  />
                   <div style={{ flex: 1 }}>
-                    <div style={{ height: 12, background: "var(--surface2)", borderRadius: 4, marginBottom: 6, width: "60%", animation: "pulse 1.5s ease infinite" }} />
-                    <div style={{ height: 10, background: "var(--surface2)", borderRadius: 4, width: "80%", animation: "pulse 1.5s ease infinite" }} />
+                    <div
+                      style={{
+                        height: 12,
+                        background: "var(--surface2)",
+                        borderRadius: 4,
+                        marginBottom: 6,
+                        width: "60%",
+                        animation: "pulse 1.5s ease infinite",
+                      }}
+                    />
+                    <div
+                      style={{
+                        height: 10,
+                        background: "var(--surface2)",
+                        borderRadius: 4,
+                        width: "80%",
+                        animation: "pulse 1.5s ease infinite",
+                      }}
+                    />
                   </div>
                 </div>
               ))
             ) : filteredConvs.length === 0 ? (
-              <div style={{ padding: "24px 16px", color: "var(--text-dim)", fontSize: "13px", textAlign: "center" }}>
-                {convSearch ? "No conversations match" : "No messages yet — click + to start one"}
+              <div
+                style={{
+                  padding: "24px 16px",
+                  color: "var(--text-dim)",
+                  fontSize: "13px",
+                  textAlign: "center",
+                }}
+              >
+                {convSearch
+                  ? "No conversations match"
+                  : "No messages yet — click + to start one"}
               </div>
-            ) : filteredConvs.map((conv) => {
-              const online = conv.otherUser ? isOnline(conv.otherUser.id) : false;
-              return (
-                <div
-                  key={conv.id}
-                  className={`dm-conv-item ${conversationId === conv.id ? "active" : ""}`}
-                  onClick={() => navigate(`/messages/${conv.id}`)}
-                >
-                  <div className="dm-conv-avatar-wrap">
-                    <div className="dm-conv-avatar">{initials(convName(conv))}</div>
-                    {online && <div className="dm-online-dot" />}
-                  </div>
-                  <div className="dm-conv-info">
-                    <div className="dm-conv-name">{convName(conv)}</div>
-                    <div className="dm-conv-preview">
-                      {conv.lastMessage?.content ?? "No messages yet"}
+            ) : (
+              filteredConvs.map((conv) => {
+                const online = conv.otherUser
+                  ? isOnline(conv.otherUser.id)
+                  : false;
+                return (
+                  <div
+                    key={conv.id}
+                    className={`dm-conv-item ${conversationId === conv.id ? "active" : ""}`}
+                    onClick={() => navigate(`/messages/${conv.id}`)}
+                  >
+                    <div className="dm-conv-avatar-wrap">
+                      <div className="dm-conv-avatar">
+                        {initials(convName(conv))}
+                      </div>
+                      {online && <div className="dm-online-dot" />}
+                    </div>
+                    <div className="dm-conv-info">
+                      <div className="dm-conv-name">{convName(conv)}</div>
+                      <div className="dm-conv-preview">
+                        {conv.lastMessage?.content ?? "No messages yet"}
+                      </div>
+                    </div>
+                    <div className="dm-conv-meta">
+                      {conv.lastMessage && (
+                        <span className="dm-conv-time">
+                          {timeAgo(conv.lastMessage.createdAt)}
+                        </span>
+                      )}
+                      {conv.unreadCount > 0 && (
+                        <span className="dm-unread-badge">
+                          {conv.unreadCount}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="dm-conv-meta">
-                    {conv.lastMessage && (
-                      <span className="dm-conv-time">{timeAgo(conv.lastMessage.createdAt)}</span>
-                    )}
-                    {conv.unreadCount > 0 && (
-                      <span className="dm-unread-badge">{conv.unreadCount}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -557,11 +688,20 @@ export default function MessagesPage() {
         {conversationId && currentConv ? (
           <div className={`dm-chat${conversationId ? " active" : ""}`}>
             <div className="dm-chat-header">
-              <button className="dm-chat-back" onClick={() => navigate("/messages")}>←</button>
-              <div className="dm-chat-avatar">{initials(convName(currentConv))}</div>
+              <button
+                className="dm-chat-back"
+                onClick={() => navigate("/messages")}
+              >
+                ←
+              </button>
+              <div className="dm-chat-avatar">
+                {initials(convName(currentConv))}
+              </div>
               <div>
                 <div className="dm-chat-name">{convName(currentConv)}</div>
-                <div className={`dm-chat-status${otherOnline ? "" : " offline"}`}>
+                <div
+                  className={`dm-chat-status${otherOnline ? "" : " offline"}`}
+                >
                   {otherOnline ? "● Online" : "Offline"}
                 </div>
               </div>
@@ -569,18 +709,32 @@ export default function MessagesPage() {
 
             <div className="dm-messages">
               {messages.length === 0 ? (
-                <div style={{ textAlign: "center", color: "var(--text-dim)", fontSize: "13px", marginTop: "40px" }}>
+                <div
+                  style={{
+                    textAlign: "center",
+                    color: "var(--text-dim)",
+                    fontSize: "13px",
+                    marginTop: "40px",
+                  }}
+                >
                   No messages yet — say hello!
                 </div>
-              ) : messages.map((msg) => (
-                <div key={msg.id} className={`dm-message ${msg.sender.id === user?.id ? "sent" : "received"}`}>
-                  {msg.sender.id !== user?.id && (
-                    <div className="dm-msg-sender">{msg.sender.name}</div>
-                  )}
-                  <div className="dm-msg-bubble">{msg.content}</div>
-                  <div className="dm-msg-time">{formatTime(msg.createdAt)}</div>
-                </div>
-              ))}
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`dm-message ${msg.sender.id === user?.id ? "sent" : "received"}`}
+                  >
+                    {msg.sender.id !== user?.id && (
+                      <div className="dm-msg-sender">{msg.sender.name}</div>
+                    )}
+                    <div className="dm-msg-bubble">{msg.content}</div>
+                    <div className="dm-msg-time">
+                      {formatTime(msg.createdAt)}
+                    </div>
+                  </div>
+                ))
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -591,11 +745,18 @@ export default function MessagesPage() {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
                 }}
                 rows={1}
               />
-              <button className="dm-send-btn" onClick={handleSend} disabled={!newMessage.trim() || sending}>
+              <button
+                className="dm-send-btn"
+                onClick={handleSend}
+                disabled={!newMessage.trim() || sending}
+              >
                 ➤
               </button>
             </div>
@@ -605,7 +766,8 @@ export default function MessagesPage() {
             <div className="dm-empty-icon">💬</div>
             <div className="dm-empty-title">Your Messages</div>
             <div className="dm-empty-text">
-              Select a conversation or click <strong>+</strong> to start a new one
+              Select a conversation or click <strong>+</strong> to start a new
+              one
             </div>
           </div>
         )}
