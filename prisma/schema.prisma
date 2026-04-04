@@ -292,6 +292,7 @@ model User {
   videoRoomParticipations    VideoRoomParticipant[]
   hostedVideoRooms           VideoRoom[]
   mobileSessions             MobileSession[]
+  appDownloads               AppDownload[]
   userActivities             UserActivity[]
   errorReports               ErrorReport[]
 
