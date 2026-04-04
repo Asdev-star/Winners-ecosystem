@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { PrismaClient, type Prisma } from "@prisma/client";
+import * as Prisma from "@prisma/client";
+import { prisma } from "../db.js";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
-const prisma = new PrismaClient();
 const router = Router();
 
 const createSignalSchema = z.object({
@@ -39,7 +39,7 @@ router.get("/signals", async (req, res) => {
 router.post("/signals", async (req, res) => {
   try {
     const validatedData = createSignalSchema.parse(req.body);
-    const data: Prisma.TradingSignalUncheckedCreateInput = {
+    const data = {
       tenantId: req.user!.tenantId,
       userId: req.user!.userId,
       status: "active",
