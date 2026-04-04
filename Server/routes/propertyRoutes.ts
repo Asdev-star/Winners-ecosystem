@@ -5,7 +5,7 @@
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireLayerAccess } from "../middleware/layerAccessMiddleware.js";
-import { db } from "../db";
+import { db } from "../db.js";
 
 const router = Router();
 
