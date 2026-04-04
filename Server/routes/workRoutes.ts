@@ -44,19 +44,19 @@ type CircuitScoredJob = CircuitRecommendation & {
   suggestedRate: number;
 };
 
-function normalizeSkill(value: string) {
+export function normalizeSkill(value: string) {
   return value.trim().toLowerCase();
 }
 
-function clamp(value: number, min: number, max: number) {
+export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function dedupeNormalized(values: Array<string | null | undefined>) {
+export function dedupeNormalized(values: Array<string | null | undefined>) {
   return [...new Set(values.map((value) => normalizeSkill(value ?? "")).filter(Boolean))];
 }
 
-function expectedYearsForLevel(level: string) {
+export function expectedYearsForLevel(level: string) {
   switch (normalizeSkill(level)) {
     case "entry":
       return 0;
@@ -71,7 +71,7 @@ function expectedYearsForLevel(level: string) {
   }
 }
 
-function estimateDaysForJob(job: {
+export function estimateDaysForJob(job: {
   budgetMin: number | null;
   budgetMax: number | null;
   experienceLevel: string;

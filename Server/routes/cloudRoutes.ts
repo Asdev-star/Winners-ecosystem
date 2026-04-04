@@ -14,7 +14,7 @@ router.use(enforceTenant);
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-function generateApiKey(): { raw: string; hash: string; prefix: string } {
+export function generateApiKey(): { raw: string; hash: string; prefix: string } {
   const raw    = `wn_live_${randomBytes(32).toString("hex")}`;
   const hash   = createHash("sha256").update(raw).digest("hex");
   const prefix = raw.slice(0, 14);
