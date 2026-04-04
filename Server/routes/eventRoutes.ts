@@ -4,7 +4,7 @@
 
 import { Router, Request, Response } from "express";
 import Stripe from "stripe";
-import { authMiddleware } from "../middleware/authMiddleware";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireLayerAccess } from "../middleware/layerAccessMiddleware.js";
 import { db } from "../db";
 

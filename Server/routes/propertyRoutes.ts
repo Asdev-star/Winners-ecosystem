@@ -3,7 +3,7 @@
 // ATLAS AI supervisor integration
 
 import { Router, Request, Response } from "express";
-import { authMiddleware } from "../middleware/authMiddleware";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import { requireLayerAccess } from "../middleware/layerAccessMiddleware.js";
 import { db } from "../db";
 
