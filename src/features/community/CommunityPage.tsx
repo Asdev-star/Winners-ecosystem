@@ -1465,7 +1465,14 @@ interface HandoffCard {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function initials(name: string) {
-  return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+  return (
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?"
+  );
 }
 
 function timeAgo(iso: string) {
@@ -1490,7 +1497,9 @@ function normalizeConfidence(raw: number): number {
   return Number((raw / 100).toFixed(2));
 }
 
-function mapDetectedSkills(skills: Array<{ skill: string; confidence: number; category?: string }>): SkillDetection[] {
+function mapDetectedSkills(
+  skills: Array<{ skill: string; confidence: number; category?: string }>,
+): SkillDetection[] {
   return skills.map((skill) => ({
     skillName: skill.skill,
     confidence: normalizeConfidence(skill.confidence),
@@ -1505,20 +1514,25 @@ function mapLoopStageIndex(stage?: string): number {
   return index >= 0 ? index : 0;
 }
 
-function createHandoffCards(recommendations: RecommendationItem[]): HandoffCard[] {
+function createHandoffCards(
+  recommendations: RecommendationItem[],
+): HandoffCard[] {
   return recommendations.slice(0, 2).map((item, index) => ({
     id: item.id ?? `${item.title}-${index}`,
     variant: "nova-sage",
     fromSupervisor: "NOVA",
     toSupervisor: "SAGE",
     title: `${item.title} is ready for certification`,
-    description: item.reason ?? "SAGE found a course to deepen your detected skill.",
+    description:
+      item.reason ?? "SAGE found a course to deepen your detected skill.",
     ctaLabel: "Continue Your Loop →",
     ctaHref: item.href ?? "/academy",
   }));
 }
 
-function mapOpportunityBoard(opportunities?: CommunityOpportunitiesResponse["opportunities"]): Opportunity[] {
+function mapOpportunityBoard(
+  opportunities?: CommunityOpportunitiesResponse["opportunities"],
+): Opportunity[] {
   const skillMatch = opportunities?.skillMatch;
   const learningGap = opportunities?.learningGap;
   const marketOpening = opportunities?.marketOpening;
@@ -1531,29 +1545,39 @@ function mapOpportunityBoard(opportunities?: CommunityOpportunitiesResponse["opp
       type: "skill",
       label: skillMatch?.label ?? "SKILL MATCH",
       supervisor: skillMatch?.supervisor ?? "CIRCUIT",
-      title: skillItem?.title ?? skillMatch?.title ?? SEED_OPPORTUNITIES[0].title,
+      title:
+        skillItem?.title ?? skillMatch?.title ?? SEED_OPPORTUNITIES[0].title,
       description:
         typeof skillItem?.budget !== "undefined" && skillItem?.budget !== null
           ? `${skillMatch?.description ?? "CIRCUIT matched this to your detected skills"} · Budget ${String(skillItem.budget)}`
-          : skillMatch?.description ?? SEED_OPPORTUNITIES[0].description,
+          : (skillMatch?.description ?? SEED_OPPORTUNITIES[0].description),
       ctaLabel: skillMatch?.ctaLabel ?? SEED_OPPORTUNITIES[0].ctaLabel,
-      ctaHref: skillItem?.link ?? skillMatch?.ctaHref ?? SEED_OPPORTUNITIES[0].ctaHref,
+      ctaHref:
+        skillItem?.link ?? skillMatch?.ctaHref ?? SEED_OPPORTUNITIES[0].ctaHref,
     },
     {
       type: "course",
       label: learningGap?.label ?? "LEARNING GAP",
       supervisor: learningGap?.supervisor ?? "SAGE",
-      title: courseItem?.title ?? learningGap?.title ?? SEED_OPPORTUNITIES[1].title,
-      description: courseItem?.reason ?? learningGap?.description ?? SEED_OPPORTUNITIES[1].description,
+      title:
+        courseItem?.title ?? learningGap?.title ?? SEED_OPPORTUNITIES[1].title,
+      description:
+        courseItem?.reason ??
+        learningGap?.description ??
+        SEED_OPPORTUNITIES[1].description,
       ctaLabel: learningGap?.ctaLabel ?? SEED_OPPORTUNITIES[1].ctaLabel,
-      ctaHref: courseItem?.href ?? learningGap?.ctaHref ?? SEED_OPPORTUNITIES[1].ctaHref,
+      ctaHref:
+        courseItem?.href ??
+        learningGap?.ctaHref ??
+        SEED_OPPORTUNITIES[1].ctaHref,
     },
     {
       type: "market",
       label: marketOpening?.label ?? "MARKET OPENING",
       supervisor: marketOpening?.supervisor ?? "ATLAS",
       title: marketOpening?.title ?? SEED_OPPORTUNITIES[2].title,
-      description: marketOpening?.description ?? SEED_OPPORTUNITIES[2].description,
+      description:
+        marketOpening?.description ?? SEED_OPPORTUNITIES[2].description,
       ctaLabel: marketOpening?.ctaLabel ?? SEED_OPPORTUNITIES[2].ctaLabel,
       ctaHref: marketOpening?.ctaHref ?? SEED_OPPORTUNITIES[2].ctaHref,
     },
@@ -1568,17 +1592,26 @@ function normalizeTags(tags: unknown): { tag: { name: string } }[] {
     return (tags as string[]).map((tag) => ({ tag: { name: tag } }));
   }
 
-  return (tags as Array<{ tag?: { name?: string } }>).map((item) => ({
-    tag: { name: item?.tag?.name ?? "" },
-  })).filter((item) => item.tag.name.length > 0);
+  return (tags as Array<{ tag?: { name?: string } }>)
+    .map((item) => ({
+      tag: { name: item?.tag?.name ?? "" },
+    }))
+    .filter((item) => item.tag.name.length > 0);
 }
 
-function normalizePost(post: Partial<Post> & Record<string, unknown>, index: number, currentUserId?: string): Post {
+function normalizePost(
+  post: Partial<Post> & Record<string, unknown>,
+  index: number,
+  currentUserId?: string,
+): Post {
   const tags = normalizeTags(post.tags);
   const likes = Array.isArray(post.likes)
-    ? (post.likes as Array<{ userId?: string }>).filter((like) => !!like.userId).map((like) => ({ userId: String(like.userId) }))
+    ? (post.likes as Array<{ userId?: string }>)
+        .filter((like) => !!like.userId)
+        .map((like) => ({ userId: String(like.userId) }))
     : [];
-  const liked = Boolean(post.liked) || likes.some((like) => like.userId === currentUserId);
+  const liked =
+    Boolean(post.liked) || likes.some((like) => like.userId === currentUserId);
 
   const fallbackSkillDetections =
     tags.length > 0
@@ -1595,22 +1628,31 @@ function normalizePost(post: Partial<Post> & Record<string, unknown>, index: num
     authorId: String(post.authorId ?? ""),
     author: {
       id: String((post.author as { id?: string } | undefined)?.id ?? ""),
-      name: String((post.author as { name?: string } | undefined)?.name ?? "Unknown"),
+      name: String(
+        (post.author as { name?: string } | undefined)?.name ?? "Unknown",
+      ),
       role: (post.author as { role?: string } | undefined)?.role ?? "Member",
     },
     tags,
-    likes: likes.length > 0 ? likes : liked && currentUserId ? [{ userId: currentUserId }] : [],
+    likes:
+      likes.length > 0
+        ? likes
+        : liked && currentUserId
+          ? [{ userId: currentUserId }]
+          : [],
     comments: Array.isArray(post.comments) ? (post.comments as Comment[]) : [],
     isPinned: Boolean(post.isPinned),
     createdAt: String(post.createdAt ?? new Date().toISOString()),
     _count: post._count as { likes: number; comments: number } | undefined,
     likeCount: typeof post.likeCount === "number" ? post.likeCount : undefined,
-    commentCount: typeof post.commentCount === "number" ? post.commentCount : undefined,
+    commentCount:
+      typeof post.commentCount === "number" ? post.commentCount : undefined,
     liked,
     skillDetections: Array.isArray(post.skillDetections)
       ? (post.skillDetections as SkillDetection[])
       : fallbackSkillDetections,
-    loopStage: index % 3 === 0 ? "skill" : index % 3 === 1 ? "course" : "income",
+    loopStage:
+      index % 3 === 0 ? "skill" : index % 3 === 1 ? "course" : "income",
   };
 }
 
@@ -1765,51 +1807,65 @@ function PostSkeleton() {
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function CommunityPage() {
   const token = useAuthStore((s) => s.token);
-  const user  = useAuthStore((s) => s.user);
+  const user = useAuthStore((s) => s.user);
   const { isOnline, onlineCount } = usePresence();
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Feed state
-  const [posts, setPosts]         = useState<Post[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [posting, setPosting]     = useState(false);
-  const [page, setPage]           = useState(1);
-  const [hasMore, setHasMore]     = useState(false);
-  const [feedTab, setFeedTab]     = useState<"foryou" | "following" | "nova">("foryou");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [posting, setPosting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [feedTab, setFeedTab] = useState<"foryou" | "following" | "nova">(
+    "foryou",
+  );
   const [newPostsCount, setNewPostsCount] = useState(0);
 
   // Composer state
-  const [content, setContent]       = useState("");
-  const [tags, setTags]             = useState("");
+  const [content, setContent] = useState("");
+  const [tags, setTags] = useState("");
   const [quickContent, setQuickContent] = useState("");
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
 
   // Comments state
-  const [openComments, setOpenComments]           = useState<Set<string>>(new Set());
-  const [commentText, setCommentText]             = useState<Record<string, string>>({});
-  const [submittingComment, setSubmittingComment] = useState<string | null>(null);
+  const [openComments, setOpenComments] = useState<Set<string>>(new Set());
+  const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const [submittingComment, setSubmittingComment] = useState<string | null>(
+    null,
+  );
 
   // Reactions
-  const [activeReactionPicker, setActiveReactionPicker] = useState<string | null>(null);
+  const [activeReactionPicker, setActiveReactionPicker] = useState<
+    string | null
+  >(null);
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
 
   // NOVA state
-  const [novaInsight, setNovaInsight]     = useState("");
+  const [novaInsight, setNovaInsight] = useState("");
   const [novaStreaming, setNovaStreaming] = useState(true);
   const [showNovaBanner, setShowNovaBanner] = useState(true);
-  const [handoffCards, setHandoffCards]   = useState<HandoffCard[]>([]);
+  const [handoffCards, setHandoffCards] = useState<HandoffCard[]>([]);
   const [detectedSkills, setDetectedSkills] = useState<SkillDetection[]>([]);
-  const [opportunityBoard, setOpportunityBoard] = useState<Opportunity[]>(SEED_OPPORTUNITIES);
-  const [opportunityUpdatedAt, setOpportunityUpdatedAt] = useState<string | null>(null);
-  const [nextLoopAction, setNextLoopAction] = useState("Post more to trigger skill detection");
+  const [opportunityBoard, setOpportunityBoard] =
+    useState<Opportunity[]>(SEED_OPPORTUNITIES);
+  const [opportunityUpdatedAt, setOpportunityUpdatedAt] = useState<
+    string | null
+  >(null);
+  const [nextLoopAction, setNextLoopAction] = useState(
+    "Post more to trigger skill detection",
+  );
 
-  const [totalPosts, setTotalPosts]     = useState(SEED_TOTAL_POSTS);
-  const [totalLikes, setTotalLikes]     = useState(SEED_TOTAL_LIKES);
-  const [loopStage, setLoopStage]       = useState(1);
-  const [trustScore]                    = useState(67);
+  const [totalPosts, setTotalPosts] = useState(SEED_TOTAL_POSTS);
+  const [totalLikes, setTotalLikes] = useState(SEED_TOTAL_LIKES);
+  const [loopStage, setLoopStage] = useState(1);
+  const [trustScore] = useState(67);
 
   const headers = useMemo(
-    () => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }),
+    () => ({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }),
     [token],
   );
 
@@ -1817,13 +1873,16 @@ export default function CommunityPage() {
     composerRef.current?.focus();
   }, []);
 
-  const useComposerPrompt = useCallback((nextContent: string, nextTags = "") => {
-    setContent((prev) => (prev.trim().length > 0 ? prev : nextContent));
-    if (nextTags) {
-      setTags((prev) => (prev.trim().length > 0 ? prev : nextTags));
-    }
-    requestAnimationFrame(() => composerRef.current?.focus());
-  }, []);
+  const applyComposerPrompt = useCallback(
+    (nextContent: string, nextTags = "") => {
+      setContent((prev) => (prev.trim().length > 0 ? prev : nextContent));
+      if (nextTags) {
+        setTags((prev) => (prev.trim().length > 0 ? prev : nextTags));
+      }
+      requestAnimationFrame(() => composerRef.current?.focus());
+    },
+    [],
+  );
 
   const refreshCommunityIntelligence = useCallback(async () => {
     try {
@@ -1833,21 +1892,30 @@ export default function CommunityPage() {
       ]);
 
       if (opportunitiesRes.ok) {
-        const opportunitiesData = await opportunitiesRes.json() as CommunityOpportunitiesResponse;
-        const courseRecommendations = opportunitiesData.opportunities?.learningGap?.items ?? [];
-        setOpportunityBoard(mapOpportunityBoard(opportunitiesData.opportunities));
+        const opportunitiesData =
+          (await opportunitiesRes.json()) as CommunityOpportunitiesResponse;
+        const courseRecommendations =
+          opportunitiesData.opportunities?.learningGap?.items ?? [];
+        setOpportunityBoard(
+          mapOpportunityBoard(opportunitiesData.opportunities),
+        );
         setHandoffCards(createHandoffCards(courseRecommendations));
-        setOpportunityUpdatedAt(opportunitiesData.lastUpdated ?? new Date().toISOString());
+        setOpportunityUpdatedAt(
+          opportunitiesData.lastUpdated ?? new Date().toISOString(),
+        );
       }
 
       if (loopStatusRes.ok) {
-        const loopStatusData = await loopStatusRes.json() as CommunityLoopStatusResponse;
+        const loopStatusData =
+          (await loopStatusRes.json()) as CommunityLoopStatusResponse;
         const mappedSkills = Array.isArray(loopStatusData.skills)
           ? mapDetectedSkills(loopStatusData.skills)
           : [];
         setDetectedSkills(mappedSkills);
         setLoopStage(mapLoopStageIndex(loopStatusData.loop?.currentStage));
-        setNextLoopAction(loopStatusData.nextAction ?? "Post more to trigger skill detection");
+        setNextLoopAction(
+          loopStatusData.nextAction ?? "Post more to trigger skill detection",
+        );
       }
     } catch {
       setOpportunityBoard(SEED_OPPORTUNITIES);
@@ -1856,42 +1924,50 @@ export default function CommunityPage() {
   }, [headers]);
 
   // ── Fetch posts ──────────────────────────────────────────────────────────────
-  const fetchPosts = useCallback(async (p = 1, append = false) => {
-    if (p === 1) setLoading(true);
-    try {
-      const endpoint =
-        feedTab === "nova"
-          ? `${API}/community/feed/intelligence?page=${p}&limit=10`
-          : `${API}/posts?page=${p}&limit=10`;
-      const res = await fetch(endpoint, { headers });
-      if (!res.ok) throw new Error("Failed to fetch posts");
+  const fetchPosts = useCallback(
+    async (p = 1, append = false) => {
+      if (p === 1) setLoading(true);
+      try {
+        const endpoint =
+          feedTab === "nova"
+            ? `${API}/community/feed/intelligence?page=${p}&limit=10`
+            : `${API}/posts?page=${p}&limit=10`;
+        const res = await fetch(endpoint, { headers });
+        if (!res.ok) throw new Error("Failed to fetch posts");
 
-      const data = await res.json();
-      const list: Post[] = (data.posts ?? []).map(
-        (post: Partial<Post> & Record<string, unknown>, i: number) => normalizePost(post, i, user?.id),
-      );
+        const data = await res.json();
+        const list: Post[] = (data.posts ?? []).map(
+          (post: Partial<Post> & Record<string, unknown>, i: number) =>
+            normalizePost(post, i, user?.id),
+        );
 
-      setPosts((prev) => append ? [...prev, ...list] : list);
-      setHasMore(
-        Boolean(
-          data.hasMore ??
-          (typeof data?.pagination?.pages === "number" ? p < data.pagination.pages : false),
-        ),
-      );
-      if (append) setTotalPosts((n) => n + list.length);
-    } catch {
-      if (p === 1) {
-        setPosts(SEED_POSTS);
-        setHasMore(false);
-        setTotalPosts(SEED_TOTAL_POSTS);
-        setTotalLikes(SEED_TOTAL_LIKES);
+        setPosts((prev) => (append ? [...prev, ...list] : list));
+        setHasMore(
+          Boolean(
+            data.hasMore ??
+            (typeof data?.pagination?.pages === "number"
+              ? p < data.pagination.pages
+              : false),
+          ),
+        );
+        if (append) setTotalPosts((n) => n + list.length);
+      } catch {
+        if (p === 1) {
+          setPosts(SEED_POSTS);
+          setHasMore(false);
+          setTotalPosts(SEED_TOTAL_POSTS);
+          setTotalLikes(SEED_TOTAL_LIKES);
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [feedTab, headers, user?.id]);
+    },
+    [feedTab, headers, user?.id],
+  );
 
-  useEffect(() => { fetchPosts(1); }, [fetchPosts]);
+  useEffect(() => {
+    fetchPosts(1);
+  }, [fetchPosts]);
 
   useEffect(() => {
     refreshCommunityIntelligence();
@@ -1909,7 +1985,9 @@ export default function CommunityPage() {
 
         const ids = new Set<string>(
           Array.isArray(data?.saved)
-            ? data.saved.map((post: { id?: string }) => String(post?.id ?? "")).filter(Boolean)
+            ? data.saved
+                .map((post: { id?: string }) => String(post?.id ?? ""))
+                .filter(Boolean)
             : [],
         );
         setSavedPosts(ids);
@@ -1930,13 +2008,16 @@ export default function CommunityPage() {
 
     const loadInsight = async () => {
       try {
-        const res = await fetch(`${API}/community/insights/banner`, { headers });
+        const res = await fetch(`${API}/community/insights/banner`, {
+          headers,
+        });
         if (!res.ok) throw new Error("Failed to fetch insight");
         const data = await res.json();
         if (cancelled) return;
         setNovaInsight(String(data?.insight ?? ""));
       } catch {
-        const fallback = NOVA_INSIGHTS[Math.floor(Math.random() * NOVA_INSIGHTS.length)];
+        const fallback =
+          NOVA_INSIGHTS[Math.floor(Math.random() * NOVA_INSIGHTS.length)];
         if (cancelled) return;
         setNovaInsight(fallback);
       } finally {
@@ -1984,10 +2065,14 @@ export default function CommunityPage() {
         if (data.type === "NEW_POST") {
           setNewPostsCount((c) => c + 1);
         }
-      } catch { /* ignore parse errors */ }
+      } catch {
+        /* ignore parse errors */
+      }
     };
 
-    return () => { socket.close(); };
+    return () => {
+      socket.close();
+    };
   }, [feedTab, token]);
 
   // ── Post handlers ──────────────────────────────────────────────────────────── ────────────────────────────────────────────────────────────
@@ -1995,7 +2080,10 @@ export default function CommunityPage() {
     if (!c.trim() || posting) return;
     setPosting(true);
     try {
-      const tagArr = t.split(",").map((s) => s.trim()).filter(Boolean);
+      const tagArr = t
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       const res = await fetch(`${API}/posts`, {
         method: "POST",
         headers,
@@ -2056,14 +2144,18 @@ export default function CommunityPage() {
   };
 
   const handleLike = async (postId: string) => {
-    const res = await fetch(`${API}/posts/${postId}/like`, { method: "POST", headers });
+    const res = await fetch(`${API}/posts/${postId}/like`, {
+      method: "POST",
+      headers,
+    });
     const data = await res.json();
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
         const hasMyLike = p.likes?.some((l) => l.userId === user?.id);
         const currentLikes = p.likes ?? [];
-        const currentLikeCount = p.likeCount ?? p._count?.likes ?? currentLikes.length;
+        const currentLikeCount =
+          p.likeCount ?? p._count?.likes ?? currentLikes.length;
         if (data.liked === true && !hasMyLike)
           return {
             ...p,
@@ -2079,7 +2171,7 @@ export default function CommunityPage() {
             likeCount: Math.max(0, currentLikeCount - 1),
           };
         return p;
-      })
+      }),
     );
   };
 
@@ -2098,10 +2190,12 @@ export default function CommunityPage() {
             if (p.id !== postId) return p;
             return {
               ...p,
-              reactions: Array.isArray(data?.reactions) ? (data.reactions as { reaction: string; userId: string }[]) : (p.reactions ?? []),
+              reactions: Array.isArray(data?.reactions)
+                ? (data.reactions as { reaction: string; userId: string }[])
+                : (p.reactions ?? []),
               userReaction: reaction,
             };
-          })
+          }),
         );
       } else {
         // Fallback to like if reaction endpoint not available
@@ -2136,8 +2230,8 @@ export default function CommunityPage() {
           prev.map((p) =>
             p.id === postId
               ? { ...p, comments: [...(p.comments ?? []), newComment] }
-              : p
-          )
+              : p,
+          ),
         );
       }
     } finally {
@@ -2183,7 +2277,9 @@ export default function CommunityPage() {
   };
 
   const handleQuote = async (postId: string) => {
-    const commentary = prompt("Add commentary for your quote-share (optional):");
+    const commentary = prompt(
+      "Add commentary for your quote-share (optional):",
+    );
     if (commentary === null) return;
 
     const res = await fetch(`${API}/community/posts/${postId}/quote`, {
@@ -2196,7 +2292,11 @@ export default function CommunityPage() {
     const data = await res.json();
     if (!data?.post) return;
 
-    const normalized = normalizePost(data.post as Partial<Post> & Record<string, unknown>, 0, user?.id);
+    const normalized = normalizePost(
+      data.post as Partial<Post> & Record<string, unknown>,
+      0,
+      user?.id,
+    );
     normalized.loopStage = "skill";
     setPosts((prev) => [normalized, ...prev]);
     setTotalPosts((n) => n + 1);
@@ -2217,15 +2317,27 @@ export default function CommunityPage() {
   return (
     <>
       <style>{css}</style>
-      
+
       {/* Universal Sub-Navigation */}
       <LayerSubNav
         layer="community"
         items={[
           { id: "feed", label: "Feed", href: "/community" },
-          { id: "groups", label: "Groups", href: "/community/groups", badge: 3, badgeType: "normal" },
+          {
+            id: "groups",
+            label: "Groups",
+            href: "/community/groups",
+            badge: 3,
+            badgeType: "normal",
+          },
           { id: "discover", label: "Discover", href: "/community/discover" },
-          { id: "messages", label: "Messages", href: "/messages", badge: 2, badgeType: "alert" },
+          {
+            id: "messages",
+            label: "Messages",
+            href: "/messages",
+            badge: 2,
+            badgeType: "alert",
+          },
           { id: "saved", label: "Saved", href: "/community/saved" },
           { id: "analytics", label: "Analytics", href: "/community/analytics" },
         ]}
@@ -2236,12 +2348,10 @@ export default function CommunityPage() {
           urgency: "normal",
         }}
       />
-      
-      <div className="cm-root">
 
+      <div className="cm-root">
         {/* ── FEED ── */}
         <div className="cm-feed">
-
           {/* Header */}
           <div className="cm-page-intro">
             <div className="cm-page-header">
@@ -2255,7 +2365,8 @@ export default function CommunityPage() {
               </div>
             </div>
             <p className="cm-page-subtitle">
-              Share what you are building, find collaborators faster, and let NOVA turn activity into useful next steps.
+              Share what you are building, find collaborators faster, and let
+              NOVA turn activity into useful next steps.
             </p>
             <div className="cm-action-rail">
               <button className="cm-rail-btn primary" onClick={focusComposer}>
@@ -2282,10 +2393,17 @@ export default function CommunityPage() {
           {showNovaBanner && (
             <div className="cm-nova-banner">
               <span className="cm-nova-label">NOVA</span>
-              <span className={`cm-nova-text ${novaStreaming ? "cm-nova-cursor" : ""}`}>
+              <span
+                className={`cm-nova-text ${novaStreaming ? "cm-nova-cursor" : ""}`}
+              >
                 {novaInsight}
               </span>
-              <button className="cm-nova-dismiss" onClick={() => setShowNovaBanner(false)}>×</button>
+              <button
+                className="cm-nova-dismiss"
+                onClick={() => setShowNovaBanner(false)}
+              >
+                ×
+              </button>
             </div>
           )}
 
@@ -2294,7 +2412,10 @@ export default function CommunityPage() {
             <div className="cm-new-posts-banner">
               <button
                 className="cm-new-posts-btn"
-                onClick={() => { fetchPosts(1); setNewPostsCount(0); }}
+                onClick={() => {
+                  fetchPosts(1);
+                  setNewPostsCount(0);
+                }}
               >
                 ↑ {newPostsCount} new posts — click to load
               </button>
@@ -2305,19 +2426,28 @@ export default function CommunityPage() {
           <div className="cm-feed-tabs">
             <button
               className={`cm-tab ${feedTab === "foryou" ? "active" : ""}`}
-              onClick={() => { setPage(1); setFeedTab("foryou"); }}
+              onClick={() => {
+                setPage(1);
+                setFeedTab("foryou");
+              }}
             >
               For You
             </button>
             <button
               className={`cm-tab ${feedTab === "following" ? "active" : ""}`}
-              onClick={() => { setPage(1); setFeedTab("following"); }}
+              onClick={() => {
+                setPage(1);
+                setFeedTab("following");
+              }}
             >
               Following
             </button>
             <button
               className={`cm-tab cm-tab-nova ${feedTab === "nova" ? "active" : ""}`}
-              onClick={() => { setPage(1); setFeedTab("nova"); }}
+              onClick={() => {
+                setPage(1);
+                setFeedTab("nova");
+              }}
             >
               🤖 NOVA Intelligence
             </button>
@@ -2331,9 +2461,16 @@ export default function CommunityPage() {
               value={quickContent}
               maxLength={260}
               onChange={(e) => setQuickContent(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleQuickPost(); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleQuickPost();
+                }
+              }}
             />
-            <span className={`cm-quick-counter ${quickContent.length > 220 ? "warn" : ""} ${quickContent.length > 240 ? "over" : ""}`}>
+            <span
+              className={`cm-quick-counter ${quickContent.length > 220 ? "warn" : ""} ${quickContent.length > 240 ? "over" : ""}`}
+            >
               {quickContent.length}/240
             </span>
             <button
@@ -2349,7 +2486,9 @@ export default function CommunityPage() {
           <div className="cm-compose">
             <div className="cm-compose-headline">
               <div className="cm-compose-title">Start a post</div>
-              <div className="cm-compose-note">Clear updates usually get better replies</div>
+              <div className="cm-compose-note">
+                Clear updates usually get better replies
+              </div>
             </div>
             <div className="cm-compose-top">
               <div className="cm-avatar">
@@ -2359,27 +2498,51 @@ export default function CommunityPage() {
               <textarea
                 ref={composerRef}
                 className="cm-compose-input"
-                placeholder={feedTab === "nova" ? "Share a skill, a build, a lesson — NOVA is watching." : "What are you building today?"}
+                placeholder={
+                  feedTab === "nova"
+                    ? "Share a skill, a build, a lesson — NOVA is watching."
+                    : "What are you building today?"
+                }
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && e.metaKey) handlePost(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.metaKey) handlePost();
+                }}
               />
             </div>
             <div className="cm-compose-footer">
               <div className="cm-compose-tools">
                 {/* NOVA Voice Post - Hold to record, Whisper transcribes, NOVA analyzes for skills */}
-                <VoiceInput 
+                <VoiceInput
                   onTranscript={(transcript) => {
-                    setContent((prev: string) => prev + (prev ? " " : "") + transcript);
-                  }} 
+                    setContent(
+                      (prev: string) => prev + (prev ? " " : "") + transcript,
+                    );
+                  }}
                 />
-                <button className="cm-tool-btn" title="Add image context" onClick={() => useComposerPrompt("Sharing a visual update: ")}>
+                <button
+                  className="cm-tool-btn"
+                  title="Add image context"
+                  onClick={() =>
+                    applyComposerPrompt("Sharing a visual update: ")
+                  }
+                >
                   📷 Photo
                 </button>
-                <button className="cm-tool-btn" title="Turn this into a thread" onClick={() => useComposerPrompt("Thread:\n1. ")}>
+                <button
+                  className="cm-tool-btn"
+                  title="Turn this into a thread"
+                  onClick={() => applyComposerPrompt("Thread:\n1. ")}
+                >
                   🧵 Thread
                 </button>
-                <button className="cm-tool-btn accent" title="Prepare a scheduled update" onClick={() => useComposerPrompt("Scheduled update for later today: ")}>
+                <button
+                  className="cm-tool-btn accent"
+                  title="Prepare a scheduled update"
+                  onClick={() =>
+                    applyComposerPrompt("Scheduled update for later today: ")
+                  }
+                >
                   📅 Schedule
                 </button>
               </div>
@@ -2407,16 +2570,40 @@ export default function CommunityPage() {
               </div>
             </div>
             <div className="cm-compose-presets">
-              <button className="cm-preset-btn" onClick={() => useComposerPrompt("Looking for feedback on this build: ", "feedback,buildinpublic")}>
+              <button
+                className="cm-preset-btn"
+                onClick={() =>
+                  applyComposerPrompt(
+                    "Looking for feedback on this build: ",
+                    "feedback,buildinpublic",
+                  )
+                }
+              >
                 Ask for feedback
               </button>
-              <button className="cm-preset-btn" onClick={() => useComposerPrompt("Small win today: ", "wins,progress")}>
+              <button
+                className="cm-preset-btn"
+                onClick={() =>
+                  applyComposerPrompt("Small win today: ", "wins,progress")
+                }
+              >
                 Share a win
               </button>
-              <button className="cm-preset-btn" onClick={() => useComposerPrompt("Looking for collaborators on: ", "collaboration")}>
+              <button
+                className="cm-preset-btn"
+                onClick={() =>
+                  applyComposerPrompt(
+                    "Looking for collaborators on: ",
+                    "collaboration",
+                  )
+                }
+              >
                 Find collaborators
               </button>
-              <button className="cm-preset-btn" onClick={() => setTags("AfricanTech")}>
+              <button
+                className="cm-preset-btn"
+                onClick={() => setTags("AfricanTech")}
+              >
                 Use trending tag
               </button>
             </div>
@@ -2429,14 +2616,23 @@ export default function CommunityPage() {
                 <span className="cm-handoff-arrow">→</span>
                 <span className="cm-handoff-to">OMEGA</span>
               </div>
-              <div className="cm-handoff-title">Skills detected from your recent Community activity</div>
+              <div className="cm-handoff-title">
+                Skills detected from your recent Community activity
+              </div>
               <div className="cm-handoff-desc">{nextLoopAction}</div>
               <div className="cm-skill-badges" style={{ marginTop: 12 }}>
                 {detectedSkills.slice(0, 4).map((skill) => (
-                  <div key={skill.skillName} className="cm-skill-badge" title={`NOVA detected ${skill.skillName} with ${Math.round(skill.confidence * 100)}% confidence`}>
+                  <div
+                    key={skill.skillName}
+                    className="cm-skill-badge"
+                    title={`NOVA detected ${skill.skillName} with ${Math.round(skill.confidence * 100)}% confidence`}
+                  >
                     <span className="cm-skill-badge-nova">NOVA</span>
                     <div className="cm-skill-confidence">
-                      <div className="cm-skill-confidence-fill" style={{ width: `${skill.confidence * 100}%` }} />
+                      <div
+                        className="cm-skill-confidence-fill"
+                        style={{ width: `${skill.confidence * 100}%` }}
+                      />
                     </div>
                     {skill.skillName}
                   </div>
@@ -2451,11 +2647,18 @@ export default function CommunityPage() {
                 <span className="cm-handoff-from">{card.fromSupervisor}</span>
                 <span className="cm-handoff-arrow">→</span>
                 <span className="cm-handoff-to">{card.toSupervisor}</span>
-                <button className="cm-handoff-dismiss" onClick={() => dismissHandoff(card.id)}>×</button>
+                <button
+                  className="cm-handoff-dismiss"
+                  onClick={() => dismissHandoff(card.id)}
+                >
+                  ×
+                </button>
               </div>
               <div className="cm-handoff-title">{card.title}</div>
               <div className="cm-handoff-desc">{card.description}</div>
-              <a href={card.ctaHref} className="cm-handoff-cta">{card.ctaLabel}</a>
+              <a href={card.ctaHref} className="cm-handoff-cta">
+                {card.ctaLabel}
+              </a>
             </div>
           ))}
 
@@ -2467,23 +2670,46 @@ export default function CommunityPage() {
               <PostSkeleton />
             </>
           ) : posts.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "48px 20px", color: "var(--text-dim)" }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "48px 20px",
+                color: "var(--text-dim)",
+              }}
+            >
               <div style={{ fontSize: 32, marginBottom: 12 }}>🧑‍🤝‍🧑</div>
-              <div style={{ fontFamily: "Syne", fontWeight: 700, marginBottom: 6 }}>No posts yet</div>
-              <div style={{ fontFamily: "Space Mono", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              <div
+                style={{ fontFamily: "Syne", fontWeight: 700, marginBottom: 6 }}
+              >
+                No posts yet
+              </div>
+              <div
+                style={{
+                  fontFamily: "Space Mono",
+                  fontSize: 10,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                }}
+              >
                 Be the first to post in this community
               </div>
             </div>
           ) : (
             posts.map((post) => {
-              const isLiked     = post.liked ?? post.likes?.some((l) => l.userId === user?.id);
-              const isSaved     = savedPosts.has(post.id);
-              const isExpanded  = expandedPosts.has(post.id);
-              const showMore    = post.content.length > 220 && !isExpanded;
-              const likeCount   = post.likeCount ?? post._count?.likes ?? post.likes?.length ?? 0;
-              const commentCount = post.commentCount ?? post._count?.comments ?? post.comments?.length ?? 0;
-              const isOwnPost   = post.authorId === user?.id;
-              const postTier    = trustTier(Math.floor(Math.random() * 40) + 50);
+              const isLiked =
+                post.liked ?? post.likes?.some((l) => l.userId === user?.id);
+              const isSaved = savedPosts.has(post.id);
+              const isExpanded = expandedPosts.has(post.id);
+              const showMore = post.content.length > 220 && !isExpanded;
+              const likeCount =
+                post.likeCount ?? post._count?.likes ?? post.likes?.length ?? 0;
+              const commentCount =
+                post.commentCount ??
+                post._count?.comments ??
+                post.comments?.length ??
+                0;
+              const isOwnPost = post.authorId === user?.id;
+              const postTier = trustTier(Math.floor(Math.random() * 40) + 50);
 
               return (
                 <div
@@ -2497,27 +2723,46 @@ export default function CommunityPage() {
                       {initials(post.author?.name ?? "")}
                     </div>
                     <div className="cm-post-info">
-                      <div className="cm-post-name">{post.author?.name ?? "Unknown"}</div>
+                      <div className="cm-post-name">
+                        {post.author?.name ?? "Unknown"}
+                      </div>
                       <div className="cm-post-meta">
-                        <span className="cm-post-role">{post.author?.role ?? "Member"}</span>
-                        <span className="cm-post-time">{timeAgo(post.createdAt)}</span>
-                        {isOnline(post.authorId) && <div className="cm-post-online" title="Active now" />}
+                        <span className="cm-post-role">
+                          {post.author?.role ?? "Member"}
+                        </span>
+                        <span className="cm-post-time">
+                          {timeAgo(post.createdAt)}
+                        </span>
+                        {isOnline(post.authorId) && (
+                          <div className="cm-post-online" title="Active now" />
+                        )}
                       </div>
                     </div>
-                    {post.isPinned && <span className="cm-pinned-badge">📌 Pinned</span>}
+                    {post.isPinned && (
+                      <span className="cm-pinned-badge">📌 Pinned</span>
+                    )}
                     {post.loopStage && !post.isPinned && (
                       <span className={`cm-loop-badge ${post.loopStage}`}>
-                        {post.loopStage === "skill" ? "🔵 Skill" : post.loopStage === "course" ? "🟢 Course" : "🟡 Income"}
+                        {post.loopStage === "skill"
+                          ? "🔵 Skill"
+                          : post.loopStage === "course"
+                            ? "🟢 Course"
+                            : "🟡 Income"}
                       </span>
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className={`cm-post-body ${showMore ? "collapsed" : ""}`}>
+                  <div
+                    className={`cm-post-body ${showMore ? "collapsed" : ""}`}
+                  >
                     {post.content}
                   </div>
                   {showMore && (
-                    <button className="cm-read-more" onClick={() => toggleExpand(post.id)}>
+                    <button
+                      className="cm-read-more"
+                      onClick={() => toggleExpand(post.id)}
+                    >
                       Read more ↓
                     </button>
                   )}
@@ -2526,10 +2771,17 @@ export default function CommunityPage() {
                   {post.skillDetections && post.skillDetections.length > 0 && (
                     <div className="cm-skill-badges">
                       {post.skillDetections.map((s, i) => (
-                        <div key={i} className="cm-skill-badge" title={`NOVA detected ${s.skillName} with ${Math.round(s.confidence * 100)}% confidence`}>
+                        <div
+                          key={i}
+                          className="cm-skill-badge"
+                          title={`NOVA detected ${s.skillName} with ${Math.round(s.confidence * 100)}% confidence`}
+                        >
                           <span className="cm-skill-badge-nova">NOVA</span>
                           <div className="cm-skill-confidence">
-                            <div className="cm-skill-confidence-fill" style={{ width: `${s.confidence * 100}%` }} />
+                            <div
+                              className="cm-skill-confidence-fill"
+                              style={{ width: `${s.confidence * 100}%` }}
+                            />
                           </div>
                           {s.skillName}
                         </div>
@@ -2541,7 +2793,9 @@ export default function CommunityPage() {
                   {post.tags?.length > 0 && (
                     <div className="cm-post-tags">
                       {post.tags.map((t, i) => (
-                        <span key={i} className="cm-tag">#{t.tag.name}</span>
+                        <span key={i} className="cm-tag">
+                          #{t.tag.name}
+                        </span>
                       ))}
                     </div>
                   )}
@@ -2569,10 +2823,14 @@ export default function CommunityPage() {
                       <button
                         className={`cm-action-btn ${isLiked ? "liked" : ""}`}
                         onClick={() => handleLike(post.id)}
-                        onMouseEnter={() => !isLiked && setActiveReactionPicker(post.id)}
+                        onMouseEnter={() =>
+                          !isLiked && setActiveReactionPicker(post.id)
+                        }
                         onMouseLeave={() => setActiveReactionPicker(null)}
                       >
-                        <span className="like-icon">{isLiked ? "❤️" : "🤍"}</span>
+                        <span className="like-icon">
+                          {isLiked ? "❤️" : "🤍"}
+                        </span>
                         Like {likeCount > 0 ? likeCount : ""}
                       </button>
                     </div>
@@ -2601,7 +2859,10 @@ export default function CommunityPage() {
                     </button>
 
                     {isOwnPost && (
-                      <button className="cm-action-btn delete" onClick={() => handleDelete(post.id)}>
+                      <button
+                        className="cm-action-btn delete"
+                        onClick={() => handleDelete(post.id)}
+                      >
                         🗑 Delete
                       </button>
                     )}
@@ -2614,10 +2875,16 @@ export default function CommunityPage() {
                         <div className="cm-comment-list">
                           {post.comments.map((c) => (
                             <div key={c.id} className="cm-comment">
-                              <div className="cm-comment-avatar">{initials(c.author?.name ?? "")}</div>
+                              <div className="cm-comment-avatar">
+                                {initials(c.author?.name ?? "")}
+                              </div>
                               <div className="cm-comment-bubble">
-                                <div className="cm-comment-author">{c.author?.name}</div>
-                                <div className="cm-comment-text">{c.content}</div>
+                                <div className="cm-comment-author">
+                                  {c.author?.name}
+                                </div>
+                                <div className="cm-comment-text">
+                                  {c.content}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -2628,12 +2895,22 @@ export default function CommunityPage() {
                           className="cm-comment-input"
                           placeholder="Write a comment..."
                           value={commentText[post.id] ?? ""}
-                          onChange={(e) => setCommentText((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleComment(post.id); }}
+                          onChange={(e) =>
+                            setCommentText((prev) => ({
+                              ...prev,
+                              [post.id]: e.target.value,
+                            }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleComment(post.id);
+                          }}
                         />
                         <button
                           className="cm-comment-submit"
-                          disabled={!commentText[post.id]?.trim() || submittingComment === post.id}
+                          disabled={
+                            !commentText[post.id]?.trim() ||
+                            submittingComment === post.id
+                          }
                           onClick={() => handleComment(post.id)}
                         >
                           {submittingComment === post.id ? "…" : "Reply"}
@@ -2658,7 +2935,6 @@ export default function CommunityPage() {
 
         {/* ── SIDEBAR ── */}
         <div className="cm-sidebar">
-
           {/* Personal Status */}
           <div className="cm-sidebar-card">
             <div className="cm-sidebar-title">Your Status</div>
@@ -2669,16 +2945,31 @@ export default function CommunityPage() {
             <div className="cm-trust-row">
               <div>
                 <div className="cm-trust-score-val">{trustScore}</div>
-                <div className="cm-trust-label">Trust Score · {tier.charAt(0).toUpperCase() + tier.slice(1)}</div>
+                <div className="cm-trust-label">
+                  Trust Score · {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                </div>
               </div>
             </div>
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontFamily: "Space Mono", fontSize: 8, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 5 }}>
+              <div
+                style={{
+                  fontFamily: "Space Mono",
+                  fontSize: 8,
+                  color: "var(--text-dim)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  marginBottom: 5,
+                }}
+              >
                 Agentic Loop
               </div>
               <div className="cm-loop-stage-bar">
                 {LOOP_STAGES.map((s, i) => (
-                  <div key={s} className={`cm-loop-node ${i < loopStage ? "done" : i === loopStage ? "active" : ""}`} title={s} />
+                  <div
+                    key={s}
+                    className={`cm-loop-node ${i < loopStage ? "done" : i === loopStage ? "active" : ""}`}
+                    title={s}
+                  />
                 ))}
               </div>
               <div className="cm-loop-stage-label">
@@ -2696,11 +2987,16 @@ export default function CommunityPage() {
                 </div>
                 <div className="cm-opp-title">{opp.title}</div>
                 <div className="cm-opp-desc">{opp.description}</div>
-                <a href={opp.ctaHref} className="cm-opp-cta">{opp.ctaLabel}</a>
+                <a href={opp.ctaHref} className="cm-opp-cta">
+                  {opp.ctaLabel}
+                </a>
               </div>
             ))}
             <div className="cm-opp-footer">
-              Powered by OMEGA · Updated {opportunityUpdatedAt ? timeAgo(opportunityUpdatedAt) : "just now"}
+              Powered by OMEGA · Updated{" "}
+              {opportunityUpdatedAt
+                ? timeAgo(opportunityUpdatedAt)
+                : "just now"}
             </div>
           </div>
 
@@ -2708,7 +3004,11 @@ export default function CommunityPage() {
           <div className="cm-sidebar-card">
             <div className="cm-sidebar-title">Trending Now</div>
             {SEED_TRENDING.map((t, i) => (
-              <div key={i} className="cm-trending-item" onClick={() => setTags(t.tag.replace("#", ""))}>
+              <div
+                key={i}
+                className="cm-trending-item"
+                onClick={() => setTags(t.tag.replace("#", ""))}
+              >
                 <span className="cm-trending-tag">{t.tag}</span>
                 <span className="cm-trending-count">
                   {t.count} posts<span className="cm-trending-arrow">↑</span>
@@ -2752,11 +3052,14 @@ export default function CommunityPage() {
             ))}
             <button className="cm-group-join">+ Join a Group</button>
             <div className="cm-sidebar-actions">
-              <Link className="cm-sidebar-btn" to="/community/groups">Open groups</Link>
-              <Link className="cm-sidebar-btn" to="/community/spaces">Live spaces</Link>
+              <Link className="cm-sidebar-btn" to="/community/groups">
+                Open groups
+              </Link>
+              <Link className="cm-sidebar-btn" to="/community/spaces">
+                Live spaces
+              </Link>
             </div>
           </div>
-
         </div>
       </div>
 

@@ -3,8 +3,9 @@
 // ATLAS AI supervisor integration
 
 import { Router, Request, Response } from "express";
+import Stripe from "stripe";
 import { authMiddleware } from "../middleware/authMiddleware";
-import { requireLayerAccess } from "../middleware/rbacMiddleware";
+import { requireLayerAccess } from "../middleware/layerAccessMiddleware.js";
 import { db } from "../db";
 
 const router = Router();
@@ -35,8 +36,11 @@ router.get(
       const events = await db.event.findMany({
         where,
         include: {
-          organizer: { select: { name: true, avatar: true } },
-          tickets: { where: { userId }, select: { id: true, status: true } },
+          organizer: { select: { name: true } },
+          tickets: {
+            where: { userId },
+            select: { id: true, status: true, ticketType: true, price: true },
+          },
           _count: { select: { tickets: true } },
         },
         orderBy: { startDate: "asc" },
@@ -67,9 +71,8 @@ router.post(
         location,
         virtualLink,
         category,
-        ticketTiers,
-        maxAttendees,
-        isVirtual,
+        price,
+        capacity,
         imageUrl,
         tags,
       } = req.body;
@@ -83,9 +86,8 @@ router.post(
           location,
           virtualLink,
           category,
-          ticketTiers: ticketTiers || [],
-          maxAttendees: maxAttendees || null,
-          isVirtual: isVirtual || false,
+          price: price ? Number(price) : 0,
+          capacity: capacity ? Number(capacity) : 0,
           imageUrl,
           tags: tags || [],
           organizerId: req.user!.userId,
@@ -93,7 +95,7 @@ router.post(
           status: "draft",
         },
         include: {
-          organizer: { select: { name: true, avatar: true } },
+          organizer: { select: { name: true } },
         },
       });
 
@@ -112,13 +114,16 @@ router.get(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const event = await db.event.findUnique({
-        where: { id: req.params.id, tenantId: req.user!.tenantId },
+      const eventId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const event = await db.event.findFirst({
+        where: { id: eventId, tenantId: req.user!.tenantId },
         include: {
-          organizer: { select: { name: true, avatar: true, bio: true } },
+          organizer: { select: { name: true, bio: true } },
           tickets: {
             where: { userId: req.user!.userId },
-            select: { id: true, status: true, tier: true, price: true },
+            select: { id: true, status: true, ticketType: true, price: true },
           },
           _count: { select: { tickets: true } },
         },
@@ -144,10 +149,12 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { tier, quantity = 1 } = req.body;
-      const eventId = req.params.id;
+      const eventId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
       const userId = req.user!.userId;
 
-      const event = await db.event.findUnique({
+      const event = await db.event.findFirst({
         where: { id: eventId, tenantId: req.user!.tenantId },
       });
 
@@ -164,27 +171,22 @@ router.post(
         where: { eventId, status: "confirmed" },
       });
 
-      if (event.maxAttendees && soldTickets + quantity > event.maxAttendees) {
+      if (event.capacity && soldTickets + quantity > event.capacity) {
         return res.status(400).json({ error: "Not enough tickets available" });
       }
 
-      // Get ticket tier pricing
-      const ticketTier = event.ticketTiers?.find((t: any) => t.name === tier);
-      if (!ticketTier) {
-        return res.status(400).json({ error: "Invalid ticket tier" });
-      }
-
-      const totalAmount = ticketTier.price * quantity;
+      const ticketType = tier || "standard";
+      const totalAmount = event.price * quantity;
 
       // Create Stripe payment intent
-      const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(totalAmount * 100), // Convert to cents
         currency: "usd",
         metadata: {
           eventId,
           userId,
-          tier,
+          ticketType,
           quantity: quantity.toString(),
         },
       });
@@ -196,10 +198,10 @@ router.post(
           data: {
             eventId,
             userId,
-            tier,
-            price: ticketTier.price,
+            ticketType,
+            price: event.price,
             status: "pending",
-            paymentIntentId: paymentIntent.id,
+            quantity,
             tenantId: req.user!.tenantId,
           },
         });
@@ -228,8 +230,11 @@ router.get(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const event = await db.event.findUnique({
-        where: { id: req.params.id, tenantId: req.user!.tenantId },
+      const eventId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const event = await db.event.findFirst({
+        where: { id: eventId, tenantId: req.user!.tenantId },
         select: { organizerId: true },
       });
 
@@ -238,11 +243,11 @@ router.get(
       }
 
       const tickets = await db.eventTicket.findMany({
-        where: { eventId: req.params.id },
+        where: { eventId },
         include: {
           user: { select: { name: true, email: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { purchasedAt: "desc" },
       });
 
       res.json({ tickets });
@@ -260,8 +265,11 @@ router.put(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const event = await db.event.findUnique({
-        where: { id: req.params.id, tenantId: req.user!.tenantId },
+      const eventId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const event = await db.event.findFirst({
+        where: { id: eventId, tenantId: req.user!.tenantId },
         select: { organizerId: true },
       });
 
@@ -270,10 +278,10 @@ router.put(
       }
 
       const updatedEvent = await db.event.update({
-        where: { id: req.params.id },
+        where: { id: eventId },
         data: req.body,
         include: {
-          organizer: { select: { name: true, avatar: true } },
+          organizer: { select: { name: true } },
         },
       });
 
@@ -292,8 +300,11 @@ router.delete(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const event = await db.event.findUnique({
-        where: { id: req.params.id, tenantId: req.user!.tenantId },
+      const eventId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const event = await db.event.findFirst({
+        where: { id: eventId, tenantId: req.user!.tenantId },
         select: { organizerId: true },
       });
 
@@ -302,7 +313,7 @@ router.delete(
       }
 
       await db.event.delete({
-        where: { id: req.params.id },
+        where: { id: eventId },
       });
 
       res.json({ success: true });

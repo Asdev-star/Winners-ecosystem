@@ -4,7 +4,7 @@
 
 import { Router, Request, Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware";
-import { requireLayerAccess } from "../middleware/rbacMiddleware";
+import { requireLayerAccess } from "../middleware/layerAccessMiddleware.js";
 import { db } from "../db";
 
 const router = Router();
@@ -32,7 +32,15 @@ router.get(
         status: "active",
       };
 
-      if (type !== "all") where.listingType = type;
+      if (type !== "all") {
+        if (type === "buy" || type === "invest") {
+          where.listingType = "sale";
+        } else if (type === "rent") {
+          where.listingType = "rent";
+        } else {
+          where.listingType = type;
+        }
+      }
       if (location)
         where.location = { contains: location, mode: "insensitive" };
       if (minPrice) where.price = { ...where.price, gte: Number(minPrice) };
@@ -44,9 +52,9 @@ router.get(
         where,
         include: {
           agent: {
-            select: { name: true, avatar: true, company: true, rating: true },
+            select: { name: true, industry: true, bio: true, trustScore: true },
           },
-          images: { orderBy: { order: "asc" } },
+          images: { orderBy: { position: "asc" } },
           _count: { select: { favorites: true, inquiries: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -95,16 +103,16 @@ router.post(
           location,
           bedrooms: bedrooms ? Number(bedrooms) : null,
           bathrooms: bathrooms ? Number(bathrooms) : null,
-          squareFeet: squareFeet ? Number(squareFeet) : null,
-          features: features || [],
-          virtualTourUrl,
-          documents: documents || [],
+          area: squareFeet ? Number(squareFeet) : null,
+          areaUnit: squareFeet ? "sqft" : null,
           agentId: req.user!.userId,
           tenantId: req.user!.tenantId,
           status: "pending", // Requires admin approval
         },
         include: {
-          agent: { select: { name: true, avatar: true, company: true } },
+          agent: {
+            select: { name: true, industry: true, bio: true, trustScore: true },
+          },
         },
       });
 
@@ -115,7 +123,7 @@ router.post(
             propertyId: property.id,
             url: img.url,
             alt: img.alt || property.title,
-            order: index,
+            position: index,
             tenantId: req.user!.tenantId,
           })),
         });
@@ -136,20 +144,21 @@ router.get(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const property = await db.property.findUnique({
-        where: { id: req.params.id, tenantId: req.user!.tenantId },
+      const propertyId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const property = await db.property.findFirst({
+        where: { id: propertyId, tenantId: req.user!.tenantId },
         include: {
           agent: {
             select: {
               name: true,
-              avatar: true,
-              company: true,
               bio: true,
-              phone: true,
-              rating: true,
+              industry: true,
+              trustScore: true,
             },
           },
-          images: { orderBy: { order: "asc" } },
+          images: { orderBy: { position: "asc" } },
           favorites: {
             where: { userId: req.user!.userId },
             select: { id: true },
@@ -177,13 +186,13 @@ router.post(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const propertyId = req.params.id;
+      const propertyId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
       const userId = req.user!.userId;
 
-      const existing = await db.propertyFavorite.findUnique({
-        where: {
-          userId_propertyId: { userId, propertyId },
-        },
+      const existing = await db.propertyFavorite.findFirst({
+        where: { userId, propertyId },
       });
 
       if (existing) {
@@ -217,9 +226,12 @@ router.post(
     try {
       const { message, contactInfo } = req.body;
 
+      const propertyId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
       const inquiry = await db.propertyInquiry.create({
         data: {
-          propertyId: req.params.id,
+          propertyId,
           userId: req.user!.userId,
           message,
           contactInfo,
@@ -242,8 +254,11 @@ router.get(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const property = await db.property.findUnique({
-        where: { id: req.params.id, tenantId: req.user!.tenantId },
+      const propertyId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const property = await db.property.findFirst({
+        where: { id: propertyId, tenantId: req.user!.tenantId },
         select: { agentId: true },
       });
 
@@ -252,9 +267,9 @@ router.get(
       }
 
       const inquiries = await db.propertyInquiry.findMany({
-        where: { propertyId: req.params.id },
+        where: { propertyId },
         include: {
-          user: { select: { name: true, email: true, phone: true } },
+          user: { select: { name: true, email: true } },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -274,8 +289,11 @@ router.put(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const property = await db.property.findUnique({
-        where: { id: req.params.id, tenantId: req.user!.tenantId },
+      const propertyId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const property = await db.property.findFirst({
+        where: { id: propertyId, tenantId: req.user!.tenantId },
         select: { agentId: true },
       });
 
@@ -284,11 +302,15 @@ router.put(
       }
 
       const updatedProperty = await db.property.update({
-        where: { id: req.params.id },
+        where: {
+          id: Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
+        },
         data: req.body,
         include: {
-          agent: { select: { name: true, avatar: true } },
-          images: { orderBy: { order: "asc" } },
+          agent: {
+            select: { name: true, bio: true, industry: true, trustScore: true },
+          },
+          images: { orderBy: { position: "asc" } },
         },
       });
 
@@ -307,8 +329,11 @@ router.delete(
   requireLayerAccess("market"),
   async (req: Request, res: Response) => {
     try {
-      const property = await db.property.findUnique({
-        where: { id: req.params.id, tenantId: req.user!.tenantId },
+      const propertyId = Array.isArray(req.params.id)
+        ? req.params.id[0]
+        : req.params.id;
+      const property = await db.property.findFirst({
+        where: { id: propertyId, tenantId: req.user!.tenantId },
         select: { agentId: true },
       });
 
@@ -317,7 +342,7 @@ router.delete(
       }
 
       await db.property.delete({
-        where: { id: req.params.id },
+        where: { id: propertyId },
       });
 
       res.json({ success: true });
@@ -338,17 +363,17 @@ router.get(
       const agents = await db.user.findMany({
         where: {
           tenantId: req.user!.tenantId,
-          role: "agent",
-          properties: { some: { status: "active" } },
+          propertiesListed: { some: { status: "active" } },
         },
         select: {
           id: true,
           name: true,
-          avatar: true,
-          company: true,
           bio: true,
-          rating: true,
-          _count: { select: { properties: { where: { status: "active" } } } },
+          industry: true,
+          trustScore: true,
+          _count: {
+            select: { propertiesListed: { where: { status: "active" } } },
+          },
         },
       });
 

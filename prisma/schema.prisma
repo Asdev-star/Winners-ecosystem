@@ -157,149 +157,155 @@ model Tenant {
   pluginReviews                 PluginReview[]
   pluginRevenues                PluginRevenue[]
   pluginTransactions            PluginTransaction[]
+  events                        Event[]                        @relation("TenantEvents")
+  eventTickets                  EventTicket[]                  @relation("TenantEventTickets")
+  properties                    Property[]                     @relation("TenantProperties")
+  propertyImages                PropertyImage[]                @relation("TenantPropertyImages")
+  propertyFavorites             PropertyFavorite[]             @relation("TenantPropertyFavorites")
+  propertyInquiries             PropertyInquiry[]              @relation("TenantPropertyInquiries")
 
   @@map("tenants")
 }
 
 model User {
-  id                         String                         @id @default(cuid())
-  tenantId                   String
-  email                      String
-  name                       String
-  password                   String
-  role                       Role                           @default(MEMBER)
-  createdAt                  DateTime                       @default(now())
-  updatedAt                  DateTime                       @updatedAt
-  deletedAt                  DateTime?
-  twoFactorSecret            String?
-  twoFactorEnabled           Boolean                        @default(false)
-  twoFactorMethod            String?
-  twoFactorBackup            String[]                       @default([])
-  country                    String?
-  city                       String?
-  bio                        String?
-  skills                     String[]
-  industry                   String?
-  isPublicProfile            Boolean                        @default(true)
-  profileViews               Int                            @default(0)
-  metadata                   Json                           @default("{}")
-  profileType                String?
-  onboardingDone             Boolean                        @default(false)
-  omegaMission               String?                        @db.Text
-  incomeGoal                 String?
-  trustScore                 Int                            @default(50)
-  trustScoreTier             String                         @default("SILVER")
-  trustScoreUpdatedAt        DateTime?
-  openToOpportunities        Boolean                        @default(false)
-  opportunityStatus          String?
-  opportunityBio             String?
-  experienceLevel            String?
-  firstPlatform              String?
-  onboardingData             Json?
-  primaryMarkets             String[]                       @default([])
-  primarySkills              String[]                       @default([])
-  teamType                   String?
-  hostedBroadcasts           BroadcastStream[]
-  carts                      Cart[]
-  courseCertificates         Certificate[]                  @relation("CourseCertificate")
-  challengeSubmissions       CommunityChallengeSubmission[]
-  challengeWins              CommunityChallengeWinner[]
-  challenges                 Challenge[]
-  comments                   Comment[]                      @relation("CommentAuthor")
-  clientContracts            Contract[]                     @relation("ClientContracts")
-  conversationParticipations ConversationParticipant[]
-  createdConversations       Conversation[]                 @relation("ConversationCreator")
-  corporateEnrolls           CorporateEnroll[]
-  instructedCourses          Course[]                       @relation("CourseInstructor")
-  creatorSubscriptions       CreatorSubscription[]          @relation("Creator")
-  subscriberSubscriptions    CreatorSubscription[]          @relation("Subscriber")
-  creatorTier                CreatorTier[]
-  deviceTokens               DeviceToken[]
-  courseEnrollments          Enrollment[]                   @relation("CourseEnrollment")
-  flashcardReviews           FlashcardReview[]
-  flashcards                 Flashcard[]
-  followers                  Follow[]                       @relation("Followers")
-  following                  Follow[]                       @relation("Following")
-  freelancerProfile          FreelancerProfile?
-  learningTracks             GroupLearningTrack[]           @relation("LearningTrackCreator")
-  groupMemberships           GroupMember[]
-  createdGroups              Group[]                        @relation("GroupCreator")
-  postedJobs                 JobListing[]
-  learnerNotes               LearnerNote[]
-  learnerProfile             LearnerProfile?
-  learningStreak             LearningStreak?
-  lectureUploads             LectureUpload[]
-  lessonProgress             LessonProgress[]               @relation("LessonProgress")
-  likes                      Like[]
-  attendedSessions           LiveSessionAttendee[]
-  hostedLiveSessions         LiveSession[]
-  spaceParticipations        LiveSpaceParticipant[]
-  spaceSpeakers              LiveSpaceSpeaker[]
-  hostedSpaces               LiveSpace[]                    @relation("LiveSpaceHost")
-  mentorSessions             MentorSession[]                @relation("MentorSessionLearner")
-  mentorProfile              Mentor?
-  messageReads               MessageRead[]
-  messages                   Message[]                      @relation("MessageSender")
-  notificationPreference     NotificationPreference?
-  novaSkills                 NovaSkillDetection[]           @relation("UserNovaSkills")
-  opportunities              Opportunity[]
-  orders                     Order[]
-  passwordResetTokens        PasswordResetToken[]
-  pathEnrollments            PathEnrollment[]
-  postReactions              PostReaction[]
-  posts                      Post[]                         @relation("PostAuthor")
-  ppvPurchases               PPVAccess[]
-  privacyAcknowledgment      PrivacyAcknowledgment?
-  productReviews             ProductReview[]
-  qaQuestions                QAQuestion[]
-  referralCredits            ReferralCredit[]
-  referralsReceived          Referral[]                     @relation("ReferredRelation")
-  referralsGiven             Referral[]                     @relation("ReferrerRelation")
-  courseReviews              Review[]                       @relation("CourseReview")
-  savedPosts                 SavedPost[]
-  givenEndorsements          SkillEndorsement[]             @relation("Endorser")
-  endorsedSkills             SkillEndorsement[]             @relation("Endorsee")
-  socialAccounts             SocialAccount[]
-  socialCrossPosts           SocialCrossPost[]
-  socialMetricSnapshots      SocialMetricSnapshot[]
-  socialScheduledPosts       SocialScheduledPost[]
-  socialSkillSignals         SocialSkillSignal[]
-  streamViewers              StreamViewer[]
-  studioEvents               StudioEvent[]
-  studioRsvps                StudioRsvp[]
-  studyGroups                StudyGroup[]
-  studyMembers               StudyMember[]
-  submissions                Submission[]
-  superChats                 SuperChat[]
-  tradingSignals             TradingSignal[]
-  twoFactorOTPs              TwoFactorOTP[]
-  tenant                     Tenant                         @relation(fields: [tenantId], references: [id])
-  userWallets                UserWallet[]
-  vendorReviews              VendorReview[]
-  vendors                    Vendor[]
-  webAuthnCredentials        WebAuthnCredential[]
-  developedPlugins           Plugin[]                       @relation("PluginDeveloper")
-  reviewedPlugins            Plugin[]                       @relation("PluginReviewer")
-  pluginInstalls             PluginInstall[]
-  pluginReviews              PluginReview[]
-  pluginRevenueAsDeveloper   PluginRevenue[]                @relation("PluginRevenueDeveloper")
-  pluginRevenueAsBuyer       PluginRevenue[]                @relation("PluginRevenueBuyer")
-  pluginTransactionsAsDeveloper PluginTransaction[]         @relation("PluginTransactionDeveloper")
-  pluginTransactionsAsBuyer  PluginTransaction[]            @relation("PluginTransactionBuyer")
-  developerEarnings          DeveloperEarnings?
-  developerPayouts           DeveloperPayout[]
-  withdrawalRequests         WithdrawalRequest[]
-  videoRoomParticipations    VideoRoomParticipant[]
-  hostedVideoRooms           VideoRoom[]
-  mobileSessions             MobileSession[]
-  appDownloads               AppDownload[]
-  userActivities             UserActivity[]
-  errorReports               ErrorReport[]
-  eventsOrganized            Event[]
-  eventTickets               EventTicket[]
-  propertiesListed           Property[]
-  propertyFavorites          PropertyFavorite[]
-  propertyInquiries          PropertyInquiry[]
+  id                            String                         @id @default(cuid())
+  tenantId                      String
+  email                         String
+  name                          String
+  password                      String
+  role                          Role                           @default(MEMBER)
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  deletedAt                     DateTime?
+  twoFactorSecret               String?
+  twoFactorEnabled              Boolean                        @default(false)
+  twoFactorMethod               String?
+  twoFactorBackup               String[]                       @default([])
+  country                       String?
+  city                          String?
+  bio                           String?
+  skills                        String[]
+  industry                      String?
+  isPublicProfile               Boolean                        @default(true)
+  profileViews                  Int                            @default(0)
+  metadata                      Json                           @default("{}")
+  profileType                   String?
+  onboardingDone                Boolean                        @default(false)
+  omegaMission                  String?                        @db.Text
+  incomeGoal                    String?
+  trustScore                    Int                            @default(50)
+  trustScoreTier                String                         @default("SILVER")
+  trustScoreUpdatedAt           DateTime?
+  openToOpportunities           Boolean                        @default(false)
+  opportunityStatus             String?
+  opportunityBio                String?
+  experienceLevel               String?
+  firstPlatform                 String?
+  onboardingData                Json?
+  primaryMarkets                String[]                       @default([])
+  primarySkills                 String[]                       @default([])
+  teamType                      String?
+  hostedBroadcasts              BroadcastStream[]
+  carts                         Cart[]
+  courseCertificates            Certificate[]                  @relation("CourseCertificate")
+  challengeSubmissions          CommunityChallengeSubmission[]
+  challengeWins                 CommunityChallengeWinner[]
+  challenges                    Challenge[]
+  comments                      Comment[]                      @relation("CommentAuthor")
+  clientContracts               Contract[]                     @relation("ClientContracts")
+  conversationParticipations    ConversationParticipant[]
+  createdConversations          Conversation[]                 @relation("ConversationCreator")
+  corporateEnrolls              CorporateEnroll[]
+  instructedCourses             Course[]                       @relation("CourseInstructor")
+  creatorSubscriptions          CreatorSubscription[]          @relation("Creator")
+  subscriberSubscriptions       CreatorSubscription[]          @relation("Subscriber")
+  creatorTier                   CreatorTier[]
+  deviceTokens                  DeviceToken[]
+  courseEnrollments             Enrollment[]                   @relation("CourseEnrollment")
+  flashcardReviews              FlashcardReview[]
+  flashcards                    Flashcard[]
+  followers                     Follow[]                       @relation("Followers")
+  following                     Follow[]                       @relation("Following")
+  freelancerProfile             FreelancerProfile?
+  learningTracks                GroupLearningTrack[]           @relation("LearningTrackCreator")
+  groupMemberships              GroupMember[]
+  createdGroups                 Group[]                        @relation("GroupCreator")
+  postedJobs                    JobListing[]
+  learnerNotes                  LearnerNote[]
+  learnerProfile                LearnerProfile?
+  learningStreak                LearningStreak?
+  lectureUploads                LectureUpload[]
+  lessonProgress                LessonProgress[]               @relation("LessonProgress")
+  likes                         Like[]
+  attendedSessions              LiveSessionAttendee[]
+  hostedLiveSessions            LiveSession[]
+  spaceParticipations           LiveSpaceParticipant[]
+  spaceSpeakers                 LiveSpaceSpeaker[]
+  hostedSpaces                  LiveSpace[]                    @relation("LiveSpaceHost")
+  mentorSessions                MentorSession[]                @relation("MentorSessionLearner")
+  mentorProfile                 Mentor?
+  messageReads                  MessageRead[]
+  messages                      Message[]                      @relation("MessageSender")
+  notificationPreference        NotificationPreference?
+  novaSkills                    NovaSkillDetection[]           @relation("UserNovaSkills")
+  opportunities                 Opportunity[]
+  orders                        Order[]
+  passwordResetTokens           PasswordResetToken[]
+  pathEnrollments               PathEnrollment[]
+  postReactions                 PostReaction[]
+  posts                         Post[]                         @relation("PostAuthor")
+  ppvPurchases                  PPVAccess[]
+  privacyAcknowledgment         PrivacyAcknowledgment?
+  productReviews                ProductReview[]
+  qaQuestions                   QAQuestion[]
+  referralCredits               ReferralCredit[]
+  referralsReceived             Referral[]                     @relation("ReferredRelation")
+  referralsGiven                Referral[]                     @relation("ReferrerRelation")
+  courseReviews                 Review[]                       @relation("CourseReview")
+  savedPosts                    SavedPost[]
+  givenEndorsements             SkillEndorsement[]             @relation("Endorser")
+  endorsedSkills                SkillEndorsement[]             @relation("Endorsee")
+  socialAccounts                SocialAccount[]
+  socialCrossPosts              SocialCrossPost[]
+  socialMetricSnapshots         SocialMetricSnapshot[]
+  socialScheduledPosts          SocialScheduledPost[]
+  socialSkillSignals            SocialSkillSignal[]
+  streamViewers                 StreamViewer[]
+  studioEvents                  StudioEvent[]
+  studioRsvps                   StudioRsvp[]
+  studyGroups                   StudyGroup[]
+  studyMembers                  StudyMember[]
+  submissions                   Submission[]
+  superChats                    SuperChat[]
+  tradingSignals                TradingSignal[]
+  twoFactorOTPs                 TwoFactorOTP[]
+  tenant                        Tenant                         @relation(fields: [tenantId], references: [id])
+  userWallets                   UserWallet[]
+  vendorReviews                 VendorReview[]
+  vendors                       Vendor[]
+  webAuthnCredentials           WebAuthnCredential[]
+  developedPlugins              Plugin[]                       @relation("PluginDeveloper")
+  reviewedPlugins               Plugin[]                       @relation("PluginReviewer")
+  pluginInstalls                PluginInstall[]
+  pluginReviews                 PluginReview[]
+  pluginRevenueAsDeveloper      PluginRevenue[]                @relation("PluginRevenueDeveloper")
+  pluginRevenueAsBuyer          PluginRevenue[]                @relation("PluginRevenueBuyer")
+  pluginTransactionsAsDeveloper PluginTransaction[]            @relation("PluginTransactionDeveloper")
+  pluginTransactionsAsBuyer     PluginTransaction[]            @relation("PluginTransactionBuyer")
+  developerEarnings             DeveloperEarnings?
+  developerPayouts              DeveloperPayout[]
+  withdrawalRequests            WithdrawalRequest[]
+  videoRoomParticipations       VideoRoomParticipant[]
+  hostedVideoRooms              VideoRoom[]
+  mobileSessions                MobileSession[]
+  appDownloads                  AppDownload[]
+  userActivities                UserActivity[]
+  errorReports                  ErrorReport[]
+  eventsOrganized               Event[]
+  eventTickets                  EventTicket[]
+  propertiesListed              Property[]
+  propertyFavorites             PropertyFavorite[]
+  propertyInquiries             PropertyInquiry[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -2356,53 +2362,53 @@ model Vendor {
 }
 
 model Product {
-  id              String           @id @default(cuid())
-  tenantId        String
-  vendorId        String
-  name            String
-  slug            String
-  description     String?
-  price           Float
-  comparePrice    Float?
-  costPrice       Float?
-  sku             String?
-  barcode         String?
-  category        String
-  subcategory     String?
-  tags            String[]
-  brand           String?
-  weight          Float?
-  weightUnit      String?
-  isDigital       Boolean          @default(false)
-  isActive        Boolean          @default(true)
-  isFeatured      Boolean          @default(false)
-  stockQuantity   Int              @default(0)
-  lowStockAlert   Int              @default(10)
-  allowBackorder  Boolean          @default(false)
-  shippingType    String?
-  freeShipping    Boolean          @default(false)
-  shippingPrice   Float?
-  taxRate         Float?
-  metaTitle       String?
-  metaDescription String?
-  viewCount       Int              @default(0)
-  soldCount       Int              @default(0)
-  fulfillmentType         String            @default("own")
+  id                      String           @id @default(cuid())
+  tenantId                String
+  vendorId                String
+  name                    String
+  slug                    String
+  description             String?
+  price                   Float
+  comparePrice            Float?
+  costPrice               Float?
+  sku                     String?
+  barcode                 String?
+  category                String
+  subcategory             String?
+  tags                    String[]
+  brand                   String?
+  weight                  Float?
+  weightUnit              String?
+  isDigital               Boolean          @default(false)
+  isActive                Boolean          @default(true)
+  isFeatured              Boolean          @default(false)
+  stockQuantity           Int              @default(0)
+  lowStockAlert           Int              @default(10)
+  allowBackorder          Boolean          @default(false)
+  shippingType            String?
+  freeShipping            Boolean          @default(false)
+  shippingPrice           Float?
+  taxRate                 Float?
+  metaTitle               String?
+  metaDescription         String?
+  viewCount               Int              @default(0)
+  soldCount               Int              @default(0)
+  fulfillmentType         String           @default("own")
   sourceSupplierProductId String?
   supplierId              String?
-  supplierProduct         SupplierProduct?  @relation(fields: [sourceSupplierProductId], references: [id])
+  supplierProduct         SupplierProduct? @relation(fields: [sourceSupplierProductId], references: [id])
   fulfillmentStatus       String?
   trackingNumber          String?
   fulfilledAt             DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  cartItems       CartItem[]
-  orderItems      OrderItem[]
-  images          ProductImage[]
-  reviews         ProductReview[]
-  variants        ProductVariant[]
-  tenant          Tenant           @relation(fields: [tenantId], references: [id])
-  vendor          Vendor           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  cartItems               CartItem[]
+  orderItems              OrderItem[]
+  images                  ProductImage[]
+  reviews                 ProductReview[]
+  variants                ProductVariant[]
+  tenant                  Tenant           @relation(fields: [tenantId], references: [id])
+  vendor                  Vendor           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, slug])
   @@unique([id, tenantId])
@@ -2593,25 +2599,25 @@ model Order {
 }
 
 model OrderItem {
-  id        String          @id @default(cuid())
-  tenantId  String
-  orderId   String
-  productId String
-  variantId String?
-  name      String
-  sku       String?
-  quantity  Int
-  price     Float
-  total     Float
-  fulfillmentStatus  String?
-  trackingNumber     String?
-  fulfilledAt        DateTime?
-  supplierId         String?
-  createdAt DateTime        @default(now())
-  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product         @relation(fields: [productId], references: [id])
-  tenant    Tenant          @relation(fields: [tenantId], references: [id])
-  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  id                String          @id @default(cuid())
+  tenantId          String
+  orderId           String
+  productId         String
+  variantId         String?
+  name              String
+  sku               String?
+  quantity          Int
+  price             Float
+  total             Float
+  fulfillmentStatus String?
+  trackingNumber    String?
+  fulfilledAt       DateTime?
+  supplierId        String?
+  createdAt         DateTime        @default(now())
+  order             Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product           Product         @relation(fields: [productId], references: [id])
+  tenant            Tenant          @relation(fields: [tenantId], references: [id])
+  variant           ProductVariant? @relation(fields: [variantId], references: [id])
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -3138,7 +3144,7 @@ model TenantConfig {
 
 model SSOConfig {
   id           String   @id @default(cuid())
-  tenantId      String   @unique
+  tenantId     String   @unique
   provider     String
   entityId     String?
   ssoUrl       String?
@@ -3156,35 +3162,35 @@ model SSOConfig {
 }
 
 model Plugin {
-  id               String         @id @default(cuid())
+  id               String              @id @default(cuid())
   tenantId         String
   developerId      String
   name             String
-  slug             String         @unique
+  slug             String              @unique
   description      String
   version          String
   category         String
-  pricing          PluginPricing  @default(free)
-  price            Float          @default(0)
-  currency         String         @default("USD")
-  revenueShare     Int            @default(70)
+  pricing          PluginPricing       @default(free)
+  price            Float               @default(0)
+  currency         String              @default("USD")
+  revenueShare     Int                 @default(70)
   manifestUrl      String
   documentationUrl String?
   repositoryUrl    String?
-  screenshots      String[]       @default([])
-  tags             String[]       @default([])
-  status           PluginStatus   @default(PENDING_REVIEW)
+  screenshots      String[]            @default([])
+  tags             String[]            @default([])
+  status           PluginStatus        @default(PENDING_REVIEW)
   reviewNotes      String?
   reviewedAt       DateTime?
   reviewedBy       String?
   publishedAt      DateTime?
-  installCount     Int            @default(0)
-  averageRating    Float          @default(0)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  developer        User           @relation("PluginDeveloper", fields: [developerId], references: [id], onDelete: Cascade)
-  reviewer         User?          @relation("PluginReviewer", fields: [reviewedBy], references: [id])
+  installCount     Int                 @default(0)
+  averageRating    Float               @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  developer        User                @relation("PluginDeveloper", fields: [developerId], references: [id], onDelete: Cascade)
+  reviewer         User?               @relation("PluginReviewer", fields: [reviewedBy], references: [id])
   installs         PluginInstall[]
   reviews          PluginReview[]
   revenues         PluginRevenue[]
@@ -3197,17 +3203,17 @@ model Plugin {
 }
 
 model PluginInstall {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   pluginId    String
   tenantId    String
   userId      String
   version     String
-  active      Boolean  @default(true)
-  installedAt DateTime @default(now())
+  active      Boolean   @default(true)
+  installedAt DateTime  @default(now())
   lastUsedAt  DateTime?
-  plugin      Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade)
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plugin      Plugin    @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([pluginId, tenantId])
   @@unique([pluginId, userId])
@@ -3237,7 +3243,7 @@ model PluginReview {
 }
 
 model PluginRevenue {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   pluginId        String
   tenantId        String
   developerId     String
@@ -3245,14 +3251,14 @@ model PluginRevenue {
   amount          Float
   developerAmount Float
   platformAmount  Float
-  currency        String   @default("USD")
-  status          String   @default("pending")
-  createdAt       DateTime @default(now())
+  currency        String    @default("USD")
+  status          String    @default("pending")
+  createdAt       DateTime  @default(now())
   paidOutAt       DateTime?
-  plugin          Plugin   @relation(fields: [pluginId], references: [id], onDelete: Cascade)
-  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  developer       User     @relation("PluginRevenueDeveloper", fields: [developerId], references: [id], onDelete: Cascade)
-  buyer           User     @relation("PluginRevenueBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  plugin          Plugin    @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  developer       User      @relation("PluginRevenueDeveloper", fields: [developerId], references: [id], onDelete: Cascade)
+  buyer           User      @relation("PluginRevenueBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([developerId, status])
@@ -3318,7 +3324,7 @@ model DeveloperPayout {
 }
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   tenantId    String
   organizerId String
   title       String
@@ -3329,15 +3335,15 @@ model Event {
   location    String
   virtualLink String?
   capacity    Int
-  price       Float    @default(0)
-  currency    String   @default("USD")
-  status      String   @default("draft")
+  price       Float         @default(0)
+  currency    String        @default("USD")
+  status      String        @default("draft")
   imageUrl    String?
   tags        String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  organizer   User     @relation(fields: [organizerId], references: [id])
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  organizer   User          @relation(fields: [organizerId], references: [id])
+  tenant      Tenant        @relation("TenantEvents", fields: [tenantId], references: [id])
   tickets     EventTicket[]
 
   @@index([tenantId])
@@ -3348,20 +3354,20 @@ model Event {
 }
 
 model EventTicket {
-  id        String   @id @default(cuid())
-  tenantId  String
-  eventId   String
-  userId    String
-  ticketType String
-  price     Float
-  currency  String   @default("USD")
-  quantity  Int      @default(1)
-  status    String   @default("active")
-  nftTokenId String?
+  id          String   @id @default(cuid())
+  tenantId    String
+  eventId     String
+  userId      String
+  ticketType  String
+  price       Float
+  currency    String   @default("USD")
+  quantity    Int      @default(1)
+  status      String   @default("active")
+  nftTokenId  String?
   purchasedAt DateTime @default(now())
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation("TenantEventTickets", fields: [tenantId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
   @@index([eventId])
@@ -3370,30 +3376,30 @@ model EventTicket {
 }
 
 model Property {
-  id            String   @id @default(cuid())
-  tenantId      String
-  agentId       String
-  title         String
-  description   String
-  propertyType  String
-  listingType   String   // "sale" or "rent"
-  price         Float
-  currency      String   @default("USD")
-  location      String
-  bedrooms      Int?
-  bathrooms     Int?
-  area          Float?
-  areaUnit      String?
-  yearBuilt     Int?
-  status        String   @default("active")
-  featured      Boolean  @default(false)
-  images        PropertyImage[]
-  favorites     PropertyFavorite[]
-  inquiries     PropertyInquiry[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  agent         User     @relation(fields: [agentId], references: [id])
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  id           String             @id @default(cuid())
+  tenantId     String
+  agentId      String
+  title        String
+  description  String
+  propertyType String
+  listingType  String // "sale" or "rent"
+  price        Float
+  currency     String             @default("USD")
+  location     String
+  bedrooms     Int?
+  bathrooms    Int?
+  area         Float?
+  areaUnit     String?
+  yearBuilt    Int?
+  status       String             @default("active")
+  featured     Boolean            @default(false)
+  images       PropertyImage[]
+  favorites    PropertyFavorite[]
+  inquiries    PropertyInquiry[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  agent        User               @relation(fields: [agentId], references: [id])
+  tenant       Tenant             @relation("TenantProperties", fields: [tenantId], references: [id])
 
   @@index([tenantId])
   @@index([agentId])
@@ -3413,7 +3419,7 @@ model PropertyImage {
   isPrimary  Boolean  @default(false)
   createdAt  DateTime @default(now())
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenant     Tenant   @relation("TenantPropertyImages", fields: [tenantId], references: [id])
 
   @@index([tenantId])
   @@index([propertyId])
@@ -3427,7 +3433,7 @@ model PropertyFavorite {
   userId     String
   createdAt  DateTime @default(now())
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenant     Tenant   @relation("TenantPropertyFavorites", fields: [tenantId], references: [id])
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([propertyId, userId])
@@ -3437,18 +3443,18 @@ model PropertyFavorite {
 }
 
 model PropertyInquiry {
-  id         String   @id @default(cuid())
-  tenantId   String
-  propertyId String
-  userId     String
-  message    String
+  id          String   @id @default(cuid())
+  tenantId    String
+  propertyId  String
+  userId      String
+  message     String
   contactInfo Json
-  status     String   @default("pending")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation("TenantPropertyInquiries", fields: [tenantId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
   @@index([propertyId])
@@ -3757,20 +3763,20 @@ model UserWallet {
 
 model WalletTransaction {
   id            String     @id @default(cuid())
-  walletId       String
-  wallet         UserWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  type           String
-  amount         Float
-  fee            Float      @default(0)
-  netAmount      Float
-  currency       String     @default("USD")
-  status         String     @default("pending")
-  description    String?
-  reference      String?
-  relatedUserId  String?
-  metadata       Json?
-  createdAt      DateTime   @default(now())
-  completedAt    DateTime?
+  walletId      String
+  wallet        UserWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type          String
+  amount        Float
+  fee           Float      @default(0)
+  netAmount     Float
+  currency      String     @default("USD")
+  status        String     @default("pending")
+  description   String?
+  reference     String?
+  relatedUserId String?
+  metadata      Json?
+  createdAt     DateTime   @default(now())
+  completedAt   DateTime?
 
   @@index([walletId, createdAt])
   @@index([walletId, type])
@@ -4128,16 +4134,16 @@ model Challenge {
 }
 
 model WebAuthnCredential {
-  id                      String   @id @default(cuid())
+  id                      String    @id @default(cuid())
   userId                  String
   tenantId                String
-  credentialId            String   @unique
+  credentialId            String    @unique
   publicKey               String
-  counter                 Int      @default(0)
-  authenticatorAttachment String   @default("platform")
+  counter                 Int       @default(0)
+  authenticatorAttachment String    @default("platform")
   lastUsedAt              DateTime?
-  createdAt               DateTime @default(now())
-  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt               DateTime  @default(now())
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("webauthn_credentials")
@@ -4164,35 +4170,35 @@ model NotificationPreference {
 }
 
 model EcosystemSettings {
-  id                String   @id @default(cuid())
-  key                String   @unique
-  value              Json
-  description        String?
-  updatedAt          DateTime @default(now())
-  updatedBy          String?
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedAt   DateTime @default(now())
+  updatedBy   String?
 
   @@index([key])
   @@map("ecosystem_settings")
 }
 
 model AppDownload {
-  id                  String   @id @default(cuid())
-  userId               String?
-  tenantId             String?
-  platform             String
-  platformVersion      String?
-  appVersion           String
-  country              String?
-  city                 String?
-  deviceModel          String?
-  osVersion            String?
-  language             String?
-  isFirstDownload      Boolean  @default(false)
-  installedAt          DateTime @default(now())
-  lastActiveAt         DateTime?
-  isActive             Boolean  @default(true)
-  tenant               Tenant?  @relation(fields: [tenantId], references: [id])
-  user                 User?    @relation(fields: [userId], references: [id])
+  id              String    @id @default(cuid())
+  userId          String?
+  tenantId        String?
+  platform        String
+  platformVersion String?
+  appVersion      String
+  country         String?
+  city            String?
+  deviceModel     String?
+  osVersion       String?
+  language        String?
+  isFirstDownload Boolean   @default(false)
+  installedAt     DateTime  @default(now())
+  lastActiveAt    DateTime?
+  isActive        Boolean   @default(true)
+  tenant          Tenant?   @relation(fields: [tenantId], references: [id])
+  user            User?     @relation(fields: [userId], references: [id])
 
   @@index([platform])
   @@index([installedAt])
@@ -4202,13 +4208,13 @@ model AppDownload {
 }
 
 model UserActivity {
-  id          String   @id @default(cuid())
-  userId      String?
-  tenantId   String?
-  sessionId  String?
-  event      String
+  id        String   @id @default(cuid())
+  userId    String?
+  tenantId  String?
+  sessionId String?
+  event     String
   activity  String
-  page       String?
+  page      String?
   metadata  Json?
   country   String?
   city      String?
@@ -4233,10 +4239,10 @@ model EcosystemConfig {
   tenantId    String?
   key         String   @unique
   value       String   @db.Text
-  valueType   String   // string | boolean | number | json | color
-  category    String   // theme | language | mobile | personalisation | analytics
+  valueType   String // string | boolean | number | json | color
+  category    String // theme | language | mobile | personalisation | analytics
   description String?
-  updatedBy   String?  // admin userId
+  updatedBy   String? // admin userId
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
   tenant      Tenant?  @relation(fields: [tenantId], references: [id])
@@ -4247,23 +4253,23 @@ model EcosystemConfig {
 }
 
 model LanguageRoute {
-  id             String   @id @default(cuid())
-  tenantId       String?
-  countryCode    String   // ISO 3166-1 alpha-2: KE, NG, GH, ZA, TZ, UG, SN, CI...
-  countryName    String
-  primaryLanguage String  // en | sw | fr | ha | yo | zu | ar | pt | am
-  fallbackLanguage String @default("en")
+  id               String   @id @default(cuid())
+  tenantId         String?
+  countryCode      String // ISO 3166-1 alpha-2: KE, NG, GH, ZA, TZ, UG, SN, CI...
+  countryName      String
+  primaryLanguage  String // en | sw | fr | ha | yo | zu | ar | pt | am
+  fallbackLanguage String   @default("en")
   supervisorLocale String? // affects FORGE/OMEGA/ARIA greeting language
-  paymentMethods  String[] // mpesa | mtn_momo | flutterwave | stripe...
-  currencyCode    String   // KES | NGN | GHS | ZAR | TZS | UGX | XOF | USD...
-  currencySymbol  String
-  dateFormat      String   @default("DD/MM/YYYY")
-  timeFormat      String   @default("24h")
-  isActive        Boolean  @default(true)
-  updatedBy       String?
-  updatedAt       DateTime @updatedAt
-  createdAt       DateTime @default(now())
-  tenant          Tenant?  @relation(fields: [tenantId], references: [id])
+  paymentMethods   String[] // mpesa | mtn_momo | flutterwave | stripe...
+  currencyCode     String // KES | NGN | GHS | ZAR | TZS | UGX | XOF | USD...
+  currencySymbol   String
+  dateFormat       String   @default("DD/MM/YYYY")
+  timeFormat       String   @default("24h")
+  isActive         Boolean  @default(true)
+  updatedBy        String?
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  tenant           Tenant?  @relation(fields: [tenantId], references: [id])
 
   @@unique([countryCode, tenantId])
   @@index([primaryLanguage])
@@ -4273,10 +4279,10 @@ model LanguageRoute {
 
 model TranslationOverride {
   id           String   @id @default(cuid())
-  key          String   // e.g. "omega.greeting.morning" | "cta.enroll_now"
-  languageCode String   // sw | fr | ha | yo | zu | ar
+  key          String // e.g. "omega.greeting.morning" | "cta.enroll_now"
+  languageCode String // sw | fr | ha | yo | zu | ar
   value        String   @db.Text
-  context      String?  // layer or page context
+  context      String? // layer or page context
   updatedBy    String?
   updatedAt    DateTime @updatedAt
 
@@ -4285,19 +4291,19 @@ model TranslationOverride {
 }
 
 model MobileSession {
-  id          String   @id @default(cuid())
-  userId      String?
-  tenantId    String?
-  deviceId    String
-  os          String   // ios | android
-  osVersion   String
-  appVersion  String
-  startedAt   DateTime @default(now())
-  endedAt     DateTime?
-  duration    Int?     // in seconds
-  metadata    Json?
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
-  user        User?    @relation(fields: [userId], references: [id])
+  id         String    @id @default(cuid())
+  userId     String?
+  tenantId   String?
+  deviceId   String
+  os         String // ios | android
+  osVersion  String
+  appVersion String
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  duration   Int? // in seconds
+  metadata   Json?
+  tenant     Tenant?   @relation(fields: [tenantId], references: [id])
+  user       User?     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([deviceId])
@@ -4308,7 +4314,7 @@ model CountryRule {
   id          String   @id @default(cuid())
   tenantId    String?
   countryCode String
-  config      Json     // custom per-country settings
+  config      Json // custom per-country settings
   updatedBy   String?
   updatedAt   DateTime @updatedAt
   tenant      Tenant?  @relation(fields: [tenantId], references: [id])
@@ -4324,8 +4330,8 @@ model FeatureFlag {
   key         String
   description String?
   isActive    Boolean  @default(false)
-  rules       Json?    // rollouts, audience targeting
-  category    String   // mobile | web | global
+  rules       Json? // rollouts, audience targeting
+  category    String // mobile | web | global
   updatedBy   String?
   updatedAt   DateTime @updatedAt
   tenant      Tenant?  @relation(fields: [tenantId], references: [id])
@@ -4337,19 +4343,19 @@ model FeatureFlag {
 }
 
 model ErrorReport {
-  id          String   @id @default(cuid())
-  userId      String?
-  tenantId    String?
-  platform    String   // web | mobile-ios | mobile-android
-  errorName   String
-  message     String   @db.Text
-  stack       String?  @db.Text
-  metadata    Json?
-  status      String   @default("open") // open | resolved | ignored
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
-  user        User?    @relation(fields: [userId], references: [id])
+  id        String   @id @default(cuid())
+  userId    String?
+  tenantId  String?
+  platform  String // web | mobile-ios | mobile-android
+  errorName String
+  message   String   @db.Text
+  stack     String?  @db.Text
+  metadata  Json?
+  status    String   @default("open") // open | resolved | ignored
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@index([platform])
   @@index([status])
