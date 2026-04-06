@@ -1,8 +1,9 @@
 // Phase 4A: Winners Dropshipping Hub
 // Complete dropshipping module with supplier integration, niches, calculator, and AI tools
 
-import { useState, useCallback, useRef, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useRef, type CSSProperties, type ReactNode } from "react";
 import ContextBar from "../../../components/ui/ContextBar";
+import { useAuthStore } from "../../../features/auth/authStore";
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 // Using CSS variables from global design system
@@ -80,6 +81,22 @@ interface DropshippingTool {
   fields: DropshippingToolField[];
   system: string;
   prompt: (f: ToolFormValues) => string;
+}
+
+interface SupplierCatalogItem {
+  id: string;
+  title: string;
+  description: string;
+  costPrice: number;
+  suggestedRetail: number;
+  category: string;
+  images: string[];
+  shippingTime: string;
+  atlasScore?: number;
+  atlasReason?: string;
+  supplier?: {
+    name?: string;
+  };
 }
 
 // ─── Supplier Catalog ────────────────────────────────────────────────────────
@@ -304,10 +321,82 @@ export default function WinnersDropshipping() {
   const [activeNiche, setActiveNiche] = useState<string | null>(null);
   const [aiTool, setAiTool] = useState<string | null>(null);
   const [form, setForm] = useState<ToolFormValues>({});
+  const { token } = useAuthStore();
+  const [supplierCatalog, setSupplierCatalog] = useState<SupplierCatalogItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogSupplier, setCatalogSupplier] = useState<string | null>(null);
   const { out, loading, run, reset } = useStream();
 
   const sup = SUPPLIERS.find(s => s.id === activeSupplier);
   const niche = NICHES.find(n => n.id === activeNiche);
+
+  const selectedCatalogSupplier =
+    activeSupplier === "printful" || activeSupplier === "gelato" ? activeSupplier : null;
+
+  const authHeaders = useCallback(() => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+  }, [token]);
+
+  const loadCatalog = useCallback(async (supplier: "printful" | "gelato") => {
+    if (!token) return;
+    setCatalogLoading(true);
+    setCatalogError(null);
+    setCatalogSupplier(supplier);
+    try {
+      const response = await fetch(`/api/v1/dropship/suppliers/${supplier}/catalog?limit=12`, {
+        headers: authHeaders(),
+      });
+      const data = (await response.json().catch(() => ({}))) as { products?: SupplierCatalogItem[]; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to load ${supplier} catalog`);
+      }
+      setSupplierCatalog(Array.isArray(data.products) ? data.products : []);
+    } catch (err) {
+      setCatalogError(err instanceof Error ? err.message : `Failed to load ${supplier} catalog`);
+      setSupplierCatalog([]);
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, [authHeaders, token]);
+
+  const syncCatalog = useCallback(async (supplier: "printful" | "gelato") => {
+    if (!token) return;
+    setCatalogLoading(true);
+    setCatalogError(null);
+    setCatalogSupplier(supplier);
+    try {
+      const response = await fetch(`/api/v1/dropship/suppliers/${supplier}/sync`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      const data = (await response.json().catch(() => ({}))) as { products?: SupplierCatalogItem[]; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to sync ${supplier} catalog`);
+      }
+      setSupplierCatalog(Array.isArray(data.products) ? data.products : []);
+    } catch (err) {
+      setCatalogError(err instanceof Error ? err.message : `Failed to sync ${supplier} catalog`);
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, [authHeaders, token]);
+
+  useEffect(() => {
+    if (!selectedCatalogSupplier) {
+      setSupplierCatalog([]);
+      setCatalogSupplier(null);
+      setCatalogError(null);
+      setCatalogLoading(false);
+      return;
+    }
+
+    void loadCatalog(selectedCatalogSupplier);
+  }, [loadCatalog, selectedCatalogSupplier]);
 
   const AI_TOOLS: DropshippingTool[] = [
     {
@@ -663,6 +752,87 @@ Make the copy culturally authentic. Include local phrases where appropriate.`,
                     </div>
                   </div>
                 </Card>
+              )}
+
+              {selectedCatalogSupplier && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12 }}>
+                    <Label text={`${selectedCatalogSupplier === "printful" ? "Printful" : "Gelato"} Live Catalog`} />
+                    <button
+                      type="button"
+                      onClick={() => void syncCatalog(selectedCatalogSupplier)}
+                      disabled={catalogLoading}
+                      style={{
+                        background: T.gold,
+                        color: T.bg,
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "10px 16px",
+                        fontFamily: "'Space Mono',monospace",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        cursor: catalogLoading ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {catalogLoading && catalogSupplier === selectedCatalogSupplier
+                        ? "Syncing..."
+                        : "Sync Live Catalog"}
+                    </button>
+                  </div>
+
+                  {catalogError ? (
+                    <div style={{ marginBottom: 12, padding: "12px 14px", borderRadius: 6, border: `1px solid ${T.red}33`, background: "rgba(224,90,78,0.08)", color: T.red, fontSize: 13 }}>
+                      {catalogError}
+                    </div>
+                  ) : null}
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
+                    {catalogLoading && supplierCatalog.length === 0 ? (
+                      <Card color={T.border} style={{ padding: 18, color: T.dim }}>Loading live catalog...</Card>
+                    ) : supplierCatalog.length > 0 ? (
+                      supplierCatalog.map((item) => (
+                        <Card key={item.id} color={selectedCatalogSupplier === "printful" ? T.gold : T.green} style={{ padding: 0 }}>
+                          <div style={{ height: 140, background: T.surface2, overflow: "hidden" }}>
+                            {item.images?.[0] ? (
+                              <img
+                                src={item.images[0]}
+                                alt={item.title}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            ) : (
+                              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: T.dim, fontSize: 28 }}>🛍️</div>
+                            )}
+                          </div>
+                          <div style={{ padding: 16 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+                              <div style={{ fontWeight: 800, fontSize: 13, lineHeight: 1.4 }}>{item.title}</div>
+                              <Tag color={selectedCatalogSupplier === "printful" ? T.gold : T.green}>{item.category}</Tag>
+                            </div>
+                            <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: T.green, marginBottom: 8 }}>
+                              ${item.suggestedRetail.toFixed(2)} retail · ${item.costPrice.toFixed(2)} cost
+                            </div>
+                            <div style={{ fontSize: 12, color: T.dim, lineHeight: 1.6, marginBottom: 10 }}>
+                              {item.description || "Live supplier catalog item"}
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                              <Tag color={T.ice}>{item.shippingTime}</Tag>
+                              {typeof item.atlasScore === "number" ? <Tag color={T.green}>ATLAS {item.atlasScore}</Tag> : null}
+                            </div>
+                            {item.atlasReason ? (
+                              <div style={{ fontSize: 11, color: T.dim, lineHeight: 1.5 }}>
+                                {item.atlasReason}
+                              </div>
+                            ) : null}
+                          </div>
+                        </Card>
+                      ))
+                    ) : (
+                      <Card color={T.border} style={{ padding: 18, color: T.dim }}>
+                        Sync Printful or Gelato to populate the live catalog here.
+                      </Card>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}

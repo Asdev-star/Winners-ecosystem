@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../auth/authStore';
+import { getAuthHeaders, useAuthStore } from '../auth/authStore';
 import AIInsightBanner from '../../components/ui/AIInsightBanner';
 import ContextBar from '../../components/ui/ContextBar';
 import AssistantPanel from '../../components/ui/AssistantPanel';
@@ -531,7 +531,7 @@ export default function ProductPage() {
       const response = await fetch('/api/v1/cart/items', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          ...getAuthHeaders(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

@@ -8,6 +8,8 @@ import db from "../db.js";
 import Stripe from "stripe";
 import bcrypt from "bcryptjs";
 
+type Request = AuthRequest;
+
 const router = Router();
 router.use(authMiddleware);
 

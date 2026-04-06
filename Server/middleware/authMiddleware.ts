@@ -26,6 +26,7 @@ export interface AuthenticatedUser extends JwtPayload {
 
 export type AuthRequest = Request & {
   user: AuthenticatedUser;
+  imageLimit?: number;
 };
 
 // Extend Express.User so req.user resolves cleanly across middleware and passport types.

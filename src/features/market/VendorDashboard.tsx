@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../features/auth/authStore';
+import { getAuthHeaders, useAuthStore } from '../../features/auth/authStore';
 import AssistantPanel from '../../components/ui/AssistantPanel';
 import OmegaProfileAssignmentCard from '../../components/ui/OmegaProfileAssignmentCard';
 import AtlasContextBar from './atlas/AtlasContextBar';
@@ -300,6 +300,7 @@ interface PayoutsResponse {
 
 export default function VendorDashboard() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
   
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders'>('overview');
@@ -323,7 +324,7 @@ export default function VendorDashboard() {
       if (!token) throw new Error('Missing auth token');
 
       const vendorRes = await fetch('/api/v1/vendors/me', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
       });
 
       if (!vendorRes.ok) {
@@ -337,13 +338,13 @@ export default function VendorDashboard() {
 
       const [productsData, ordersData, payoutsData] = await Promise.all([
         typedFetch<ProductsResponse>('/api/v1/products?vendor=true', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: getAuthHeaders(),
         }),
         typedFetch<OrdersResponse>('/api/v1/orders/vendor/all', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: getAuthHeaders(),
         }),
         typedFetch<PayoutsResponse>('/api/v1/vendors/me/payouts', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: getAuthHeaders(),
         }),
       ]);
 
@@ -499,6 +500,17 @@ export default function VendorDashboard() {
         <AssistantPanel 
           assistant="atlas" 
           page="vendor-dashboard" 
+          userId={user?.id}
+          context={{
+            page: "vendor-dashboard",
+            vendorId: user?.id ?? null,
+            activeProducts: totalProducts,
+            lowStockProducts: lowStockCount,
+            pendingOrders: orders.filter((order) => order.status === 'pending').length,
+            totalRevenue,
+            totalSales,
+            pendingPayouts: payoutSummary.pending,
+          }}
           initialMessage="I'm ATLAS, your Market AI assistant. I can help you with product pricing, inventory optimization, and sales strategies."
         />
       </div>

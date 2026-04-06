@@ -187,6 +187,7 @@ model User {
     bio                           String?
     avatarUrl                     String?
     skills                        String[]
+  badges                        String[]                       @default([])
   industry                      String?
   isPublicProfile               Boolean                        @default(true)
   profileViews                  Int                            @default(0)

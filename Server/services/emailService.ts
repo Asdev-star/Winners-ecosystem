@@ -1,8 +1,11 @@
 // Server/services/emailService.ts
 
 import { Resend } from "resend";
+import { NotificationType } from "@prisma/client";
 import db from "../db.js";
 import { logEmailDelivery } from "./emailTelemetryService.js";
+import { notifyUser } from "./wsService.js";
+import { sendPushNotification } from "./fcmService.js";
 
 const FROM = process.env.EMAIL_FROM ?? "Winners Ecosystem <reports@yourdomain.com>";
 const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
@@ -102,6 +105,81 @@ function baseTemplate(title: string, preheader: string, body: string): string {
   </div>
 </body>
 </html>`;
+}
+
+function academyProgressPct(completed: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.min(100, Math.round((completed / total) * 100));
+}
+
+function academyBriefingTitle(name: string) {
+  return `Weekly SAGE Briefing - ${name}`;
+}
+
+function academyBriefingBody(params: {
+  userName: string;
+  briefings: Array<{
+    courseTitle: string;
+    courseSlug: string;
+    completedLessons: number;
+    totalLessons: number;
+    progressPct: number;
+    nextLessonTitle: string | null;
+  }>;
+}): string {
+  const courseCards = params.briefings
+    .map((briefing) => {
+      const nextLesson = briefing.nextLessonTitle ?? "Continue the next lesson";
+      return `
+        <div style="background:#0D1117;border:1px solid #1E2A38;border-radius:6px;padding:16px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#E8EDF2">${briefing.courseTitle}</div>
+              <div style="font-family:monospace;font-size:10px;color:#5A6878">${briefing.completedLessons}/${briefing.totalLessons} lessons complete</div>
+            </div>
+            <div style="font-family:monospace;font-size:11px;color:#C9A84C;font-weight:700">${briefing.progressPct}%</div>
+          </div>
+          <div style="height:6px;background:#1E2A38;border-radius:999px;overflow:hidden;margin-bottom:10px">
+            <div style="width:${briefing.progressPct}%;height:100%;background:#C9A84C"></div>
+          </div>
+          <div style="font-size:13px;line-height:1.6;color:#B7C2CC">
+            <strong style="color:#E8EDF2">Next step:</strong> ${nextLesson}
+          </div>
+          <div style="margin-top:10px">
+            <a href="${APP_URL}/academy/courses/${briefing.courseSlug}" style="color:#C9A84C;text-decoration:none;font-size:12px;font-weight:700">Resume course</a>
+          </div>
+        </div>`;
+    })
+    .join("");
+
+  return `
+    <div style="background:#0D1117;border:1px solid #1E2A38;border-radius:6px;padding:24px;margin-bottom:24px">
+      <div style="font-family:monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px">SAGE WEEKLY BRIEFING</div>
+      <div style="font-size:24px;font-weight:700;color:#E8EDF2;margin-bottom:8px">Your Academy progress is ready</div>
+      <div style="font-family:monospace;font-size:11px;color:#5A6878">Hello ${params.userName}, here's the weekly learning snapshot for your active courses.</div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+      ${kpiCard("Active Courses", String(params.briefings.length))}
+      ${kpiCard(
+        "Completed Lessons",
+        String(params.briefings.reduce((sum, item) => sum + item.completedLessons, 0)),
+      )}
+      ${kpiCard(
+        "Average Progress",
+        `${Math.round(
+          params.briefings.reduce((sum, item) => sum + item.progressPct, 0) /
+            Math.max(1, params.briefings.length),
+        )}%`,
+      )}
+    </div>
+    ${sectionTitle("Courses")}
+    ${courseCards}
+    <div style="margin-top:24px;text-align:center">
+      <a href="${APP_URL}/academy" style="display:inline-block;background:#C9A84C;color:#080B10;text-decoration:none;padding:12px 28px;border-radius:4px;font-weight:700;font-size:13px">
+        Continue Learning
+      </a>
+    </div>
+  `;
 }
 
 function sectionTitle(text: string): string {
@@ -247,6 +325,166 @@ export async function sendWeeklyRevenueSummary(tenantId: string, to: string[]) {
       tenantName: tenant?.name ?? "Workspace",
     },
   });
+}
+
+async function getWeeklyAcademyBriefings(tenantId: string) {
+  const activeEnrollments = await db.enrollment.findMany({
+    where: {
+      tenantId,
+      status: "ACTIVE",
+      user: {
+        deletedAt: null,
+      },
+    },
+    select: {
+      userId: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          notificationPreference: true,
+        },
+      },
+      course: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
+      },
+      progress: {
+        select: {
+          lessonId: true,
+          completed: true,
+        },
+      },
+      courseId: true,
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const briefingsByUser = new Map<
+    string,
+    {
+      userId: string;
+      name: string;
+      email: string;
+      notificationPreference: boolean;
+      briefings: Array<{
+        courseTitle: string;
+        courseSlug: string;
+        completedLessons: number;
+        totalLessons: number;
+        progressPct: number;
+        nextLessonTitle: string | null;
+      }>;
+    }
+  >();
+
+  for (const enrollment of activeEnrollments) {
+    const userId = enrollment.userId;
+    const completedLessonIds = new Set(
+      enrollment.progress.filter((item) => item.completed).map((item) => item.lessonId),
+    );
+    const modules = await db.module.findMany({
+      where: {
+        tenantId,
+        courseId: enrollment.courseId,
+      },
+      orderBy: { order: "asc" },
+      include: {
+        lessons: {
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+
+    const lessons = modules.flatMap((module) => module.lessons);
+    const totalLessons = lessons.length;
+    const completedLessons = lessons.filter((lesson) => completedLessonIds.has(lesson.id)).length;
+    const nextLesson = lessons.find((lesson) => !completedLessonIds.has(lesson.id)) ?? null;
+    const summary = {
+      courseTitle: enrollment.course.title,
+      courseSlug: enrollment.course.slug,
+      completedLessons,
+      totalLessons,
+      progressPct: academyProgressPct(completedLessons, totalLessons),
+      nextLessonTitle: nextLesson?.title ?? null,
+    };
+
+    const current = briefingsByUser.get(userId) ?? {
+      userId,
+      name: enrollment.user.name || enrollment.user.email || "Learner",
+      email: enrollment.user.email,
+      notificationPreference: enrollment.user.notificationPreference?.academyEnrollment !== false,
+      briefings: [],
+    };
+    current.briefings.push(summary);
+    briefingsByUser.set(userId, current);
+  }
+
+  return Array.from(briefingsByUser.values()).filter(
+    (item) => item.notificationPreference && item.email.trim().length > 0 && item.briefings.length > 0,
+  );
+}
+
+export async function sendWeeklyAcademyBriefings(tenantId: string) {
+  const learners = await getWeeklyAcademyBriefings(tenantId);
+
+  for (const learner of learners) {
+    const headlineCourse = learner.briefings[0];
+    if (!headlineCourse) continue;
+
+    const emailHtml = baseTemplate(
+      academyBriefingTitle(learner.name),
+      `Your weekly Academy progress snapshot is ready`,
+      academyBriefingBody({
+        userName: learner.name,
+        briefings: learner.briefings,
+      }),
+    );
+    const subject = academyBriefingTitle(learner.name);
+
+    await db.notification.create({
+      data: {
+        tenantId,
+        userId: learner.userId,
+        type: NotificationType.SYSTEM,
+        title: "SAGE weekly briefing ready",
+        body: `You are ${headlineCourse.progressPct}% through ${headlineCourse.courseTitle}. Open Academy for your next step.`,
+        link: "/academy",
+        entityType: "weekly_brief",
+      },
+    });
+
+    await sendTrackedEmail({
+      tenantId,
+      action: "Weekly Academy briefing sent",
+      source: "weekly_academy_briefing",
+      to: [learner.email],
+      subject,
+      html: emailHtml,
+      metadata: {
+        userId: learner.userId,
+        courseCount: learner.briefings.length,
+      },
+    });
+
+    await sendPushNotification(learner.userId, {
+      title: "🎓 SAGE weekly briefing ready",
+      body: `You are ${headlineCourse.progressPct}% through ${headlineCourse.courseTitle}.`,
+      url: "/academy",
+      priority: "normal",
+    });
+
+    notifyUser(learner.userId, {
+      type: "SAGE_WEEKLY_BRIEF",
+      title: "SAGE weekly briefing ready",
+      body: `You are ${headlineCourse.progressPct}% through ${headlineCourse.courseTitle}.`,
+      link: "/academy",
+    });
+  }
 }
 
 export async function sendOrderConfirmationEmail(

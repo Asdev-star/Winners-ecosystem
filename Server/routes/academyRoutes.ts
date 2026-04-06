@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { QuestionType } from "@prisma/client";
+import { Prisma, QuestionType } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { createCourseCheckoutSession } from "../services/stripeService.js";
@@ -75,6 +75,19 @@ function keywordSummary(sentence: string) {
     .filter((word) => !["this", "that", "with", "from", "your", "have", "will", "lesson", "course"].includes(word));
   const unique = Array.from(new Set(words));
   return unique.slice(0, 4).join(" ") || sentence.slice(0, 28);
+}
+
+function extractMetadataObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function extractProfileBadges(value: unknown): string[] {
+  const metadata = extractMetadataObject(value);
+  const profile = extractMetadataObject(metadata.profile);
+  const badges = profile.badges;
+  if (!Array.isArray(badges)) return [];
+  return badges.filter((badge): badge is string => typeof badge === "string" && badge.trim().length > 0);
 }
 
 function createGeneratedQuizQuestions(lessonText: string, courseTitle: string) {
@@ -825,7 +838,7 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
       }),
       db.user.findFirst({
         where: { id: userId, tenantId: req.user.tenantId, deletedAt: null },
-        select: { name: true, email: true, trustScore: true, badges: true },
+        select: { name: true, email: true, trustScore: true, metadata: true },
       }),
     ]);
 
@@ -851,7 +864,11 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
 
     const badgeLabel = `Certified: ${course.title}`;
     const updatedTrust = Math.min(100, (user.trustScore ?? 50) + 30);
-    const badges = Array.from(new Set([...(user.badges ?? []), badgeLabel]));
+    const badges = Array.from(new Set([...extractProfileBadges(user.metadata), badgeLabel]));
+    const userMetadata = extractMetadataObject(user.metadata);
+    const nextProfile = extractMetadataObject(userMetadata.profile);
+    nextProfile.badges = badges;
+    userMetadata.profile = nextProfile;
 
     const certificate = await db.certificate.create({
       data: {
@@ -873,7 +890,7 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
         trustScore: updatedTrust,
         trustScoreTier: deriveTrustTier(updatedTrust),
         trustScoreUpdatedAt: new Date(),
-        badges,
+        metadata: userMetadata as Prisma.InputJsonValue,
       },
     });
 

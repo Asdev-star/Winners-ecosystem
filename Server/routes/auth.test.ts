@@ -1,20 +1,29 @@
 // @vitest-environment node
 
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import type { NextFunction, Request, Response } from "express";
+import type { NextFunction, Response } from "express";
+import type { AuthRequest } from "../middleware/authMiddleware.js";
 
-type MockAuthRequest = Request & {
+type MockAuthRequest = Partial<AuthRequest> & {
   user?: {
     userId: string;
     tenantId: string;
-    role: string;
+    tenantName: string;
+    email: string;
+    role: "member";
   };
 };
 
 // Mock auth middleware
 vi.mock("../middleware/authMiddleware.js", () => ({
   authMiddleware: (req: MockAuthRequest, _res: Response, next: NextFunction) => {
-    req.user = { userId: "test-user-1", tenantId: "test-tenant-1", role: "user" };
+    req.user = {
+      userId: "test-user-1",
+      tenantId: "test-tenant-1",
+      tenantName: "Test Tenant",
+      email: "test@example.com",
+      role: "member",
+    };
     next();
   },
 }));

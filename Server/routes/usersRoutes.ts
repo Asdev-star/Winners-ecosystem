@@ -1,11 +1,14 @@
 // server/routes/usersRoutes.ts
 
 import { Prisma, Role } from "@prisma/client";
-import { Router, type Request, type Response } from "express";
+import { Router, type Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant, requireMinRole, requirePermission } from "../middleware/rbacMiddleware.js";
 import { uploadImage } from "../services/cloudinaryService.js";
+import type { AuthRequest } from "../middleware/authMiddleware.js";
+
+type Request = AuthRequest;
 
 const router = Router();
 
@@ -45,12 +48,16 @@ function profileExtras(metadata: Record<string, unknown>) {
   const social = metadata.social;
   const profileMeta = profile && typeof profile === "object" && !Array.isArray(profile) ? profile as Record<string, unknown> : {};
   const socialMeta = social && typeof social === "object" && !Array.isArray(social) ? social as Record<string, unknown> : {};
+  const badges = Array.isArray(profileMeta.badges)
+    ? profileMeta.badges.filter((badge): badge is string => typeof badge === "string" && badge.trim().length > 0)
+    : [];
 
   return {
     website: typeof socialMeta.website === "string" ? socialMeta.website : undefined,
     twitter: typeof socialMeta.twitter === "string" ? socialMeta.twitter : undefined,
     github: typeof socialMeta.github === "string" ? socialMeta.github : undefined,
     avatarUrl: typeof profileMeta.avatarUrl === "string" ? profileMeta.avatarUrl : undefined,
+    badges,
   };
 }
 
@@ -68,7 +75,6 @@ router.get("/me", async (req: Request, res: Response) => {
         country: true,
         city: true,
         avatarUrl: true,
-        badges: true,
         metadata: true,
         createdAt: true,
       },
@@ -88,7 +94,7 @@ router.get("/me", async (req: Request, res: Response) => {
       skills: user.skills,
       country: user.country,
       city: user.city,
-      badges: user.badges,
+      badges: extras.badges ?? [],
       joinedAt: user.createdAt.toISOString(),
       avatarUrl: user.avatarUrl ?? extras.avatarUrl ?? null,
       ...extras,
@@ -176,7 +182,6 @@ router.patch("/me", async (req: Request, res: Response) => {
         country: true,
         city: true,
         avatarUrl: true,
-        badges: true,
         metadata: true,
         createdAt: true,
       },
@@ -192,7 +197,7 @@ router.patch("/me", async (req: Request, res: Response) => {
       skills: updated.skills,
       country: updated.country,
       city: updated.city,
-      badges: updated.badges,
+      badges: extras.badges ?? [],
       joinedAt: updated.createdAt.toISOString(),
       avatarUrl: updated.avatarUrl ?? extras.avatarUrl ?? null,
       ...extras,

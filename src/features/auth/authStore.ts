@@ -333,8 +333,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 }));
 
 export function getAuthHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().token;
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const state = useAuthStore.getState();
+  const headers: Record<string, string> = {};
+
+  if (state.token) {
+    headers.Authorization = `Bearer ${state.token}`;
+  }
+
+  if (state.user?.tenantId) {
+    headers["x-tenant-id"] = state.user.tenantId;
+  }
+
+  return headers;
 }
 
 export function getTenantId(): string | null {

@@ -6,9 +6,10 @@ import { requirePro } from "../middleware/marketPlanGate.js";
 import db from "../db.js";
 import {
   autoFulfillDropOrder,
-  importProductFromPrintful,
   syncSupplierCatalog,
 } from "../services/supplierService.js";
+import { importPrintfulProductForTenant, syncPrintfulCatalogForTenant } from "../services/dropshipping/printfulService.js";
+import { syncGelatoCatalogForTenant } from "../services/dropshipping/gelatoService.js";
 
 const router = Router();
 
@@ -120,12 +121,38 @@ router.post("/suppliers/:supplier/sync", authMiddleware, requirePro("Dropshippin
   }
 });
 
+// GET /api/v1/dropship/suppliers/printful/catalog
+router.get("/suppliers/printful/catalog", authMiddleware, requirePro("Dropshipping"), async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId;
+    const limit = Number(req.query.limit ?? 12);
+    const result = await syncPrintfulCatalogForTenant(tenantId, limit);
+    res.json({ supplier: result.supplier, products: result.products, syncedCount: result.syncedCount });
+  } catch (error) {
+    console.error("[dropshipRoutes] Error fetching Printful catalog:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch Printful catalog" });
+  }
+});
+
+// GET /api/v1/dropship/suppliers/gelato/catalog
+router.get("/suppliers/gelato/catalog", authMiddleware, requirePro("Dropshipping"), async (req, res) => {
+  try {
+    const tenantId = req.user.tenantId;
+    const limit = Number(req.query.limit ?? 12);
+    const result = await syncGelatoCatalogForTenant(tenantId, limit);
+    res.json({ supplier: result.supplier, products: result.products, syncedCount: result.syncedCount });
+  } catch (error) {
+    console.error("[dropshipRoutes] Error fetching Gelato catalog:", error);
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch Gelato catalog" });
+  }
+});
+
 // POST /api/v1/dropship/suppliers/printful/import/:productId
 router.post("/suppliers/printful/import/:productId", authMiddleware, requirePro("Dropshipping"), async (req, res) => {
   try {
     const tenantId = req.user.tenantId;
     const productId = Array.isArray(req.params.productId) ? req.params.productId[0] : req.params.productId;
-    const product = await importProductFromPrintful(String(productId), tenantId);
+    const product = await importPrintfulProductForTenant(String(productId), tenantId);
     res.json({ message: "Printful product imported into supplier catalog", product });
   } catch (error) {
     console.error("[dropshipRoutes] Error importing Printful product:", error);
