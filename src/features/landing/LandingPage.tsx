@@ -1226,7 +1226,12 @@ export default function LandingPage({ config: userConfig }: LandingPageProps = {
         const response = await fetch(`${API_BASE}/public/ecosystem-settings?country=${encodeURIComponent(country)}`, {
           signal: controller.signal,
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          console.warn("Failed to load ecosystem settings:", response.status, response.statusText);
+          setRuntimeSettings(null);
+          setLocaleCode("en");
+          return;
+        }
 
         const body = (await response.json().catch(() => ({}))) as {
           settings?: PublicEcosystemSettings;
@@ -1243,7 +1248,8 @@ export default function LandingPage({ config: userConfig }: LandingPageProps = {
           : body.resolvedLanguage ?? resolveLandingLocale(settings.language ?? "en", country, body.countryLanguageMapping ?? settings.countryLanguageMapping ?? []);
 
         setLocaleCode(language || "en");
-      } catch {
+      } catch (error) {
+        console.error("Error loading ecosystem settings:", error);
         if (!controller.signal.aborted) {
           setRuntimeSettings(null);
           setLocaleCode("en");

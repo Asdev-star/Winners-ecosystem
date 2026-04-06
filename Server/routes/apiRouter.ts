@@ -155,9 +155,26 @@ router.get("/public/ecosystem-settings", async (req, res) => {
       typeof req.query.country === "string"
         ? req.query.country.trim().toUpperCase()
         : "";
-    const records = await db.ecosystemSettings.findMany();
-    const ecosystemSnapshot = await getEcosystemConfigSnapshot();
-    const translationOverrides = await getTranslationOverrides();
+    let records = [];
+    let ecosystemSnapshot;
+    let translationOverrides = [];
+    try {
+      records = await db.ecosystemSettings.findMany();
+    } catch (dbError) {
+      console.error("DB error fetching ecosystem settings:", dbError);
+    }
+    try {
+      ecosystemSnapshot = await getEcosystemConfigSnapshot();
+    } catch (snapshotError) {
+      console.error("Error getting ecosystem snapshot:", snapshotError);
+      ecosystemSnapshot = { theme: DEFAULT_ECOSYSTEM_SETTINGS };
+    }
+    try {
+      translationOverrides = await getTranslationOverrides();
+    } catch (transError) {
+      console.error("Error getting translation overrides:", transError);
+      translationOverrides = [];
+    }
     const stored = records.reduce<Record<string, unknown>>((acc, record) => {
       acc[record.key] = record.value;
       return acc;
@@ -170,7 +187,7 @@ router.get("/public/ecosystem-settings", async (req, res) => {
         theme?: unknown;
         translationOverrides?: unknown;
       };
-    const publicTheme = ecosystemSnapshot.theme;
+    const publicTheme = ecosystemSnapshot?.theme ?? DEFAULT_ECOSYSTEM_SETTINGS;
     if (!settings.theme) {
       settings.theme = publicTheme;
     }

@@ -642,8 +642,14 @@ export async function getEcosystemConfigSnapshot(forceRefresh = false): Promise<
     return cache;
   }
 
-  cache = await loadSnapshotFromDb();
-  cacheLoadedAt = now;
+  try {
+    cache = await loadSnapshotFromDb();
+    cacheLoadedAt = now;
+  } catch (error) {
+    console.error("Failed to load ecosystem config from DB, using defaults:", error);
+    cache = DEFAULT_SNAPSHOT;
+    cacheLoadedAt = now;
+  }
   return cache;
 }
 
