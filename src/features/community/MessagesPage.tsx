@@ -65,6 +65,7 @@ const css = `
     font-family: 'Syne', sans-serif;
     border-radius: 8px; overflow: hidden;
     border: 1px solid var(--border);
+    box-shadow: 0 16px 42px rgba(0,0,0,0.22);
   }
 
   .dm-sidebar {
@@ -166,7 +167,12 @@ const css = `
     flex: 1; overflow-y: auto; padding: 20px;
     display: flex; flex-direction: column; gap: 12px;
   }
-  .dm-message { max-width: 72%; display: flex; flex-direction: column; }
+  .dm-message {
+    max-width: 72%;
+    display: flex;
+    flex-direction: column;
+    animation: dm-pop 180ms ease-out;
+  }
   .dm-message.sent { align-self: flex-end; }
   .dm-message.received { align-self: flex-start; }
   .dm-msg-sender { font-size: 10px; color: var(--text-dim); margin-bottom: 3px; }
@@ -272,6 +278,52 @@ const css = `
     .dm-sidebar { width: 100%; }
     .dm-chat { display: none; }
     .dm-chat.active { display: flex; position: absolute; inset: 0; z-index: 5; }
+    .dm-sidebar-header { padding: 16px 16px 14px; }
+    .dm-search { padding: 10px 14px; }
+    .dm-conv-item { padding: 12px 14px; }
+    .dm-messages { padding: 16px; gap: 10px; }
+    .dm-message { max-width: 82%; }
+    .dm-input-area { padding: 12px 14px; }
+    .dm-input { font-size: 14px; }
+  }
+
+  @media (max-width: 500px) {
+    .dm-sidebar-header {
+      padding: 14px 14px 12px;
+      gap: 10px;
+    }
+    .dm-sidebar-title { font-size: 15px; }
+    .dm-sidebar-sub { font-size: 8px; }
+    .dm-new-btn { width: 30px; height: 30px; font-size: 16px; }
+    .dm-search input { font-size: 12px; padding: 8px 10px; }
+    .dm-conv-name { font-size: 12px; }
+    .dm-conv-preview { font-size: 11px; }
+    .dm-chat-header { padding: 12px 14px; }
+    .dm-chat-name { font-size: 14px; }
+    .dm-messages { padding: 14px 12px; }
+    .dm-message { max-width: 88%; }
+    .dm-msg-bubble { padding: 9px 12px; font-size: 12px; }
+    .dm-input-area {
+      padding: 12px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .dm-input { min-height: 54px; max-height: 140px; }
+    .dm-send-btn {
+      width: 100%;
+      height: 40px;
+      border-radius: 10px;
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes dm-pop {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 `;
 

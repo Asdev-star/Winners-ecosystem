@@ -264,7 +264,10 @@ router.get("/me/analytics", authMiddleware, async (req: Request, res: Response) 
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
 
-    const vendor = await db.vendor.findFirst({ where: { userId, tenantId } });
+    const vendor = await db.vendor.findFirst({
+      where: { userId, tenantId },
+      select: { id: true, storeName: true, tenantId: true, stripeAccountId: true },
+    });
     if (!vendor) {
       return res.status(404).json({ error: "Vendor not found" });
     }
@@ -272,31 +275,41 @@ router.get("/me/analytics", authMiddleware, async (req: Request, res: Response) 
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // Get order stats
-    const [totalOrders, recentOrders, products, revenueResult] = await Promise.all([
-      db.order.count({ where: { vendorId: vendor.id } }),
-      db.order.count({ where: { vendorId: vendor.id, createdAt: { gte: thirtyDaysAgo } } }),
-      db.product.count({ where: { vendorId: vendor.id, isActive: true } }),
-      db.order.aggregate({
-        where: { vendorId: vendor.id, status: { in: ["CONFIRMED", "SHIPPED", "DELIVERED"] } },
-        _sum: { total: true }
+    const orderItemWhere = {
+      tenantId,
+      order: { vendorId: vendor.id, tenantId },
+    };
+
+    const [totalOrders, recentOrders, products, totalOrderItems, recentOrderItems, revenueResult] = await Promise.all([
+      db.order.count({ where: { vendorId: vendor.id, tenantId } }),
+      db.order.count({ where: { vendorId: vendor.id, tenantId, createdAt: { gte: thirtyDaysAgo } } }),
+      db.product.count({ where: { vendorId: vendor.id, tenantId, isActive: true } }),
+      db.orderItem.count({ where: orderItemWhere }),
+      db.orderItem.count({ where: { ...orderItemWhere, createdAt: { gte: thirtyDaysAgo } } }),
+      db.orderItem.aggregate({
+        where: orderItemWhere,
+        _sum: { total: true },
+        _count: { id: true },
       })
     ]);
 
-    // Get recent revenue trend
-    const dailyRevenue = await db.order.groupBy({
+    const dailyRevenue = await db.orderItem.groupBy({
       by: ["createdAt"],
-      where: { vendorId: vendor.id, createdAt: { gte: thirtyDaysAgo }, status: { in: ["CONFIRMED", "SHIPPED", "DELIVERED"] } },
+      where: { ...orderItemWhere, createdAt: { gte: thirtyDaysAgo } },
       _sum: { total: true },
       _count: { id: true }
     });
 
     res.json({
       vendorId: vendor.id,
+      vendorName: vendor.storeName,
       totalOrders,
       recentOrders,
       activeProducts: products,
+      totalOrderItems,
+      recentOrderItems,
       totalRevenue: revenueResult._sum.total || 0,
+      totalRevenueItems: revenueResult._count.id || 0,
       dailyRevenue: dailyRevenue.map(d => ({
         date: d.createdAt,
         revenue: d._sum.total || 0,
@@ -375,13 +388,14 @@ router.post("/me/payout/request", authMiddleware, async (req: Request, res: Resp
   try {
     const vendor = await db.vendor.findFirst({
       where: { userId, tenantId },
+      select: { id: true, payoutBalance: true, stripeAccountId: true, storeName: true },
     });
 
     if (!vendor) {
       return res.status(404).json({ error: "Vendor not found" });
     }
 
-    const stripeAccountId = (vendor as any).stripeAccountId;
+    const stripeAccountId = vendor.stripeAccountId;
     if (!stripeAccountId) {
       return res.status(400).json({ error: "Stripe account not connected. Please complete onboarding first." });
     }
@@ -521,7 +535,7 @@ router.post('/onboard', authMiddleware, async (req: Request, res: Response) => {
       country: country || 'KE',
       capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
     });
-    await db.vendor.updateMany({ where: { userId, tenantId }, data: { stripeAccountId: account.id } as any });
+    await db.vendor.updateMany({ where: { userId, tenantId }, data: { stripeAccountId: account.id } });
     const link = await createVendorOnboardingLink(account.id);
     return res.json({ onboardingUrl: link.url });
   } catch (error) {
@@ -534,9 +548,12 @@ router.get('/onboard/status', authMiddleware, async (req: Request, res: Response
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
-    const vendor = await db.vendor.findFirst({ where: { userId, tenantId } });
+    const vendor = await db.vendor.findFirst({
+      where: { userId, tenantId },
+      select: { id: true, stripeAccountId: true },
+    });
     if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
-    const stripeAccountId = (vendor as any).stripeAccountId;
+    const stripeAccountId = vendor.stripeAccountId;
     if (!stripeAccountId) return res.json({ status: 'not_started' });
     const stripe = getStripe();
     const account = await stripe.accounts.retrieve(stripeAccountId);

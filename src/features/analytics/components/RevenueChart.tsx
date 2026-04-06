@@ -39,9 +39,45 @@ const DEFAULT_THEME: ChartTheme = {
   ice: "var(--ice)",
 };
 
-function readCssToken(root: CSSStyleDeclaration, token: string, fallback: string) {
-  const value = root.getPropertyValue(token).trim();
+function readResolvedCssVar(token: string, fallback: string) {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
   return value || fallback;
+}
+
+function useCSSVar(token: string, fallback: string) {
+  const [value, setValue] = useState(fallback);
+
+  useEffect(() => {
+    const sync = () => setValue(readResolvedCssVar(token, fallback));
+    sync();
+
+    if (typeof window === "undefined") return undefined;
+
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style", "class", "data-theme"],
+    });
+
+    window.addEventListener("resize", sync);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", sync);
+    };
+  }, [fallback, token]);
+
+  return value;
+}
+
+function useChartTheme(): ChartTheme {
+  const surface = useCSSVar("--surface", DEFAULT_THEME.surface);
+  const border = useCSSVar("--border", DEFAULT_THEME.border);
+  const textDim = useCSSVar("--text-dim", DEFAULT_THEME.textDim);
+  const gold = useCSSVar("--gold", DEFAULT_THEME.gold);
+  const ice = useCSSVar("--ice", DEFAULT_THEME.ice);
+
+  return { surface, border, textDim, gold, ice };
 }
 
 function RevenueTooltip({ active, payload, label, theme }: RevenueTooltipProps) {
@@ -82,18 +118,7 @@ function RevenueTooltip({ active, payload, label, theme }: RevenueTooltipProps) 
 export default function RevenueChart() {
   const data = useAnalyticsStore((state) => state.data);
   const isLoading = useAnalyticsStore((state) => state.isLoading);
-  const [theme, setTheme] = useState<ChartTheme>(DEFAULT_THEME);
-
-  useEffect(() => {
-    const root = getComputedStyle(document.documentElement);
-    setTheme({
-      surface: readCssToken(root, "--surface", DEFAULT_THEME.surface),
-      border: readCssToken(root, "--border", DEFAULT_THEME.border),
-      textDim: readCssToken(root, "--text-dim", DEFAULT_THEME.textDim),
-      gold: readCssToken(root, "--gold", DEFAULT_THEME.gold),
-      ice: readCssToken(root, "--ice", DEFAULT_THEME.ice),
-    });
-  }, []);
+  const theme = useChartTheme();
 
   return (
     <div

@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { randomBytes, randomUUID } from "crypto";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
+import { applyAuthCookies } from "../services/authCookieService.js";
 
 const router = Router();
 
@@ -199,9 +200,12 @@ router.post("/exchange", async (req: Request, res: Response) => {
     };
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
+    const refreshToken = jwt.sign(payload, JWT_SECRET, { expiresIn: process.env.JWT_REFRESH_EXPIRES ?? "7d" } as jwt.SignOptions);
+    applyAuthCookies(res, token, refreshToken);
 
     return res.json({
       token,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,

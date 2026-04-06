@@ -27,6 +27,7 @@ interface UserProfile {
   role: string;
   bio?: string;
   skills?: string[];
+  badges?: string[];
   website?: string;
   twitter?: string;
   github?: string;
@@ -69,6 +70,15 @@ function initials(name: string, email: string) {
   return src.split(/\s|@/)[0].slice(0, 2).toUpperCase();
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [editing, setEditing] = useState(false);
@@ -76,6 +86,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState<Partial<UserProfile>>({});
   const [skillInput, setSkillInput] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [tab, setTab] = useState<"profile" | "ecosystem" | "referral">(
     "profile",
   );
@@ -120,6 +131,7 @@ export default function ProfilePage() {
   const save = async () => {
     setSaving(true);
     try {
+      const avatarData = avatarFile ? await fileToDataUrl(avatarFile) : undefined;
       const res = await fetch(`${API}/users/me`, {
         method: "PATCH",
         headers: authHeaders(),
@@ -130,12 +142,14 @@ export default function ProfilePage() {
           website: form.website,
           twitter: form.twitter,
           github: form.github,
+          avatarData,
         }),
       });
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
         setEditing(false);
+        setAvatarFile(null);
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       }
@@ -279,7 +293,13 @@ export default function ProfilePage() {
         <div style={s.heroBorder} />
         <div style={s.heroInner}>
           {/* Avatar */}
-          <div style={s.avatar}>{initials(profile.name, profile.email)}</div>
+          <div style={s.avatar}>
+            {profile.avatarUrl ? (
+              <img src={profile.avatarUrl} alt={profile.name} style={s.avatarImage} />
+            ) : (
+              initials(profile.name, profile.email)
+            )}
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={s.heroName}>{profile.name || "Your Name"}</div>
             <div style={s.heroEmail}>{profile.email}</div>
@@ -339,6 +359,33 @@ export default function ProfilePage() {
                 </a>
               )}
             </div>
+            {profile.badges && profile.badges.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
+                  Academy Badges
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {profile.badges.map((badge) => (
+                    <span
+                      key={badge}
+                      style={{
+                        padding: "5px 10px",
+                        borderRadius: 999,
+                        border: "1px solid rgba(201,168,76,0.22)",
+                        background: "rgba(201,168,76,0.08)",
+                        color: "var(--gold)",
+                        fontFamily: "Space Mono, monospace",
+                        fontSize: 9,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <button
@@ -417,6 +464,27 @@ export default function ProfilePage() {
                 <div style={{ ...s.fieldValue, color: "var(--text-dim)" }}>
                   {profile.email}
                 </div>
+              </div>
+
+              <div style={s.field}>
+                <label style={s.label}>Avatar</label>
+                {editing ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={s.fileInput}
+                      onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+                    />
+                    <div style={s.helperText}>
+                      {avatarFile ? `Selected: ${avatarFile.name}` : "Upload a profile photo to store it in Cloudinary."}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={s.fieldValue}>
+                    {profile.avatarUrl ? "Custom avatar uploaded" : "Using initials avatar"}
+                  </div>
+                )}
               </div>
 
               <div style={s.field}>
@@ -770,6 +838,12 @@ const s: Record<string, React.CSSProperties> = {
     color: "var(--text)",
     flexShrink: 0,
   },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: "50%",
+    objectFit: "cover",
+  },
   heroName: { fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px" },
   heroEmail: {
     fontFamily: "Space Mono, monospace",
@@ -930,6 +1004,15 @@ const s: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
   },
   fieldValue: { fontSize: "13px", color: "var(--text)", lineHeight: "1.4" },
+  fileInput: {
+    fontSize: "12px",
+    color: "var(--text-dim)",
+  },
+  helperText: {
+    fontSize: "11px",
+    color: "var(--text-dim)",
+    lineHeight: "1.4",
+  },
   skillsWrap: {
     display: "flex",
     flexWrap: "wrap",

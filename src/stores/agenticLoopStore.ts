@@ -4,6 +4,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { typedFetch } from "../lib/typedFetch";
 
 // Loop stage types
 export type LoopStage = 
@@ -110,7 +111,7 @@ const getDefaultSteps = (): LoopStep[] => [
   }
 ];
 
-interface AgenticLoopStore {
+export interface AgenticLoopStore {
   // Current loop
   currentLoop: AgenticLoopInstance | null;
   loopHistory: AgenticLoopInstance[];
@@ -137,6 +138,10 @@ interface AgenticLoopStore {
   // History
   loadHistory: () => Promise<void>;
   reset: () => void;
+}
+
+interface AgenticLoopHistoryResponse {
+  loops?: AgenticLoopInstance[];
 }
 
 export const useAgenticLoopStore = create<AgenticLoopStore>()(
@@ -322,12 +327,9 @@ export const useAgenticLoopStore = create<AgenticLoopStore>()(
       // Load loop history from server
       loadHistory: async () => {
         try {
-          const response = await fetch("/api/v1/agentic-loop/history");
-          if (response.ok) {
-            const data = await response.json();
-            set({ loopHistory: data.loops || [] });
-          }
-        } catch (error) {
+          const data = await typedFetch<AgenticLoopHistoryResponse>("/api/v1/agentic-loop/history");
+          set({ loopHistory: data.loops || [] });
+        } catch (error: unknown) {
           console.error("Failed to load loop history:", error);
         }
       },

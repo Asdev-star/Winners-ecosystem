@@ -3,6 +3,7 @@
 // Tracks connections, suggestions, and collaboration opportunities
 
 import { create } from "zustand";
+import { typedFetch } from "../lib/typedFetch";
 
 interface Connection {
   id: string;
@@ -54,6 +55,14 @@ interface SocialGraphStore {
   dismissSuggestion: (suggestionId: string) => void;
 }
 
+interface ConnectionsResponse {
+  connections: Connection[];
+}
+
+interface SuggestionsResponse {
+  suggestions: SuggestedConnection[];
+}
+
 export const useSocialGraphStore = create<SocialGraphStore>((set, get) => ({
   // Initial state
   connections: [],
@@ -64,18 +73,15 @@ export const useSocialGraphStore = create<SocialGraphStore>((set, get) => ({
   
   fetchConnections: async () => {
     try {
-      const response = await fetch("/api/v1/social/connections");
-      if (response.ok) {
-        const data = await response.json();
-        set({ connections: data.connections });
-        
-        // Calculate network strength
-        const connections = data.connections as Connection[];
-        const strength = Math.min(100, Math.round(connections.length * 5 + 
-          connections.reduce((acc, c) => acc + c.mutualConnections, 0) * 2));
-        set({ networkStrength: strength });
-      }
-    } catch (error) {
+      const data = await typedFetch<ConnectionsResponse>("/api/v1/social/connections");
+      set({ connections: data.connections });
+
+      // Calculate network strength
+      const connections = data.connections as Connection[];
+      const strength = Math.min(100, Math.round(connections.length * 5 +
+        connections.reduce((acc, c) => acc + c.mutualConnections, 0) * 2));
+      set({ networkStrength: strength });
+    } catch (error: unknown) {
       console.error("Failed to fetch connections:", error);
     }
   },
@@ -83,12 +89,9 @@ export const useSocialGraphStore = create<SocialGraphStore>((set, get) => ({
   fetchSuggestions: async () => {
     set({ isLoadingSuggestions: true });
     try {
-      const response = await fetch("/api/v1/social/suggestions");
-      if (response.ok) {
-        const data = await response.json();
-        set({ suggestedConnections: data.suggestions });
-      }
-    } catch (error) {
+      const data = await typedFetch<SuggestionsResponse>("/api/v1/social/suggestions");
+      set({ suggestedConnections: data.suggestions });
+    } catch (error: unknown) {
       console.error("Failed to fetch suggestions:", error);
     } finally {
       set({ isLoadingSuggestions: false });
@@ -97,59 +100,57 @@ export const useSocialGraphStore = create<SocialGraphStore>((set, get) => ({
   
   connect: async (userId: string) => {
     try {
-      const response = await fetch("/api/v1/social/connect", {
+      await typedFetch("/api/v1/social/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
-      
-      if (response.ok) {
-        // Remove from suggestions and add to connections
-        const { suggestedConnections, connections } = get();
-        const suggestion = suggestedConnections.find(s => s.userId === userId);
-        
-        if (suggestion) {
-          set({
-            suggestedConnections: suggestedConnections.filter(s => s.userId !== userId),
-            connections: [
-              ...connections,
-              {
-                id: `conn_${Date.now()}`,
-                userId: "", // current user
-                connectedUserId: userId,
-                connectedUserName: suggestion.userName,
-                connectedUserAvatar: suggestion.userAvatar,
-                connectedUserTrustScore: suggestion.trustScore,
-                connectedUserSkills: suggestion.skills,
-                connectedAt: new Date().toISOString(),
-                mutualConnections: 0,
-              },
-            ],
-          });
-        }
+
+      // Remove from suggestions and add to connections
+      const { suggestedConnections, connections } = get();
+      const suggestion = suggestedConnections.find(s => s.userId === userId);
+
+      if (suggestion) {
+        set({
+          suggestedConnections: suggestedConnections.filter(s => s.userId !== userId),
+          connections: [
+            ...connections,
+            {
+              id: `conn_${Date.now()}`,
+              userId: "", // current user
+              connectedUserId: userId,
+              connectedUserName: suggestion.userName,
+              connectedUserAvatar: suggestion.userAvatar,
+              connectedUserTrustScore: suggestion.trustScore,
+              connectedUserSkills: suggestion.skills,
+              connectedAt: new Date().toISOString(),
+              mutualConnections: 0,
+            },
+          ],
+        });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to connect:", error);
     }
   },
   
   disconnect: async (connectionId: string) => {
     try {
-      await fetch(`/api/v1/social/connections/${connectionId}`, {
+      await typedFetch(`/api/v1/social/connections/${connectionId}`, {
         method: "DELETE",
       });
       
       set(state => ({
         connections: state.connections.filter(c => c.id !== connectionId),
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to disconnect:", error);
     }
   },
   
   respondToCollab: async (opportunityId: string, accept: boolean) => {
     try {
-      await fetch(`/api/v1/social/collab/${opportunityId}`, {
+      await typedFetch(`/api/v1/social/collab/${opportunityId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: accept ? "accepted" : "declined" }),
@@ -162,7 +163,7 @@ export const useSocialGraphStore = create<SocialGraphStore>((set, get) => ({
             : o
         ),
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to respond to collab:", error);
     }
   },

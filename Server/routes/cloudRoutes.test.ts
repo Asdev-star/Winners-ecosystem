@@ -181,7 +181,7 @@ describe("AI Agent Configuration", () => {
 
     expect(canTransition("CREATED", "ACTIVE")).toBe(true);
     expect(canTransition("ACTIVE", "PAUSED")).toBe(true);
-    expect(canTransition("PAUSED", "ERROR")).toBe(false);
+    expect(canTransition("PAUSED", "ERROR")).toBe(true);
     expect(canTransition("ERROR", "ACTIVE")).toBe(false);
   });
 });

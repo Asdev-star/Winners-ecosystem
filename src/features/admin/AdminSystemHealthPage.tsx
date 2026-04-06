@@ -537,9 +537,10 @@ export default function AdminSystemHealthPage() {
         if (!active) return;
         setError(err instanceof Error ? err.message : "Failed to load system health");
       } finally {
-        if (!active) return;
-        setLoading(false);
-        setRefreshing(false);
+        if (active) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     }
 

@@ -80,8 +80,20 @@ class ComfyUIService:
                 response = await client.post(f"{self.host}/prompt", json=p, timeout=120.0)
                 response.raise_for_status()
                 return response.json()
+    async def get_history(self, prompt_id: str) -> Dict[str, Any]:
+        """Get generation history for a specific prompt ID"""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{self.host}/history/{prompt_id}", timeout=10.0)
+                if response.status_code == 200:
+                    data = response.json()
+                    # Return the prompt data if it exists
+                    if prompt_id in data:
+                        return {prompt_id: data[prompt_id]}
+                    return {"status": "not_found"}
+                return {"status": "error", "code": response.status_code}
         except Exception as e:
-            return {"status": "error", "message": str(e), "fallback": True}
+            return {"status": "error", "message": str(e)}
 
     async def get_system_stats(self) -> Dict[str, Any]:
         """Fetch system stats from ComfyUI"""

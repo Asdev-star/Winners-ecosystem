@@ -161,7 +161,8 @@ router.post("/quizzes/:quizId/attempts", authMiddleware, async (req, res) => {
         correctAnswer: question.correctAnswer,
         isCorrect,
         points: isCorrect ? question.points : 0,
-        maxPoints: question.points
+        maxPoints: question.points,
+        explanation: question.explanation,
       };
     });
     

@@ -1,9 +1,10 @@
 // Phase 6 - Winners Work - Escrow Payment System
 // Secure payment holding, milestone releases, and dispute resolution
 
-import { Router, Request, Response } from 'express';
+import { Router, type Response } from 'express';
 import Stripe from 'stripe';
 import { authMiddleware } from '../middleware/authMiddleware.js';
+import type { AuthRequest } from '../types/index.js';
 import db from '../db.js';
 import { emitAdminEvent } from '../services/adminEventService.js';
 import { pushTriggers } from '../services/fcmService.js';
@@ -40,7 +41,7 @@ async function getFreelancerProfileIdForUser(userId: string, tenantId: string): 
   return profile?.id ?? null;
 }
 
-router.post('/fund', async (req: Request, res: Response) => {
+router.post('/fund', async (req: AuthRequest, res: Response) => {
   const { contractId } = req.body;
   const tenantId = req.user!.tenantId;
   const userId = req.user!.userId;
@@ -80,7 +81,7 @@ router.post('/fund', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
@@ -106,7 +107,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:contractId', async (req: Request, res: Response) => {
+router.get('/:contractId', async (req: AuthRequest, res: Response) => {
   const tenantId = req.user!.tenantId;
   const userId = req.user!.userId;
   try {
@@ -129,7 +130,7 @@ router.get('/:contractId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/release/:escrowId', async (req: Request, res: Response) => {
+router.post('/release/:escrowId', async (req: AuthRequest, res: Response) => {
   const { milestoneId, amount } = req.body;
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
@@ -263,7 +264,7 @@ router.post('/release/:escrowId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/dispute/:escrowId', async (req: Request, res: Response) => {
+router.post('/dispute/:escrowId', async (req: AuthRequest, res: Response) => {
   const { reason, evidence } = req.body;
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
@@ -316,7 +317,7 @@ router.post('/dispute/:escrowId', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/refund/:escrowId', async (req: Request, res: Response) => {
+router.post('/refund/:escrowId', async (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {

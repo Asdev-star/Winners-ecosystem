@@ -4,11 +4,9 @@ Winners Ecosystem AI Platform - FastAPI Service
 Refactored for Modular AI routing service
 """
 
-from dotenv import load_dotenv
 import os
 
-# Load environment variables from parent .env file
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+# Environment variables are assumed to be set in the system or container
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,4 +51,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8001")))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8002")))

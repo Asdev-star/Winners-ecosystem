@@ -103,7 +103,7 @@ export function imageLimitMiddleware() {
     };
 
     // This will be checked in the upload route
-    (req as any).imageLimit = limits[plan] ?? 3;
+    req.imageLimit = limits[plan] ?? 3;
     next();
   };
 }

@@ -114,6 +114,7 @@ export default function SsoExchangePage() {
       try {
         const response = await fetch(`${API_BASE}/sso/exchange`, {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             handoffToken,

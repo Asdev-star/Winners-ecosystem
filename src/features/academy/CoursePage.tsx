@@ -6,7 +6,7 @@ import { useParams, useLocation } from "react-router-dom";
 import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
 import { API_BASE } from "../../lib/api";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
-import AssistantPanel from "../../components/ui/AssistantPanel";
+import AssistantPanel from "../../components/ai/AssistantPanel";
 import FileDropZone, { type AnalysisResult } from "../../components/ai/FileDropZone";
 import QuizTaker from "./components/QuizTaker";
 
@@ -214,6 +214,15 @@ export default function CoursePage() {
   const totalLessons = course.modules.reduce((sum, module) => sum + module.lessons.length, 0);
   const completedLessons = enrollment?.progress.filter(p => p.completed).length || 0;
   const progressPercentage = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+  const currentModuleId = (() => {
+    if (!selectedLesson) return course.modules[0]?.id ?? "";
+    for (const module of course.modules) {
+      if (module.lessons.some((lesson) => lesson.id === selectedLesson)) {
+        return module.id;
+      }
+    }
+    return course.modules[0]?.id ?? "";
+  })();
 
   return (
     <div style={{ padding: 20 }}>
@@ -684,9 +693,8 @@ export default function CoursePage() {
         userId={user?.id}
         context={{
           courseId: course.id,
-          completedLessons,
-          totalLessons,
-          progressPercentage,
+          moduleId: currentModuleId,
+          progressPct: progressPercentage,
         }}
       />
     </div>

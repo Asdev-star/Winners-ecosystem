@@ -1,11 +1,30 @@
 import { Router } from "express";
+import multer from "multer";
+import { QuestionType } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { createCourseCheckoutSession } from "../services/stripeService.js";
 import { triggerAgenticLoop } from "../services/agenticLoopService.js";
 import { recordAdminSignal } from "../services/adminSignalService.js";
+import { uploadDocument, uploadVideo } from "../services/cloudinaryService.js";
+import {
+  buildCertificateVerifyUrl,
+  createCertificateIdentifiers,
+  generateCertificatePdfBuffer,
+} from "../services/certificateGenerator.js";
 
 const router = Router();
+const videoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("video/")) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error("Only video files are allowed"));
+  },
+});
 
 function toSlug(value: string) {
   return value
@@ -31,6 +50,70 @@ function asNumber(value: unknown, fallback = 0) {
 
 function asInt(value: unknown, fallback = 0) {
   return Math.trunc(asNumber(value, fallback));
+}
+
+function deriveTrustTier(score: number) {
+  if (score >= 85) return "PLATINUM";
+  if (score >= 70) return "GOLD";
+  if (score >= 55) return "SILVER";
+  return "BRONZE";
+}
+
+function toSentenceFragments(text: string) {
+  return text
+    .split(/(?:\n+|(?<=[.!?])\s+)/)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 24);
+}
+
+function keywordSummary(sentence: string) {
+  const words = sentence
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length >= 4)
+    .filter((word) => !["this", "that", "with", "from", "your", "have", "will", "lesson", "course"].includes(word));
+  const unique = Array.from(new Set(words));
+  return unique.slice(0, 4).join(" ") || sentence.slice(0, 28);
+}
+
+function createGeneratedQuizQuestions(lessonText: string, courseTitle: string) {
+  const fragments = toSentenceFragments(lessonText);
+  const fallbackFragments = [
+    `${courseTitle} focuses on practical application.`,
+    `${courseTitle} introduces the core workflow.`,
+    `${courseTitle} reinforces the important concepts.`,
+    `${courseTitle} highlights the next implementation step.`,
+  ];
+  const pool = [...fragments, ...fallbackFragments];
+  const questions: Array<{
+    question: string;
+    type: QuestionType;
+    options: string[];
+    correctAnswer: string;
+    explanation: string;
+    points: number;
+    order: number;
+  }> = [];
+
+  for (let index = 0; index < 10; index += 1) {
+    const sentence = pool[index % pool.length];
+    const keyword = keywordSummary(sentence);
+    const distractorOne = `${keyword} strategy`;
+    const distractorTwo = `${keyword} fundamentals`;
+    const distractorThree = `${keyword} overview`;
+    questions.push({
+      question: `Which idea best matches this part of ${courseTitle}? "${sentence.slice(0, 120)}${sentence.length > 120 ? "..." : ""}"`,
+      type: QuestionType.MULTIPLE_CHOICE,
+      options: [keyword, distractorOne, distractorTwo, distractorThree],
+      correctAnswer: keyword,
+      explanation: sentence,
+      points: 1,
+      order: index + 1,
+    });
+  }
+
+  return questions;
 }
 
 function withCourseStats<T extends { enrollments: { id: string }[]; reviews: { rating: number; body: string | null; user?: { name: string } | null }[] }>(
@@ -317,6 +400,147 @@ router.post("/modules/:moduleId/lessons", authMiddleware, async (req, res) => {
   }
 });
 
+router.post("/lessons/:lessonId/video", authMiddleware, videoUpload.single("video"), async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const lessonId = String(req.params.lessonId ?? "");
+    const lesson = await db.lesson.findFirst({
+      where: { id: lessonId, tenantId: req.user.tenantId },
+      include: {
+        module: {
+          include: { course: true },
+        },
+      },
+    });
+
+    if (!lesson) {
+      return res.status(404).json({ error: "Lesson not found" });
+    }
+
+    if (lesson.module.course.instructorId !== req.user.userId || lesson.module.course.tenantId !== req.user.tenantId) {
+      return res.status(403).json({ error: "Not authorized to update this lesson" });
+    }
+
+    const rawVideo = req.file
+      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
+      : typeof req.body?.videoData === "string"
+        ? req.body.videoData
+        : "";
+
+    if (!rawVideo) {
+      return res.status(400).json({ error: "video file or videoData is required" });
+    }
+
+    const uploaded = await uploadVideo(rawVideo, {
+      folder: `winners-academy/${req.user.tenantId}/lessons/${lessonId}`,
+    });
+
+    const updatedLesson = await db.lesson.update({
+      where: { id: lessonId },
+      data: {
+        videoId: uploaded.publicId,
+        videoUrl: uploaded.secureUrl,
+        thumbnailUrl: uploaded.thumbnailUrl ?? null,
+        duration: typeof uploaded.duration === "number" ? Math.round(uploaded.duration) : lesson.duration,
+      },
+    });
+
+    return res.json({
+      ...updatedLesson,
+      thumbnailUrl: updatedLesson.thumbnailUrl ?? uploaded.thumbnailUrl ?? null,
+    });
+  } catch (error) {
+    console.error("Error uploading lesson video:", error);
+    return res.status(500).json({ error: "Failed to upload lesson video" });
+  }
+});
+
+router.post("/sage/quiz-generate", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const courseId = String(req.body?.courseId ?? "");
+    const moduleId = typeof req.body?.moduleId === "string" && req.body.moduleId.trim() ? req.body.moduleId.trim() : null;
+    if (!courseId) {
+      return res.status(400).json({ error: "courseId is required" });
+    }
+
+    const course = await db.course.findFirst({
+      where: { id: courseId, tenantId: req.user.tenantId, instructorId: req.user.userId, deletedAt: null },
+      include: {
+        modules: {
+          orderBy: { order: "asc" },
+          include: {
+            lessons: { orderBy: { order: "asc" } },
+          },
+        },
+      },
+    });
+
+    if (!course) {
+      return res.status(403).json({ error: "Not authorized to generate quizzes for this course" });
+    }
+
+    const targetModule = moduleId
+      ? course.modules.find((module) => module.id === moduleId) ?? null
+      : course.modules[0] ?? null;
+
+    const lessonPool = targetModule
+      ? targetModule.lessons
+      : course.modules.flatMap((module) => module.lessons);
+    const lessonText = lessonPool
+      .map((lesson) => `${lesson.title}. ${lesson.description ?? ""} ${lesson.content ?? ""}`)
+      .join("\n\n")
+      .trim();
+
+    if (!lessonText) {
+      return res.status(400).json({ error: "Add lesson content before generating a quiz" });
+    }
+
+    const quiz = await db.quiz.create({
+      data: {
+        tenantId: req.user.tenantId,
+        courseId,
+        moduleId: targetModule?.id ?? moduleId,
+        title: `${course.title} · SAGE Quiz`,
+        description: `Auto-generated from ${targetModule?.title ?? course.title}`,
+        passingScore: asInt(req.body?.passingScore, 70) || 70,
+        showResults: true,
+        shuffleQuestions: false,
+      },
+    });
+
+    const generatedQuestions = createGeneratedQuizQuestions(lessonText, course.title);
+    const questions = await Promise.all(
+      generatedQuestions.map((question) =>
+        db.quizQuestion.create({
+          data: {
+            tenantId: req.user!.tenantId,
+            quizId: quiz.id,
+            question: question.question,
+            questionType: question.type,
+            options: question.options,
+            correctAnswer: question.correctAnswer,
+            explanation: question.explanation,
+            points: question.points,
+            order: question.order,
+          },
+        }),
+      ),
+    );
+
+    return res.status(201).json({ ...quiz, questions });
+  } catch (error) {
+    console.error("Error generating quiz:", error);
+    return res.status(500).json({ error: "Failed to generate quiz" });
+  }
+});
+
 router.post("/courses/:courseId/enroll", authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -554,6 +778,38 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
       });
     }
 
+    const quizzes = await db.quiz.findMany({
+      where: {
+        courseId,
+        tenantId: req.user.tenantId,
+      },
+      select: {
+        id: true,
+        title: true,
+        passingScore: true,
+      },
+    });
+
+    if (quizzes.length > 0) {
+      const passedQuizAttempts = await db.quizAttempt.findMany({
+        where: {
+          tenantId: req.user.tenantId,
+          userId,
+          quizId: { in: quizzes.map((quiz) => quiz.id) },
+          passed: true,
+        },
+        select: { quizId: true },
+      });
+
+      if (passedQuizAttempts.length < quizzes.length) {
+        return res.status(400).json({
+          error: "All quizzes must be passed before a certificate can be issued",
+          completedQuizzes: passedQuizAttempts.length,
+          totalQuizzes: quizzes.length,
+        });
+      }
+    }
+
     const existingCertificate = await db.certificate.findUnique({
       where: { enrollmentId: enrollment.id },
     });
@@ -562,27 +818,66 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
       return res.json(existingCertificate);
     }
 
+    const [course, user] = await Promise.all([
+      db.course.findFirst({
+        where: { id: courseId, tenantId: req.user.tenantId, deletedAt: null },
+        select: { title: true, description: true, slug: true, category: true },
+      }),
+      db.user.findFirst({
+        where: { id: userId, tenantId: req.user.tenantId, deletedAt: null },
+        select: { name: true, email: true, trustScore: true, badges: true },
+      }),
+    ]);
+
+    if (!course || !user) {
+      return res.status(404).json({ error: "Course or user not found" });
+    }
+
+    const { certNumber, verificationCode } = createCertificateIdentifiers();
+    const verifyUrl = buildCertificateVerifyUrl(certNumber);
+    const pdfBuffer = await generateCertificatePdfBuffer({
+      userName: user.name || user.email,
+      courseTitle: course.title,
+      issuedAt: new Date(),
+      certNumber,
+      verificationCode,
+      verifyUrl,
+      courseDescription: course.description,
+    });
+    const pdfDataUri = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
+    const uploadedPdf = await uploadDocument(pdfDataUri, {
+      folder: `winners-academy/${req.user.tenantId}/certificates/${courseId}`,
+    });
+
+    const badgeLabel = `Certified: ${course.title}`;
+    const updatedTrust = Math.min(100, (user.trustScore ?? 50) + 30);
+    const badges = Array.from(new Set([...(user.badges ?? []), badgeLabel]));
+
     const certificate = await db.certificate.create({
       data: {
         tenantId: req.user.tenantId,
         enrollmentId: enrollment.id,
         courseId,
         userId,
+        certNumber,
+        verificationCode,
+        verifyToken: verificationCode,
+        pdfUrl: uploadedPdf.secureUrl,
+        pdfPublicId: uploadedPdf.publicId,
+      },
+    });
+
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        trustScore: updatedTrust,
+        trustScoreTier: deriveTrustTier(updatedTrust),
+        trustScoreUpdatedAt: new Date(),
+        badges,
       },
     });
 
     res.status(201).json(certificate);
-
-    const [user, course] = await Promise.all([
-      db.user.findUnique({
-        where: { id: userId },
-        select: { name: true, email: true },
-      }),
-      db.course.findUnique({
-        where: { id: courseId },
-        select: { title: true },
-      }),
-    ]);
 
     recordAdminSignal({
       kind: "sage:cert_issued",
@@ -597,6 +892,7 @@ router.post("/courses/:courseId/certificate", authMiddleware, async (req, res) =
         certificateId: certificate.id,
         courseId,
         courseTitle: course?.title ?? null,
+        certificateNumber: certNumber,
       },
     });
 
@@ -638,7 +934,51 @@ router.get("/certificates", authMiddleware, async (req, res) => {
   }
 });
 
-// Public certificate verification endpoint
+// Public certificate verification endpoint by certificate number
+router.get("/verify/:certNumber", async (req, res) => {
+  try {
+    const certNumber = String(req.params.certNumber ?? "").trim();
+
+    const certificate = await db.certificate.findUnique({
+      where: { certNumber },
+      include: {
+        user: {
+          select: { name: true, email: true },
+        },
+        course: {
+          select: { title: true, description: true, slug: true },
+        },
+      },
+    });
+
+    if (!certificate) {
+      return res.status(404).json({
+        valid: false,
+        message: "Certificate not found or invalid certificate number",
+      });
+    }
+
+    return res.json({
+      valid: true,
+      certificate: {
+        id: certificate.id,
+        certNumber: certificate.certNumber,
+        verificationCode: certificate.verificationCode,
+        userName: certificate.user.name || certificate.user.email,
+        courseTitle: certificate.course.title,
+        courseDescription: certificate.course.description,
+        issuedAt: certificate.issuedAt,
+        pdfUrl: certificate.pdfUrl,
+        verifyUrl: buildCertificateVerifyUrl(certificate.certNumber),
+      },
+    });
+  } catch (error) {
+    console.error("Error verifying certificate:", error);
+    return res.status(500).json({ error: "Failed to verify certificate" });
+  }
+});
+
+// Legacy verification endpoint retained for existing tokens
 router.get("/certificates/verify/:token", async (req, res) => {
   try {
     const { token } = req.params;
@@ -666,11 +1006,13 @@ router.get("/certificates/verify/:token", async (req, res) => {
       valid: true,
       certificate: {
         id: certificate.id,
+        certNumber: certificate.certNumber,
         userName: certificate.user.name || certificate.user.email,
         courseTitle: certificate.course.title,
         courseDescription: certificate.course.description,
         issuedAt: certificate.issuedAt,
-        verifyToken: certificate.verifyToken
+        verifyToken: certificate.verifyToken,
+        pdfUrl: certificate.pdfUrl,
       }
     });
   } catch (error) {
@@ -701,8 +1043,15 @@ router.get("/certificates/:certificateId/pdf", authMiddleware, async (req, res) 
     }
 
     // Generate PDF using certificate service
-    const { generateCertificatePDF } = await import("../services/certificateService.js");
-    const pdfBuffer = await generateCertificatePDF(certificateId);
+    const pdfBuffer = await generateCertificatePdfBuffer({
+      userName: certificate.user.name || certificate.user.email,
+      courseTitle: certificate.course.title,
+      courseDescription: certificate.course.description,
+      issuedAt: certificate.issuedAt,
+      certNumber: certificate.certNumber,
+      verificationCode: certificate.verificationCode,
+      verifyUrl: buildCertificateVerifyUrl(certificate.certNumber),
+    });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="certificate-${certificateId}.pdf"`);

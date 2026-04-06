@@ -1,7 +1,8 @@
 // Phase 4B: Winners Finance - Internal Settlement Rail
 // Wallet, Transactions, P2P Transfers, Withdrawals
-import { Router, Request, Response } from "express";
+import { Router, type Response } from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
+import type { AuthRequest } from "../types/index.js";
 import { requirePro } from "../middleware/marketPlanGate.js";
 import db from "../db.js";
 import Stripe from "stripe";
@@ -118,7 +119,7 @@ function createWinnersWalletTransaction(input: {
 }
 
 // GET /finance/balance - Get user's wallet balance
-router.get("/balance", async (req: Request, res: Response) => {
+router.get("/balance", async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
@@ -138,7 +139,7 @@ router.get("/balance", async (req: Request, res: Response) => {
 });
 
 // GET /finance/transactions - Get transaction history
-router.get("/transactions", async (req: Request, res: Response) => {
+router.get("/transactions", async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
@@ -176,7 +177,7 @@ router.get("/transactions", async (req: Request, res: Response) => {
 router.post(
   "/transfer",
   requirePro("P2P Transfers"),
-  async (req: Request, res: Response) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const userId = req.user!.userId;
       const tenantId = req.user!.tenantId;
@@ -248,7 +249,7 @@ router.post(
 router.post(
   "/withdraw",
   requirePro("Withdrawals"),
-  async (req: Request, res: Response) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const userId = req.user!.userId;
       const tenantId = req.user!.tenantId;

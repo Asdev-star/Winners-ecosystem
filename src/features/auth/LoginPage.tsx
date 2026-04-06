@@ -420,6 +420,7 @@ function RegisterWizard({
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.toLowerCase().trim(), password }),
       });
@@ -709,6 +710,7 @@ export default function LoginPage() {
       setLoading(true);
       fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, redirectUri }),
       })

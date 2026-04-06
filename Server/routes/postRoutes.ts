@@ -11,6 +11,7 @@ import { enforceTenant } from "../middleware/rbacMiddleware.js";
 import { getOnlineUsers, broadcastToTenant, WS_EVENTS } from "../services/wsService.js";
 import { detectSkillsInPost } from "../services/novaSkillDetection.js";
 import { triggerAgenticLoop } from "../services/agenticLoopService.js";
+import { uploadImage } from "../services/cloudinaryService.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -118,7 +119,7 @@ router.get("/", async (req: Request, res: Response) => {
 router.post("/", async (req: Request, res: Response) => {
   const tenantId = req.user!.tenantId;
   const authorId = req.user!.userId;
-  const { content, mediaUrl, mediaType, linkUrl, linkTitle, tags, groupId } = req.body;
+  const { content, mediaUrl, mediaType, mediaData, linkUrl, linkTitle, tags, groupId } = req.body;
 
   if (!content?.trim()) {
     return res.status(400).json({ message: "Content is required" });
@@ -135,13 +136,24 @@ router.post("/", async (req: Request, res: Response) => {
       )
     );
 
+    let resolvedMediaUrl = typeof mediaUrl === "string" ? mediaUrl : null;
+    let resolvedMediaType = typeof mediaType === "string" ? mediaType : null;
+
+    if (mediaData && (!resolvedMediaType || resolvedMediaType === "image" || resolvedMediaType === "photo")) {
+      const uploaded = await uploadImage(String(mediaData), {
+        folder: `community/posts/${tenantId}/${authorId}`,
+      });
+      resolvedMediaUrl = uploaded.secureUrl;
+      resolvedMediaType = "image";
+    }
+
     const post = await db.post.create({
       data: {
         tenantId,
         authorId,
         content: content.trim(),
-        mediaUrl:  mediaUrl  ?? null,
-        mediaType: mediaType ?? null,
+        mediaUrl:  resolvedMediaUrl,
+        mediaType: resolvedMediaType,
         linkUrl:   linkUrl   ?? null,
         linkTitle: linkTitle ?? null,
         groupId:   groupId   ?? null,
@@ -224,7 +236,6 @@ router.post("/voice", async (req: Request, res: Response) => {
       const audioBuffer = Buffer.from(audioBase64, "base64");
       
       // Create FormData with audio
-      const FormData = require("formdata-node");
       const formData = new FormData();
       formData.append("file", new Blob([audioBuffer], { type: "audio/webm" }), "voice.webm");
       formData.append("model", "whisper");

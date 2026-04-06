@@ -2,7 +2,7 @@
 // ─── Block 1 Complete: Security + API Gateway + Health + GDPR + Registry ──────
 
 import "dotenv/config";
-import express from "express";
+import express, { type Request, type Response } from "express";
 import cors from "cors";
 import passport from "passport";
 import path from "path";
@@ -129,7 +129,7 @@ app.use(
 app.use(
   express.json({
     limit: "10mb",
-    verify: (req: any, _res: any, buf: Buffer) => {
+    verify: (req: Request & { rawBody?: Buffer }, _res: Response, buf: Buffer) => {
       if (req.originalUrl.includes("/webhook")) {
         req.rawBody = buf;
       }

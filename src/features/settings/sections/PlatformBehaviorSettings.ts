@@ -1,4 +1,4 @@
-// src/features/settings/sections/PlatformBehaviorSettings.tsx
+// src/features/settings/sections/PlatformBehaviorSettings.ts
 
 const TIMEZONE_LIST = [
   "UTC",
@@ -218,85 +218,38 @@ export const INTELLIGENCE_SETTINGS = {
     label: "Briefing depth",
     options: [
       { value: "summary", label: "Summary", desc: "3-5 key points, 60 seconds to read" },
-      { value: "standard", label: "Standard", desc: "Full analysis, 3-5 minutes to read" },
-      { value: "deep", label: "Deep Dive", desc: "Complete analysis with all layer signals" },
+      { value: "balanced", label: "Balanced", desc: "Detailed but concise insights" },
+      { value: "deep", label: "Deep Dive", desc: "Comprehensive analysis and context" },
     ],
-    current: "standard",
-    plan: "PRO",
+    current: "balanced",
   },
   ariaPersonality: {
-    label: "ARIA Interaction Style",
-    options: ["Concise", "Detailed", "Conversational", "Formal"],
-    current: "Conversational",
+    label: "ARIA interaction style",
+    options: [
+      { value: "friendly", label: "Friendly", desc: "Warm, encouraging, conversational" },
+      { value: "professional", label: "Professional", desc: "Clear, concise, business-like" },
+      { value: "coach", label: "Coach", desc: "Supportive and action-oriented" },
+    ],
+    current: "friendly",
   },
-  ariaContextMemory: {
-    label: "ARIA Conversation Memory",
-    description: "ARIA remembers context from previous conversations",
-    type: "toggle",
-    current: true,
-    plan: "PRO",
-  },
-  creditAlertThreshold: {
-    label: "Low credit alert",
-    description: "Notify me when AI credits drop below this amount",
-    type: "number",
-    current: 100,
-    min: 0,
-  },
-  showCreditUsage: {
-    label: "Show credit usage in AI panels",
-    type: "toggle",
-    current: true,
-  },
+  ariaContextMemory: { label: "ARIA context memory", type: "toggle", current: true },
+  creditAlertThreshold: { label: "Credit alert threshold", type: "number", current: 500, min: 0, max: 100000 },
+  showCreditUsage: { label: "Show credit usage in dashboard", type: "toggle", current: true },
 };
 
 export const ACCOUNT_SETTINGS = {
-  displayName: { type: "text", label: "Display Name", current: "Winners Member" },
-  bio: { type: "textarea", label: "Bio", maxLength: 280, current: "" },
-  location: { type: "text", label: "Location", current: "Nairobi, Kenya" },
-  website: { type: "url", label: "Website", current: "" },
-  timezone: { type: "select", label: "Timezone", options: TIMEZONE_LIST, current: "Africa/Nairobi" },
-  currency: { type: "select", label: "Display Currency", options: ["USD", "KES", "NGN", "GHS", "ZAR", "GBP", "EUR"], current: "KES" },
-  changePassword: { type: "action", label: "Change Password" },
-  enable2FA: { type: "action", label: "Enable 2FA" },
-  activeSessions: { type: "action", label: "Active Sessions", desc: "View and revoke devices" },
-  connectedAccounts: { type: "action", label: "Connected Accounts", desc: "Google · Facebook" },
-  currentPlan: { type: "display", label: "Current Plan", current: "FREE" },
-  manageBilling: { type: "action", label: "Manage Subscription", desc: "Stripe Portal" },
-  viewInvoices: { type: "action", label: "View Invoices" },
-  cancelSubscription: { type: "danger", label: "Cancel Subscription" },
-  globalPushNotifications: {
-    label: "Global push notifications",
-    type: "slider",
-    options: ["Off", "Important only", "All"],
-    current: "All",
-  },
-  emailDigest: {
-    label: "Email digest",
-    type: "slider",
-    options: ["Off", "Weekly", "Daily"],
-    current: "Weekly",
-  },
-  omegaBriefings: {
-    label: "OMEGA briefings",
-    type: "slider",
-    options: ["Off", "Priority only", "On"],
-    current: "On",
-  },
-  textSize: {
-    label: "Text Size",
-    type: "slider",
-    options: ["Small", "Default", "Large", "Extra Large"],
-    current: "Default",
-  },
-  reduceMotion: { type: "toggle", label: "Reduce Motion", desc: "Minimise animations", current: false },
-  highContrast: { type: "toggle", label: "High Contrast Mode", current: false },
-  screenReader: { type: "toggle", label: "Screen Reader Optimisation", current: false },
-  theme: {
-    label: "Theme",
-    options: ["Dark (Default)", "Light"],
-    current: "Dark (Default)",
-  },
-  exportData: { type: "action", label: "Export My Data", desc: "GDPR · CSV + JSON" },
-  deleteAccount: { type: "danger", label: "Delete Account", desc: "Irreversible" },
+  displayName: { label: "Display name", type: "text", current: "Winners User" },
+  bio: { label: "Bio", type: "textarea", current: "" },
+  location: { label: "Location", type: "text", current: "" },
+  website: { label: "Website", type: "url", current: "" },
+  timezone: { label: "Timezone", type: "select", current: "Africa/Nairobi", options: TIMEZONE_LIST },
+  currency: { label: "Default currency", type: "select", current: "USD", options: ["USD", "KES", "NGN", "EUR", "GBP"] },
+  globalPushNotifications: { label: "Push notifications", type: "toggle", current: true },
+  emailDigest: { label: "Email digest", type: "toggle", current: true },
+  omegaBriefings: { label: "OMEGA briefings", type: "toggle", current: true },
+  theme: { label: "Theme", type: "select", current: "system", options: ["system", "light", "dark"] },
+  exportData: { label: "Export account data", type: "action" },
+  deleteAccount: { label: "Delete account", type: "destructive-action" },
 };
+
+export default PLATFORM_SETTINGS;

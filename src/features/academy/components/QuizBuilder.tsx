@@ -41,6 +41,7 @@ export default function QuizBuilder({ courseId }: QuizBuilderProps) {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [showNewQuiz, setShowNewQuiz] = useState(false);
@@ -90,6 +91,26 @@ export default function QuizBuilder({ courseId }: QuizBuilderProps) {
       setError(err instanceof Error ? err.message : 'Failed to create quiz');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const generateWithSage = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/academy/sage/quiz-generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ courseId }),
+      });
+      if (!res.ok) throw new Error("Failed to generate quiz");
+      const quiz = await res.json() as Quiz;
+      setQuizzes((prev) => [...prev, quiz]);
+      setActiveQuiz(quiz);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate quiz");
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -210,7 +231,12 @@ export default function QuizBuilder({ courseId }: QuizBuilderProps) {
       <div className="qb">
         <div className="qb-header">
           <div className="qb-title">Quiz Builder</div>
-          <button className="qb-btn qb-btn-gold" onClick={() => setShowNewQuiz(true)}>+ New Quiz</button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="qb-btn qb-btn-outline" onClick={() => void generateWithSage()} disabled={generating || loading}>
+              {generating ? "Generating…" : "SAGE Generate"}
+            </button>
+            <button className="qb-btn qb-btn-gold" onClick={() => setShowNewQuiz(true)}>+ New Quiz</button>
+          </div>
         </div>
 
         {error && <div className="qb-err">⚠ {error}</div>}

@@ -2,6 +2,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { extractAuthTokenFromRequest } from "../services/authCookieService.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,9 +30,10 @@ export type AuthRequest = Request & {
 
 // Extend Express.User so req.user resolves cleanly across middleware and passport types.
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   namespace Express {
-    interface User extends AuthenticatedUser {}
+    interface User extends AuthenticatedUser {
+      __authBrand?: never;
+    }
   }
 }
 
@@ -42,13 +44,10 @@ const JWT_SECRET = process.env.JWT_SECRET ?? "winners_dev_secret_change_in_prod"
 // Also injects tenant context so every downstream handler is tenant-scoped.
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader?.startsWith("Bearer ")) {
+  const token = extractAuthTokenFromRequest(req);
+  if (!token) {
     return res.status(401).json({ message: "No token provided" });
   }
-
-  const token = authHeader.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;

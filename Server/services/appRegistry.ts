@@ -18,6 +18,8 @@ export interface AppRegistration {
   frontendPath: string; // Frontend route, e.g. "/community"
   dependencies: string[]; // IDs of required apps
   features: string[]; // Feature flags for this app
+  pendingFeatures: string[]; // Upcoming features
+  lastUpdated: string; // Date of last change
   registeredAt: Date;
   updatedAt: Date;
   meta: Record<string, unknown>;
@@ -142,6 +144,8 @@ AppRegistry.register({
     "admin-dashboard",
     "email-reports",
   ],
+  pendingFeatures: ["cross-platform-sync", "advanced-auditing"],
+  lastUpdated: "2026-04-06",
   meta: { completionTarget: "Before Phase 3", infraPending: 8 },
 });
 
@@ -156,6 +160,8 @@ AppRegistry.register({
   frontendPath: "/community",
   dependencies: ["core"],
   features: ["feed", "posts", "comments", "likes", "follows", "tags"],
+  pendingFeatures: ["groups", "direct-messaging", "real-time-notifications", "socket.io", "online-presence"],
+  lastUpdated: "2026-04-06",
   meta: {
     v1_1_planned: ["socket.io", "real-time-notifications", "online-presence"],
     v1_2_planned: ["groups"],
@@ -168,12 +174,14 @@ AppRegistry.register({
   name: "Winners Academy",
   phase: 3,
   status: "live",
-  version: "1.0.0",
+  version: "1.2.0",
   description: "Learning platform — courses, certifications, AI tutors",
   apiPrefix: "/api/v1/academy",
   frontendPath: "/academy",
   dependencies: ["core", "community"],
   features: ["courses", "modules", "lessons", "quizzes", "flashcards", "certificates", "mentors", "live-sessions", "lecture-uploads", "learning-paths"],
+  pendingFeatures: ["ai-tutors", "automated-grading", "student-community"],
+  lastUpdated: "2026-04-06",
   meta: {},
 });
 
@@ -188,6 +196,8 @@ AppRegistry.register({
   frontendPath: "/market",
   dependencies: ["core", "community", "academy"],
   features: ["vendors", "products", "cart", "orders", "dropshipping", "events", "property", "trading", "store", "analytics", "checkout"],
+  pendingFeatures: ["debt-system-v2", "auctions", "escrow-integration"],
+  lastUpdated: "2026-04-06",
   meta: { completionDate: "2026-04-04" },
 });
 
@@ -202,6 +212,8 @@ AppRegistry.register({
   frontendPath: "/intelligence",
   dependencies: ["core", "community", "academy", "market"],
   features: ["claude-sdk", "omega-supervisor", "agentic-loops", "nova-community-intelligence", "ai-credits", "proactive-messages", "chat", "image-generation", "speech-synthesis", "multimodal", "supervisors", "atlas-market", "reports", "analytics", "memory"],
+  pendingFeatures: ["self-improving-loops", "custom-model-fine-tuning"],
+  lastUpdated: "2026-04-06",
   meta: { completionDate: "2026-04-04" },
 });
 
@@ -209,42 +221,48 @@ AppRegistry.register({
   id: "work",
   name: "Winners Work",
   phase: 6,
-  status: "in_progress",
-  version: "1.0.0",
+  status: "live",
+  version: "1.1.0",
   description: "Freelance hub — job board, AI skill matching, contracts, escrow",
   apiPrefix: "/api/v1/work",
   frontendPath: "/work",
   dependencies: ["core", "community", "academy", "market"],
-  features: ["job-listings", "freelancer-profiles", "contracts", "escrow", "job-applications"],
-  meta: {},
+  features: ["job-listings", "freelancer-profiles", "contracts", "escrow", "job-applications", "proposals", "talent-search", "payments", "earnings"],
+  pendingFeatures: ["ai-interview-assistant", "dispute-resolution-system"],
+  lastUpdated: "2026-04-06",
+  meta: { completionDate: "2026-04-05" },
 });
 
 AppRegistry.register({
   id: "mobile",
   name: "Winners Mobile",
   phase: 7,
-  status: "planned",
-  version: "0.0.0",
-  description: "React Native mobile application",
+  status: "in_progress",
+  version: "0.9.0",
+  description: "React Native mobile application - iOS & Android",
   apiPrefix: "/api/v1",
   frontendPath: "native://",
-  dependencies: ["core", "community", "academy", "market"],
-  features: [],
-  meta: { principle: "Mobile last — web must be solid first" },
+  dependencies: ["core", "community", "academy", "market", "intelligence", "work", "cloud"],
+  features: ["push-notifications", "offline-mode", "biometric-auth", "camera", "location", "tabs", "stores"],
+  pendingFeatures: ["widget-support", "apple-pay", "google-pay"],
+  lastUpdated: "2026-04-06",
+  meta: { completionDate: "2026-04-05", screens: 45 },
 });
 
 AppRegistry.register({
   id: "cloud",
   name: "Winners Cloud",
   phase: 8,
-  status: "in_progress",
-  version: "0.5.0",
+  status: "live",
+  version: "1.0.0",
   description: "Developer platform — public API, SDK, plugin marketplace",
   apiPrefix: "/api/v1/developer",
   frontendPath: "/cloud",
   dependencies: ["core", "community", "academy", "market", "intelligence"],
-  features: ["api-keys", "agents", "automations", "connectors", "webhooks"],
-  meta: {},
+  features: ["api-keys", "agents", "automations", "connectors", "webhooks", "plugins", "marketplace", "usage-tracking"],
+  pendingFeatures: ["cli-tooling", "visual-workflow-builder"],
+  lastUpdated: "2026-04-06",
+  meta: { completionDate: "2026-04-05" },
 });
 
 export default AppRegistry;

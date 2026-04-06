@@ -3,7 +3,7 @@
 // Tracks Agentic Loop progression, revenue impact, and stage analytics
 // Used by: LoopStageIndicator, AgenticLoopWidget, OmegaDashboard
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAgenticLoopStore, type LoopStage } from "../stores/agenticLoopStore";
 import { useAuthStore } from "../features/auth/authStore";
 
@@ -106,7 +106,7 @@ export function useLoopTracking() {
     return Math.round(total / finished.length);
   }, [loopHistory]);
 
-  const now = useMemo(() => Date.now(), []);
+  const [now] = useState(() => Date.now());
 
   const loopVelocity: LoopTrackingStats["loopVelocity"] = useMemo(() => {
     if (!currentLoop) return "stalled";

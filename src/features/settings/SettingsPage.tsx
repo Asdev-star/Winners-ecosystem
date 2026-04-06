@@ -236,7 +236,7 @@ function renderSettingControl(
         style={{ width: "100%", justifyContent: "space-between" }}
         disabled={disabled}
         type="button"
-        onClick={() => onChange(!Boolean(value))}
+        onClick={() => onChange(!value)}
       >
         <span>{setting.label}</span>
         <span>{value ? "ON" : "OFF"}</span>

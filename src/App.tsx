@@ -78,7 +78,7 @@ import LearningPathsPage from "./features/academy/LearningPathsPage";
 import StudyGroupPage from "./features/academy/StudyGroupPage";
 import QuizEngine from "./features/academy/QuizEngine";
 import LiveSessionsPage from "./features/academy/LiveSessionsPage";
-import CertificateVerificationPage from "./features/academy/CertificateVerificationPage";
+import CertificateVerifyPage from "./features/academy/CertificateVerifyPage";
 import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
 import MarketPage from "./features/market/MarketPage";
 import WinnersMarketExpanded from "./features/market/WinnersMarketExpanded";
@@ -180,10 +180,8 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/sso/exchange" element={<SsoExchangePage />} />
-          <Route
-            path="/verify/:token"
-            element={<CertificateVerificationPage />}
-          />
+          <Route path="/verify/:code" element={<CertificateVerifyPage />} />
+          <Route path="/verify/:token" element={<CertificateVerifyPage />} />
 
           <Route
             path="admin"

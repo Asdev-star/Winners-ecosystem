@@ -1,10 +1,19 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from "vitest";
+import type { NextFunction, Request, Response } from "express";
+
+type MockAuthRequest = Request & {
+  user?: {
+    userId: string;
+    tenantId: string;
+    role: string;
+  };
+};
 
 // Mock auth middleware
 vi.mock("../middleware/authMiddleware.js", () => ({
-  authMiddleware: (req: any, _res: any, next: any) => {
+  authMiddleware: (req: MockAuthRequest, _res: Response, next: NextFunction) => {
     req.user = { userId: "test-user-1", tenantId: "test-tenant-1", role: "user" };
     next();
   },
@@ -70,10 +79,10 @@ describe("Cart & Checkout Flow Contract", () => {
       "utf8"
     );
     
-    expect(source).toContain("router.post(\"/webhook\"");
+    expect(source).toContain('router.post("/webhook"');
     expect(source).toContain("stripe-signature");
-    expect(source).toContain("checkout.session.completed");
-    expect(source).toContain("paymentStatus");
+    expect(source).toContain("handleWebhookEvent");
+    expect(source).toContain("rawBody");
   });
 
   it("orders are scoped to tenant", async () => {

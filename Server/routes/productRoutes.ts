@@ -259,57 +259,99 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// POST /products/:id/images - Add product images
-router.post("/:id/images", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const tenantId = req.user!.tenantId;
-    const id = getParam(req.params.id);
-    const images: ProductImageInput[] = Array.isArray(req.body)
-      ? req.body
-          .filter(
-            (entry): entry is ProductImageInput =>
-              typeof entry === "object" &&
-              entry !== null &&
-              typeof (entry as { url?: unknown }).url === "string"
-          )
-      : [];
+// POST /products/:id/images - Upload product images
+router.post(
+  "/:id/images",
+  authMiddleware,
+  imageLimitMiddleware(),
+  upload.array("images", 5),
+  async (req: Request, res: Response) => {
+    try {
+      const productId = getParam(req.params.id);
+      const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+      const bodyImages = Array.isArray(req.body?.images) ? req.body.images : [];
+      const vendor = await db.vendor.findFirst({
+        where: { userId: req.user!.userId, tenantId: req.user!.tenantId },
+      });
 
-    // Update product images // Array of { url, alt, position, isPrimary }
+      if (!vendor) {
+        return res.status(403).json({ error: "Vendor not found" });
+      }
 
-    const vendor = await db.vendor.findFirst({
-      where: { userId, tenantId }
-    });
+      const product = await db.product.findFirst({
+        where: { id: productId, vendorId: vendor.id, tenantId: req.user!.tenantId },
+      });
 
-    if (!vendor) {
-      return res.status(403).json({ error: "Vendor not found" });
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      const uploadedUrls: string[] = [];
+
+      if (files.length > 0) {
+        const uploaded = await Promise.all(
+          files.map(async (file) => {
+            const result = await uploadImage(`data:${file.mimetype};base64,${file.buffer.toString("base64")}`, {
+              folder: `market/products/${productId}`,
+              transformation: { width: 1200 },
+            });
+            uploadedUrls.push(result.secureUrl);
+            return {
+              url: result.secureUrl,
+              alt: file.originalname,
+              publicId: result.publicId,
+            };
+          }),
+        );
+
+        const images = await db.productImage.createMany({
+          data: uploaded.map((img, index) => ({
+            productId,
+            tenantId: req.user!.tenantId,
+            url: img.url,
+            alt: img.alt,
+            position: index,
+            isPrimary: index === 0,
+          })),
+        });
+
+        return res.json({
+          success: true,
+          count: images.count,
+          images: uploadedUrls,
+        });
+      }
+
+      const images = (bodyImages as unknown[]).flatMap((entry, index) => {
+        if (!entry || typeof entry !== "object") return [];
+        const candidate = entry as ProductImageInput;
+        if (typeof candidate.url !== "string" || !candidate.url.trim()) return [];
+        return [{
+          tenantId: req.user!.tenantId,
+          productId,
+          url: candidate.url.trim(),
+          alt: candidate.alt,
+          position: candidate.position ?? index,
+          isPrimary: candidate.isPrimary ?? index === 0,
+        }];
+      });
+
+      if (images.length === 0) {
+        return res.status(400).json({ error: "No images provided" });
+      }
+
+      const createdImages = await db.productImage.createMany({ data: images });
+      return res.status(201).json({
+        success: true,
+        count: createdImages.count,
+        images: images.map((image) => image.url),
+      });
+    } catch (error) {
+      console.error("[productRoutes] Error adding images:", error);
+      return res.status(500).json({ error: "Failed to add images" });
     }
-
-    const product = await db.product.findFirst({
-      where: { id, vendorId: vendor.id }
-    });
-
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    const createdImages = await db.productImage.createMany({
-      data: images.map((img, idx: number) => ({
-        tenantId,
-        productId: id,
-        url: img.url,
-        alt: img.alt,
-        position: img.position ?? idx,
-        isPrimary: img.isPrimary ?? idx === 0
-      }))
-    });
-
-    res.status(201).json(createdImages);
-  } catch (error) {
-    console.error("[productRoutes] Error adding images:", error);
-    res.status(500).json({ error: "Failed to add images" });
-  }
-});
+  },
+);
 
 // POST /products/:id/reviews - Submit a product review
 router.post("/:id/reviews", authMiddleware, async (req: Request, res: Response) => {
@@ -442,68 +484,6 @@ Generate a JSON response with the following structure. Do not include any preamb
   } catch (error) {
     console.error("[productRoutes] Error generating description:", error);
     res.status(500).json({ error: "Failed to generate product description" });
-  }
-});
-
-// POST /products/:id/images - Upload product images
-router.post('/:id/images', authMiddleware, imageLimitMiddleware(), upload.array('images', 5), async (req: Request, res: Response) => {
-  try {
-    const productId = getParam(req.params.id);
-    const files = req.files as Express.Multer.File[];
-    
-    if (!files?.length) {
-      return res.status(400).json({ error: 'No images provided' });
-    }
-
-    const { userId, tenantId } = req.user;
-
-    // Verify vendor owns this product
-    const product = await db.product.findFirst({
-      where: { id: productId, tenantId },
-      include: { vendor: true }
-    });
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-
-    if (product.vendor?.userId !== userId) {
-      return res.status(403).json({ error: 'Not authorized to update this product' });
-    }
-
-    // Upload images to Cloudinary
-    const uploaded = await Promise.all(
-      files.map(async (file) => {
-        const result = await (uploadImage as unknown as (filePath: string, options?: unknown) => Promise<{ url: string; publicId: string }>)(`data:${file.mimetype};base64,${file.buffer.toString("base64")}`, {
-          folder: `market/products/${productId}`,
-          transformation: { width: 1200 }
-        });
-        return {
-          url: result.url,
-          publicId: result.publicId
-        };
-      })
-    );
-
-    // Save to database
-    const images = await db.productImage.createMany({
-      data: uploaded.map((img, index) => ({
-        productId,
-        url: img.url,
-        position: index,
-        isPrimary: index === 0,
-        tenantId
-      }))
-    });
-
-    res.json({ 
-      success: true, 
-      count: images.count,
-      images: uploaded.map(img => img.url) 
-    });
-  } catch (error) {
-    console.error('[productRoutes] Image upload error:', error);
-    res.status(500).json({ error: 'Failed to upload images' });
   }
 });
 

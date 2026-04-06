@@ -31,6 +31,9 @@ interface Enrollment {
 
 interface Certificate {
   id: string;
+  certNumber: string;
+  verificationCode: string;
+  pdfUrl?: string | null;
   issuedAt: string;
   course: {
     id: string;
@@ -113,6 +116,13 @@ export default function StudentDashboardPage() {
   const certificateByCourseId = useMemo(() => {
     return new Map(certificates.map((item) => [item.course.id, item]));
   }, [certificates]);
+
+  const buildVerifyUrl = useCallback((certNumber: string) => {
+    if (!window?.location?.origin) {
+      return `/verify/${certNumber}`;
+    }
+    return `${window.location.origin}/verify/${certNumber}`;
+  }, []);
 
   const issueCertificate = async (courseId: string) => {
     try {
@@ -385,6 +395,9 @@ export default function StudentDashboardPage() {
                 <div style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--green)", marginTop: 6, marginBottom: 12 }}>
                   Issued {formatDate(certificate.issuedAt)}
                 </div>
+                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 9, color: "var(--text-dim)", marginBottom: 12 }}>
+                  {certificate.certNumber}
+                </div>
                 <button
                   onClick={() => void downloadCertificate(certificate.id, certificate.course.title)}
                   disabled={downloadingCertId === certificate.id}
@@ -403,6 +416,28 @@ export default function StudentDashboardPage() {
                   }}
                 >
                   {downloadingCertId === certificate.id ? "Generating PDF…" : "⬇ Download PDF"}
+                </button>
+                <button
+                  onClick={() => {
+                    const verifyUrl = buildVerifyUrl(certificate.certNumber);
+                    const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(verifyUrl)}`;
+                    window.open(linkedinUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  style={{
+                    marginLeft: 8,
+                    padding: "7px 12px",
+                    borderRadius: 4,
+                    border: "1px solid var(--ice)",
+                    background: "rgba(137,196,225,0.08)",
+                    color: "var(--ice)",
+                    fontFamily: "Space Mono, monospace",
+                    fontSize: 10,
+                    cursor: "pointer",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Verify on LinkedIn
                 </button>
               </div>
             ))}

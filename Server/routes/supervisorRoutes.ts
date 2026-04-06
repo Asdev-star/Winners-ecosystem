@@ -11,6 +11,17 @@ const router = Router();
 const prisma = db;
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const AI_PLATFORM_URL = process.env.AI_PLATFORM_URL || 'http://localhost:8001';
+const VALID_SUPERVISORS = new Set([
+  "NOVA",
+  "SAGE",
+  "ATLAS",
+  "CIRCUIT",
+  "ARIA",
+  "FORGE",
+  "NEXUS",
+  "HERALD",
+  "OMEGA",
+]);
 
 function metadataObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -203,6 +214,98 @@ function calibrationInstructions(supervisor: string, experienceLevel: string | n
   return "Use your default supervisor tone and adapt naturally to the user's signals.";
 }
 
+function buildSuggestPayload(supervisorName: string, context?: unknown) {
+  const lowerSupervisor = supervisorName.toLowerCase();
+  const contextString = typeof context === "string" ? context.toLowerCase() : JSON.stringify(context ?? {}).toLowerCase();
+
+  const byAssistant: Record<string, string[]> = {
+    nova: [
+      "What skills did NOVA detect in my recent posts?",
+      "Which Academy courses match my community activity?",
+      "How do I grow my creator following?",
+      "What content performs best this week?",
+    ],
+    sage: [
+      "Summarise the key concepts in this course",
+      "Create a quiz to test my understanding",
+      "What does this certificate unlock in the Work layer?",
+      "Build me a 7-day study plan to finish this course",
+    ],
+    atlas: [
+      "What are the top-selling products this week?",
+      "Analyse the margin potential for Afroprint hoodies",
+      "Which supplier is best for Kenya-based dropshipping?",
+      "Suggest 5 winning products for the diaspora market",
+    ],
+    circuit: [
+      "Find jobs matching my skill set",
+      "Write a proposal for the React job I just found",
+      "What is the market rate for TypeScript freelancers?",
+      "Review my freelancer profile for improvements",
+    ],
+    omega: [
+      "Show me my Agentic Loop progress",
+      "What is the highest-value action I can take today?",
+      "How are my activities across all 9 layers connected?",
+      "What revenue opportunities am I missing?",
+    ],
+    forge: [
+      "Which AI model should I use for document analysis?",
+      "How can I reduce my AI credit usage?",
+      "Compare Llama 3.1 vs Claude for my use case",
+      "Set up Ollama for offline AI access",
+    ],
+    nexus: [
+      "Show me the Winners AI Assistant API",
+      "How do I set up a webhook for certificate events?",
+      "Authenticate with the Trust Score API",
+      "What events does the Agentic Loop API emit?",
+    ],
+    herald: [
+      "How do I install Llama 3.1 locally?",
+      "Benchmark DeepSeek Coder vs GPT-4o on code tasks",
+      "Set up ComfyUI for image generation",
+      "Configure faster-whisper for African accent support",
+    ],
+  };
+
+  const bySurface: Record<string, string[]> = {
+    dashboard: [
+      "Summarise my workspace performance this month",
+      "What should I focus on to grow revenue?",
+      "How do I invite team members?",
+      "Explain the Winners Ecosystem platforms",
+    ],
+    analytics: [
+      "What does my revenue trend mean?",
+      "How can I improve my activity metrics?",
+      "Explain the forecast methodology",
+      "What are the top growth opportunities?",
+    ],
+    community: byAssistant.nova,
+    academy: byAssistant.sage,
+    billing: [
+      "What is included in Winners Pro?",
+      "How do I upgrade my plan?",
+      "Explain the referral commission structure",
+      "How does the AI credits system work?",
+    ],
+    intelligence: [
+      "What can each of the 9 AI supervisors do?",
+      "Tell me about the Agentic Loop",
+      "How does multimodal AI work here?",
+      "What is OMEGA and what does it do?",
+    ],
+    work: byAssistant.circuit,
+    market: byAssistant.atlas,
+  };
+
+  const assistantSuggestions = byAssistant[lowerSupervisor] ?? byAssistant.omega;
+  const surfaceKey = Object.keys(bySurface).find((key) => contextString.includes(key)) ?? "dashboard";
+  const suggestions = assistantSuggestions ?? bySurface[surfaceKey] ?? bySurface.dashboard;
+  return suggestions.slice(0, 4);
+}
+
 // Get context for a specific supervisor
 const getSupervisorContext = async (supervisor: string, userId: string) => {
   const user = await prisma.user.findUnique({
@@ -311,17 +414,7 @@ router.post("/:name/chat", authMiddleware, async (req: Request, res: Response) =
     const userId = req.user!.userId;
 
     // Validate supervisor
-    const validSupervisors = [
-      "NOVA",
-      "SAGE",
-      "ATLAS",
-      "CIRCUIT",
-      "ARIA",
-      "FORGE",
-      "NEXUS",
-      "HERALD",
-    ];
-    if (!validSupervisors.includes(supervisorName)) {
+    if (!VALID_SUPERVISORS.has(supervisorName)) {
       return res.status(400).json({ error: "Invalid supervisor" });
     }
 
@@ -460,6 +553,20 @@ Current context: ${JSON.stringify(mergedContext)}`,
     res.status(500).json({ error: "Failed to generate response" });
   }
 });
+
+router.post(
+  "/:name/suggest",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    const supervisorName = (req.params.name as string).toUpperCase();
+    if (!VALID_SUPERVISORS.has(supervisorName)) {
+      return res.status(400).json({ error: "Invalid supervisor" });
+    }
+
+    const suggestions = buildSuggestPayload(supervisorName, req.body?.context ?? req.body?.page ?? "dashboard");
+    return res.json({ suggestions });
+  },
+);
 
 // GET /supervisors/:name/context - Get current context for a supervisor
 router.get(

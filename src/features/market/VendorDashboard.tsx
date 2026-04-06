@@ -2,13 +2,15 @@
 // Vendor Dashboard - Analytics, inventory management, orders
 // Commerce Hub (4A) - Vendor storefront management
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/authStore';
 import AssistantPanel from '../../components/ui/AssistantPanel';
 import OmegaProfileAssignmentCard from '../../components/ui/OmegaProfileAssignmentCard';
 import AtlasContextBar from './atlas/AtlasContextBar';
 import ATLASPanel from './components/ATLASPanel';
+import { typedFetch } from '../../lib/typedFetch';
+import { MarketErrorState, NotAVendorState, NoProductsState } from './components/VendorDashboardStates';
 
 const styles = {
   container: {
@@ -259,6 +261,43 @@ interface PayoutSummary {
   pending: number;
 }
 
+interface VendorRecord {
+  id: string;
+  storeName: string;
+  code?: string;
+  stripeAccountId?: string | null;
+  payoutBalance?: number;
+}
+
+interface ProductsResponse {
+  products?: Product[];
+}
+
+interface OrderItemApi {
+  id?: string;
+  name?: string;
+  product?: { name?: string };
+}
+
+interface OrderApi {
+  id: string;
+  orderNumber?: string;
+  status?: string;
+  total?: number;
+  createdAt?: string;
+  user?: { name?: string | null; email?: string | null };
+  items?: OrderItemApi[];
+}
+
+interface OrdersResponse {
+  orders?: OrderApi[];
+}
+
+interface PayoutsResponse {
+  balance?: number;
+  summary?: PayoutSummary;
+}
+
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const token = useAuthStore((state) => state.token);
@@ -276,83 +315,69 @@ export default function VendorDashboard() {
   const [payoutError, setPayoutError] = useState<string | null>(null);
   const [payoutSuccess, setPayoutSuccess] = useState(false);
 
-  useEffect(() => {
-    fetchVendorData();
-  }, []);
-
-  const fetchVendorData = async () => {
+  const fetchVendorData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Fetch vendor info
+      if (!token) throw new Error('Missing auth token');
+
       const vendorRes = await fetch('/api/v1/vendors/me', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      
-      // Fetch products
-      const productsRes = await fetch('/api/v1/products?vendor=true', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      
-      // Fetch orders
-      const ordersRes = await fetch('/api/v1/orders/vendor/all', {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const payoutsRes = await fetch('/api/v1/vendors/me/payouts', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      // Process responses - use real data from API
-      if (productsRes.ok) {
-        const productsData = await productsRes.json();
-        setProducts(productsData.products || productsData || []);
-      }
-      
-      if (ordersRes.ok) {
-        const ordersData = await ordersRes.json();
-        const normalizedOrders = Array.isArray(ordersData.orders)
-          ? ordersData.orders.map((order: any) => ({
-              id: order.orderNumber || order.id,
-              customer: order.user?.name || order.user?.email || 'Customer',
-              product: order.items?.[0]?.product?.name || order.items?.[0]?.name || 'Order',
-              amount: Number(order.total || 0),
-              status: String(order.status || 'pending').toLowerCase(),
-              date: order.createdAt || new Date().toISOString(),
-            }))
-          : [];
-        setOrders(normalizedOrders);
-      }
-
-      if (payoutsRes.ok) {
-        const payoutData = await payoutsRes.json();
-        setPayoutSummary({
-          total: Number(payoutData.summary?.total || 0),
-          paid: Number(payoutData.summary?.paid || 0),
-          pending: Number(payoutData.summary?.pending || 0),
-        });
-        setAvailableBalance(Number(payoutData.balance || 0));
-      }
-      
       if (!vendorRes.ok) {
-        const vendorData = await vendorRes.json();
+        const vendorData = await vendorRes.json().catch(() => ({}));
         if (vendorData.code === 'NOT_SETUP') {
           setError('VENDOR_NOT_SETUP');
-        } else {
-          throw new Error(vendorData.error || 'Failed to load vendor data');
+          return;
         }
+        throw new Error(vendorData.error || 'Failed to load vendor data');
       }
+
+      const [productsData, ordersData, payoutsData] = await Promise.all([
+        typedFetch<ProductsResponse>('/api/v1/products?vendor=true', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        typedFetch<OrdersResponse>('/api/v1/orders/vendor/all', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        typedFetch<PayoutsResponse>('/api/v1/vendors/me/payouts', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      setProducts(productsData.products || []);
+
+      const normalizedOrders = Array.isArray(ordersData.orders)
+        ? ordersData.orders.map((order) => ({
+            id: order.orderNumber || order.id,
+            customer: order.user?.name || order.user?.email || 'Customer',
+            product: order.items?.[0]?.product?.name || order.items?.[0]?.name || 'Order',
+            amount: Number(order.total || 0),
+            status: String(order.status || 'pending').toLowerCase() as Order['status'],
+            date: order.createdAt || new Date().toISOString(),
+          }))
+        : [];
+      setOrders(normalizedOrders);
+
+      setPayoutSummary({
+        total: Number(payoutsData.summary?.total || 0),
+        paid: Number(payoutsData.summary?.paid || 0),
+        pending: Number(payoutsData.summary?.pending || 0),
+      });
+      setAvailableBalance(Number(payoutsData.balance || 0));
     } catch (err: unknown) {
-      // Error state - no fallback data, show error UI
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
-      setProducts([]);
-      setOrders([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    void fetchVendorData();
+  }, [fetchVendorData]);
 
   const getStockStatus = (stock: number) => {
     if (stock === 0) return { label: 'Out of Stock', style: styles.outOfStock };
@@ -378,6 +403,37 @@ export default function VendorDashboard() {
   const totalSales = products.reduce((sum, p) => sum + p.sales, 0);
   const totalProducts = products.length;
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock < 5).length;
+  const isNotSetup = error === 'VENDOR_NOT_SETUP';
+  const hasMarketData = products.length > 0 || orders.length > 0 || payoutSummary.total > 0 || availableBalance > 0;
+
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={{ ...styles.chartPlaceholder, minHeight: '320px' }}>Loading vendor dashboard...</div>
+      </div>
+    );
+  }
+
+  if (isNotSetup) {
+    return (
+      <div style={styles.container}>
+        <NotAVendorState onRetry={fetchVendorData} />
+      </div>
+    );
+  }
+
+  if (error && !hasMarketData) {
+    return (
+      <div style={styles.container}>
+        <MarketErrorState
+          title="Failed to load Market dashboard"
+          message={error}
+          retryLabel="Retry"
+          onRetry={fetchVendorData}
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
@@ -398,6 +454,17 @@ export default function VendorDashboard() {
         <span className="ctx-sep">›</span>
         <span className="ctx-badge active">🛒 Market</span>
       </div>
+
+      {error && !isNotSetup && (
+        <div style={{ marginBottom: '24px' }}>
+          <MarketErrorState
+            title="Market data issue"
+            message={error}
+            retryLabel="Retry"
+            onRetry={fetchVendorData}
+          />
+        </div>
+      )}
 
       {/* ATLAS Market Insight Bar */}
       <AtlasContextBar view="vendor-dashboard" />
@@ -529,39 +596,43 @@ export default function VendorDashboard() {
       {/* Products Tab */}
       {activeTab === 'products' && (
         <div style={styles.section}>
-          <div style={styles.table}>
-            <div style={styles.tableHeader}>
-              <span>Product</span>
-              <span>Price</span>
-              <span>Stock</span>
-              <span>Sales</span>
-              <span>Actions</span>
-            </div>
-            {products.map((product) => {
-              const stockStatus = getStockStatus(product.stock);
-              return (
-                <div key={product.id} style={styles.tableRow}>
-                  <div style={styles.productInfo}>
-                    <div style={styles.productImage}></div>
-                    <div>
-                      <div style={styles.productName}>{product.name}</div>
-                      <div style={styles.productMeta}>ID: {product.id}</div>
+          {products.length === 0 ? (
+            <NoProductsState onRetry={fetchVendorData} />
+          ) : (
+            <div style={styles.table}>
+              <div style={styles.tableHeader}>
+                <span>Product</span>
+                <span>Price</span>
+                <span>Stock</span>
+                <span>Sales</span>
+                <span>Actions</span>
+              </div>
+              {products.map((product) => {
+                const stockStatus = getStockStatus(product.stock);
+                return (
+                  <div key={product.id} style={styles.tableRow}>
+                    <div style={styles.productInfo}>
+                      <div style={styles.productImage}></div>
+                      <div>
+                        <div style={styles.productName}>{product.name}</div>
+                        <div style={styles.productMeta}>ID: {product.id}</div>
+                      </div>
                     </div>
-                  </div>
-                  <span>${product.price.toFixed(2)}</span>
-                  <span>
-                    <span style={{ ...styles.statusBadge, ...stockStatus.style }}>
-                      {stockStatus.label} ({product.stock})
+                    <span>${product.price.toFixed(2)}</span>
+                    <span>
+                      <span style={{ ...styles.statusBadge, ...stockStatus.style }}>
+                        {stockStatus.label} ({product.stock})
+                      </span>
                     </span>
-                  </span>
-                  <span>{product.sales}</span>
-                  <span>
-                    <button style={styles.actionBtn}>Edit</button>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                    <span>{product.sales}</span>
+                    <span>
+                      <button style={styles.actionBtn}>Edit</button>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -742,8 +813,8 @@ export default function VendorDashboard() {
                         }
                         setPayoutSuccess(true);
                         fetchVendorData();
-                      } catch (err: any) {
-                        setPayoutError(err.message || 'Failed to process payout');
+                      } catch (err: unknown) {
+                        setPayoutError(err instanceof Error ? err.message : 'Failed to process payout');
                       } finally {
                         setPayoutLoading(false);
                       }

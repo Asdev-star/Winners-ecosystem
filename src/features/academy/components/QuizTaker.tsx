@@ -55,7 +55,14 @@ function normalizeQuiz(raw: Record<string, unknown>): Quiz {
 interface AttemptResult {
   score: number;
   passed: boolean;
-  answers: Array<{ questionId: string; correct: boolean; points: number }>;
+  answers: Array<{
+    questionId: string;
+    correct: boolean;
+    points: number;
+    selectedAnswer?: string;
+    correctAnswer?: string;
+    explanation?: string;
+  }>;
 }
 
 interface QuizTakerProps {
@@ -71,6 +78,7 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [started, setStarted] = useState(false);
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     void fetchQuizzes();
@@ -82,6 +90,7 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
     setResult(null);
     setStarted(true);
     setTimeLeft(quiz.timeLimit ? quiz.timeLimit * 60 : null);
+    setFlaggedQuestions({});
   };
 
   const submitQuiz = useCallback(async () => {
@@ -101,7 +110,14 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
       const data = (await res.json()) as {
         score: number;
         passed: boolean;
-        gradedAnswers?: Array<{ questionId: string; isCorrect: boolean; points?: number }>;
+        gradedAnswers?: Array<{
+          questionId: string;
+          isCorrect: boolean;
+          points?: number;
+          selectedAnswer?: string;
+          correctAnswer?: string;
+          explanation?: string;
+        }>;
       };
       setResult({
         score: Math.round(data.score),
@@ -110,6 +126,9 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
           questionId: g.questionId,
           correct: g.isCorrect,
           points: g.points ?? 0,
+          selectedAnswer: g.selectedAnswer,
+          correctAnswer: g.correctAnswer,
+          explanation: g.explanation,
         })),
       });
       setStarted(false);
@@ -262,6 +281,19 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
                   <span style={{ fontFamily: 'Space Mono, monospace', fontSize: 10, color: 'var(--gold)', marginRight: 8 }}>Q{i + 1}</span>
                   {q.question}
                 </div>
+                <button
+                  className="qt-btn"
+                  style={{
+                    alignSelf: "flex-end",
+                    marginBottom: 10,
+                    border: "1px solid var(--border)",
+                    background: flaggedQuestions[q.id] ? "rgba(201,168,76,0.12)" : "transparent",
+                    color: flaggedQuestions[q.id] ? "var(--gold)" : "var(--text-dim)",
+                  }}
+                  onClick={() => setFlaggedQuestions((prev) => ({ ...prev, [q.id]: !prev[q.id] }))}
+                >
+                  {flaggedQuestions[q.id] ? "Flagged" : "Flag for review"}
+                </button>
 
                 {q.type === 'MULTIPLE_CHOICE' && q.options?.map((opt, oi) => (
                   <div
@@ -319,6 +351,32 @@ export default function QuizTaker({ courseId }: QuizTakerProps) {
             <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, color: 'var(--text-dim)', marginBottom: 20 }}>
               Passing score: {activeQuiz.passingScore}% · Your score: {result.score}%
             </div>
+            <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 10, color: 'var(--text-dim)', marginBottom: 14 }}>
+              {Object.values(flaggedQuestions).filter(Boolean).length} questions flagged for review
+            </div>
+            {result.answers.length > 0 && (
+              <div style={{ textAlign: "left", marginBottom: 20 }}>
+                {result.answers.map((answer, index) => {
+                  const question = activeQuiz.questions[index];
+                  if (!question) return null;
+                  return (
+                    <div key={answer.questionId} style={{ marginBottom: 12, padding: 12, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface2)" }}>
+                      <div style={{ fontFamily: "Syne, sans-serif", fontSize: 13, color: "var(--text)", marginBottom: 6 }}>
+                        {question.question}
+                      </div>
+                      <div style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: answer.correct ? "var(--green)" : "var(--red)", marginBottom: 4 }}>
+                        {answer.correct ? "Correct" : "Incorrect"}{answer.selectedAnswer ? ` · Your answer: ${answer.selectedAnswer}` : ""}
+                      </div>
+                      {answer.explanation && (
+                        <div style={{ fontFamily: "Syne, sans-serif", fontSize: 12, color: "var(--text-dim)", lineHeight: 1.5 }}>
+                          {answer.explanation}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button className="qt-btn qt-btn-gold" onClick={() => { setResult(null); startQuiz(activeQuiz); }}>
                 Retake

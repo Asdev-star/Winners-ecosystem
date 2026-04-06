@@ -23,7 +23,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
     : "";
 
   try {
-    const payloadBuffer = (req as any).rawBody || (Buffer.isBuffer(req.body)
+    const payloadBuffer = (req as Request & { rawBody?: Buffer }).rawBody || (Buffer.isBuffer(req.body)
       ? req.body
       : Buffer.from(JSON.stringify(req.body ?? {})));
     const result = await handleWebhookEvent(payloadBuffer, signature);

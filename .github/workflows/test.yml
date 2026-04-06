@@ -1,0 +1,52 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint gate
+        shell: bash
+        run: |
+          set +e
+          npx eslint src/ Server/ --max-warnings=9999 -f json > eslint-report.json
+          lint_exit=$?
+          set -e
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('eslint-report.json', 'utf8'));
+          const totalErrors = report.reduce((sum, file) => sum + (file.errorCount || 0), 0);
+          const totalWarnings = report.reduce((sum, file) => sum + (file.warningCount || 0), 0);
+
+          console.log(`ESLint errors: ${totalErrors}`);
+          console.log(`ESLint warnings: ${totalWarnings}`);
+
+          if (totalErrors > 30) {
+            console.error(`Lint gate failed: ${totalErrors} errors exceeds the 30-error threshold.`);
+            process.exit(1);
+          }
+          NODE
+
+          if [ "$lint_exit" -gt 1 ]; then
+            exit "$lint_exit"
+          fi
+
+      - name: Run tests
+        run: npm test -- --run

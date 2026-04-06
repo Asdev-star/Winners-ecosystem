@@ -30,6 +30,17 @@ export interface VideoUploadOptions {
   eagerAsync?: boolean;
 }
 
+export interface OptimisedUrlOptions {
+  width?: number;
+  height?: number;
+  crop?: string;
+  quality?: string;
+  format?: string;
+  fetchFormat?: string;
+  gravity?: string;
+  dpr?: string | number;
+}
+
 /**
  * Upload a video file to Cloudinary for Academy lectures
  */
@@ -123,6 +134,27 @@ export async function uploadImage(
 }
 
 /**
+ * Build an optimised Cloudinary delivery URL for an existing asset.
+ */
+export function getOptimisedUrl(publicId: string, options: OptimisedUrlOptions = {}): string {
+  return cloudinary.url(publicId, {
+    secure: true,
+    transformation: [
+      {
+        width: options.width,
+        height: options.height,
+        crop: options.crop,
+        quality: options.quality,
+        fetch_format: options.fetchFormat,
+        gravity: options.gravity,
+        dpr: options.dpr,
+      },
+      ...(options.format ? [{ format: options.format }] : []),
+    ].filter(Boolean),
+  });
+}
+
+/**
  * Upload a document (PDF) to Cloudinary for course materials
  */
 export async function uploadDocument(
@@ -167,6 +199,10 @@ export async function deleteFile(publicId: string, resourceType: string = 'video
     console.error('Cloudinary delete error:', error);
     throw new Error(`Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+export async function deleteAsset(publicId: string, resourceType: string = "image"): Promise<boolean> {
+  return deleteFile(publicId, resourceType);
 }
 
 /**

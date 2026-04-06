@@ -1,10 +1,19 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from "vitest";
+import type { NextFunction, Request, Response } from "express";
+
+type MockAuthRequest = Request & {
+  user?: {
+    userId: string;
+    tenantId: string;
+    role: string;
+  };
+};
 
 // Mock auth middleware
 vi.mock("../middleware/authMiddleware.js", () => ({
-  authMiddleware: (req: any, _res: any, next: any) => {
+  authMiddleware: (req: MockAuthRequest, _res: Response, next: NextFunction) => {
     req.user = { userId: "test-user-1", tenantId: "test-tenant-1", role: "user" };
     next();
   },
@@ -56,7 +65,7 @@ describe("Post Routes Security Contract", () => {
     );
     
     // Check authMiddleware is imported and used
-    expect(source).toContain("import authMiddleware");
+    expect(source).toContain('import { authMiddleware }');
     expect(source).toContain("router.use(authMiddleware)");
   });
 

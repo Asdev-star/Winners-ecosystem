@@ -10,12 +10,21 @@ import { API_BASE } from "../../lib/api";
 import LayerSubNav from "../../components/ui/LayerSubNav";
 import ContextBar from "../../components/ui/ContextBar";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
-import AssistantPanel from "../../components/ui/AssistantPanel";
+import AssistantPanel from "../../components/ai/AssistantPanel";
 import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
 import VoiceInput from "../../components/ai/VoiceInput";
 import { usePresence } from "./usePresence";
 
 const API = API_BASE;
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 const css = `
@@ -360,7 +369,7 @@ const css = `
   background: rgba(137,196,225,0.03);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   color: var(--text);
   font-family: 'Syne', sans-serif;
   font-size: 14px;
@@ -388,6 +397,7 @@ const css = `
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 }
 .cm-tool-btn {
   min-height: 32px;
@@ -422,6 +432,8 @@ const css = `
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .cm-audience-select {
   background: var(--surface2);
@@ -1356,13 +1368,47 @@ const css = `
 }
 @media (max-width: 640px) {
   .cm-feed { padding: 16px 12px; }
-  .cm-compose { padding: 12px; }
+  .cm-compose { padding: 12px; border-radius: 14px; }
   .cm-page-title { font-size: 22px; }
   .cm-shortcut { display: none; }
+  .cm-compose-headline { margin-bottom: 10px; }
+  .cm-compose-top {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .cm-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  .cm-compose-input {
+    min-height: 96px;
+    font-size: 15px;
+  }
   .cm-compose-footer,
   .cm-compose-right,
-  .cm-compose-tools { flex-wrap: wrap; }
+  .cm-compose-tools {
+    width: 100%;
+  }
+  .cm-compose-footer {
+    align-items: stretch;
+  }
+  .cm-compose-right {
+    justify-content: space-between;
+  }
   .cm-tag-input { width: 100%; }
+  .cm-tool-btn,
+  .cm-preset-btn,
+  .cm-sidebar-btn {
+    min-height: 34px;
+    font-size: 10px;
+  }
+  .cm-compose-presets {
+    gap: 6px;
+  }
+  .cm-post-btn {
+    width: 100%;
+  }
 }
 `;
 
@@ -1826,6 +1872,8 @@ export default function CommunityPage() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [quickContent, setQuickContent] = useState("");
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const postImageInputRef = useRef<HTMLInputElement>(null);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
 
   // Comments state
@@ -2084,10 +2132,16 @@ export default function CommunityPage() {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+      const mediaData = postImageFile ? await fileToDataUrl(postImageFile) : undefined;
       const res = await fetch(`${API}/posts`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ content: c, tags: tagArr }),
+        body: JSON.stringify({
+          content: c,
+          tags: tagArr,
+          mediaType: mediaData ? "image" : undefined,
+          mediaData,
+        }),
       });
       if (res.ok) {
         const newPost = await res.json();
@@ -2124,6 +2178,10 @@ export default function CommunityPage() {
         setContent("");
         setTags("");
         setQuickContent("");
+        setPostImageFile(null);
+        if (postImageInputRef.current) {
+          postImageInputRef.current.value = "";
+        }
         setTotalPosts((n) => n + 1);
 
         if (skillDetections.length > 0) {
@@ -2523,9 +2581,7 @@ export default function CommunityPage() {
                 <button
                   className="cm-tool-btn"
                   title="Add image context"
-                  onClick={() =>
-                    applyComposerPrompt("Sharing a visual update: ")
-                  }
+                  onClick={() => postImageInputRef.current?.click()}
                 >
                   📷 Photo
                 </button>
@@ -2546,6 +2602,24 @@ export default function CommunityPage() {
                   📅 Schedule
                 </button>
               </div>
+              <input
+                ref={postImageInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setPostImageFile(file);
+                  if (file) {
+                    applyComposerPrompt("Sharing a visual update: ");
+                  }
+                }}
+              />
+              {postImageFile && (
+                <div style={{ fontFamily: "Space Mono, monospace", fontSize: 10, color: "var(--text-dim)", marginTop: 8 }}>
+                  Photo ready: {postImageFile.name}
+                </div>
+              )}
               <input
                 className="cm-tag-input"
                 placeholder="#tags, comma separated"
@@ -3060,8 +3134,6 @@ export default function CommunityPage() {
               </Link>
             </div>
           </div>
-        </div>
-      </div>
 
       <AssistantPanel
         assistant="nova"
@@ -3069,6 +3141,8 @@ export default function CommunityPage() {
         userId={user?.id}
         context={{ totalPosts, totalLikes, onlineCount }}
       />
+        </div>
+      </div>
     </>
   );
 }

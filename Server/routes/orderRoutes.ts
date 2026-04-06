@@ -1,12 +1,13 @@
 // Server/routes/orderRoutes.ts — Order Management
 // Phase 4: Winners Market - Order processing and management
 
-import { Router, Request, Response } from "express";
+import { Router, type Request, type Response } from "express";
 import Stripe from "stripe";
 import { OrderStatus, type Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import { handleWebhookEvent } from "../services/stripeService.js";
+import type { AuthRequest } from "../types/index.js";
 
 function getStripe(): Stripe {
   if (!process.env.STRIPE_SECRET_KEY)
@@ -34,7 +35,7 @@ function parseOrderStatus(value: string): OrderStatus | null {
     : null;
 }
 
-async function createCheckoutSession(req: Request, res: Response) {
+async function createCheckoutSession(req: AuthRequest, res: Response) {
   try {
     const userId = req.user!.userId;
     const tenantId = req.user!.tenantId;
@@ -708,7 +709,7 @@ router.post("/checkout", authMiddleware, createCheckoutSession);
 router.post("/checkout-session", authMiddleware, createCheckoutSession);
 
 // POST /orders/webhook — Stripe webhook for payment confirmation
-router.post("/webhook", async (req: Request, res: Response) => {
+router.post("/webhook", async (req: Request & { rawBody?: Buffer }, res: Response) => {
   const signature =
     typeof req.headers["stripe-signature"] === "string"
       ? req.headers["stripe-signature"]
@@ -716,7 +717,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
 
   try {
     const payloadBuffer =
-      (req as any).rawBody ||
+      req.rawBody ||
       (Buffer.isBuffer(req.body)
         ? req.body
         : Buffer.from(JSON.stringify(req.body ?? {})));

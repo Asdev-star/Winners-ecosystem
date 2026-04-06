@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { typedFetch } from "../lib/typedFetch";
 
 export interface TradingSignal {
   id: string;
@@ -35,6 +36,18 @@ export interface MarketAnalysis {
   createdAt: string;
 }
 
+interface TradingSignalsResponse {
+  signals: TradingSignal[];
+}
+
+interface TradingPortfolioResponse {
+  portfolio: PortfolioItem[];
+}
+
+interface TradingAnalysesResponse {
+  analyses: MarketAnalysis[];
+}
+
 interface TradingState {
   signals: TradingSignal[];
   portfolio: PortfolioItem[];
@@ -66,20 +79,14 @@ export const useTradingStore = create<TradingState>()(
         set({ loading: true, error: null });
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(`${API_BASE}/trading/signals`, {
+          const data = await typedFetch<TradingSignalsResponse>(`${API_BASE}/trading/signals`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           });
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch trading signals");
-          }
-
-          const data = await response.json();
           set({ signals: data.signals || [], loading: false });
-        } catch (error) {
+        } catch (error: unknown) {
           set({
             error:
               error instanceof Error
@@ -94,20 +101,14 @@ export const useTradingStore = create<TradingState>()(
         set({ loading: true, error: null });
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(`${API_BASE}/trading/portfolio`, {
+          const data = await typedFetch<TradingPortfolioResponse>(`${API_BASE}/trading/portfolio`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           });
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch portfolio");
-          }
-
-          const data = await response.json();
           set({ portfolio: data.portfolio || [], loading: false });
-        } catch (error) {
+        } catch (error: unknown) {
           set({
             error:
               error instanceof Error
@@ -122,20 +123,14 @@ export const useTradingStore = create<TradingState>()(
         set({ loading: true, error: null });
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(`${API_BASE}/trading/analyses`, {
+          const data = await typedFetch<TradingAnalysesResponse>(`${API_BASE}/trading/analyses`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           });
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch market analyses");
-          }
-
-          const data = await response.json();
           set({ analyses: data.analyses || [], loading: false });
-        } catch (error) {
+        } catch (error: unknown) {
           set({
             error:
               error instanceof Error
@@ -149,7 +144,7 @@ export const useTradingStore = create<TradingState>()(
       subscribeToSignal: async (signalId: string) => {
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(
+          await typedFetch(
             `${API_BASE}/trading/signals/${signalId}/subscribe`,
             {
               method: "POST",
@@ -159,14 +154,9 @@ export const useTradingStore = create<TradingState>()(
               },
             },
           );
-
-          if (!response.ok) {
-            throw new Error("Failed to subscribe to signal");
-          }
-
           // Refresh signals after subscription
           await get().fetchSignals();
-        } catch (error) {
+        } catch (error: unknown) {
           set({
             error:
               error instanceof Error
@@ -179,7 +169,7 @@ export const useTradingStore = create<TradingState>()(
       unsubscribeFromSignal: async (signalId: string) => {
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(
+          await typedFetch(
             `${API_BASE}/trading/signals/${signalId}/unsubscribe`,
             {
               method: "POST",
@@ -189,14 +179,9 @@ export const useTradingStore = create<TradingState>()(
               },
             },
           );
-
-          if (!response.ok) {
-            throw new Error("Failed to unsubscribe from signal");
-          }
-
           // Refresh signals after unsubscription
           await get().fetchSignals();
-        } catch (error) {
+        } catch (error: unknown) {
           set({
             error:
               error instanceof Error

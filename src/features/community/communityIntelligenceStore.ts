@@ -3,6 +3,7 @@
 
 import { create } from 'zustand';
 import { useAuthStore } from '../auth/authStore';
+import { typedFetch } from '../../lib/typedFetch';
 
 const API_BASE = '/community-intelligence';
 
@@ -77,6 +78,32 @@ interface OpportunityStatus {
   bio: string | null;
 }
 
+interface SkillDetectionResponse {
+  skills: Array<{
+    name: string;
+    confidence: number;
+    category: string;
+  }>;
+}
+
+interface SkillsResponse {
+  skills: Skill[];
+}
+
+type InsightBannerResponse = InsightBanner;
+
+interface WeeklyReportResponse {
+  report: WeeklyReport;
+}
+
+interface OpportunitiesResponse {
+  opportunities: CommunityIntelligenceState["opportunities"];
+}
+
+interface LoopStatusResponse {
+  loop: LoopProgress;
+}
+
 interface CommunityIntelligenceState {
   // Skills
   detectedSkills: Skill[];
@@ -147,7 +174,7 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
     set({ isLoadingSkills: true, skillDetectionError: null });
     try {
       const token = useAuthStore.getState().token;
-      const response = await fetch(`${API_BASE}/skills/detect`, {
+      const data = await typedFetch<SkillDetectionResponse>(`${API_BASE}/skills/detect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,13 +182,8 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
         },
         body: JSON.stringify({ content, postId }),
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to detect skills');
-      }
-      
-      const data = await response.json();
-      const skills: Skill[] = data.skills.map((s: any) => ({
+
+      const skills: Skill[] = data.skills.map((s) => ({
         name: s.name,
         confidence: s.confidence,
         category: s.category,
@@ -169,8 +191,8 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
       
       set({ detectedSkills: skills, isLoadingSkills: false });
       return skills;
-    } catch (error: any) {
-      set({ skillDetectionError: error.message, isLoadingSkills: false });
+    } catch (error: unknown) {
+      set({ skillDetectionError: error instanceof Error ? error.message : 'Failed to detect skills', isLoadingSkills: false });
       return [];
     }
   },
@@ -180,18 +202,12 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
     set({ isLoadingSkills: true, skillDetectionError: null });
     try {
       const token = useAuthStore.getState().token;
-      const response = await fetch(`${API_BASE}/skills/detected`, {
+      const data = await typedFetch<SkillsResponse>(`${API_BASE}/skills/detected`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch skills');
-      }
-      
-      const data = await response.json();
       set({ detectedSkills: data.skills || [], isLoadingSkills: false });
-    } catch (error: any) {
-      set({ skillDetectionError: error.message, isLoadingSkills: false });
+    } catch (error: unknown) {
+      set({ skillDetectionError: error instanceof Error ? error.message : 'Failed to fetch skills', isLoadingSkills: false });
     }
   },
   
@@ -200,18 +216,12 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
     set({ isLoadingInsights: true, insightsError: null });
     try {
       const token = useAuthStore.getState().token;
-      const response = await fetch(`${API_BASE}/insights/banner`, {
+      const data = await typedFetch<InsightBannerResponse>(`${API_BASE}/insights/banner`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch insight');
-      }
-      
-      const data = await response.json();
       set({ insightBanner: data, isLoadingInsights: false });
-    } catch (error: any) {
-      set({ insightsError: error.message, isLoadingInsights: false });
+    } catch (error: unknown) {
+      set({ insightsError: error instanceof Error ? error.message : 'Failed to fetch insight', isLoadingInsights: false });
     }
   },
   
@@ -220,18 +230,12 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
     set({ isLoadingInsights: true, insightsError: null });
     try {
       const token = useAuthStore.getState().token;
-      const response = await fetch(`${API_BASE}/insights/weekly`, {
+      const data = await typedFetch<WeeklyReportResponse>(`${API_BASE}/insights/weekly`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch weekly report');
-      }
-      
-      const data = await response.json();
       set({ weeklyReport: data.report, isLoadingInsights: false });
-    } catch (error: any) {
-      set({ insightsError: error.message, isLoadingInsights: false });
+    } catch (error: unknown) {
+      set({ insightsError: error instanceof Error ? error.message : 'Failed to fetch weekly report', isLoadingInsights: false });
     }
   },
   
@@ -240,18 +244,12 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
     set({ isLoadingOpportunities: true, opportunitiesError: null });
     try {
       const token = useAuthStore.getState().token;
-      const response = await fetch(`${API_BASE}/opportunities`, {
+      const data = await typedFetch<OpportunitiesResponse>(`${API_BASE}/opportunities`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch opportunities');
-      }
-      
-      const data = await response.json();
       set({ opportunities: data.opportunities, isLoadingOpportunities: false });
-    } catch (error: any) {
-      set({ opportunitiesError: error.message, isLoadingOpportunities: false });
+    } catch (error: unknown) {
+      set({ opportunitiesError: error instanceof Error ? error.message : 'Failed to fetch opportunities', isLoadingOpportunities: false });
     }
   },
   
@@ -260,18 +258,12 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
     set({ isLoadingLoop: true, loopError: null });
     try {
       const token = useAuthStore.getState().token;
-      const response = await fetch(`${API_BASE}/loop-status`, {
+      const data = await typedFetch<LoopStatusResponse>(`${API_BASE}/loop-status`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch loop status');
-      }
-      
-      const data = await response.json();
       set({ loopStatus: data.loop, isLoadingLoop: false });
-    } catch (error: any) {
-      set({ loopError: error.message, isLoadingLoop: false });
+    } catch (error: unknown) {
+      set({ loopError: error instanceof Error ? error.message : 'Failed to fetch loop status', isLoadingLoop: false });
     }
   },
   
@@ -280,18 +272,12 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
     set({ isLoadingOpportunityStatus: true, opportunityStatusError: null });
     try {
       const token = useAuthStore.getState().token;
-      const response = await fetch(`${API_BASE}/opportunity-status`, {
+      const data = await typedFetch<OpportunityStatus>(`${API_BASE}/opportunity-status`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch opportunity status');
-      }
-      
-      const data = await response.json();
       set({ opportunityStatus: data, isLoadingOpportunityStatus: false });
-    } catch (error: any) {
-      set({ opportunityStatusError: error.message, isLoadingOpportunityStatus: false });
+    } catch (error: unknown) {
+      set({ opportunityStatusError: error instanceof Error ? error.message : 'Failed to fetch opportunity status', isLoadingOpportunityStatus: false });
     }
   },
   
@@ -300,7 +286,7 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
     set({ isLoadingOpportunityStatus: true, opportunityStatusError: null });
     try {
       const token = useAuthStore.getState().token;
-      const response = await fetch(`${API_BASE}/opportunity-status`, {
+      const data = await typedFetch<OpportunityStatus>(`${API_BASE}/opportunity-status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -308,15 +294,9 @@ export const communityIntelligenceStore = create<CommunityIntelligenceState>((se
         },
         body: JSON.stringify({ isEnabled: true, status, bio }),
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update opportunity status');
-      }
-      
-      const data = await response.json();
       set({ opportunityStatus: data, isLoadingOpportunityStatus: false });
-    } catch (error: any) {
-      set({ opportunityStatusError: error.message, isLoadingOpportunityStatus: false });
+    } catch (error: unknown) {
+      set({ opportunityStatusError: error instanceof Error ? error.message : 'Failed to update opportunity status', isLoadingOpportunityStatus: false });
     }
   },
 }));

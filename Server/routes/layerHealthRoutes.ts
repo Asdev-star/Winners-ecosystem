@@ -39,9 +39,11 @@ router.get("/layers", async (req: Request, res: Response) => {
 
   try {
     // Get layer registry data from database (if table exists)
-    const layers = await db.platformLayerStatus.findMany({
-      where: { layerId: { not: undefined } }, // Prevent filter error if table structure differs
-    }).catch(() => []);
+    const layers = await db.platformLayerStatus
+      .findMany({
+        where: { layerId: { not: undefined } }, // Prevent filter error if table structure differs
+      })
+      .catch(() => []);
 
     // Build health report from database
     const health: Record<LayerKey, LayerHealth> = {
@@ -115,11 +117,13 @@ router.get("/layers/:layerId", async (req: Request, res: Response) => {
 
   try {
     // Note: PlatformLayerStatus schema may differ - this is a fallback implementation
-    const layer = await db.platformLayerStatus.findFirst({
-      where: {
-        layerId: layerId,
-      },
-    }).catch(() => null);
+    const layer = await db.platformLayerStatus
+      .findFirst({
+        where: {
+          layerId: layerId,
+        },
+      })
+      .catch(() => null);
 
     const health: LayerHealth = {
       status: (layer?.status as any) || "live",

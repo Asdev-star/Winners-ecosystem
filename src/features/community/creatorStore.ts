@@ -2,6 +2,7 @@
 // creatorStore.ts - Creator subscription and tier management state
 
 import { create } from 'zustand';
+import { typedFetch } from '../../lib/typedFetch';
 
 interface CreatorTier {
   id: string;
@@ -102,10 +103,9 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   fetchTier: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/tier`, { credentials: 'include' });
-      const data = await res.json();
+      const data = await typedFetch<{ tier: CreatorTier | null }>(`${API_BASE}/tier`, { credentials: 'include' });
       set({ tier: data.tier, loading: false });
-    } catch (error) {
+    } catch (error: unknown) {
       set({ error: 'Failed to fetch tier', loading: false });
     }
   },
@@ -113,15 +113,14 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   createOrUpdateTier: async (data) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/tier`, {
+      const result = await typedFetch<{ tier: CreatorTier }>(`${API_BASE}/tier`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
         credentials: 'include'
       });
-      const result = await res.json();
       set({ tier: result.tier, loading: false });
-    } catch (error) {
+    } catch (error: unknown) {
       set({ error: 'Failed to create/update tier', loading: false });
     }
   },
@@ -129,10 +128,9 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   fetchSubscribers: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/subscribers`, { credentials: 'include' });
-      const data = await res.json();
+      const data = await typedFetch<{ subscriptions: CreatorSubscription[] }>(`${API_BASE}/subscribers`, { credentials: 'include' });
       set({ subscribers: data.subscriptions, loading: false });
-    } catch (error) {
+    } catch (error: unknown) {
       set({ error: 'Failed to fetch subscribers', loading: false });
     }
   },
@@ -140,10 +138,9 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   fetchEarnings: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/earnings`, { credentials: 'include' });
-      const data = await res.json();
+      const data = await typedFetch<Earnings>(`${API_BASE}/earnings`, { credentials: 'include' });
       set({ earnings: data, loading: false });
-    } catch (error) {
+    } catch (error: unknown) {
       set({ error: 'Failed to fetch earnings', loading: false });
     }
   },
@@ -151,10 +148,9 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   fetchMySubscriptions: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/my-subscriptions`, { credentials: 'include' });
-      const data = await res.json();
+      const data = await typedFetch<{ subscriptions: CreatorSubscription[] }>(`${API_BASE}/my-subscriptions`, { credentials: 'include' });
       set({ mySubscriptions: data.subscriptions, loading: false });
-    } catch (error) {
+    } catch (error: unknown) {
       set({ error: 'Failed to fetch subscriptions', loading: false });
     }
   },
@@ -162,16 +158,15 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   subscribeToCreator: async (creatorId, tierId, amount) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/subscribe`, {
+      await typedFetch(`${API_BASE}/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ creatorId, tierId, amount }),
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to subscribe');
       await get().fetchMySubscriptions();
       set({ loading: false });
-    } catch (error) {
+    } catch (error: unknown) {
       set({ error: 'Failed to subscribe', loading: false });
     }
   },
@@ -179,16 +174,15 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   unsubscribeFromCreator: async (creatorId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/unsubscribe`, {
+      await typedFetch(`${API_BASE}/unsubscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ creatorId }),
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to unsubscribe');
       await get().fetchMySubscriptions();
       set({ loading: false });
-    } catch (error) {
+    } catch (error: unknown) {
       set({ error: 'Failed to unsubscribe', loading: false });
     }
   },
@@ -196,15 +190,19 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   fetchCreatorProfile: async (userId, tenantId) => {
     set({ loading: true, error: null });
     try {
-      const res = await fetch(`${API_BASE}/${userId}?tenantId=${tenantId}`, { credentials: 'include' });
-      const data = await res.json();
+      const data = await typedFetch<{
+        creator: CreatorProfile;
+        tier: CreatorTier;
+        subscriberCount: number;
+        totalEarnings: number;
+      }>(`${API_BASE}/${userId}?tenantId=${tenantId}`, { credentials: 'include' });
       set({ 
         creatorProfile: data.creator, 
         creatorTier: data.tier,
         creatorStats: { subscriberCount: data.subscriberCount, totalEarnings: data.totalEarnings },
         loading: false 
       });
-    } catch (error) {
+    } catch (error: unknown) {
       set({ error: 'Failed to fetch creator profile', loading: false });
     }
   },

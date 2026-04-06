@@ -182,10 +182,11 @@ model User {
   twoFactorEnabled              Boolean                        @default(false)
   twoFactorMethod               String?
   twoFactorBackup               String[]                       @default([])
-  country                       String?
-  city                          String?
-  bio                           String?
-  skills                        String[]
+    country                       String?
+    city                          String?
+    bio                           String?
+    avatarUrl                     String?
+    skills                        String[]
   industry                      String?
   isPublicProfile               Boolean                        @default(true)
   profileViews                  Int                            @default(0)
@@ -1200,10 +1201,12 @@ model Lesson {
   tenantId    String
   moduleId    String
   title       String
-  description String?
-  content     String?
-  videoUrl    String?
-  duration    Int?
+    description String?
+    content     String?
+    videoId     String?
+    videoUrl    String?
+    thumbnailUrl String?
+    duration    Int?
   order       Int              @default(0)
   isFree      Boolean          @default(false)
   createdAt   DateTime         @default(now())
@@ -1273,6 +1276,10 @@ model Certificate {
   enrollmentId String     @unique
   courseId     String
   userId       String
+  certNumber   String     @unique
+  verificationCode String  @unique
+  pdfUrl       String?
+  pdfPublicId  String?
   verifyToken  String     @unique @default(cuid())
   issuedAt     DateTime   @default(now())
   course       Course     @relation(fields: [courseId], references: [id])

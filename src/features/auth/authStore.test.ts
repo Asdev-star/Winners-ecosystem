@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore, type AuthUser } from "./authStore";
 
 const TOKEN_KEY = "we_token";
@@ -22,6 +22,33 @@ const impersonatedUser: AuthUser = {
   tenantId: "tenant_2",
   tenantName: "TechHub Ltd",
 };
+
+const storageData = new Map<string, string>();
+const localStorageMock = {
+  getItem: (key: string) => storageData.get(key) ?? null,
+  setItem: (key: string, value: string) => {
+    storageData.set(key, String(value));
+  },
+  removeItem: (key: string) => {
+    storageData.delete(key);
+  },
+  clear: () => {
+    storageData.clear();
+  },
+};
+
+beforeAll(() => {
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: localStorageMock,
+  });
+  if (typeof window !== "undefined") {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: localStorageMock,
+    });
+  }
+});
 
 describe("authStore session flow", () => {
   beforeEach(() => {
@@ -131,7 +158,7 @@ describe("authStore session flow", () => {
     expect(localStorage.getItem(IMPERSONATION_KEY)).toBeNull();
   });
 
-  it("logout clears in-memory and localStorage auth state", () => {
+  it("logout clears in-memory and localStorage auth state", async () => {
     localStorage.setItem(TOKEN_KEY, "token_abc");
     localStorage.setItem(USER_KEY, JSON.stringify(demoUser));
     localStorage.setItem(
@@ -159,7 +186,7 @@ describe("authStore session flow", () => {
       },
     });
 
-    useAuthStore.getState().logout();
+    await useAuthStore.getState().logout();
 
     const state = useAuthStore.getState();
     expect(state.token).toBeNull();

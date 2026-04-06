@@ -10,6 +10,8 @@ import passportFacebook from "passport-facebook";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import type { JwtPayload } from "../middleware/authMiddleware.js";
+import type { AuthRequest } from "../types/index.js";
+import { applyAuthCookies, clearAuthCookies, extractRefreshTokenFromRequest } from "../services/authCookieService.js";
 import { logActivity, ACTIONS } from "../services/activityService.js";
 import { emitAdminEvent } from "../services/adminEventService.js";
 import { buildReturningOmegaBriefing, extractOnboardingState } from "../services/returningOmegaBriefingService.js";
@@ -123,6 +125,10 @@ function buildLoginRedirectUrl(user: AuthUser, token: string, refreshToken: stri
   return `${APP_URL}/login?token=${token}&refreshToken=${refreshToken}&user=${userJson}${omegaWelcomeJson ? `&omegaWelcome=${omegaWelcomeJson}` : ""}`;
 }
 
+function attachAuthSession(res: Response, token: string, refreshToken?: string) {
+  applyAuthCookies(res, token, refreshToken);
+}
+
 async function findOrCreateFacebookUser(profile: { id?: string; email?: string; name?: string }) {
   const email = profile.email?.toLowerCase().trim();
   if (!email) throw new Error("No email from Facebook");
@@ -210,6 +216,7 @@ router.post("/register", async (req: Request, res: Response) => {
     const payload      = buildPayload(user);
     const token        = signToken(payload, JWT_EXPIRES_IN);
     const refreshToken = signToken(payload, JWT_REFRESH_EXPIRES);
+    attachAuthSession(res, token, refreshToken);
 
     return res.status(201).json({
       token, refreshToken, isNewUser: true,
@@ -248,6 +255,7 @@ router.post("/login", async (req: Request, res: Response) => {
     const payload      = buildPayload(user);
     const token        = signToken(payload, JWT_EXPIRES_IN);
     const refreshToken = signToken(payload, JWT_REFRESH_EXPIRES);
+    attachAuthSession(res, token, refreshToken);
     const onboardingState = extractOnboardingState(user);
     const omegaWelcome = await buildReturningOmegaBriefing(user);
 
@@ -278,7 +286,9 @@ router.post("/login", async (req: Request, res: Response) => {
 // ─── POST /auth/refresh ───────────────────────────────────────────────────────
 
 router.post("/refresh", (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
+  const bodyRefreshToken = typeof req.body?.refreshToken === "string" ? req.body.refreshToken : "";
+  const cookieRefreshToken = extractRefreshTokenFromRequest(req);
+  const refreshToken = bodyRefreshToken || cookieRefreshToken || "";
   if (!refreshToken) return res.status(400).json({ message: "Refresh token required" });
 
   try {
@@ -292,18 +302,24 @@ router.post("/refresh", (req: Request, res: Response) => {
       ...(decoded.isImpersonation ? { isImpersonation: true, adminId: decoded.adminId } : {}),
     };
     const newToken = signToken(payload, JWT_EXPIRES_IN);
+    attachAuthSession(res, newToken, refreshToken);
     return res.json({ token: newToken });
   } catch {
     return res.status(401).json({ message: "Invalid or expired refresh token" });
   }
 });
 
+router.post("/logout", (_req: Request, res: Response) => {
+  clearAuthCookies(res);
+  return res.json({ message: "Logged out" });
+});
+
 // ─── GET /auth/me ─────────────────────────────────────────────────────────────
 
-router.get("/me", authMiddleware, async (req: Request, res: Response) => {
+router.get("/me", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await db.user.findFirst({
-      where: { id: req.user!.userId, deletedAt: null },
+      const user = await db.user.findFirst({
+        where: { id: req.user!.userId, deletedAt: null },
       select: {
         id: true,
         email: true,
@@ -456,8 +472,10 @@ router.post("/google/exchange", async (req: Request, res: Response) => {
 
     const jwtPayload = buildPayload(user);
     const token      = signToken(jwtPayload, JWT_EXPIRES_IN);
+    const refreshToken = signToken(jwtPayload, JWT_REFRESH_EXPIRES);
+    attachAuthSession(res, token, refreshToken);
     return res.json({
-      token, isNewUser,
+      token, refreshToken, isNewUser,
       user: {
         id: user.id,
         email: user.email,
@@ -522,6 +540,7 @@ router.get("/google/callback", async (req: Request, res: Response) => {
     const jwtPayload   = buildPayload(user);
     const token        = signToken(jwtPayload, JWT_EXPIRES_IN);
     const refreshToken = signToken(jwtPayload, JWT_REFRESH_EXPIRES);
+    attachAuthSession(res, token, refreshToken);
     return res.redirect(buildLoginRedirectUrl(user, token, refreshToken, omegaWelcome));
   } catch (err) {
     console.error("Google OAuth error:", err);
@@ -573,6 +592,7 @@ router.get(
       const jwtPayload = buildPayload(user);
       const token = signToken(jwtPayload, JWT_EXPIRES_IN);
       const refreshToken = signToken(jwtPayload, JWT_REFRESH_EXPIRES);
+      attachAuthSession(res, token, refreshToken);
       return res.redirect(buildLoginRedirectUrl(user, token, refreshToken, omegaWelcome));
     } catch (err) {
       console.error("Facebook OAuth callback error:", err);
@@ -627,9 +647,11 @@ router.post("/facebook/exchange", async (req: Request, res: Response) => {
 
     const jwtPayload = buildPayload(user);
     const token      = signToken(jwtPayload, JWT_EXPIRES_IN);
+    const refreshToken = signToken(jwtPayload, JWT_REFRESH_EXPIRES);
+    attachAuthSession(res, token, refreshToken);
 
     return res.json({
-      token, isNewUser,
+      token, refreshToken, isNewUser,
       user: {
         id: user.id,
         email: user.email,

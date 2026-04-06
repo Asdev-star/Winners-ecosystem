@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { API_BASE } from "../../lib/api";
+import { typedFetch } from "../../lib/typedFetch";
 import { OMEGA_WELCOME_KEY, type OmegaLaunchWelcome } from "../onboarding/omegaLaunchWelcome";
 
 export interface AuthUser {
@@ -58,7 +59,7 @@ interface AuthState {
     session: Omit<ImpersonationSession, "originalToken" | "originalUser" | "startedAt">,
   ) => void;
   endImpersonation: () => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
 }
 
@@ -136,18 +137,33 @@ function persistCurrentState(user: AuthUser | null, token: string | null, impers
   persist(token, user, impersonation);
 }
 
-async function apiFetch(path: string, options: RequestInit = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+type LoginResponse =
+  | {
+      requiresTwoFactor: true;
+      userId: string;
+      method: TwoFactorMethod;
+    }
+  | {
+      requiresTwoFactor?: false;
+      token: string;
+      user: AuthUser;
+      omegaWelcome?: unknown;
+    };
+
+type VerifyTwoFactorResponse = {
+  token: string;
+  user: AuthUser;
+  omegaWelcome?: unknown;
+};
+
+async function apiFetch<T>(path: string, options: RequestInit = {}) {
+  return typedFetch<T>(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
     },
   });
-
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body?.message ?? `Request failed: ${res.status}`);
-  return body;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -161,7 +177,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const body = await apiFetch("/auth/login", {
+      const body = await apiFetch<LoginResponse>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
@@ -177,7 +193,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       }
 
-      const { token, user }: { token: string; user: AuthUser } = body;
+      const { token, user } = body;
       stashOmegaWelcome(body.omegaWelcome);
       persist(token, user, null);
       set({ token, user, impersonation: null, isLoading: false, pendingTwoFactor: null });
@@ -193,12 +209,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ isLoading: true });
     try {
-      const body = await apiFetch("/auth/2fa/verify", {
+      const body = await apiFetch<VerifyTwoFactorResponse>("/auth/2fa/verify", {
         method: "POST",
         body: JSON.stringify({ userId: pendingTwoFactor.userId, code }),
       });
 
-      const { token, user }: { token: string; user: AuthUser } = body;
+      const { token, user } = body;
       stashOmegaWelcome(body.omegaWelcome);
       persist(token, user, null);
       set({ token, user, impersonation: null, isLoading: false, pendingTwoFactor: null });
@@ -211,11 +227,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loginWithGoogle: async (googleToken) => {
     set({ isLoading: true });
     try {
-      const body = await apiFetch("/auth/me", {
+      const body = await apiFetch<AuthUser | { user: AuthUser }>("/auth/me", {
         headers: { Authorization: `Bearer ${googleToken}` },
       });
 
-      const user: AuthUser = body.user ?? body;
+      const user: AuthUser = "user" in body ? body.user : body;
       persist(googleToken, user, null);
       set({ token: googleToken, user, impersonation: null, isLoading: false, pendingTwoFactor: null });
     } catch (err) {
@@ -279,7 +295,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  logout: () => {
+  logout: async () => {
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => undefined);
     clearPersisted();
     set({ user: null, token: null, impersonation: null, pendingTwoFactor: null });
   },

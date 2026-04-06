@@ -5,6 +5,7 @@ import { Router, type Request, type Response } from "express";
 import db from "../db.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { enforceTenant, requireMinRole, requirePermission } from "../middleware/rbacMiddleware.js";
+import { uploadImage } from "../services/cloudinaryService.js";
 
 const router = Router();
 
@@ -28,6 +29,180 @@ function normalizeInviteRole(rawRole: unknown): Role | null {
   if (role === "viewer") return Role.VIEWER;
   return null;
 }
+
+function metadataObject(value: Prisma.JsonValue | null | undefined): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function mergeMetadata(target: Record<string, unknown>, patch: unknown) {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return target;
+  return { ...target, ...(patch as Record<string, unknown>) };
+}
+
+function profileExtras(metadata: Record<string, unknown>) {
+  const profile = metadata.profile;
+  const social = metadata.social;
+  const profileMeta = profile && typeof profile === "object" && !Array.isArray(profile) ? profile as Record<string, unknown> : {};
+  const socialMeta = social && typeof social === "object" && !Array.isArray(social) ? social as Record<string, unknown> : {};
+
+  return {
+    website: typeof socialMeta.website === "string" ? socialMeta.website : undefined,
+    twitter: typeof socialMeta.twitter === "string" ? socialMeta.twitter : undefined,
+    github: typeof socialMeta.github === "string" ? socialMeta.github : undefined,
+    avatarUrl: typeof profileMeta.avatarUrl === "string" ? profileMeta.avatarUrl : undefined,
+  };
+}
+
+router.get("/me", async (req: Request, res: Response) => {
+  try {
+    const user = await db.user.findFirst({
+      where: { id: req.user!.userId, tenantId: req.user!.tenantId, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        bio: true,
+        skills: true,
+        country: true,
+        city: true,
+        avatarUrl: true,
+        badges: true,
+        metadata: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const metadata = metadataObject(user.metadata);
+    const extras = profileExtras(metadata);
+
+    return res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role.toLowerCase(),
+      bio: user.bio,
+      skills: user.skills,
+      country: user.country,
+      city: user.city,
+      badges: user.badges,
+      joinedAt: user.createdAt.toISOString(),
+      avatarUrl: user.avatarUrl ?? extras.avatarUrl ?? null,
+      ...extras,
+      metadata,
+    });
+  } catch (error) {
+    console.error("Get me error:", errorMessage(error));
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch("/me", async (req: Request, res: Response) => {
+  const {
+    name,
+    bio,
+    skills,
+    website,
+    twitter,
+    github,
+    avatarUrl,
+    avatarData,
+  } = req.body ?? {};
+
+  const hasAnyField =
+    name !== undefined ||
+    bio !== undefined ||
+    skills !== undefined ||
+    website !== undefined ||
+    twitter !== undefined ||
+    github !== undefined ||
+    avatarUrl !== undefined ||
+    avatarData !== undefined;
+
+  if (!hasAnyField) {
+    return res.status(400).json({ message: "At least one field is required" });
+  }
+
+  try {
+    const current = await db.user.findFirst({
+      where: { id: req.user!.userId, tenantId: req.user!.tenantId, deletedAt: null },
+      select: { metadata: true, avatarUrl: true },
+    });
+
+    if (!current) return res.status(404).json({ message: "User not found" });
+
+    const nextMetadata = mergeMetadata(metadataObject(current.metadata), undefined);
+    const nextSocial = metadataObject(nextMetadata.social as Prisma.JsonValue | undefined);
+    const nextProfile = metadataObject(nextMetadata.profile as Prisma.JsonValue | undefined);
+
+    if (website !== undefined) nextSocial.website = typeof website === "string" ? website.trim() : website;
+    if (twitter !== undefined) nextSocial.twitter = typeof twitter === "string" ? twitter.trim() : twitter;
+    if (github !== undefined) nextSocial.github = typeof github === "string" ? github.trim() : github;
+
+    let resolvedAvatarUrl = typeof avatarUrl === "string" && avatarUrl.trim() ? avatarUrl.trim() : current.avatarUrl ?? null;
+    if (avatarData !== undefined && typeof avatarData === "string" && avatarData.trim()) {
+      const uploaded = await uploadImage(avatarData.trim(), {
+        folder: `profiles/${req.user!.tenantId}/${req.user!.userId}`,
+      });
+      resolvedAvatarUrl = uploaded.secureUrl;
+    }
+
+    if (resolvedAvatarUrl) {
+      nextProfile.avatarUrl = resolvedAvatarUrl;
+    }
+
+    nextMetadata.profile = nextProfile;
+    nextMetadata.social = nextSocial;
+
+    const updated = await db.user.update({
+      where: { id: req.user!.userId },
+      data: {
+        ...(typeof name === "string" && name.trim() ? { name: name.trim() } : {}),
+        ...(typeof bio === "string" ? { bio: bio.trim() } : {}),
+        ...(Array.isArray(skills) ? { skills: skills.filter((skill: unknown) => typeof skill === "string").map((skill: string) => skill.trim()).filter(Boolean) } : {}),
+        avatarUrl: resolvedAvatarUrl,
+        metadata: nextMetadata as Prisma.InputJsonValue,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        bio: true,
+        skills: true,
+        country: true,
+        city: true,
+        avatarUrl: true,
+        badges: true,
+        metadata: true,
+        createdAt: true,
+      },
+    });
+
+    const extras = profileExtras(metadataObject(updated.metadata));
+    return res.json({
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role.toLowerCase(),
+      bio: updated.bio,
+      skills: updated.skills,
+      country: updated.country,
+      city: updated.city,
+      badges: updated.badges,
+      joinedAt: updated.createdAt.toISOString(),
+      avatarUrl: updated.avatarUrl ?? extras.avatarUrl ?? null,
+      ...extras,
+      metadata: metadataObject(updated.metadata),
+    });
+  } catch (error) {
+    console.error("Update me error:", errorMessage(error));
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 router.get("/", requireMinRole("member"), async (req: Request, res: Response) => {
   try {

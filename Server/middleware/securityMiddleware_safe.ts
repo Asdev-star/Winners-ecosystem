@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import type { AuthRequest } from "./authMiddleware.js";
 
 // ─── IPv6-safe IP normalizer ──────────────────────────────────────────────────
 // Converts ::ffff:1.2.3.4 (IPv4-mapped IPv6) to 1.2.3.4
@@ -100,7 +101,7 @@ export const apiRateLimiter = rateLimit({
   legacyHeaders:   false,
   message:         { error: "API rate limit exceeded. Please slow down.", code: "API_RATE_LIMITED" },
   keyGenerator:    (req: Request) => {
-    const userId = (req as any).user?.userId;
+    const userId = (req as AuthRequest).user?.userId;
     return userId ? `user:${userId}` : `ip:${normalizeIp(req)}`;
   },
 });
@@ -114,7 +115,7 @@ export const exportRateLimiter = rateLimit({
   legacyHeaders:   false,
   message:         { error: "Export rate limit exceeded. Maximum 50 exports per hour.", code: "EXPORT_RATE_LIMITED" },
   keyGenerator:    (req: Request) => {
-    const userId = (req as any).user?.userId;
+    const userId = (req as AuthRequest).user?.userId;
     return `export:${userId ?? normalizeIp(req)}`;
   },
 });
