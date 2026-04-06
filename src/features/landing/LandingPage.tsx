@@ -1264,6 +1264,30 @@ export default function LandingPage({ config: userConfig }: LandingPageProps = {
   const localePack = useMemo(() => getLandingLocalePack(localeCode), [localeCode]);
 
   const config = useMemo(() => {
+    if (!defaultConfig) {
+      return {
+        theme: { primary: "#C9A84C", primaryHover: "#B8973F", secondary: "#89C4E1", accent: "#89C4E1", accentDim: "#6BA8C4", background: "#0D1117", surface: "#161B22", surface2: "#21262D", border: "rgba(240,246,252,0.1)", text: "#F0F6FC", textDim: "#8B949E", textFaint: "#6E7681" },
+        branding: { name: "Winners Ecosystem", tagline: "Digital Sovereign Infrastructure", websiteUrl: "https://winners-empire.up.railway.app", supportEmail: "support@winners.ecosystem" },
+        nav: { links: [], ctaText: "Get Started", ctaLink: "/login", showStatus: false, statusText: "" },
+        sections: { contextBar: true, hero: true, trustedBy: true, ecosystemBand: true, howItWorks: true, company: true, architecture: true, platforms: true, agenticLoop: true, features: true, buildProgress: true, pricing: true, testimonials: true, faq: true, cta: true, footer: true },
+        hero: { eyebrow: "Welcome", title: "Build. Learn. Earn.", titleHighlight: "Earn.", subtitle: "The unified platform", description: "Welcome to Winners Ecosystem", ctaPrimary: "Get Started", ctaSecondary: "Learn More", metrics: [] },
+        trustedBy: { label: "", companies: [] },
+        ecosystemBand: { label: "", title: "Winners Ecosystem", titleHighlight: "", description: "", pillars: [] },
+        howItWorks: { eyebrow: "", title: "", titleHighlight: "", description: "", steps: [] },
+        company: { eyebrow: "", title: "", titleHighlight: "", mission: "", description: "", services: [] },
+        architecture: { eyebrow: "", title: "", items: [] },
+        platforms: { eyebrow: "", title: "", titleHighlight: "", description: "", items: [] },
+        agenticLoop: { eyebrow: "", title: "", titleHighlight: "", description: "", steps: [] },
+        features: { eyebrow: "", title: "", titleHighlight: "", description: "", items: [] },
+        buildProgress: { eyebrow: "", title: "", titleHighlight: "", description: "" },
+        pricing: { eyebrow: "", title: "", titleHighlight: "", description: "", plans: [] },
+        testimonials: { eyebrow: "", title: "", titleHighlight: "", description: "", items: [] },
+        faq: { eyebrow: "", title: "", titleHighlight: "", items: [] },
+        cta: { title: "Get Started", titleHighlight: "", subtitle: "", ctaPrimary: "Sign Up", ctaSecondary: "" },
+        footer: { platformLinks: [], productLinks: [], ecosystemLinks: [], legalLinks: [], socialLinks: {}, tagline: "" },
+      } as LandingPageConfig;
+    }
+
     const merged = {
       ...defaultConfig,
       theme: { ...defaultConfig.theme },

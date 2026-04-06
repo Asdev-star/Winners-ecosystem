@@ -180,7 +180,13 @@ function trustTierLabelForScore(score: number) {
 export default function UserHomePage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const { score, tier, breakdown, isLoading: trustLoading } = useTrustScore();
+  let trustScoreResult;
+  try {
+    trustScoreResult = useTrustScore();
+  } catch (e) {
+    trustScoreResult = { score: 0, tier: "new" as const, breakdown: { academy: 0, work: 0, community: 0, identity: 0, payments: 0 }, isLoading: false, error: null, refetch: async () => {} };
+  }
+  const { score, tier, breakdown, isLoading: trustLoading } = trustScoreResult;
   const [now, setNow] = useState(new Date());
   const [apiBriefing, setApiBriefing] = useState<HomeBriefingResponse | null>(
     null,
@@ -487,6 +493,14 @@ export default function UserHomePage() {
       path: "/settings/account",
     },
   ];
+
+  if (!user) {
+    return (
+      <div style={{ display: "grid", placeItems: "center", minHeight: "100vh", color: "var(--text)" }}>
+        <div>Loading your home...</div>
+      </div>
+    );
+  }
 
   return (
     <>
