@@ -3,7 +3,7 @@
 // AI supervisor: ATLAS / OMEGA
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../auth/authStore";
 import AIInsightBanner from "../../components/ui/AIInsightBanner";
 import AssistantPanel from "../../components/ui/AssistantPanel";
@@ -39,8 +39,8 @@ const VERTICALS = [
     id: "commerce", icon: "🛒", label: "Commerce Hub",
     color: T.green, badge: "V1 · LIVE",
     tagline: "Products · Dropshipping · Vendors",
-    desc: "The original marketplace engine. Digital downloads, physical products, print-on-demand, and a full multi-vendor storefront system. Like Shopify + Amazon in one place.",
-    revenue: ["10–20% transaction commission", "Vendor subscriptions $15–$49/mo", "Featured listing fees", "Print-on-demand margins"],
+    desc: "The original marketplace engine. Sell products with zero inventory through dropshipping — suppliers ship directly to your customers. Also supports digital downloads, physical inventory, and print-on-demand. Like Shopify + Amazon in one place.",
+    revenue: ["10–20% transaction commission", "Vendor subscriptions $15–$49/mo", "Featured listing fees", "Dropshipping margins 25–70%"],
     features: ["Product catalog (digital + physical)", "Cart + Stripe checkout", "Vendor onboarding & dashboard", "Printful / Gelato / AliExpress integration", "Order management + tracking", "AI product description generator"],
     status: "live", phase: "4A", path: "/market/commerce",
     stack: ["Stripe", "Printful API", "Shippo", "Cloudinary"],
@@ -141,6 +141,14 @@ const VERTICALS = [
 const AI_TOOLS = ["Business Plan Generator", "CV Generator", "Marketing Strategy", "Pitch Deck Outline"] as const;
 type AiToolKey = (typeof AI_TOOLS)[number];
 
+const VERTICAL_ROUTE_ALIASES: Record<string, string> = {
+  trending: "commerce",
+  services: "digitalmarketing",
+  business: "bizplan",
+  career: "cv",
+  dropshipping: "commerce",
+};
+
 // ─── Components ────────────────────────────────────────────────────────────
 
 function SectionLabel({text, color=T.gold}: {text: string, color?: string}) {
@@ -191,23 +199,29 @@ export default function MarketPage() {
   const { vertical } = useParams();
   const { token } = useAuthStore();
   
-  const [activeVertical, setActiveVertical] = useState<string | null>(vertical || null);
+  const initialVertical = vertical ? (VERTICAL_ROUTE_ALIASES[vertical] ?? vertical) : "commerce";
+  const [activeVertical, setActiveVertical] = useState<string | null>(initialVertical);
   const [activeTool, setActiveTool] = useState<AiToolKey | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [output, setOutput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [productCategory, setProductCategory] = useState("all");
+  const featuredVerticals = [
+    VERTICALS.find((v) => v.id === "commerce"),
+    VERTICALS.find((v) => v.id === "digitalmarketing"),
+    VERTICALS.find((v) => v.id === "bizplan"),
+  ].filter(Boolean) as (typeof VERTICALS)[number][];
 
   useEffect(() => {
     if (vertical) {
-      setActiveVertical(vertical);
+      setActiveVertical(VERTICAL_ROUTE_ALIASES[vertical] ?? vertical);
     } else {
-      setActiveVertical(null);
+      setActiveVertical("commerce");
     }
   }, [vertical]);
 
-  const currentV = useMemo(() => VERTICALS.find(v => v.id === activeVertical || v.path.includes(activeVertical || '')), [activeVertical]);
+  const currentV = useMemo(() => VERTICALS.find((v) => v.id === activeVertical) ?? null, [activeVertical]);
 
   // AI Streaming Logic
   const runAI = useCallback(async (tool: AiToolKey) => {
@@ -348,19 +362,253 @@ export default function MarketPage() {
       <div style={{ maxWidth: 1240, margin: "0 auto", padding: "32px 24px" }}>
         <ContextBar platform="market" />
 
+        {!vertical && (
+          <div style={{ marginTop: 28, marginBottom: 36 }}>
+            <SectionLabel text="Start Here" />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
+              {featuredVerticals.map((verticalCard) => (
+                <div
+                  key={verticalCard.id}
+                  style={{
+                    background: T.surface,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 18,
+                    padding: 20,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 24 }}>{verticalCard.icon}</span>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 800 }}>{verticalCard.label}</div>
+                        <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 8.5, color: T.dim, letterSpacing: "0.08em" }}>
+                          {verticalCard.phase} · {verticalCard.badge}
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: "'Space Mono',monospace",
+                        fontSize: 8,
+                        letterSpacing: "0.08em",
+                        color: verticalCard.color,
+                        background: `${verticalCard.color}12`,
+                        border: `1px solid ${verticalCard.color}22`,
+                        padding: "4px 8px",
+                        borderRadius: 999,
+                      }}
+                    >
+                      Recommended
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.6, color: T.dim }}>{verticalCard.tagline}</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.6, color: T.dim }}>{verticalCard.desc}</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => navigate(verticalCard.path)}
+                      style={{
+                        background: verticalCard.color,
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 12,
+                        padding: "9px 14px",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Open {verticalCard.label}
+                    </button>
+                    <button
+                      onClick={() => setActiveVertical(verticalCard.id)}
+                      style={{
+                        background: T.surface2,
+                        color: T.text,
+                        border: `1px solid ${T.border}`,
+                        borderRadius: 12,
+                        padding: "9px 14px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Preview
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {!vertical ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 48, marginTop: 40 }}>
-            {/* 10 Verticals Grid */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 40, marginTop: 40 }}>
             <div>
-              <SectionLabel text="Economic Foundation — 10 Market Verticals" />
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-                {VERTICALS.map(v => (
-                  <VerticalCard key={v.id} v={v} isActive={false} onClick={() => navigate(v.path)} />
-                ))}
+              <SectionLabel text="Vertical Atlas — Expand Any Hub" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {VERTICALS.map((v) => {
+                  const isOpen = activeVertical === v.id;
+                  return (
+                    <div
+                      key={v.id}
+                      style={{
+                        background: T.surface,
+                        border: `1px solid ${isOpen ? `${v.color}55` : T.border}`,
+                        borderRadius: 20,
+                        overflow: "hidden",
+                        boxShadow: isOpen ? `0 16px 40px ${v.color}12` : "none",
+                      }}
+                    >
+                      <button
+                        onClick={() => setActiveVertical(isOpen ? "commerce" : v.id)}
+                        style={{
+                          width: "100%",
+                          background: "transparent",
+                          border: "none",
+                          padding: "20px 20px 18px",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          color: T.text,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                            <span style={{ fontSize: 28 }}>{v.icon}</span>
+                            <div>
+                              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+                                <div style={{ fontSize: 16, fontWeight: 800 }}>{v.label}</div>
+                                <Tag color={v.color}>{v.phase}</Tag>
+                                <Tag color={v.color}>{v.badge}</Tag>
+                              </div>
+                              <div style={{ fontSize: 12, color: T.dim, marginTop: 6, lineHeight: 1.6 }}>{v.tagline}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 8, letterSpacing: "0.12em", color: v.color }}>
+                              {isOpen ? "EXPANDED" : "OPEN"}
+                            </span>
+                            <span style={{ color: T.dim, fontSize: 18 }}>{isOpen ? "−" : "+"}</span>
+                          </div>
+                        </div>
+                      </button>
+                      {isOpen && (
+                        <div style={{ padding: "0 20px 20px" }}>
+                          <div style={{ background: T.surface2, border: `1px solid ${T.border}`, borderRadius: 16, padding: 18 }}>
+                            <div style={{ fontSize: 13, color: T.dim, lineHeight: 1.7, marginBottom: 18 }}>
+                              {v.desc}
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+                              <div>
+                                <Label text="Core Features" color={v.color} />
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                  {v.features.slice(0, 4).map((feature) => (
+                                    <div key={feature} style={{ fontSize: 12.5, color: T.dim, lineHeight: 1.5 }}>
+                                      <span style={{ color: v.color, marginRight: 8 }}>→</span>{feature}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <Label text="Revenue Paths" color={T.gold} />
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                  {v.revenue.slice(0, 4).map((item) => (
+                                    <div key={item} style={{ fontSize: 12.5, color: T.dim, lineHeight: 1.5 }}>
+                                      <span style={{ color: T.gold, marginRight: 8 }}>$</span>{item}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <Label text="Recommended Stack" color={T.ice} />
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
+                                  {v.stack.map((tech) => (
+                                    <span key={tech} style={{ background: T.bg, border: `1px solid ${T.border}`, padding: "4px 9px", borderRadius: 999, fontSize: 10.5, color: T.ice }}>
+                                      {tech}
+                                    </span>
+                                  ))}
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                  <button
+                                    onClick={() => navigate(v.path)}
+                                    style={{
+                                      background: v.color,
+                                      color: "#fff",
+                                      border: "none",
+                                      borderRadius: 12,
+                                      padding: "9px 14px",
+                                      fontSize: 11,
+                                      fontWeight: 800,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    Open Portal
+                                  </button>
+                                  {v.id === "commerce" && (
+                                    <button
+                                      onClick={() => navigate("/market/dropshipping?supplier=printful&tab=suppliers")}
+                                      style={{
+                                        background: T.surface,
+                                        color: T.text,
+                                        border: `1px solid ${T.border}`,
+                                        borderRadius: 12,
+                                        padding: "9px 14px",
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      View Dropshipping
+                                    </button>
+                                  )}
+                                  {v.id === "commerce" && (
+                                    <>
+                                      <button
+                                        onClick={() => navigate("/market/dropshipping?supplier=printful&tab=suppliers")}
+                                        style={{
+                                          background: `${T.gold}14`,
+                                          color: T.gold,
+                                          border: `1px solid ${T.gold}33`,
+                                          borderRadius: 12,
+                                          padding: "9px 14px",
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        Printful launch path
+                                      </button>
+                                      <button
+                                        onClick={() => navigate("/market/dropshipping?supplier=gelato&tab=suppliers")}
+                                        style={{
+                                          background: `${T.green}14`,
+                                          color: T.green,
+                                          border: `1px solid ${T.green}33`,
+                                          borderRadius: 12,
+                                          padding: "9px 14px",
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          cursor: "pointer",
+                                        }}
+                                      >
+                                        Gelato launch path
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* AI Tools Promo */}
             <div>
               <SectionLabel text="AI Business Acceleration" />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
@@ -438,7 +686,7 @@ export default function MarketPage() {
                       Enter {currentV?.label} Portal
                     </button>
                     {currentV?.id === 'commerce' && (
-                       <button onClick={() => navigate('/market/dropshipping')} style={{ background: T.surface2, border: `1px solid ${T.border}`, padding: '14px 40px', borderRadius: 14, color: T.text, fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
+                       <button onClick={() => navigate('/market/dropshipping?supplier=printful&tab=suppliers')} style={{ background: T.surface2, border: `1px solid ${T.border}`, padding: '14px 40px', borderRadius: 14, color: T.text, fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
                         View Dropshipping
                       </button>
                     )}

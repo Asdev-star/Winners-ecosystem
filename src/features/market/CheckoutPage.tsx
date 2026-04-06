@@ -116,7 +116,7 @@ function buildVendorGroups(cart: Cart | null): CheckoutVendorGroup[] {
   const unresolved: string[] = [];
 
   for (const item of cart.items) {
-    const vendorId = item.product.vendorId ?? item.product.vendor?.id;
+    const vendorId = resolveVendorIdForCartItem(item);
     if (!vendorId) {
       unresolved.push(item.product.name);
       continue;
@@ -152,6 +152,10 @@ function buildVendorGroups(cart: Cart | null): CheckoutVendorGroup[] {
   }
 
   return Array.from(groups.values());
+}
+
+function resolveVendorIdForCartItem(item: CartItem) {
+  return item.product.vendorId ?? item.product.vendor?.id ?? null;
 }
 
 async function loadStripeJs() {
@@ -204,7 +208,7 @@ export default function CheckoutPage() {
   const unresolvedItems = useMemo(() => {
     if (!cart?.items.length) return [];
     return cart.items.filter((item) => {
-      const vendorId = item.product.vendorId ?? item.product.vendor?.id;
+      const vendorId = resolveVendorIdForCartItem(item);
       return !vendorId;
     });
   }, [cart]);
@@ -380,6 +384,7 @@ export default function CheckoutPage() {
             group.items.map((item) => ({
               productId: item.productId,
               vendorId: group.vendorId,
+              resolvedVendorId: group.vendorId,
               vendorName: group.vendorName,
               title: item.title,
               price: item.price,
@@ -463,6 +468,7 @@ export default function CheckoutPage() {
             vendorId: group.vendorId,
             items: group.items.map((item) => ({
               productId: item.productId,
+              resolvedVendorId: group.vendorId,
               quantity: item.quantity,
               price: item.price,
               title: item.title,

@@ -81,10 +81,9 @@ import LiveSessionsPage from "./features/academy/LiveSessionsPage";
 import CertificateVerifyPage from "./features/academy/CertificateVerifyPage";
 import WinnersUIArchitectureLevels from "./features/engineering/WinnersUIArchitectureLevels";
 import MarketPage from "./features/market/MarketPage";
-import WinnersMarketExpanded from "./features/market/WinnersMarketExpanded";
 import ProductPage from "./features/market/ProductPage";
 import VendorDashboard from "./features/market/VendorDashboard";
-import WinnersDropshipping from "./features/market/dropshipping/WinnersDropshipping";
+import DropshippingPage from "./features/market/dropshipping/DropshippingPage";
 import CartPage from "./features/market/CartPage";
 import OrdersPage from "./features/market/OrdersPage";
 import CheckoutPage from "./features/market/CheckoutPage";
@@ -454,7 +453,7 @@ function App() {
               path="market"
               element={
                 <LayerRouteGate layerId="market">
-                  <WinnersMarketExpanded />
+                  <MarketPage />
                 </LayerRouteGate>
               }
             />
@@ -462,7 +461,7 @@ function App() {
               path="market/dropshipping"
               element={
                 <LayerRouteGate layerId="market">
-                  <WinnersDropshipping />
+                  <DropshippingPage />
                 </LayerRouteGate>
               }
             />

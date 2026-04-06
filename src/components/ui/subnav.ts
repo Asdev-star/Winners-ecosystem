@@ -53,7 +53,7 @@ export const MARKET_SUBNAV_SELLER: SubNavItem[] = [
   { id: "products",     label: "Products",     href: "/market/vendor" },
   { id: "orders",       label: "Orders",       href: "/market/orders",       badge: 0 },
   { id: "analytics",    label: "Analytics",    href: "/market/vendor" },
-  { id: "dropshipping", label: "Dropshipping", href: "/market/dropshipping", badgeType: "new" },
+  { id: "dropshipping", label: "Dropshipping", href: "/market/dropshipping", badge: "Sell without stock", badgeType: "new", badgeTone: "positive" },
   { id: "tools",        label: "Tools",        href: "/market/vendor" },
 ];
 

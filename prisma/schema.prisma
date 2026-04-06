@@ -146,6 +146,7 @@ model Tenant {
   mobileSessions                MobileSession[]
   appDownloads                  AppDownload[]
   userActivities                UserActivity[]
+  dropshippingResearches        DropshippingResearch[]
   countryRules                  CountryRule[]
   featureFlags                  FeatureFlag[]
   errorReports                  ErrorReport[]
@@ -304,6 +305,7 @@ model User {
   mobileSessions                MobileSession[]
   appDownloads                  AppDownload[]
   userActivities                UserActivity[]
+  dropshippingResearches        DropshippingResearch[]
   errorReports                  ErrorReport[]
   eventsOrganized               Event[]
   eventTickets                  EventTicket[]
@@ -4299,6 +4301,24 @@ model UserActivity {
   @@index([createdAt])
   @@index([issueType])
   @@map("user_activities")
+}
+
+model DropshippingResearch {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  tool      String
+  input     Json
+  output    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([tool])
+  @@map("dropshipping_research")
 }
 
 model EcosystemConfig {

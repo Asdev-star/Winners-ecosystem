@@ -3,7 +3,7 @@
 // Real-time trust score for current user - visible intelligence signal
 
 import { useState, useEffect, useMemo } from "react";
-import { useAuthStore } from "../features/auth/authStore";
+import { getAuthHeaders, useAuthStore } from "../features/auth/authStore";
 
 interface TrustScoreBreakdown {
   academy: number; // Up to 30 points
@@ -72,7 +72,17 @@ export function useTrustScore(): TrustScoreReturn {
     setError(null);
 
     try {
-      const response = await fetch(`/api/v1/trust-score`);
+      const headers = getAuthHeaders();
+      if (!headers.Authorization && !headers["x-tenant-id"]) {
+        const data = getMockTrustData(user.id);
+        setScoreData(data);
+        return;
+      }
+
+      const response = await fetch(`/api/v1/trust-score`, {
+        headers,
+        credentials: "include",
+      });
       if (!response.ok) {
         // Fall back to mock data if API fails
         const data = getMockTrustData(user.id);

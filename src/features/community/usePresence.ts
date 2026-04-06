@@ -2,7 +2,7 @@
 // Real-time presence hook for Community layer
 
 import { useState, useEffect, useCallback } from "react";
-import { useAuthStore } from "../auth/authStore";
+import { getAuthHeaders, useAuthStore } from "../auth/authStore";
 import { API_BASE } from "../../lib/api";
 
 interface OnlineUser {
@@ -19,7 +19,13 @@ export function usePresence() {
   // Fetch initial online users
   const fetchOnlineUsers = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/posts/online`, { credentials: "include" });
+      const headers = getAuthHeaders();
+      if (!headers.Authorization && !headers["x-tenant-id"]) return;
+
+      const res = await fetch(`${API_BASE}/posts/online`, {
+        credentials: "include",
+        headers,
+      });
       if (res.ok) {
         const data = await res.json();
         setOnlineUsers(data.onlineUsers || []);

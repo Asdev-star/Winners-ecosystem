@@ -51,6 +51,13 @@ interface CartState {
   syncPendingActions: () => Promise<void>;
 }
 
+function buildCartHeaders(includeJson = false): Record<string, string> {
+  return {
+    ...(includeJson ? { "Content-Type": "application/json" } : {}),
+    ...getAuthHeaders(),
+  };
+}
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -63,13 +70,13 @@ export const useCartStore = create<CartState>()(
         set({ isLoading: true, error: null });
         try {
           const res = await fetch(`${API_BASE}/cart`, {
-            headers: getAuthHeaders(),
+            headers: buildCartHeaders(),
           });
           if (!res.ok) throw new Error("Failed to load cart");
           const data = await res.json();
           set({ cart: data.cart || data, isLoading: false });
-        } catch (err: any) {
-          set({ error: err.message, isLoading: false });
+        } catch (err: unknown) {
+          set({ error: err instanceof Error ? err.message : "Failed to load cart", isLoading: false });
         }
       },
 
@@ -98,7 +105,7 @@ export const useCartStore = create<CartState>()(
         try {
           const res = await fetch(`${API_BASE}/cart/items/${itemId}`, {
             method: "PUT",
-            headers: getAuthHeaders(),
+            headers: buildCartHeaders(true),
             body: JSON.stringify({ quantity }),
           });
           if (!res.ok) throw new Error("Sync failed");
@@ -136,7 +143,7 @@ export const useCartStore = create<CartState>()(
         try {
           const res = await fetch(`${API_BASE}/cart/items/${itemId}`, {
             method: "DELETE",
-            headers: getAuthHeaders(),
+            headers: buildCartHeaders(),
           });
           if (!res.ok) throw new Error("Sync failed");
           const data = await res.json();
@@ -167,7 +174,7 @@ export const useCartStore = create<CartState>()(
         try {
           const res = await fetch(`${API_BASE}/cart`, {
             method: "DELETE",
-            headers: getAuthHeaders(),
+            headers: buildCartHeaders(),
           });
           if (!res.ok) throw new Error("Sync failed");
         } catch (err) {
@@ -192,18 +199,18 @@ export const useCartStore = create<CartState>()(
             if (action.type === "update") {
               await fetch(`${API_BASE}/cart/items/${action.itemId}`, {
                 method: "PUT",
-                headers: getAuthHeaders(),
+                headers: buildCartHeaders(true),
                 body: JSON.stringify({ quantity: action.quantity }),
               });
             } else if (action.type === "remove") {
               await fetch(`${API_BASE}/cart/items/${action.itemId}`, {
                 method: "DELETE",
-                headers: getAuthHeaders(),
+                headers: buildCartHeaders(),
               });
             } else if (action.type === "clear") {
               await fetch(`${API_BASE}/cart`, {
                 method: "DELETE",
-                headers: getAuthHeaders(),
+                headers: buildCartHeaders(),
               });
             }
           } catch (err) {

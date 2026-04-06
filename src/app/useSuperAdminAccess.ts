@@ -17,10 +17,16 @@ export function useSuperAdminAccess(): SuperAdminAccessState {
   useEffect(() => {
     let cancelled = false;
 
+    const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    const isConfiguredSuperAdmin = !!user?.email && adminEmails.includes(user.email.toLowerCase());
+
     async function checkAccess() {
       if (isRestoring) return;
 
-      if (!user || !token) {
+      if (!user || !token || !isConfiguredSuperAdmin) {
         if (!cancelled) {
           setHasAccess(false);
           setIsChecking(false);

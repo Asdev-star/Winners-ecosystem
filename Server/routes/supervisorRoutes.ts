@@ -3,6 +3,7 @@
 // Individual supervisor endpoints with context injection
 
 import { Router, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import db from "../db.js";
 import Anthropic from "@anthropic-ai/sdk";
@@ -306,6 +307,109 @@ function buildSuggestPayload(supervisorName: string, context?: unknown) {
   return suggestions.slice(0, 4);
 }
 
+type DropshippingToolKey =
+  | "product-research"
+  | "competitor-analysis"
+  | "product-description"
+  | "brand-identity";
+
+function getAccountPlan(user: { plan?: string | null } | undefined) {
+  const plan = String(user?.plan ?? "FREE").toUpperCase();
+  return plan === "PRO" || plan === "ENTERPRISE" ? plan : "FREE";
+}
+
+async function getMonthlyDropshippingUsage(userId: string, tenantId: string, tool: DropshippingToolKey) {
+  return prisma.dropshippingResearch.count({
+    where: {
+      userId,
+      tenantId,
+      tool,
+      createdAt: {
+        gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      },
+    },
+  });
+}
+
+async function saveDropshippingResearch(params: {
+  userId: string;
+  tenantId: string;
+  tool: DropshippingToolKey;
+  input: unknown;
+  output: string;
+}) {
+  const { userId, tenantId, tool, input, output } = params;
+  await prisma.dropshippingResearch.create({
+    data: {
+      tenantId,
+      userId,
+      tool,
+      input: input as Prisma.InputJsonValue,
+      output: { text: output } as Prisma.InputJsonValue,
+    },
+  });
+}
+
+async function streamAtlasDropshippingTool(params: {
+  req: Request;
+  res: Response;
+  tool: DropshippingToolKey;
+  systemPrompt: string;
+  userPrompt: string;
+  input: unknown;
+}) {
+  const { req, res, tool, systemPrompt, userPrompt, input } = params;
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  const plan = getAccountPlan(req.user);
+
+  if (plan === "FREE") {
+    const monthlyCount = await getMonthlyDropshippingUsage(userId, tenantId, tool);
+    if (monthlyCount >= 3) {
+      return res.status(402).json({
+        error: "Free dropshipping tool limit reached",
+        upgrade: "PRO",
+        limit: 3,
+      });
+    }
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  let output = "";
+
+  try {
+    const stream = await anthropic.messages.stream({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1500,
+      system: `${systemPrompt}\n\nUser context: ${JSON.stringify({ userId, tenantId, plan })}`,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    for await (const chunk of stream) {
+      if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+        const text = chunk.delta.text;
+        output += text;
+        res.write(`data: ${JSON.stringify({ token: text })}\n\n`);
+      }
+    }
+
+    await saveDropshippingResearch({ userId, tenantId, tool, input, output });
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (error) {
+    console.error("[supervisors] dropshipping tool error:", error);
+    if (!res.headersSent) {
+      res.status(500);
+    }
+    res.write(`data: ${JSON.stringify({ error: "Dropshipping AI failed" })}\n\n`);
+    res.write("data: [DONE]\n\n");
+    res.end();
+  }
+}
+
 // Get context for a specific supervisor
 const getSupervisorContext = async (supervisor: string, userId: string) => {
   const user = await prisma.user.findUnique({
@@ -565,6 +669,206 @@ router.post(
 
     const suggestions = buildSuggestPayload(supervisorName, req.body?.context ?? req.body?.page ?? "dashboard");
     return res.json({ suggestions });
+  },
+);
+
+// GET /supervisors/:name/nav-action - Market smart action summary for the sub-nav
+router.get(
+  "/:name/nav-action",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const supervisorName = (req.params.name as string).toUpperCase();
+      if (supervisorName !== "ATLAS") {
+        return res.status(400).json({ error: "Invalid supervisor" });
+      }
+
+      const userId = req.user!.userId;
+      const tenantId = req.user!.tenantId;
+
+      const vendor = await prisma.vendor.findFirst({
+        where: { userId, tenantId },
+        select: { id: true, storeName: true, status: true },
+      });
+
+      if (!vendor) {
+        return res.json({
+          action: {
+            supervisor: "ATLAS",
+            title: "Complete vendor onboarding",
+            hint: "Unlock products, orders, and payouts from your Market store.",
+            to: "/market/vendor",
+          },
+        });
+      }
+
+      const [productCount, recentOrderCount] = await Promise.all([
+        prisma.product.count({
+          where: { tenantId, vendorId: vendor.id },
+        }),
+        prisma.order.count({
+          where: {
+            tenantId,
+            vendorId: vendor.id,
+            createdAt: {
+              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            },
+          },
+        }),
+      ]);
+
+      if (productCount === 0) {
+        return res.json({
+          action: {
+            supervisor: "ATLAS",
+            title: "Your store has 0 products - add the first one",
+            hint: "ATLAS is pointing you to the fastest launch move.",
+            to: "/market/vendor/products/new",
+          },
+        });
+      }
+
+      if (recentOrderCount === 0) {
+        return res.json({
+          action: {
+            supervisor: "ATLAS",
+            title: "Your store has 0 sales - fix this",
+            hint: "Check pricing, listings, and conversion friction before the next campaign.",
+            to: "/market/vendor",
+          },
+        });
+      }
+
+      if (productCount < 3) {
+        return res.json({
+          action: {
+            supervisor: "ATLAS",
+            title: "3 new niches for African market",
+            hint: "Expand into the next demand pocket before your competitors do.",
+            to: "/market/dropshipping?tab=niches",
+          },
+        });
+      }
+
+      return res.json({
+        action: {
+          supervisor: "ATLAS",
+          title: "React phone cases trending in Lagos",
+          hint: "Use the live supplier lane to launch a fast-moving product test.",
+          to: "/market/dropshipping?supplier=printful&tab=suppliers",
+        },
+      });
+    } catch (error) {
+      console.error("[supervisors] nav action error:", error);
+      return res.status(500).json({ error: "Failed to build nav action" });
+    }
+  },
+);
+
+router.post(
+  "/atlas/dropshipping-product-research",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    return streamAtlasDropshippingTool({
+      req,
+      res,
+      tool: "product-research",
+      input: req.body ?? {},
+      systemPrompt: `You are ATLAS, the Winners Ecosystem dropshipping intelligence supervisor.
+Return:
+- 5 winning products
+- estimated margin
+- supplier recommendation
+- target audience
+- African market fit score
+- competition level
+- trend direction
+- best supplier rationale
+- pricing strategy
+- demand forecast for 30/60/90 days
+- concise conclusion paragraph
+Prioritize African and diaspora markets. Be concrete and commercial.`,
+      userPrompt: `Research winning dropshipping products for:
+Niche: ${req.body?.niche ?? "African fashion"}
+Market: ${req.body?.market ?? "Kenya"}
+Budget: ${req.body?.budget ?? "$300"}
+Audience: ${req.body?.audience ?? "African buyers"}
+Preferred supplier: ${req.body?.supplier ?? "any"}`,
+    });
+  },
+);
+
+router.post(
+  "/atlas/dropshipping-competitor-analysis",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    return streamAtlasDropshippingTool({
+      req,
+      res,
+      tool: "competitor-analysis",
+      input: req.body ?? {},
+      systemPrompt: `You are ATLAS, the Winners Ecosystem market intelligence supervisor.
+Analyze competitors and return:
+- current Winners Market competitors count and average price
+- top 5 external stores
+- price positioning map
+- differentiation opportunities
+- exact recommendation with entry price and quality signal strategy
+Keep it practical and specific.`,
+      userPrompt: `Analyze competitors for:
+Product or category: ${req.body?.product ?? "Phone accessories"}
+Market: ${req.body?.market ?? "Kenya"}`,
+    });
+  },
+);
+
+router.post(
+  "/atlas/dropshipping-product-description",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    return streamAtlasDropshippingTool({
+      req,
+      res,
+      tool: "product-description",
+      input: req.body ?? {},
+      systemPrompt: `You are ATLAS, the Winners Ecosystem product copy supervisor.
+Generate:
+- SEO title under 60 characters
+- 5 benefit bullets
+- 150-300 word full description
+- meta description under 160 characters
+- 5 tags
+Write in a premium, conversion-friendly style.`,
+      userPrompt: `Write a product listing for:
+Product: ${req.body?.product ?? "Phone case"}
+Supplier: ${req.body?.supplier ?? "Printful"}
+Target audience: ${req.body?.audience ?? "African buyers"}`,
+    });
+  },
+);
+
+router.post(
+  "/atlas/dropshipping-brand-identity",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    return streamAtlasDropshippingTool({
+      req,
+      res,
+      tool: "brand-identity",
+      input: req.body ?? {},
+      systemPrompt: `You are ATLAS, the Winners Ecosystem brand strategist.
+Return:
+- 5 store name options
+- brand voice description
+- 3-color palette suggestion with hex values
+- 3 tagline options
+- a short brand story opening paragraph
+Keep it commercially useful and memorable.`,
+      userPrompt: `Create brand identity options for:
+Niche: ${req.body?.niche ?? "African fashion accessories"}
+Target market: ${req.body?.market ?? "Kenya"}
+Personality: ${req.body?.personality ?? "premium bold minimal"}`,
+    });
   },
 );
 

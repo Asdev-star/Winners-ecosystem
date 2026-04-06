@@ -564,6 +564,125 @@ async function getResumptionCards(userId: string, tenantId: string): Promise<Res
   return cards.slice(0, 3);
 }
 
+type PendingAutonomousAction = {
+  id: string;
+  category: "post_content" | "apply_to_job" | "send_connection_request" | "enroll_in_course" | "list_product" | "update_pricing" | "schedule_session";
+  title: string;
+  description: string;
+  layer: string;
+  estimatedImpact: string;
+  confidence: number;
+  payload: Record<string, unknown>;
+  status: "pending_approval";
+  scheduledFor: string;
+  createdAt: string;
+};
+
+async function getPendingAutonomousActions(userId: string, tenantId: string): Promise<PendingAutonomousAction[]> {
+  const [lastCourse, unreadMessages, pendingOrders, recentSkills] = await Promise.all([
+    prisma.enrollment.findFirst({
+      where: { tenantId, userId, completedAt: null, status: "ACTIVE" },
+      include: {
+        course: { select: { id: true, title: true, slug: true } },
+        progress: {
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+          include: {
+            lesson: {
+              select: {
+                title: true,
+                order: true,
+                module: { select: { title: true, order: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    }),
+    countUnreadMessages(userId, tenantId),
+    prisma.order.count({ where: { tenantId, userId, status: "PENDING" } }),
+    prisma.novaSkillDetection.findMany({
+      where: { userId },
+      orderBy: { confidence: "desc" },
+      take: 3,
+      select: { skill: true, confidence: true },
+    }),
+  ]);
+
+  const now = new Date();
+  const actions: PendingAutonomousAction[] = [];
+
+  if (lastCourse) {
+    const latestProgress = lastCourse.progress[0];
+    actions.push({
+      id: `academy_${lastCourse.courseId}`,
+      category: "enroll_in_course",
+      title: `Continue ${lastCourse.course.title}`,
+      description: latestProgress
+        ? `Resume Module ${latestProgress.lesson.module.order}, Lesson ${latestProgress.lesson.order}.`
+        : `Pick up where you left off in ${lastCourse.course.title}.`,
+      layer: "Academy",
+      estimatedImpact: "Keeps your certificate path moving",
+      confidence: 92,
+      payload: { courseId: lastCourse.courseId, slug: lastCourse.course.slug },
+      status: "pending_approval",
+      scheduledFor: now.toISOString(),
+      createdAt: now.toISOString(),
+    });
+  }
+
+  if (unreadMessages > 0) {
+    actions.push({
+      id: `community_${userId}`,
+      category: "send_connection_request",
+      title: `Respond to ${unreadMessages} unread message${unreadMessages === 1 ? "" : "s"}`,
+      description: "You have active conversations waiting in Community.",
+      layer: "Community",
+      estimatedImpact: "Improves visibility and response time",
+      confidence: 81,
+      payload: { unreadMessages },
+      status: "pending_approval",
+      scheduledFor: now.toISOString(),
+      createdAt: now.toISOString(),
+    });
+  }
+
+  if (pendingOrders > 0) {
+    actions.push({
+      id: `market_${userId}`,
+      category: "update_pricing",
+      title: `Review ${pendingOrders} pending order${pendingOrders === 1 ? "" : "s"}`,
+      description: "Market has orders waiting for your attention.",
+      layer: "Market",
+      estimatedImpact: "Reduces fulfilment delay",
+      confidence: 87,
+      payload: { pendingOrders },
+      status: "pending_approval",
+      scheduledFor: now.toISOString(),
+      createdAt: now.toISOString(),
+    });
+  }
+
+  if (!actions.length && recentSkills.length > 0) {
+    actions.push({
+      id: `community_skill_${userId}`,
+      category: "post_content",
+      title: `Share your ${recentSkills[0]?.skill ?? "latest"} progress`,
+      description: "NOVA can amplify your recent skill signals with a community post.",
+      layer: "Community",
+      estimatedImpact: "Boosts discovery and trust",
+      confidence: 74,
+      payload: { skill: recentSkills[0]?.skill ?? null },
+      status: "pending_approval",
+      scheduledFor: now.toISOString(),
+      createdAt: now.toISOString(),
+    });
+  }
+
+  return actions.slice(0, 3);
+}
+
 // GET /omega/analyze - Get comprehensive user analysis
 router.get(
   "/analyze",
@@ -739,6 +858,16 @@ router.get(
   },
 );
 
+router.get("/briefing/morning", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const briefing = await generateOMEGABriefing(req.user!.userId, req.user!.tenantId);
+    return res.json(briefing);
+  } catch (error) {
+    console.error("Omega morning briefing error:", error);
+    return res.status(500).json({ error: "Failed to generate morning briefing" });
+  }
+});
+
 router.get(
   "/resumption",
   authMiddleware,
@@ -754,6 +883,16 @@ router.get(
     }
   },
 );
+
+router.get("/autonomous/pending", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const actions = await getPendingAutonomousActions(req.user!.userId, req.user!.tenantId);
+    return res.json({ actions });
+  } catch (error) {
+    console.error("Omega autonomous pending error:", error);
+    return res.status(500).json({ error: "Failed to load pending autonomous actions" });
+  }
+});
 
 // GET /omega/health - Get ecosystem health metrics
 router.get(

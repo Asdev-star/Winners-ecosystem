@@ -300,12 +300,8 @@ router.post("/public/analytics/track", async (req, res) => {
 
     return res.json({ message: "Activity tracked" });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        message:
-          error instanceof Error ? error.message : "Failed to track activity",
-      });
+    console.error("[analytics] Track failed:", error);
+    return res.status(204).end();
   }
 });
 

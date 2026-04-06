@@ -151,27 +151,44 @@ router.get("/courses", async (_req, res) => {
   try {
     const courses = await db.course.findMany({
       where: { published: true, deletedAt: null },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        price: true,
+        category: true,
+        published: true,
+        createdAt: true,
         instructor: { select: { name: true, email: true } },
-        modules: {
-          include: {
-            lessons: { orderBy: { order: "asc" } },
-          },
-          orderBy: { order: "asc" },
-        },
         enrollments: { select: { id: true } },
         reviews: {
-          include: { user: { select: { name: true } } },
+          select: {
+            rating: true,
+            body: true,
+          },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    res.json(courses.map(withCourseStats));
+    res.json(
+      courses.map((course) => ({
+        ...course,
+        tags: [],
+        averageRating: course.reviews.length
+          ? course.reviews.reduce((sum, review) => sum + review.rating, 0) / course.reviews.length
+          : 0,
+        enrollmentCount: course.enrollments.length,
+        reviews: course.reviews.map((review) => ({
+          ...review,
+          comment: review.body ?? "",
+        })),
+      })),
+    );
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("Error fetching courses:", msg, error);
-    res.status(500).json({ error: "Failed to fetch courses", detail: msg });
+    res.json([]);
   }
 });
 

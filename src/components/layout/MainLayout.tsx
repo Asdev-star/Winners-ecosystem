@@ -9,6 +9,7 @@ import ThemeToggle from "../../features/theme/ThemeToggle";
 import GlobalSearch from "../../features/search/GlobalSearch";
 import LayerSubNav from "../navigation/LayerSubNav";
 import { getLayerSubNavForPath } from "../navigation/layerSubNavConfigs";
+import MarketSubNav from "../../features/market/MarketSubNav";
 import CommandPalette from "../ui/CommandPalette";
 import AssistantPanel from "../ui/AssistantPanel";
 import ImpersonationBanner from "./ImpersonationBanner";
@@ -1078,7 +1079,7 @@ export default function MainLayout() {
         )}
 
         <main className={`ml-content${!mainContentVisible ? " hidden" : ""}`}>
-          <LayerSubNav config={layerSubNav} />
+          {shellPath.startsWith("/market") ? <MarketSubNav /> : <LayerSubNav config={layerSubNav} />}
           <Outlet />
         </main>
       </div>

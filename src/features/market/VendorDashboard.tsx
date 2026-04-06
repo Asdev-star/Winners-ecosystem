@@ -10,7 +10,7 @@ import OmegaProfileAssignmentCard from '../../components/ui/OmegaProfileAssignme
 import AtlasContextBar from './atlas/AtlasContextBar';
 import ATLASPanel from './components/ATLASPanel';
 import { typedFetch } from '../../lib/typedFetch';
-import { MarketErrorState, NotAVendorState, NoProductsState } from './components/VendorDashboardStates';
+import { MarketErrorState, NotAVendorState, NoProductsState, VendorOnboardingState } from './components/VendorDashboardStates';
 
 const styles = {
   container: {
@@ -267,6 +267,17 @@ interface VendorRecord {
   code?: string;
   stripeAccountId?: string | null;
   payoutBalance?: number;
+  status?: string;
+  payoutMethod?: string | null;
+}
+
+interface VendorOnboardingInfo {
+  status: 'not_started' | 'pending' | 'complete' | 'restricted';
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  stripeAccountId: string | null;
+  onboardingUrl: string | null;
 }
 
 interface ProductsResponse {
@@ -301,13 +312,14 @@ interface PayoutsResponse {
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const token = useAuthStore((state) => state.token);
   
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [payoutSummary, setPayoutSummary] = useState<PayoutSummary>({ total: 0, paid: 0, pending: 0 });
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [vendorProfile, setVendorProfile] = useState<VendorRecord | null>(null);
+  const [onboarding, setOnboarding] = useState<VendorOnboardingInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
@@ -321,10 +333,9 @@ export default function VendorDashboard() {
     setError(null);
     
     try {
-      if (!token) throw new Error('Missing auth token');
-
       const vendorRes = await fetch('/api/v1/vendors/me', {
         headers: getAuthHeaders(),
+        credentials: 'include',
       });
 
       if (!vendorRes.ok) {
@@ -336,7 +347,10 @@ export default function VendorDashboard() {
         throw new Error(vendorData.error || 'Failed to load vendor data');
       }
 
-      const [productsData, ordersData, payoutsData] = await Promise.all([
+      const [vendorData, productsData, ordersData, payoutsData, onboardingData] = await Promise.all([
+        typedFetch<VendorRecord>('/api/v1/vendors/me', {
+          headers: getAuthHeaders(),
+        }),
         typedFetch<ProductsResponse>('/api/v1/products?vendor=true', {
           headers: getAuthHeaders(),
         }),
@@ -346,9 +360,14 @@ export default function VendorDashboard() {
         typedFetch<PayoutsResponse>('/api/v1/vendors/me/payouts', {
           headers: getAuthHeaders(),
         }),
+        typedFetch<VendorOnboardingInfo>('/api/v1/vendors/me/onboarding', {
+          headers: getAuthHeaders(),
+        }),
       ]);
 
+      setVendorProfile(vendorData);
       setProducts(productsData.products || []);
+      setOnboarding(onboardingData);
 
       const normalizedOrders = Array.isArray(ordersData.orders)
         ? ordersData.orders.map((order) => ({
@@ -374,7 +393,43 @@ export default function VendorDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
+
+  const startVendorOnboarding = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/v1/vendors/apply', {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessName: vendorProfile?.storeName || user?.name || user?.email || 'Vendor Store',
+          businessType: 'company',
+          country: 'KE',
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to start vendor onboarding');
+      }
+
+      if (data.onboardingUrl) {
+        window.location.href = data.onboardingUrl;
+        return;
+      }
+
+      await fetchVendorData();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to start vendor onboarding');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchVendorData, user?.email, user?.name, vendorProfile?.storeName]);
 
   useEffect(() => {
     void fetchVendorData();
@@ -406,6 +461,8 @@ export default function VendorDashboard() {
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock < 5).length;
   const isNotSetup = error === 'VENDOR_NOT_SETUP';
   const hasMarketData = products.length > 0 || orders.length > 0 || payoutSummary.total > 0 || availableBalance > 0;
+  const onboardingComplete = !!onboarding && onboarding.status === 'complete' && onboarding.chargesEnabled && onboarding.payoutsEnabled;
+  const showOnboarding = !!onboarding && !onboardingComplete;
 
   if (loading) {
     return (
@@ -418,7 +475,7 @@ export default function VendorDashboard() {
   if (isNotSetup) {
     return (
       <div style={styles.container}>
-        <NotAVendorState onRetry={fetchVendorData} />
+        <NotAVendorState onRetry={fetchVendorData} onPrimary={startVendorOnboarding} />
       </div>
     );
   }
@@ -495,6 +552,50 @@ export default function VendorDashboard() {
         }}
       />
 
+      {showOnboarding && (
+        <div style={{ marginBottom: '24px' }}>
+          <VendorOnboardingState
+            status={onboarding.status}
+            chargesEnabled={onboarding.chargesEnabled}
+            payoutsEnabled={onboarding.payoutsEnabled}
+            onboardingUrl={onboarding.onboardingUrl}
+            onContinue={async () => {
+              try {
+                if (onboarding.onboardingUrl) {
+                  window.location.href = onboarding.onboardingUrl;
+                  return;
+                }
+
+                const res = await fetch('/api/v1/vendors/apply', {
+                  method: 'POST',
+                  headers: {
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    businessName: vendorProfile?.storeName || user?.name || user?.email || 'Vendor Store',
+                    businessType: 'company',
+                    country: 'KE',
+                  }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  throw new Error(data.error || 'Failed to start onboarding');
+                }
+                if (data.onboardingUrl) {
+                  window.location.href = data.onboardingUrl;
+                } else {
+                  await fetchVendorData();
+                }
+              } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : 'Failed to continue onboarding');
+              }
+            }}
+            onRefresh={fetchVendorData}
+          />
+        </div>
+      )}
+
       {/* ATLAS AI Assistant */}
       <div style={{ marginBottom: '24px' }}>
         <AssistantPanel 
@@ -503,7 +604,7 @@ export default function VendorDashboard() {
           userId={user?.id}
           context={{
             page: "vendor-dashboard",
-            vendorId: user?.id ?? null,
+            vendorId: vendorProfile?.id ?? user?.id ?? null,
             activeProducts: totalProducts,
             lowStockProducts: lowStockCount,
             pendingOrders: orders.filter((order) => order.status === 'pending').length,
@@ -511,7 +612,7 @@ export default function VendorDashboard() {
             totalSales,
             pendingPayouts: payoutSummary.pending,
           }}
-          initialMessage="I'm ATLAS, your Market AI assistant. I can help you with product pricing, inventory optimization, and sales strategies."
+          initialMessage="I'm ATLAS, your Market AI assistant. If onboarding is incomplete, start there. Then I can help with product pricing, inventory optimization, and sales strategies."
         />
       </div>
 
@@ -564,10 +665,15 @@ export default function VendorDashboard() {
           <button
             style={{ ...styles.btnPrimary, marginTop: '12px', background: 'var(--green)', width: '100%' }}
             onClick={() => setPayoutModalOpen(true)}
-            disabled={availableBalance < 50}
+            disabled={availableBalance < 50 || !onboardingComplete}
           >
             Request Payout
           </button>
+          {!onboardingComplete && (
+            <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>
+              Complete Stripe onboarding to enable payouts.
+            </div>
+          )}
         </div>
       </div>
 
@@ -814,13 +920,16 @@ export default function VendorDashboard() {
                         const res = await fetch('/api/v1/vendors/me/payout/request', {
                           method: 'POST',
                           headers: {
+                            ...getAuthHeaders(),
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`,
                           },
                           body: JSON.stringify({ amount, payoutMethod: 'stripe_connect' }),
                         });
                         const data = await res.json();
                         if (!res.ok) {
+                          if (data?.code === 'ONBOARDING_REQUIRED' || data?.code === 'PAYOUTS_NOT_ENABLED') {
+                            setOnboarding(data.onboarding ?? null);
+                          }
                           throw new Error(data.error || 'Failed to process payout');
                         }
                         setPayoutSuccess(true);

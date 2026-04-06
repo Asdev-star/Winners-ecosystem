@@ -23,10 +23,124 @@ async function createVendorOnboardingLink(accountId: string) {
   const stripe = getStripe();
   return stripe.accountLinks.create({
     account: accountId,
-    refresh_url: (process.env.APP_URL || '') + '/market/vendor/onboard',
-    return_url: (process.env.APP_URL || '') + '/market/vendor/dashboard',
+    refresh_url: (process.env.APP_URL || '') + '/market/vendor',
+    return_url: (process.env.APP_URL || '') + '/market/vendor',
     type: 'account_onboarding',
   });
+}
+
+type VendorOnboardingStatus = {
+  status: "not_started" | "pending" | "complete" | "restricted";
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  stripeAccountId: string | null;
+  onboardingUrl: string | null;
+};
+
+async function buildVendorOnboardingStatus(stripeAccountId: string | null): Promise<VendorOnboardingStatus> {
+  if (!stripeAccountId) {
+    return {
+      status: "not_started",
+      chargesEnabled: false,
+      payoutsEnabled: false,
+      detailsSubmitted: false,
+      stripeAccountId: null,
+      onboardingUrl: null,
+    };
+  }
+
+  const stripe = getStripe();
+  const account = await stripe.accounts.retrieve(stripeAccountId);
+  const detailsSubmitted = !!account.details_submitted;
+  const chargesEnabled = !!account.charges_enabled;
+  const payoutsEnabled = !!account.payouts_enabled;
+  const status = !detailsSubmitted ? "pending" : chargesEnabled && payoutsEnabled ? "complete" : "restricted";
+  const onboardingUrl = status === "complete" ? null : (await createVendorOnboardingLink(stripeAccountId)).url;
+
+  return {
+    status,
+    chargesEnabled,
+    payoutsEnabled,
+    detailsSubmitted,
+    stripeAccountId,
+    onboardingUrl,
+  };
+}
+
+async function upsertVendorConnectAccount(params: {
+  userId: string;
+  tenantId: string;
+  email?: string;
+  businessName?: string;
+  businessType?: string;
+  country?: string;
+}) {
+  const { userId, tenantId, email, businessName, businessType, country } = params;
+  const existingVendor = await db.vendor.findFirst({
+    where: { userId, tenantId },
+  });
+
+  const vendorName = businessName?.trim() || existingVendor?.storeName || "Vendor Store";
+  const baseSlug = slugifyStoreName(vendorName);
+  let storeSlug = existingVendor?.storeSlug || baseSlug || `vendor-${userId.slice(0, 8)}`;
+  let suffix = 1;
+
+  while (true) {
+    const conflicting = await db.vendor.findFirst({ where: { storeSlug } });
+    if (!conflicting || conflicting.id === existingVendor?.id) {
+      break;
+    }
+    suffix += 1;
+    storeSlug = `${baseSlug || `vendor-${userId.slice(0, 8)}`}-${suffix}`;
+  }
+
+  const stripe = getStripe();
+  const normalizedBusinessType =
+    businessType === "individual" || businessType === "company" ? businessType : undefined;
+  const account = existingVendor?.stripeAccountId
+    ? await stripe.accounts.retrieve(existingVendor.stripeAccountId)
+    : await stripe.accounts.create({
+        type: "express",
+        country: country || "KE",
+        email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_type: normalizedBusinessType,
+        metadata: {
+          userId,
+          tenantId,
+        },
+      });
+
+  const vendor = existingVendor
+    ? await db.vendor.update({
+        where: { id: existingVendor.id, tenantId },
+        data: {
+          storeName: vendorName,
+          storeSlug,
+          stripeAccountId: account.id,
+          status: "PENDING",
+          payoutMethod: "stripe_connect",
+        },
+      })
+    : await db.vendor.create({
+        data: {
+          userId,
+          tenantId,
+          storeName: vendorName,
+          storeSlug,
+          stripeAccountId: account.id,
+          status: "PENDING",
+          payoutMethod: "stripe_connect",
+        },
+      });
+
+  const onboarding = await buildVendorOnboardingStatus(account.id);
+
+  return { vendor, onboarding, stripeAccountId: account.id };
 }
 
 // GET /vendors - List all vendors (public marketplace)
@@ -144,59 +258,14 @@ router.post('/apply', authMiddleware, async (req: Request, res: Response) => {
   }
 
   try {
-    const stripe = getStripe();
-    const account = await stripe.accounts.create({
-      type: 'express',
-      country: country || 'KE',
+    const { vendor, onboarding, stripeAccountId } = await upsertVendorConnectAccount({
+      userId,
+      tenantId,
       email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      business_type: businessType || undefined,
-      metadata: {
-        userId,
-        tenantId,
-      },
+      businessName,
+      businessType,
+      country,
     });
-
-    const baseSlug = slugifyStoreName(businessName);
-    let storeSlug = baseSlug || `vendor-${userId.slice(0, 8)}`;
-    let suffix = 1;
-
-    while (await db.vendor.findUnique({ where: { storeSlug } })) {
-      suffix += 1;
-      storeSlug = `${baseSlug || `vendor-${userId.slice(0, 8)}`}-${suffix}`;
-    }
-
-    const existingVendor = await db.vendor.findFirst({
-      where: { userId, tenantId },
-    });
-
-    const vendor = existingVendor
-      ? await db.vendor.update({
-          where: { id: existingVendor.id, tenantId },
-          data: {
-            storeName: businessName.trim(),
-            storeSlug,
-            stripeAccountId: account.id,
-            status: 'PENDING',
-            payoutMethod: 'stripe_connect',
-          },
-        })
-      : await db.vendor.create({
-          data: {
-            userId,
-            tenantId,
-            storeName: businessName.trim(),
-            storeSlug,
-            stripeAccountId: account.id,
-            status: 'PENDING',
-            payoutMethod: 'stripe_connect',
-          },
-        });
-
-    const link = await createVendorOnboardingLink(account.id);
 
     recordAdminSignal({
       kind: "atlas:vendor_applied",
@@ -211,14 +280,15 @@ router.post('/apply', authMiddleware, async (req: Request, res: Response) => {
         vendorId: vendor.id,
         storeName: vendor.storeName,
         storeSlug: vendor.storeSlug,
-        stripeAccountId: account.id,
+        stripeAccountId,
       },
     });
 
     return res.json({
       vendor,
-      onboardingUrl: link.url,
-      stripeAccountId: account.id,
+      onboardingUrl: onboarding.onboardingUrl,
+      onboardingStatus: onboarding,
+      stripeAccountId,
     });
   } catch (error) {
     console.error('[vendor] Apply error:', error);
@@ -397,7 +467,12 @@ router.post("/me/payout/request", authMiddleware, async (req: Request, res: Resp
 
     const stripeAccountId = vendor.stripeAccountId;
     if (!stripeAccountId) {
-      return res.status(400).json({ error: "Stripe account not connected. Please complete onboarding first." });
+      const onboarding = await buildVendorOnboardingStatus(null);
+      return res.status(409).json({
+        error: "Stripe account not connected. Please complete onboarding first.",
+        code: "ONBOARDING_REQUIRED",
+        onboarding,
+      });
     }
 
     if (vendor.payoutBalance < amount) {
@@ -407,7 +482,12 @@ router.post("/me/payout/request", authMiddleware, async (req: Request, res: Resp
     const stripe = getStripe();
     const account = await stripe.accounts.retrieve(stripeAccountId);
     if (!account.payouts_enabled) {
-      return res.status(400).json({ error: "Payouts not enabled on your Stripe account. Please complete Stripe onboarding." });
+      const onboarding = await buildVendorOnboardingStatus(stripeAccountId);
+      return res.status(409).json({
+        error: "Payouts not enabled on your Stripe account. Please complete Stripe onboarding.",
+        code: "PAYOUTS_NOT_ENABLED",
+        onboarding,
+      });
     }
 
     let stripeTransferId: string | null = null;
@@ -420,9 +500,9 @@ router.post("/me/payout/request", authMiddleware, async (req: Request, res: Resp
         description: `Vendor payout for ${vendor.storeName}`,
       });
       stripeTransferId = transfer.id;
-    } catch (stripeError: any) {
+    } catch (stripeError: unknown) {
       console.error("[vendorRoutes] Stripe transfer error:", stripeError);
-      return res.status(500).json({ error: `Stripe transfer failed: ${stripeError.message}` });
+      return res.status(500).json({ error: `Stripe transfer failed: ${stripeError instanceof Error ? stripeError.message : "Unknown Stripe error"}` });
     }
 
     const pendingPayouts = await db.vendorPayout.findMany({
@@ -525,19 +605,18 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 router.post('/onboard', authMiddleware, async (req: Request, res: Response) => {
-  const { businessName, country } = req.body;
+  const { businessName, businessType, country } = req.body;
   const userId = req.user!.userId;
   const tenantId = req.user!.tenantId;
   try {
-    const stripe = getStripe();
-    const account = await stripe.accounts.create({
-      type: 'express',
-      country: country || 'KE',
-      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+    const { vendor, onboarding, stripeAccountId } = await upsertVendorConnectAccount({
+      userId,
+      tenantId,
+      businessName,
+      businessType,
+      country,
     });
-    await db.vendor.updateMany({ where: { userId, tenantId }, data: { stripeAccountId: account.id } });
-    const link = await createVendorOnboardingLink(account.id);
-    return res.json({ onboardingUrl: link.url });
+    return res.json({ vendor, onboardingUrl: onboarding.onboardingUrl, onboardingStatus: onboarding, stripeAccountId });
   } catch (error) {
     console.error('[vendor] Onboard error:', error);
     return res.status(500).json({ error: 'Failed to create Stripe account' });
@@ -553,14 +632,37 @@ router.get('/onboard/status', authMiddleware, async (req: Request, res: Response
       select: { id: true, stripeAccountId: true },
     });
     if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
-    const stripeAccountId = vendor.stripeAccountId;
-    if (!stripeAccountId) return res.json({ status: 'not_started' });
-    const stripe = getStripe();
-    const account = await stripe.accounts.retrieve(stripeAccountId);
-    return res.json({ status: account.details_submitted ? 'complete' : 'pending', chargesEnabled: account.charges_enabled, payoutsEnabled: account.payouts_enabled });
+    const onboarding = await buildVendorOnboardingStatus(vendor.stripeAccountId);
+    return res.json(onboarding);
   } catch (error) {
     console.error('[vendor] Status error:', error);
     return res.status(500).json({ error: 'Failed to get onboarding status' });
+  }
+});
+
+router.get('/me/onboarding', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const tenantId = req.user!.tenantId;
+  try {
+    const vendor = await db.vendor.findFirst({
+      where: { userId, tenantId },
+      select: { id: true, stripeAccountId: true, storeName: true },
+    });
+
+    if (!vendor) {
+      return res.status(404).json({ error: 'Vendor not found', code: 'NOT_SETUP' });
+    }
+
+    const onboarding = await buildVendorOnboardingStatus(vendor.stripeAccountId);
+
+    return res.json({
+      vendorId: vendor.id,
+      storeName: vendor.storeName,
+      ...onboarding,
+    });
+  } catch (error) {
+    console.error('[vendor] Onboarding status error:', error);
+    return res.status(500).json({ error: 'Failed to get vendor onboarding status' });
   }
 });
 
