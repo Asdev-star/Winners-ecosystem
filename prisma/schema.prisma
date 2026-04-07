@@ -127,7 +127,8 @@ model Tenant {
   studyMembers                  StudyMember[]
   submissions                   Submission[]
   superChats                    SuperChat[]
-  tradingSignals                TradingSignal[]
+  tradingSignals                TradingSignal[]               @relation("TenantTradingSignals")
+  marketAnalyses                MarketAnalysis[]              @relation("TenantMarketAnalyses")
   usageLogs                     UsageLog[]
   userFeedPreferences           UserFeedPreference[]
   userWallets                   UserWallet[]
@@ -165,6 +166,10 @@ model Tenant {
   propertyImages                PropertyImage[]                @relation("TenantPropertyImages")
   propertyFavorites             PropertyFavorite[]             @relation("TenantPropertyFavorites")
   propertyInquiries             PropertyInquiry[]              @relation("TenantPropertyInquiries")
+  marketingServices             MarketingService[]
+  marketingOrders               MarketingOrder[]
+  streams                       Stream[]
+  virtualPortfolios             VirtualPortfolio[]            @relation("TenantVirtualPortfolios")
 
   @@map("tenants")
 }
@@ -281,7 +286,9 @@ model User {
   studyMembers                  StudyMember[]
   submissions                   Submission[]
   superChats                    SuperChat[]
-  tradingSignals                TradingSignal[]
+  tradingSignals                TradingSignal[]               @relation("UserTradingSignals")
+  marketAnalyses                MarketAnalysis[]              @relation("UserMarketAnalyses")
+  virtualPortfolio              VirtualPortfolio?             @relation("UserVirtualPortfolio")
   twoFactorOTPs                 TwoFactorOTP[]
   tenant                        Tenant                         @relation(fields: [tenantId], references: [id])
   userWallets                   UserWallet[]
@@ -312,6 +319,10 @@ model User {
   propertiesListed              Property[]
   propertyFavorites             PropertyFavorite[]
   propertyInquiries             PropertyInquiry[]
+  marketingOrders               MarketingOrder[]
+  streams                       Stream[]
+  streamTips                    StreamTip[]
+  streamSubscriptions           StreamSubscription[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -321,26 +332,83 @@ model User {
 model TradingSignal {
   id          String   @id @default(cuid())
   tenantId    String
-  userId      String
-  symbol      String
-  type        String
-  confidence  Float
-  price       Float
+  creatorId   String
+  asset       String   // BTC/USD, AAPL
+  direction   String   // buy | sell
+  entryPrice  Float
   targetPrice Float
   stopLoss    Float
-  timeframe   String
-  analysis    String?
-  status      String   @default("active")
+  confidence  Int      // 1–100
+  tier        String   @default("free")
+  expiresAt   DateTime
+  result      String?  // win | loss | pending
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  tenant      Tenant   @relation("TenantTradingSignals", fields: [tenantId], references: [id])
+  creator     User     @relation("UserTradingSignals", fields: [creatorId], references: [id])
 
   @@index([tenantId])
-  @@index([userId])
-  @@index([symbol])
-  @@index([status])
+  @@index([creatorId])
+  @@index([asset])
+  @@index([tier])
   @@map("trading_signals")
+}
+
+model MarketAnalysis {
+  id          String   @id @default(cuid())
+  tenantId    String
+  creatorId   String
+  asset       String   // BTC/USD, AAPL, SPY, etc.
+  sentiment   String   // bullish | bearish | neutral
+  confidence  Int      // 1–100
+  analysis    String   @db.Text // Detailed analysis text
+  indicators  Json     // Technical indicators data
+  tier        String   @default("enterprise") // Only enterprise gets ATLAS analysis
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant   @relation("TenantMarketAnalyses", fields: [tenantId], references: [id])
+  creator     User     @relation("UserMarketAnalyses", fields: [creatorId], references: [id])
+
+  @@index([tenantId])
+  @@index([creatorId])
+  @@index([asset])
+  @@index([tier])
+  @@map("market_analyses")
+}
+
+model VirtualPortfolio {
+  id           String            @id @default(cuid())
+  userId       String            @unique
+  tenantId     String
+  cashBalance  Float             @default(10000)  // $10K virtual
+  totalValue   Float             @default(10000)
+  positions    VirtualPosition[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User              @relation("UserVirtualPortfolio", fields: [userId], references: [id])
+  tenant       Tenant            @relation("TenantVirtualPortfolios", fields: [tenantId], references: [id])
+
+  @@index([userId])
+  @@index([tenantId])
+  @@map("virtual_portfolios")
+}
+
+model VirtualPosition {
+  id           String           @id @default(cuid())
+  portfolioId  String
+  symbol       String
+  quantity     Float
+  avgCost      Float
+  currentPrice Float            @default(0)
+  marketValue  Float            @default(0)
+  unrealizedPnL Float           @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  portfolio    VirtualPortfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@index([portfolioId])
+  @@index([symbol])
+  @@map("virtual_positions")
 }
 
 model PrivacyAcknowledgment {
@@ -2364,6 +2432,9 @@ model Vendor {
   products        Product[]
   payouts         VendorPayout[]
   reviews         VendorReview[]
+  dropshippingStores DropshippingStore[]
+  marketingServices MarketingService[]
+  marketingOrders   MarketingOrder[]
   tenant          Tenant         @relation(fields: [tenantId], references: [id])
   owner           User           @relation(fields: [userId], references: [id])
 
@@ -4303,6 +4374,70 @@ model UserActivity {
   @@map("user_activities")
 }
 
+model DropshippingStore {
+  id          String       @id @default(cuid())
+  tenantId    String
+  vendorId    String
+  vendor      Vendor       @relation(fields: [vendorId], references: [id])
+  storeName   String
+  storeSlug   String       @unique
+  model       String       // print_on_demand | general | premium
+  supplier    String       // printful | gelato | aliexpress | cj | spocket | zendrop
+  status      String       @default("active")
+  totalSales  Int          @default(0)
+  totalRevenue Float       @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  products    DropProduct[]
+  orders      DropOrder[]
+
+  @@index([tenantId])
+  @@index([vendorId])
+}
+
+model DropProduct {
+  id               String            @id @default(cuid())
+  storeId          String
+  store            DropshippingStore @relation(fields: [storeId], references: [id])
+  tenantId         String
+  supplierId       String            // e.g. "printful:123" or "gelato:abc"
+  supplier         String
+  title            String
+  description      String?           @db.Text
+  cost             Float             // supplier cost
+  price            Float             // your selling price
+  margin           Float             // margin multiplier stored
+  variants         Json              // supplier variant data
+  images           Json              // image URLs
+  autoFulfill      Boolean           @default(true)
+  fulfillmentData  Json              // supplier-specific IDs for fulfillment
+  isPublished      Boolean           @default(false)
+  salesCount       Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([storeId])
+  @@index([supplierId])
+}
+
+model DropOrder {
+  id               String            @id @default(cuid())
+  storeId          String
+  store            DropshippingStore @relation(fields: [storeId], references: [id])
+  winnersOrderId   String            @unique
+  supplierId       String?           // supplier's order reference
+  status           String            @default("pending")
+  // pending | sent_to_supplier | in_production | shipped | delivered | failed
+  supplier         String
+  fulfillmentData  Json?             // full supplier response
+  trackingNumber   String?
+  trackingUrl      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([storeId])
+}
+
 model DropshippingResearch {
   id        String   @id @default(cuid())
   tenantId  String
@@ -4447,4 +4582,114 @@ model ErrorReport {
   @@index([platform])
   @@index([status])
   @@map("error_reports")
+}
+
+model MarketingService {
+  id          String   @id @default(cuid())
+  tenantId    String
+  vendorId    String
+  title       String
+  description String   @db.Text
+  category    String   // seo | social | ads | email | content | branding
+  pricing     Json     // { starter: 299, pro: 799, enterprise: 1999 }
+  deliverables Json
+  turnaround  Int      // days
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  orders      MarketingOrder[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([category])
+  @@map("marketing_services")
+}
+
+model MarketingOrder {
+  id        String   @id @default(cuid())
+  tenantId  String
+  serviceId String
+  buyerId   String
+  vendorId  String
+  status    String   @default("pending")
+  brief     String   @db.Text
+  amount    Float
+  escrowId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  service   MarketingService @relation(fields: [serviceId], references: [id])
+  buyer     User             @relation(fields: [buyerId], references: [id])
+  vendor    Vendor           @relation(fields: [vendorId], references: [id])
+  tenant    Tenant           @relation(fields: [tenantId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([serviceId])
+  @@index([buyerId])
+  @@index([vendorId])
+  @@index([status])
+  @@map("marketing_orders")
+}
+
+model Stream {
+  id             String               @id @default(cuid())
+  tenantId       String
+  creatorId      String
+  title          String
+  muxStreamId    String?
+  muxPlaybackId  String?
+  streamKey      String?
+  status         String               @default("offline")  // offline | live | ended
+  isPayPerView   Boolean              @default(false)
+  ppvPrice       Float?
+  recordingUrl   String?
+  viewCount      Int                  @default(0)
+  peakViewers    Int                  @default(0)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  tips           StreamTip[]
+  subscriptions  StreamSubscription[]
+  tenant         Tenant               @relation(fields: [tenantId], references: [id])
+  creator        User                 @relation(fields: [creatorId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("streams")
+}
+
+model StreamTip {
+  id        String   @id @default(cuid())
+  streamId  String
+  userId    String
+  amount    Float
+  message   String?
+  createdAt DateTime @default(now())
+  stream    Stream   @relation(fields: [streamId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([streamId])
+  @@index([userId])
+  @@map("stream_tips")
+}
+
+model StreamSubscription {
+  id        String   @id @default(cuid())
+  streamId  String
+  userId    String
+  amount    Float
+  status    String   @default("active")  // active | cancelled | expired
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+  stream    Stream   @relation(fields: [streamId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([streamId, userId])
+  @@index([streamId])
+  @@index([userId])
+  @@index([status])
+  @@map("stream_subscriptions")
 }

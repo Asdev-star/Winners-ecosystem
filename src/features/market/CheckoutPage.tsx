@@ -7,7 +7,8 @@ import "./CheckoutPage.css";
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 const MARKET_SESSION_KEY = "winners_market_session_id";
 const STRIPE_JS_URL = "https://js.stripe.com/v3/";
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
+const STRIPE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
 
 declare global {
   interface Window {
@@ -123,7 +124,9 @@ function buildVendorGroups(cart: Cart | null): CheckoutVendorGroup[] {
     }
 
     const vendorName =
-      item.product.vendor?.storeName ?? item.product.vendor?.name ?? "Direct Sale";
+      item.product.vendor?.storeName ??
+      item.product.vendor?.name ??
+      "Direct Sale";
     const unitPrice = item.variant?.price ?? item.price ?? 0;
     const current = groups.get(vendorId) ?? {
       vendorId,
@@ -155,7 +158,7 @@ function buildVendorGroups(cart: Cart | null): CheckoutVendorGroup[] {
 }
 
 function resolveVendorIdForCartItem(item: CartItem) {
-  return item.product.vendorId ?? item.product.vendor?.id ?? null;
+  return item.product.vendor?.id ?? item.product.vendorId ?? null;
 }
 
 async function loadStripeJs() {
@@ -168,9 +171,13 @@ async function loadStripeJs() {
 
     if (existing) {
       existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Failed to load Stripe.js")), {
-        once: true,
-      });
+      existing.addEventListener(
+        "error",
+        () => reject(new Error("Failed to load Stripe.js")),
+        {
+          once: true,
+        },
+      );
       return;
     }
 
@@ -195,8 +202,12 @@ export default function CheckoutPage() {
   const [orderNumbers, setOrderNumbers] = useState<string[]>([]);
   const [shipping, setShipping] = useState<ShippingInfo>(DEFAULT_SHIPPING);
   const [paymentSetups, setPaymentSetups] = useState<PaymentIntentSetup[]>([]);
-  const [confirmedPaymentIntentIds, setConfirmedPaymentIntentIds] = useState<string[]>([]);
-  const [activePaymentIndex, setActivePaymentIndex] = useState<number | null>(null);
+  const [confirmedPaymentIntentIds, setConfirmedPaymentIntentIds] = useState<
+    string[]
+  >([]);
+  const [activePaymentIndex, setActivePaymentIndex] = useState<number | null>(
+    null,
+  );
   const [paymentElementReady, setPaymentElementReady] = useState(false);
   const [platformFeePct, setPlatformFeePct] = useState<number | null>(null);
 
@@ -219,12 +230,16 @@ export default function CheckoutPage() {
   const itemCount = useMemo(
     () =>
       vendorGroups.reduce(
-        (sum, group) => sum + group.items.reduce((count, item) => count + item.quantity, 0),
+        (sum, group) =>
+          sum + group.items.reduce((count, item) => count + item.quantity, 0),
         0,
       ),
     [vendorGroups],
   );
-  const currentPayment = activePaymentIndex === null ? null : paymentSetups[activePaymentIndex] ?? null;
+  const currentPayment =
+    activePaymentIndex === null
+      ? null
+      : (paymentSetups[activePaymentIndex] ?? null);
   const shippingComplete = useMemo(
     () => Object.values(shipping).every((value) => value.trim().length > 0),
     [shipping],
@@ -311,11 +326,14 @@ export default function CheckoutPage() {
             setPaymentElementReady(true);
           }
         });
-        paymentElement.on("change", (event: { error?: { message?: string } }) => {
-          if (!cancelled && event.error?.message) {
-            setError(event.error.message);
-          }
-        });
+        paymentElement.on(
+          "change",
+          (event: { error?: { message?: string } }) => {
+            if (!cancelled && event.error?.message) {
+              setError(event.error.message);
+            }
+          },
+        );
 
         elementsRef.current = elements;
         paymentElementRef.current = paymentElement;
@@ -347,7 +365,11 @@ export default function CheckoutPage() {
       const data = await res.json();
       setCart(data.cart || data);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Failed to load cart");
+      setError(
+        fetchError instanceof Error
+          ? fetchError.message
+          : "Failed to load cart",
+      );
     } finally {
       setLoading(false);
     }
@@ -367,13 +389,17 @@ export default function CheckoutPage() {
     }
 
     if (!shippingComplete) {
-      setError("Complete the delivery address before preparing payment intents.");
+      setError(
+        "Complete the delivery address before preparing payment intents.",
+      );
       return;
     }
 
     setProcessing(true);
     setError("");
-    setStatusMessage(`Preparing ${vendorGroups.length} vendor payment intent(s)...`);
+    setStatusMessage(
+      `Preparing ${vendorGroups.length} vendor payment intent(s)...`,
+    );
 
     try {
       const res = await fetch(`${API_BASE}/checkout/create-payment-intents`, {
@@ -397,7 +423,9 @@ export default function CheckoutPage() {
         }),
       });
 
-      const data = (await res.json()) as PaymentIntentResponse & { error?: string };
+      const data = (await res.json()) as PaymentIntentResponse & {
+        error?: string;
+      };
       if (!res.ok) {
         throw new Error(data.error || "Failed to prepare payment intents.");
       }
@@ -445,7 +473,9 @@ export default function CheckoutPage() {
         throw new Error(result.error.message || "Payment confirmation failed.");
       }
 
-      const paymentIntentId = result.paymentIntent?.id ?? currentPayment.clientSecret.split("_secret_")[0];
+      const paymentIntentId =
+        result.paymentIntent?.id ??
+        currentPayment.clientSecret.split("_secret_")[0];
       const nextConfirmed = [...confirmedPaymentIntentIds, paymentIntentId];
       setConfirmedPaymentIntentIds(nextConfirmed);
 
@@ -477,9 +507,14 @@ export default function CheckoutPage() {
         }),
       });
 
-      const confirmation = (await confirmRes.json()) as ConfirmCheckoutResponse & { error?: string };
+      const confirmation =
+        (await confirmRes.json()) as ConfirmCheckoutResponse & {
+          error?: string;
+        };
       if (!confirmRes.ok || !confirmation.success) {
-        throw new Error(confirmation.error || "Failed to confirm the completed checkout.");
+        throw new Error(
+          confirmation.error || "Failed to confirm the completed checkout.",
+        );
       }
 
       clearMountedPaymentElement();
@@ -487,7 +522,9 @@ export default function CheckoutPage() {
       setPaymentSetups([]);
       setConfirmedPaymentIntentIds([]);
       setActivePaymentIndex(null);
-      setStatusMessage("All vendor payments succeeded and the orders were confirmed.");
+      setStatusMessage(
+        "All vendor payments succeeded and the orders were confirmed.",
+      );
       setCart({ id: cart?.id ?? "", items: [] });
     } catch (confirmError) {
       setError(
@@ -506,7 +543,9 @@ export default function CheckoutPage() {
     setConfirmedPaymentIntentIds([]);
     setActivePaymentIndex(null);
     setPlatformFeePct(null);
-    setStatusMessage("Payment setup cleared. You can prepare the vendor intents again.");
+    setStatusMessage(
+      "Payment setup cleared. You can prepare the vendor intents again.",
+    );
   }
 
   if (!user) {
@@ -550,7 +589,8 @@ export default function CheckoutPage() {
               Vendor order numbers: <strong>{orderNumbers.join(", ")}</strong>
             </p>
             <p className="success-message">
-              Every vendor payment intent succeeded and the multi-vendor order split is complete.
+              Every vendor payment intent succeeded and the multi-vendor order
+              split is complete.
             </p>
             <div className="success-actions">
               <Link to="/market/orders" className="success-btn primary">
@@ -604,8 +644,17 @@ export default function CheckoutPage() {
         )}
 
         {unresolvedItems.length > 0 && (
-          <div className="checkout-error" style={{ borderColor: "rgba(240, 180, 41, 0.4)", background: "rgba(240, 180, 41, 0.08)", color: "var(--gold)" }}>
-            ⚠ {unresolvedItems.length} item(s) missing vendor assignment: {unresolvedItems.map((i) => i.product.name).join(", ")}. These items cannot be checked out until a vendor is assigned.
+          <div
+            className="checkout-error"
+            style={{
+              borderColor: "rgba(240, 180, 41, 0.4)",
+              background: "rgba(240, 180, 41, 0.08)",
+              color: "var(--gold)",
+            }}
+          >
+            ⚠ {unresolvedItems.length} item(s) missing vendor assignment:{" "}
+            {unresolvedItems.map((i) => i.product.name).join(", ")}. These items
+            cannot be checked out until a vendor is assigned.
           </div>
         )}
 
@@ -630,7 +679,12 @@ export default function CheckoutPage() {
                 <input
                   type="text"
                   value={shipping.fullName}
-                  onChange={(e) => setShipping((current) => ({ ...current, fullName: e.target.value }))}
+                  onChange={(e) =>
+                    setShipping((current) => ({
+                      ...current,
+                      fullName: e.target.value,
+                    }))
+                  }
                   required
                   placeholder="Amina Njeri"
                 />
@@ -640,7 +694,12 @@ export default function CheckoutPage() {
                 <input
                   type="text"
                   value={shipping.addressLine}
-                  onChange={(e) => setShipping((current) => ({ ...current, addressLine: e.target.value }))}
+                  onChange={(e) =>
+                    setShipping((current) => ({
+                      ...current,
+                      addressLine: e.target.value,
+                    }))
+                  }
                   required
                   placeholder="Westlands, Waiyaki Way"
                 />
@@ -651,7 +710,12 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     value={shipping.city}
-                    onChange={(e) => setShipping((current) => ({ ...current, city: e.target.value }))}
+                    onChange={(e) =>
+                      setShipping((current) => ({
+                        ...current,
+                        city: e.target.value,
+                      }))
+                    }
                     required
                     placeholder="Nairobi"
                   />
@@ -661,7 +725,12 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     value={shipping.region}
-                    onChange={(e) => setShipping((current) => ({ ...current, region: e.target.value }))}
+                    onChange={(e) =>
+                      setShipping((current) => ({
+                        ...current,
+                        region: e.target.value,
+                      }))
+                    }
                     required
                     placeholder="Nairobi County"
                   />
@@ -673,7 +742,12 @@ export default function CheckoutPage() {
                   <input
                     type="text"
                     value={shipping.postalCode}
-                    onChange={(e) => setShipping((current) => ({ ...current, postalCode: e.target.value }))}
+                    onChange={(e) =>
+                      setShipping((current) => ({
+                        ...current,
+                        postalCode: e.target.value,
+                      }))
+                    }
                     required
                     placeholder="00100"
                   />
@@ -682,7 +756,12 @@ export default function CheckoutPage() {
                   <label>Country</label>
                   <select
                     value={shipping.country}
-                    onChange={(e) => setShipping((current) => ({ ...current, country: e.target.value }))}
+                    onChange={(e) =>
+                      setShipping((current) => ({
+                        ...current,
+                        country: e.target.value,
+                      }))
+                    }
                   >
                     <option value="KE">Kenya</option>
                     <option value="NG">Nigeria</option>
@@ -698,7 +777,12 @@ export default function CheckoutPage() {
                 <input
                   type="tel"
                   value={shipping.phone}
-                  onChange={(e) => setShipping((current) => ({ ...current, phone: e.target.value }))}
+                  onChange={(e) =>
+                    setShipping((current) => ({
+                      ...current,
+                      phone: e.target.value,
+                    }))
+                  }
                   required
                   placeholder="+254 700 000 000"
                 />
@@ -708,19 +792,28 @@ export default function CheckoutPage() {
             <div className="form-card">
               <h2>Vendor Split</h2>
               <div className="vendor-split-note">
-                {itemCount} item(s) across {vendorGroups.length} vendor{vendorGroups.length === 1 ? "" : "s"}.
-                Each vendor is confirmed independently through Stripe.
+                {itemCount} item(s) across {vendorGroups.length} vendor
+                {vendorGroups.length === 1 ? "" : "s"}. Each vendor is confirmed
+                independently through Stripe.
               </div>
               <div className="vendor-split-list">
                 {vendorGroups.map((group) => (
                   <div key={group.vendorId} className="vendor-split-row">
                     <div>
-                      <div className="vendor-split-title">{group.vendorName}</div>
+                      <div className="vendor-split-title">
+                        {group.vendorName}
+                      </div>
                       <div className="vendor-split-meta">
-                        {group.items.reduce((sum, item) => sum + item.quantity, 0)} item(s)
+                        {group.items.reduce(
+                          (sum, item) => sum + item.quantity,
+                          0,
+                        )}{" "}
+                        item(s)
                       </div>
                     </div>
-                    <div className="vendor-split-amount">{formatMoney(group.subtotal)}</div>
+                    <div className="vendor-split-amount">
+                      {formatMoney(group.subtotal)}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -731,16 +824,22 @@ export default function CheckoutPage() {
               {currentPayment ? (
                 <>
                   <div className="payment-flow-pill">
-                    Vendor {activePaymentIndex! + 1} of {paymentSetups.length}: {currentPayment.vendorName}
+                    Vendor {activePaymentIndex! + 1} of {paymentSetups.length}:{" "}
+                    {currentPayment.vendorName}
                   </div>
-                  <div id="market-payment-element" className="stripe-payment-element" />
+                  <div
+                    id="market-payment-element"
+                    className="stripe-payment-element"
+                  />
                   <p className="payment-help-text">
-                    Confirm each vendor one by one. The order is finalized only after every payment intent succeeds.
+                    Confirm each vendor one by one. The order is finalized only
+                    after every payment intent succeeds.
                   </p>
                 </>
               ) : (
                 <p className="payment-help-text">
-                  Prepare the vendor payment intents first, then enter secure card details for each vendor in sequence.
+                  Prepare the vendor payment intents first, then enter secure
+                  card details for each vendor in sequence.
                 </p>
               )}
             </div>
@@ -755,8 +854,12 @@ export default function CheckoutPage() {
                     <div key={item.cartItemId} className="summary-item">
                       <div className="summary-item-info">
                         <span className="summary-item-name">{item.title}</span>
-                        <span className="summary-item-variant">{group.vendorName}</span>
-                        <span className="summary-item-qty">×{item.quantity}</span>
+                        <span className="summary-item-variant">
+                          {group.vendorName}
+                        </span>
+                        <span className="summary-item-qty">
+                          ×{item.quantity}
+                        </span>
                       </div>
                       <span className="summary-item-price">
                         {formatMoney(item.price * item.quantity)}
@@ -779,7 +882,8 @@ export default function CheckoutPage() {
               <div className="summary-row">
                 <span>Confirmed vendors</span>
                 <span>
-                  {confirmedPaymentIntentIds.length} / {paymentSetups.length || vendorGroups.length}
+                  {confirmedPaymentIntentIds.length} /{" "}
+                  {paymentSetups.length || vendorGroups.length}
                 </span>
               </div>
 

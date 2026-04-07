@@ -2,237 +2,242 @@
 // Vendor Dashboard - Analytics, inventory management, orders
 // Commerce Hub (4A) - Vendor storefront management
 
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getAuthHeaders, useAuthStore } from '../../features/auth/authStore';
-import AssistantPanel from '../../components/ui/AssistantPanel';
-import OmegaProfileAssignmentCard from '../../components/ui/OmegaProfileAssignmentCard';
-import AtlasContextBar from './atlas/AtlasContextBar';
-import ATLASPanel from './components/ATLASPanel';
-import { typedFetch } from '../../lib/typedFetch';
-import { MarketErrorState, NotAVendorState, NoProductsState, VendorOnboardingState } from './components/VendorDashboardStates';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { getAuthHeaders, useAuthStore } from "../../features/auth/authStore";
+import AssistantPanel from "../../components/ui/AssistantPanel";
+import OmegaProfileAssignmentCard from "../../components/ui/OmegaProfileAssignmentCard";
+import AtlasContextBar from "./atlas/AtlasContextBar";
+import ATLASPanel from "./components/ATLASPanel";
+import { typedFetch } from "../../lib/typedFetch";
+import {
+  MarketErrorState,
+  NotAVendorState,
+  NoProductsState,
+  VendorOnboardingState,
+} from "./components/VendorDashboardStates";
 
 const styles = {
   container: {
-    maxWidth: '1280px',
-    margin: '0 auto',
-    padding: '24px',
+    maxWidth: "1280px",
+    margin: "0 auto",
+    padding: "24px",
   },
   header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '32px',
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: "32px",
   },
   title: {
-    fontFamily: 'var(--font-display)',
-    fontSize: '28px',
+    fontFamily: "var(--font-display)",
+    fontSize: "28px",
     fontWeight: 600,
-    color: 'var(--text)',
+    color: "var(--text)",
     margin: 0,
   },
   subtitle: {
-    color: 'var(--text-dim)',
-    marginTop: '4px',
+    color: "var(--text-dim)",
+    marginTop: "4px",
   },
   btnPrimary: {
-    padding: '12px 20px',
-    backgroundColor: 'var(--gold)',
-    color: 'var(--bg)',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '14px',
+    padding: "12px 20px",
+    backgroundColor: "var(--gold)",
+    color: "var(--bg)",
+    border: "none",
+    borderRadius: "6px",
+    fontSize: "14px",
     fontWeight: 600,
-    cursor: 'pointer',
+    cursor: "pointer",
   },
   statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-    gap: '20px',
-    marginBottom: '32px',
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: "20px",
+    marginBottom: "32px",
   },
   statCard: {
-    backgroundColor: 'var(--surface)',
-    borderRadius: '6px',
-    border: '1px solid var(--border)',
-    padding: '20px',
-    position: 'relative' as const,
-    overflow: 'hidden',
+    backgroundColor: "var(--surface)",
+    borderRadius: "6px",
+    border: "1px solid var(--border)",
+    padding: "20px",
+    position: "relative" as const,
+    overflow: "hidden",
   },
   statCardTopBorder: {
-    position: 'absolute' as const,
+    position: "absolute" as const,
     top: 0,
     left: 0,
     right: 0,
-    height: '2px',
-    background: 'linear-gradient(90deg, var(--gold), transparent)',
+    height: "2px",
+    background: "linear-gradient(90deg, var(--gold), transparent)",
   },
   statLabel: {
-    fontSize: '12px',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.1em',
-    color: 'var(--text-dim)',
-    fontFamily: 'var(--font-mono)',
-    marginBottom: '8px',
+    fontSize: "12px",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.1em",
+    color: "var(--text-dim)",
+    fontFamily: "var(--font-mono)",
+    marginBottom: "8px",
   },
   statValue: {
-    fontFamily: 'var(--font-mono)',
-    fontSize: '32px',
+    fontFamily: "var(--font-mono)",
+    fontSize: "32px",
     fontWeight: 700,
-    color: 'var(--text)',
+    color: "var(--text)",
   },
   statChange: {
-    fontSize: '13px',
-    marginTop: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
+    fontSize: "13px",
+    marginTop: "8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
   },
   positive: {
-    color: 'var(--green)',
+    color: "var(--green)",
   },
   negative: {
-    color: 'var(--red)',
+    color: "var(--red)",
   },
   section: {
-    marginBottom: '32px',
+    marginBottom: "32px",
   },
   sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px',
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "16px",
   },
   sectionTitle: {
-    fontSize: '18px',
+    fontSize: "18px",
     fontWeight: 600,
-    color: 'var(--text)',
+    color: "var(--text)",
   },
   table: {
-    width: '100%',
-    backgroundColor: 'var(--surface)',
-    borderRadius: '6px',
-    border: '1px solid var(--border)',
-    overflow: 'hidden',
+    width: "100%",
+    backgroundColor: "var(--surface)",
+    borderRadius: "6px",
+    border: "1px solid var(--border)",
+    overflow: "hidden",
   },
   tableHeader: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-    gap: '16px',
-    padding: '14px 20px',
-    backgroundColor: 'var(--surface2)',
-    borderBottom: '1px solid var(--border)',
-    fontSize: '12px',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-    color: 'var(--text-dim)',
-    fontFamily: 'var(--font-mono)',
+    display: "grid",
+    gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
+    gap: "16px",
+    padding: "14px 20px",
+    backgroundColor: "var(--surface2)",
+    borderBottom: "1px solid var(--border)",
+    fontSize: "12px",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.05em",
+    color: "var(--text-dim)",
+    fontFamily: "var(--font-mono)",
   },
   tableRow: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-    gap: '16px',
-    padding: '16px 20px',
-    borderBottom: '1px solid var(--border)',
-    alignItems: 'center',
-    fontSize: '14px',
-    color: 'var(--text)',
+    display: "grid",
+    gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
+    gap: "16px",
+    padding: "16px 20px",
+    borderBottom: "1px solid var(--border)",
+    alignItems: "center",
+    fontSize: "14px",
+    color: "var(--text)",
   },
   productInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
   },
   productImage: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '4px',
-    backgroundColor: 'var(--surface2)',
-    objectFit: 'cover' as const,
+    width: "48px",
+    height: "48px",
+    borderRadius: "4px",
+    backgroundColor: "var(--surface2)",
+    objectFit: "cover" as const,
   },
   productName: {
     fontWeight: 500,
   },
   productMeta: {
-    fontSize: '12px',
-    color: 'var(--text-dim)',
-    marginTop: '2px',
+    fontSize: "12px",
+    color: "var(--text-dim)",
+    marginTop: "2px",
   },
   statusBadge: {
-    padding: '4px 10px',
-    borderRadius: '4px',
-    fontSize: '12px',
+    padding: "4px 10px",
+    borderRadius: "4px",
+    fontSize: "12px",
     fontWeight: 500,
-    width: 'fit-content',
+    width: "fit-content",
   },
   inStock: {
-    backgroundColor: 'rgba(45, 212, 160, 0.15)',
-    color: 'var(--green)',
+    backgroundColor: "rgba(45, 212, 160, 0.15)",
+    color: "var(--green)",
   },
   lowStock: {
-    backgroundColor: 'var(--gold-glow-sm)',
-    color: 'var(--gold)',
+    backgroundColor: "var(--gold-glow-sm)",
+    color: "var(--gold)",
   },
   outOfStock: {
-    backgroundColor: 'rgba(224, 90, 78, 0.15)',
-    color: 'var(--red)',
+    backgroundColor: "rgba(224, 90, 78, 0.15)",
+    color: "var(--red)",
   },
   actionBtn: {
-    padding: '6px 12px',
-    backgroundColor: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: '4px',
-    color: 'var(--text)',
-    fontSize: '12px',
-    cursor: 'pointer',
+    padding: "6px 12px",
+    backgroundColor: "transparent",
+    border: "1px solid var(--border)",
+    borderRadius: "4px",
+    color: "var(--text)",
+    fontSize: "12px",
+    cursor: "pointer",
   },
   tabs: {
-    display: 'flex',
-    gap: '4px',
-    marginBottom: '24px',
-    borderBottom: '1px solid var(--border)',
-    paddingBottom: '0',
+    display: "flex",
+    gap: "4px",
+    marginBottom: "24px",
+    borderBottom: "1px solid var(--border)",
+    paddingBottom: "0",
   },
   tab: {
-    padding: '12px 20px',
-    backgroundColor: 'transparent',
-    border: 'none',
-    borderBottom: '2px solid transparent',
-    color: 'var(--text-dim)',
-    fontSize: '14px',
-    cursor: 'pointer',
-    marginBottom: '-1px',
-    transition: 'all 0.2s ease',
+    padding: "12px 20px",
+    backgroundColor: "transparent",
+    border: "none",
+    borderBottom: "2px solid transparent",
+    color: "var(--text-dim)",
+    fontSize: "14px",
+    cursor: "pointer",
+    marginBottom: "-1px",
+    transition: "all 0.2s ease",
   },
   tabActive: {
-    color: 'var(--gold)',
-    borderBottomColor: 'var(--gold)',
+    color: "var(--gold)",
+    borderBottomColor: "var(--gold)",
   },
   chartPlaceholder: {
-    height: '240px',
-    backgroundColor: 'var(--surface)',
-    borderRadius: '6px',
-    border: '1px solid var(--border)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'var(--text-dim)',
+    height: "240px",
+    backgroundColor: "var(--surface)",
+    borderRadius: "6px",
+    border: "1px solid var(--border)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "var(--text-dim)",
   },
   orderId: {
-    fontFamily: 'var(--font-mono)',
-    fontSize: '13px',
+    fontFamily: "var(--font-mono)",
+    fontSize: "13px",
   },
   customerName: {
     fontWeight: 500,
   },
   orderDate: {
-    fontSize: '12px',
-    color: 'var(--text-dim)',
+    fontSize: "12px",
+    color: "var(--text-dim)",
   },
   emptyState: {
-    textAlign: 'center' as const,
-    padding: '48px',
-    color: 'var(--text-dim)',
+    textAlign: "center" as const,
+    padding: "48px",
+    color: "var(--text-dim)",
   },
 };
 
@@ -243,7 +248,7 @@ interface Product {
   price: number;
   stock: number;
   sales: number;
-  status: 'active' | 'draft' | 'archived';
+  status: "active" | "draft" | "archived";
 }
 
 interface Order {
@@ -251,7 +256,7 @@ interface Order {
   customer: string;
   product: string;
   amount: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   date: string;
 }
 
@@ -272,7 +277,7 @@ interface VendorRecord {
 }
 
 interface VendorOnboardingInfo {
-  status: 'not_started' | 'pending' | 'complete' | 'restricted';
+  status: "not_started" | "pending" | "complete" | "restricted";
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
   detailsSubmitted: boolean;
@@ -304,6 +309,19 @@ interface OrdersResponse {
   orders?: OrderApi[];
 }
 
+interface VendorAnalyticsResponse {
+  vendorId: string;
+  vendorName: string;
+  totalOrders: number;
+  recentOrders: number;
+  activeProducts: number;
+  totalOrderItems: number;
+  recentOrderItems: number;
+  totalRevenue: number;
+  totalRevenueItems: number;
+  dailyRevenue: Array<{ date: string; revenue: number; orders: number }>;
+}
+
 interface PayoutsResponse {
   balance?: number;
   summary?: PayoutSummary;
@@ -312,18 +330,29 @@ interface PayoutsResponse {
 export default function VendorDashboard() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders'>('overview');
+
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "products" | "orders"
+  >("overview");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [payoutSummary, setPayoutSummary] = useState<PayoutSummary>({ total: 0, paid: 0, pending: 0 });
+  const [payoutSummary, setPayoutSummary] = useState<PayoutSummary>({
+    total: 0,
+    paid: 0,
+    pending: 0,
+  });
   const [availableBalance, setAvailableBalance] = useState(0);
   const [vendorProfile, setVendorProfile] = useState<VendorRecord | null>(null);
-  const [onboarding, setOnboarding] = useState<VendorOnboardingInfo | null>(null);
+  const [analytics, setAnalytics] = useState<VendorAnalyticsResponse | null>(
+    null,
+  );
+  const [onboarding, setOnboarding] = useState<VendorOnboardingInfo | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
-  const [payoutAmount, setPayoutAmount] = useState('');
+  const [payoutAmount, setPayoutAmount] = useState("");
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutError, setPayoutError] = useState<string | null>(null);
   const [payoutSuccess, setPayoutSuccess] = useState(false);
@@ -331,36 +360,47 @@ export default function VendorDashboard() {
   const fetchVendorData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const vendorRes = await fetch('/api/v1/vendors/me', {
+      const vendorRes = await fetch("/api/v1/vendors/me", {
         headers: getAuthHeaders(),
-        credentials: 'include',
+        credentials: "include",
       });
+      const vendorPayload = await vendorRes.json().catch(() => ({}));
 
       if (!vendorRes.ok) {
-        const vendorData = await vendorRes.json().catch(() => ({}));
-        if (vendorData.code === 'NOT_SETUP') {
-          setError('VENDOR_NOT_SETUP');
+        if (vendorPayload?.code === "NOT_SETUP") {
+          setError("VENDOR_NOT_SETUP");
           return;
         }
-        throw new Error(vendorData.error || 'Failed to load vendor data');
+        throw new Error(vendorPayload?.error || "Failed to load vendor data");
       }
 
-      const [vendorData, productsData, ordersData, payoutsData, onboardingData] = await Promise.all([
-        typedFetch<VendorRecord>('/api/v1/vendors/me', {
+      const vendorData = vendorPayload as VendorRecord;
+
+      const [
+        productsData,
+        ordersData,
+        payoutsData,
+        onboardingData,
+        analyticsData,
+      ] = await Promise.all([
+        typedFetch<ProductsResponse>(
+          `/api/v1/products?vendorId=${encodeURIComponent(vendorData.id)}`,
+          {
+            headers: getAuthHeaders(),
+          },
+        ),
+        typedFetch<OrdersResponse>("/api/v1/orders/vendor/all", {
           headers: getAuthHeaders(),
         }),
-        typedFetch<ProductsResponse>('/api/v1/products?vendor=true', {
+        typedFetch<PayoutsResponse>("/api/v1/vendors/me/payouts", {
           headers: getAuthHeaders(),
         }),
-        typedFetch<OrdersResponse>('/api/v1/orders/vendor/all', {
+        typedFetch<VendorOnboardingInfo>("/api/v1/vendors/me/onboarding", {
           headers: getAuthHeaders(),
         }),
-        typedFetch<PayoutsResponse>('/api/v1/vendors/me/payouts', {
-          headers: getAuthHeaders(),
-        }),
-        typedFetch<VendorOnboardingInfo>('/api/v1/vendors/me/onboarding', {
+        typedFetch<VendorAnalyticsResponse>("/api/v1/vendors/me/analytics", {
           headers: getAuthHeaders(),
         }),
       ]);
@@ -368,14 +408,20 @@ export default function VendorDashboard() {
       setVendorProfile(vendorData);
       setProducts(productsData.products || []);
       setOnboarding(onboardingData);
+      setAnalytics(analyticsData);
 
       const normalizedOrders = Array.isArray(ordersData.orders)
         ? ordersData.orders.map((order) => ({
             id: order.orderNumber || order.id,
-            customer: order.user?.name || order.user?.email || 'Customer',
-            product: order.items?.[0]?.product?.name || order.items?.[0]?.name || 'Order',
+            customer: order.user?.name || order.user?.email || "Customer",
+            product:
+              order.items?.[0]?.product?.name ||
+              order.items?.[0]?.name ||
+              "Order",
             amount: Number(order.total || 0),
-            status: String(order.status || 'pending').toLowerCase() as Order['status'],
+            status: String(
+              order.status || "pending",
+            ).toLowerCase() as Order["status"],
             date: order.createdAt || new Date().toISOString(),
           }))
         : [];
@@ -388,7 +434,7 @@ export default function VendorDashboard() {
       });
       setAvailableBalance(Number(payoutsData.balance || 0));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
+      const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
     } finally {
       setLoading(false);
@@ -400,22 +446,26 @@ export default function VendorDashboard() {
     setError(null);
 
     try {
-      const res = await fetch('/api/v1/vendors/apply', {
-        method: 'POST',
+      const res = await fetch("/api/v1/vendors/apply", {
+        method: "POST",
         headers: {
           ...getAuthHeaders(),
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          businessName: vendorProfile?.storeName || user?.name || user?.email || 'Vendor Store',
-          businessType: 'company',
-          country: 'KE',
+          businessName:
+            vendorProfile?.storeName ||
+            user?.name ||
+            user?.email ||
+            "Vendor Store",
+          businessType: "company",
+          country: "KE",
         }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to start vendor onboarding');
+        throw new Error(data.error || "Failed to start vendor onboarding");
       }
 
       if (data.onboardingUrl) {
@@ -425,7 +475,11 @@ export default function VendorDashboard() {
 
       await fetchVendorData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to start vendor onboarding');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to start vendor onboarding",
+      );
     } finally {
       setLoading(false);
     }
@@ -436,38 +490,60 @@ export default function VendorDashboard() {
   }, [fetchVendorData]);
 
   const getStockStatus = (stock: number) => {
-    if (stock === 0) return { label: 'Out of Stock', style: styles.outOfStock };
-    if (stock < 5) return { label: 'Low Stock', style: styles.lowStock };
-    return { label: 'In Stock', style: styles.inStock };
+    if (stock === 0) return { label: "Out of Stock", style: styles.outOfStock };
+    if (stock < 5) return { label: "Low Stock", style: styles.lowStock };
+    return { label: "In Stock", style: styles.inStock };
   };
 
   const getOrderStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'var(--gold)';
-      case 'processing': return 'var(--blue)';
-      case 'shipped': return 'var(--purple)';
-      case 'delivered': return 'var(--green)';
-      case 'cancelled': return 'var(--red)';
-      default: return 'var(--text-dim)';
+      case "pending":
+        return "var(--gold)";
+      case "processing":
+        return "var(--blue)";
+      case "shipped":
+        return "var(--purple)";
+      case "delivered":
+        return "var(--green)";
+      case "cancelled":
+        return "var(--red)";
+      default:
+        return "var(--text-dim)";
     }
   };
 
-  const totalRevenue = orders
-    .filter(o => o.status !== 'cancelled')
-    .reduce((sum, o) => sum + o.amount, 0);
+  const totalRevenue =
+    analytics?.totalRevenue ??
+    orders
+      .filter((o) => o.status !== "cancelled")
+      .reduce((sum, o) => sum + o.amount, 0);
 
-  const totalSales = products.reduce((sum, p) => sum + p.sales, 0);
-  const totalProducts = products.length;
-  const lowStockCount = products.filter(p => p.stock > 0 && p.stock < 5).length;
-  const isNotSetup = error === 'VENDOR_NOT_SETUP';
-  const hasMarketData = products.length > 0 || orders.length > 0 || payoutSummary.total > 0 || availableBalance > 0;
-  const onboardingComplete = !!onboarding && onboarding.status === 'complete' && onboarding.chargesEnabled && onboarding.payoutsEnabled;
+  const totalSales =
+    analytics?.totalOrderItems ?? products.reduce((sum, p) => sum + p.sales, 0);
+  const totalProducts = analytics?.activeProducts ?? products.length;
+  const lowStockCount = products.filter(
+    (p) => p.stock > 0 && p.stock < 5,
+  ).length;
+  const isNotSetup = error === "VENDOR_NOT_SETUP";
+  const hasMarketData =
+    !!analytics ||
+    products.length > 0 ||
+    orders.length > 0 ||
+    payoutSummary.total > 0 ||
+    availableBalance > 0;
+  const onboardingComplete =
+    !!onboarding &&
+    onboarding.status === "complete" &&
+    onboarding.chargesEnabled &&
+    onboarding.payoutsEnabled;
   const showOnboarding = !!onboarding && !onboardingComplete;
 
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={{ ...styles.chartPlaceholder, minHeight: '320px' }}>Loading vendor dashboard...</div>
+        <div style={{ ...styles.chartPlaceholder, minHeight: "320px" }}>
+          Loading vendor dashboard...
+        </div>
       </div>
     );
   }
@@ -475,7 +551,10 @@ export default function VendorDashboard() {
   if (isNotSetup) {
     return (
       <div style={styles.container}>
-        <NotAVendorState onRetry={fetchVendorData} onPrimary={startVendorOnboarding} />
+        <NotAVendorState
+          onRetry={fetchVendorData}
+          onPrimary={startVendorOnboarding}
+        />
       </div>
     );
   }
@@ -503,7 +582,15 @@ export default function VendorDashboard() {
         .ctx-sep { color:var(--border); font-size:11px; }
       `}</style>
       {/* Context Bar */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' as const, alignItems: 'center' }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          marginBottom: "22px",
+          flexWrap: "wrap" as const,
+          alignItems: "center",
+        }}
+      >
         <span className="ctx-badge live">⬡ Core Engine</span>
         <span className="ctx-sep">›</span>
         <span className="ctx-badge live">🧑‍🤝‍🧑 Community</span>
@@ -514,7 +601,7 @@ export default function VendorDashboard() {
       </div>
 
       {error && !isNotSetup && (
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: "24px" }}>
           <MarketErrorState
             title="Market data issue"
             message={error}
@@ -531,9 +618,14 @@ export default function VendorDashboard() {
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Vendor Dashboard</h1>
-          <p style={styles.subtitle}>Manage your products, orders, and analytics</p>
+          <p style={styles.subtitle}>
+            Manage your products, orders, and analytics
+          </p>
         </div>
-        <button style={styles.btnPrimary} onClick={() => navigate('/market/vendor/products/new')}>
+        <button
+          style={styles.btnPrimary}
+          onClick={() => navigate("/market/vendor/products/new")}
+        >
           + Add Product
         </button>
       </div>
@@ -542,18 +634,19 @@ export default function VendorDashboard() {
 
       <ATLASPanel
         platformContext={{
-          activeProducts: totalProducts,
+          activeProducts: analytics?.activeProducts ?? totalProducts,
           lowStockProducts: lowStockCount,
-          pendingOrders: orders.filter((order) => order.status === 'pending').length,
+          pendingOrders: orders.filter((order) => order.status === "pending")
+            .length,
           totalRevenue,
-          totalSales,
+          totalSales: analytics?.totalOrderItems ?? totalSales,
           pendingPayouts: payoutSummary.pending,
           currentTab: activeTab,
         }}
       />
 
       {showOnboarding && (
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: "24px" }}>
           <VendorOnboardingState
             status={onboarding.status}
             chargesEnabled={onboarding.chargesEnabled}
@@ -566,21 +659,25 @@ export default function VendorDashboard() {
                   return;
                 }
 
-                const res = await fetch('/api/v1/vendors/apply', {
-                  method: 'POST',
+                const res = await fetch("/api/v1/vendors/apply", {
+                  method: "POST",
                   headers: {
                     ...getAuthHeaders(),
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    businessName: vendorProfile?.storeName || user?.name || user?.email || 'Vendor Store',
-                    businessType: 'company',
-                    country: 'KE',
+                    businessName:
+                      vendorProfile?.storeName ||
+                      user?.name ||
+                      user?.email ||
+                      "Vendor Store",
+                    businessType: "company",
+                    country: "KE",
                   }),
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                  throw new Error(data.error || 'Failed to start onboarding');
+                  throw new Error(data.error || "Failed to start onboarding");
                 }
                 if (data.onboardingUrl) {
                   window.location.href = data.onboardingUrl;
@@ -588,7 +685,11 @@ export default function VendorDashboard() {
                   await fetchVendorData();
                 }
               } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : 'Failed to continue onboarding');
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to continue onboarding",
+                );
               }
             }}
             onRefresh={fetchVendorData}
@@ -597,17 +698,18 @@ export default function VendorDashboard() {
       )}
 
       {/* ATLAS AI Assistant */}
-      <div style={{ marginBottom: '24px' }}>
-        <AssistantPanel 
-          assistant="atlas" 
-          page="vendor-dashboard" 
+      <div style={{ marginBottom: "24px" }}>
+        <AssistantPanel
+          assistant="atlas"
+          page="vendor-dashboard"
           userId={user?.id}
           context={{
             page: "vendor-dashboard",
             vendorId: vendorProfile?.id ?? user?.id ?? null,
             activeProducts: totalProducts,
             lowStockProducts: lowStockCount,
-            pendingOrders: orders.filter((order) => order.status === 'pending').length,
+            pendingOrders: orders.filter((order) => order.status === "pending")
+              .length,
             totalRevenue,
             totalSales,
             pendingPayouts: payoutSummary.pending,
@@ -638,14 +740,23 @@ export default function VendorDashboard() {
           <div style={styles.statCardTopBorder}></div>
           <div style={styles.statLabel}>Active Products</div>
           <div style={styles.statValue}>{totalProducts}</div>
-          <div style={{ ...styles.statChange, ...(lowStockCount > 0 ? styles.negative : styles.positive) }}>
-            {lowStockCount > 0 ? `⚠ ${lowStockCount} low stock` : 'All products in stock'}
+          <div
+            style={{
+              ...styles.statChange,
+              ...(lowStockCount > 0 ? styles.negative : styles.positive),
+            }}
+          >
+            {lowStockCount > 0
+              ? `⚠ ${lowStockCount} low stock`
+              : "All products in stock"}
           </div>
         </div>
         <div style={styles.statCard}>
           <div style={styles.statCardTopBorder}></div>
           <div style={styles.statLabel}>Pending Orders</div>
-          <div style={styles.statValue}>{orders.filter(o => o.status === 'pending').length}</div>
+          <div style={styles.statValue}>
+            {orders.filter((o) => o.status === "pending").length}
+          </div>
           <div style={{ ...styles.statChange, ...styles.positive }}>
             Requires attention
           </div>
@@ -653,24 +764,58 @@ export default function VendorDashboard() {
         <div style={styles.statCard}>
           <div style={styles.statCardTopBorder}></div>
           <div style={styles.statLabel}>Pending Payouts</div>
-          <div style={styles.statValue}>${payoutSummary.pending.toFixed(2)}</div>
-          <div style={{ ...styles.statChange, ...(payoutSummary.pending > 0 ? styles.positive : styles.negative) }}>
+          <div style={styles.statValue}>
+            ${payoutSummary.pending.toFixed(2)}
+          </div>
+          <div
+            style={{
+              ...styles.statChange,
+              ...(payoutSummary.pending > 0
+                ? styles.positive
+                : styles.negative),
+            }}
+          >
             ${payoutSummary.paid.toFixed(2)} paid out
           </div>
         </div>
-        <div style={{ ...styles.statCard, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-          <div style={{ ...styles.statCardTopBorder, background: 'var(--green)' }}></div>
+        <div
+          style={{
+            ...styles.statCard,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{ ...styles.statCardTopBorder, background: "var(--green)" }}
+          ></div>
           <div style={styles.statLabel}>Available Balance</div>
-          <div style={{ ...styles.statValue, color: 'var(--green)' }}>${availableBalance.toFixed(2)}</div>
+          <div style={{ ...styles.statValue, color: "var(--green)" }}>
+            ${availableBalance.toFixed(2)}
+          </div>
           <button
-            style={{ ...styles.btnPrimary, marginTop: '12px', background: 'var(--green)', width: '100%' }}
+            style={{
+              ...styles.btnPrimary,
+              marginTop: "12px",
+              background: "var(--green)",
+              width: "100%",
+            }}
             onClick={() => setPayoutModalOpen(true)}
             disabled={availableBalance < 50 || !onboardingComplete}
           >
             Request Payout
           </button>
           {!onboardingComplete && (
-            <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "12px",
+                color: "var(--text-dim)",
+                textAlign: "center",
+              }}
+            >
               Complete Stripe onboarding to enable payouts.
             </div>
           )}
@@ -680,39 +825,105 @@ export default function VendorDashboard() {
       {/* Tabs */}
       <div style={styles.tabs}>
         <button
-          style={{ ...styles.tab, ...(activeTab === 'overview' ? styles.tabActive : {}) }}
-          onClick={() => setActiveTab('overview')}
+          style={{
+            ...styles.tab,
+            ...(activeTab === "overview" ? styles.tabActive : {}),
+          }}
+          onClick={() => setActiveTab("overview")}
         >
           Overview
         </button>
         <button
-          style={{ ...styles.tab, ...(activeTab === 'products' ? styles.tabActive : {}) }}
-          onClick={() => setActiveTab('products')}
+          style={{
+            ...styles.tab,
+            ...(activeTab === "products" ? styles.tabActive : {}),
+          }}
+          onClick={() => setActiveTab("products")}
         >
           Products
         </button>
         <button
-          style={{ ...styles.tab, ...(activeTab === 'orders' ? styles.tabActive : {}) }}
-          onClick={() => setActiveTab('orders')}
+          style={{
+            ...styles.tab,
+            ...(activeTab === "orders" ? styles.tabActive : {}),
+          }}
+          onClick={() => setActiveTab("orders")}
         >
           Orders
         </button>
       </div>
 
       {/* Overview Tab */}
-      {activeTab === 'overview' && (
+      {activeTab === "overview" && (
         <div style={styles.section}>
           <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>Revenue Overview</h2>
           </div>
-          <div style={styles.chartPlaceholder}>
-            📊 Revenue chart will appear here (connect to analytics API)
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statLabel}>Revenue Last 30 Days</div>
+              <div style={styles.statValue}>
+                ${(analytics?.totalRevenue ?? 0).toFixed(2)}
+              </div>
+              <div style={styles.statChange}>
+                {analytics
+                  ? `${analytics.recentOrders} orders in the last 30 days`
+                  : "Loading analytics…"}
+              </div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statLabel}>Active Products</div>
+              <div style={styles.statValue}>
+                {analytics?.activeProducts ?? totalProducts}
+              </div>
+              <div style={styles.statChange}>
+                {analytics
+                  ? `${analytics.totalOrderItems} items sold`
+                  : "Loading analytics…"}
+              </div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statLabel}>Orders This Month</div>
+              <div style={styles.statValue}>{analytics?.recentOrders ?? 0}</div>
+              <div style={styles.statChange}>
+                {analytics
+                  ? `${analytics.totalOrders} total orders`
+                  : "Loading analytics…"}
+              </div>
+            </div>
+          </div>
+          <div style={styles.table}>
+            <div style={styles.tableHeader}>
+              <span>Date</span>
+              <span>Revenue</span>
+              <span>Orders</span>
+            </div>
+            {analytics?.dailyRevenue?.length ? (
+              analytics.dailyRevenue.map((point) => (
+                <div key={point.date} style={styles.tableRow}>
+                  <span>{new Date(point.date).toLocaleDateString()}</span>
+                  <span>${point.revenue.toFixed(2)}</span>
+                  <span>{point.orders}</span>
+                </div>
+              ))
+            ) : (
+              <div
+                style={{
+                  ...styles.tableRow,
+                  justifyContent: "center",
+                  color: "var(--text-dim)",
+                  gridColumn: "1 / -1",
+                }}
+              >
+                No revenue history available yet.
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Products Tab */}
-      {activeTab === 'products' && (
+      {activeTab === "products" && (
         <div style={styles.section}>
           {products.length === 0 ? (
             <NoProductsState onRetry={fetchVendorData} />
@@ -738,7 +949,9 @@ export default function VendorDashboard() {
                     </div>
                     <span>${product.price.toFixed(2)}</span>
                     <span>
-                      <span style={{ ...styles.statusBadge, ...stockStatus.style }}>
+                      <span
+                        style={{ ...styles.statusBadge, ...stockStatus.style }}
+                      >
                         {stockStatus.label} ({product.stock})
                       </span>
                     </span>
@@ -755,7 +968,7 @@ export default function VendorDashboard() {
       )}
 
       {/* Orders Tab */}
-      {activeTab === 'orders' && (
+      {activeTab === "orders" && (
         <div style={styles.section}>
           <div style={styles.table}>
             <div style={styles.tableHeader}>
@@ -772,12 +985,15 @@ export default function VendorDashboard() {
                 <span>{order.product}</span>
                 <span>${order.amount.toFixed(2)}</span>
                 <span>
-                  <span style={{
-                    ...styles.statusBadge,
-                    backgroundColor: `${getOrderStatusColor(order.status)}20`,
-                    color: getOrderStatusColor(order.status),
-                  }}>
-                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  <span
+                    style={{
+                      ...styles.statusBadge,
+                      backgroundColor: `${getOrderStatusColor(order.status)}20`,
+                      color: getOrderStatusColor(order.status),
+                    }}
+                  >
+                    {order.status.charAt(0).toUpperCase() +
+                      order.status.slice(1)}
                   </span>
                 </span>
               </div>
@@ -787,41 +1003,60 @@ export default function VendorDashboard() {
       )}
 
       {payoutModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.7)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: 'var(--surface)',
-            borderRadius: '12px',
-            padding: '32px',
-            maxWidth: '420px',
-            width: '100%',
-            border: '1px solid var(--border)',
-          }}>
-            <h2 style={{ margin: '0 0 20px 0', fontSize: '20px', color: 'var(--text)' }}>Request Payout</h2>
-            
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.7)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "var(--surface)",
+              borderRadius: "12px",
+              padding: "32px",
+              maxWidth: "420px",
+              width: "100%",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <h2
+              style={{
+                margin: "0 0 20px 0",
+                fontSize: "20px",
+                color: "var(--text)",
+              }}
+            >
+              Request Payout
+            </h2>
+
             {payoutSuccess ? (
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                <p style={{ color: 'var(--green)', fontWeight: 600 }}>Payout requested successfully!</p>
-                <p style={{ color: 'var(--text-dim)', fontSize: '14px' }}>
-                  Your payout will be processed to your connected Stripe account.
+              <div style={{ textAlign: "center", padding: "20px" }}>
+                <div style={{ fontSize: "48px", marginBottom: "16px" }}>✅</div>
+                <p style={{ color: "var(--green)", fontWeight: 600 }}>
+                  Payout requested successfully!
+                </p>
+                <p style={{ color: "var(--text-dim)", fontSize: "14px" }}>
+                  Your payout will be processed to your connected Stripe
+                  account.
                 </p>
                 <button
-                  style={{ ...styles.btnPrimary, marginTop: '20px', width: '100%' }}
+                  style={{
+                    ...styles.btnPrimary,
+                    marginTop: "20px",
+                    width: "100%",
+                  }}
                   onClick={() => {
                     setPayoutModalOpen(false);
                     setPayoutSuccess(false);
-                    setPayoutAmount('');
+                    setPayoutAmount("");
                   }}
                 >
                   Close
@@ -829,17 +1064,37 @@ export default function VendorDashboard() {
               </div>
             ) : (
               <>
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dim)', fontSize: '14px' }}>
+                <div style={{ marginBottom: "16px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      color: "var(--text-dim)",
+                      fontSize: "14px",
+                    }}
+                  >
                     Available Balance
                   </label>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--green)' }}>
+                  <div
+                    style={{
+                      fontSize: "24px",
+                      fontWeight: 700,
+                      color: "var(--green)",
+                    }}
+                  >
                     ${availableBalance.toFixed(2)}
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-dim)', fontSize: '14px' }}>
+                <div style={{ marginBottom: "20px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      color: "var(--text-dim)",
+                      fontSize: "14px",
+                    }}
+                  >
                     Payout Amount (min $50)
                   </label>
                   <input
@@ -848,41 +1103,43 @@ export default function VendorDashboard() {
                     onChange={(e) => setPayoutAmount(e.target.value)}
                     placeholder="Enter amount"
                     style={{
-                      width: '100%',
-                      padding: '12px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--bg)',
-                      color: 'var(--text)',
-                      fontSize: '16px',
+                      width: "100%",
+                      padding: "12px",
+                      borderRadius: "6px",
+                      border: "1px solid var(--border)",
+                      background: "var(--bg)",
+                      color: "var(--text)",
+                      fontSize: "16px",
                     }}
                   />
                 </div>
 
                 {payoutError && (
-                  <div style={{ 
-                    padding: '12px', 
-                    borderRadius: '6px', 
-                    background: 'rgba(255,100,100,0.1)', 
-                    color: 'var(--red)',
-                    marginBottom: '16px',
-                    fontSize: '14px',
-                  }}>
+                  <div
+                    style={{
+                      padding: "12px",
+                      borderRadius: "6px",
+                      background: "rgba(255,100,100,0.1)",
+                      color: "var(--red)",
+                      marginBottom: "16px",
+                      fontSize: "14px",
+                    }}
+                  >
                     {payoutError}
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: "flex", gap: "12px" }}>
                   <button
                     style={{
                       flex: 1,
-                      padding: '12px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border)',
-                      background: 'transparent',
-                      color: 'var(--text)',
-                      fontSize: '14px',
-                      cursor: 'pointer',
+                      padding: "12px",
+                      borderRadius: "6px",
+                      border: "1px solid var(--border)",
+                      background: "transparent",
+                      color: "var(--text)",
+                      fontSize: "14px",
+                      cursor: "pointer",
                     }}
                     onClick={() => {
                       setPayoutModalOpen(false);
@@ -894,55 +1151,70 @@ export default function VendorDashboard() {
                   <button
                     style={{
                       flex: 1,
-                      padding: '12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: 'var(--green)',
-                      color: '#000',
-                      fontSize: '14px',
+                      padding: "12px",
+                      borderRadius: "6px",
+                      border: "none",
+                      background: "var(--green)",
+                      color: "#000",
+                      fontSize: "14px",
                       fontWeight: 600,
-                      cursor: payoutLoading ? 'not-allowed' : 'pointer',
+                      cursor: payoutLoading ? "not-allowed" : "pointer",
                       opacity: payoutLoading ? 0.7 : 1,
                     }}
                     onClick={async () => {
                       const amount = Number(payoutAmount);
                       if (amount < 50) {
-                        setPayoutError('Minimum payout amount is $50');
+                        setPayoutError("Minimum payout amount is $50");
                         return;
                       }
                       if (amount > availableBalance) {
-                        setPayoutError('Amount exceeds available balance');
+                        setPayoutError("Amount exceeds available balance");
                         return;
                       }
                       setPayoutLoading(true);
                       setPayoutError(null);
                       try {
-                        const res = await fetch('/api/v1/vendors/me/payout/request', {
-                          method: 'POST',
-                          headers: {
-                            ...getAuthHeaders(),
-                            'Content-Type': 'application/json',
+                        const res = await fetch(
+                          "/api/v1/vendors/me/payout/request",
+                          {
+                            method: "POST",
+                            headers: {
+                              ...getAuthHeaders(),
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              amount,
+                              payoutMethod: "stripe_connect",
+                            }),
                           },
-                          body: JSON.stringify({ amount, payoutMethod: 'stripe_connect' }),
-                        });
+                        );
                         const data = await res.json();
                         if (!res.ok) {
-                          if (data?.code === 'ONBOARDING_REQUIRED' || data?.code === 'PAYOUTS_NOT_ENABLED') {
+                          if (
+                            data?.code === "ONBOARDING_REQUIRED" ||
+                            data?.code === "PAYOUTS_NOT_ENABLED"
+                          ) {
                             setOnboarding(data.onboarding ?? null);
                           }
-                          throw new Error(data.error || 'Failed to process payout');
+                          throw new Error(
+                            data.error || "Failed to process payout",
+                          );
                         }
                         setPayoutSuccess(true);
                         fetchVendorData();
                       } catch (err: unknown) {
-                        setPayoutError(err instanceof Error ? err.message : 'Failed to process payout');
+                        setPayoutError(
+                          err instanceof Error
+                            ? err.message
+                            : "Failed to process payout",
+                        );
                       } finally {
                         setPayoutLoading(false);
                       }
                     }}
                     disabled={payoutLoading || !payoutAmount}
                   >
-                    {payoutLoading ? 'Processing...' : 'Request Payout'}
+                    {payoutLoading ? "Processing..." : "Request Payout"}
                   </button>
                 </div>
               </>

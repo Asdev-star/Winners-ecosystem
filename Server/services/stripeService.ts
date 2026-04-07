@@ -7,7 +7,8 @@ import { sendOrderConfirmationEmail } from "./emailService.js";
 import { emitAdminEvent } from "./adminEventService.js";
 
 function getStripe(): Stripe {
-  if (!process.env.STRIPE_SECRET_KEY) throw new Error("STRIPE_SECRET_KEY not set");
+  if (!process.env.STRIPE_SECRET_KEY)
+    throw new Error("STRIPE_SECRET_KEY not set");
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
@@ -22,7 +23,7 @@ function dayEnd(dateString: string): Date {
 }
 
 function customerIdFromChargeCustomer(
-  customer: Stripe.Charge["customer"]
+  customer: Stripe.Charge["customer"],
 ): string | null {
   if (!customer) return null;
   if (typeof customer === "string") return customer;
@@ -30,7 +31,7 @@ function customerIdFromChargeCustomer(
 }
 
 function customerIdFromInvoiceCustomer(
-  customer: Stripe.Invoice["customer"]
+  customer: Stripe.Invoice["customer"],
 ): string | null {
   if (!customer) return null;
   if (typeof customer === "string") return customer;
@@ -38,7 +39,7 @@ function customerIdFromInvoiceCustomer(
 }
 
 function customerIdFromSessionCustomer(
-  customer: Stripe.Checkout.Session["customer"]
+  customer: Stripe.Checkout.Session["customer"],
 ): string | null {
   if (!customer) return null;
   if (typeof customer === "string") return customer;
@@ -57,7 +58,9 @@ function formatCurrency(amount: number, currency: string) {
   }
 }
 
-export async function syncStripeRevenue(tenantId: string): Promise<{ synced: number; total: number }> {
+export async function syncStripeRevenue(
+  tenantId: string,
+): Promise<{ synced: number; total: number }> {
   const stripe = getStripe();
 
   const charges = await stripe.charges.list({
@@ -65,7 +68,9 @@ export async function syncStripeRevenue(tenantId: string): Promise<{ synced: num
     created: { gte: Math.floor(Date.now() / 1000) - 90 * 24 * 60 * 60 },
   });
 
-  const successfulCharges = charges.data.filter((charge) => charge.paid && !charge.refunded);
+  const successfulCharges = charges.data.filter(
+    (charge) => charge.paid && !charge.refunded,
+  );
   const byDate: Record<string, number> = {};
 
   for (const charge of successfulCharges) {
@@ -102,7 +107,10 @@ export async function syncStripeRevenue(tenantId: string): Promise<{ synced: num
     }
   }
 
-  return { synced: Object.keys(byDate).length, total: successfulCharges.length };
+  return {
+    synced: Object.keys(byDate).length,
+    total: successfulCharges.length,
+  };
 }
 
 export async function getStripeStats() {
@@ -117,19 +125,26 @@ export async function getStripeStats() {
     stripe.balance.retrieve(),
   ]);
 
-  const successfulCharges = charges.data.filter((charge) => charge.paid && !charge.refunded);
+  const successfulCharges = charges.data.filter(
+    (charge) => charge.paid && !charge.refunded,
+  );
   const mrr = subscriptions.data.reduce((sum, subscription) => {
     const firstItem = subscription.items.data[0];
     const unitAmount = firstItem?.price?.unit_amount;
     if (!unitAmount) return sum;
     const monthly =
-      firstItem?.price?.recurring?.interval === "year" ? unitAmount / 12 : unitAmount;
+      firstItem?.price?.recurring?.interval === "year"
+        ? unitAmount / 12
+        : unitAmount;
     return sum + monthly / 100;
   }, 0);
 
   return {
     last30Days: {
-      revenue: successfulCharges.reduce((sum, charge) => sum + charge.amount / 100, 0),
+      revenue: successfulCharges.reduce(
+        (sum, charge) => sum + charge.amount / 100,
+        0,
+      ),
       transactions: successfulCharges.length,
       newCustomers: customers.data.length,
       refunds: charges.data.filter((charge) => charge.refunded).length,
@@ -139,14 +154,17 @@ export async function getStripeStats() {
       mrr: Math.round(mrr),
     },
     balance: {
-      available: balance.available.reduce((sum, entry) => sum + entry.amount, 0) / 100,
-      pending: balance.pending.reduce((sum, entry) => sum + entry.amount, 0) / 100,
+      available:
+        balance.available.reduce((sum, entry) => sum + entry.amount, 0) / 100,
+      pending:
+        balance.pending.reduce((sum, entry) => sum + entry.amount, 0) / 100,
     },
     recentCharges: successfulCharges.slice(0, 10).map((charge) => ({
       id: charge.id,
       amount: charge.amount / 100,
       currency: charge.currency,
-      description: charge.description ?? charge.statement_descriptor ?? "Payment",
+      description:
+        charge.description ?? charge.statement_descriptor ?? "Payment",
       customer: customerIdFromChargeCustomer(charge.customer),
       date: new Date(charge.created * 1000).toISOString(),
       status: charge.status,
@@ -171,7 +189,7 @@ export async function createCheckoutSession(params: {
 
   if (!priceId) {
     throw new Error(
-      `Price ID for ${params.plan} not set. Add STRIPE_PRO_PRICE_ID or STRIPE_ENTERPRISE_PRICE_ID.`
+      `Price ID for ${params.plan} not set. Add STRIPE_PRO_PRICE_ID or STRIPE_ENTERPRISE_PRICE_ID.`,
     );
   }
 
@@ -190,9 +208,15 @@ export async function createCheckoutSession(params: {
   });
 }
 
-export async function createPortalSession(customerId: string, returnUrl: string) {
+export async function createPortalSession(
+  customerId: string,
+  returnUrl: string,
+) {
   const stripe = getStripe();
-  return stripe.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
+  return stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+  });
 }
 
 export async function createCourseCheckoutSession(params: {
@@ -239,7 +263,11 @@ export async function createCourseCheckoutSession(params: {
 export async function handleWebhookEvent(payload: Buffer, signature: string) {
   const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
-  const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  const event = stripe.webhooks.constructEvent(
+    payload,
+    signature,
+    webhookSecret,
+  );
 
   switch (event.type) {
     case "checkout.session.completed": {
@@ -250,7 +278,9 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
       if (tenantId && plan) {
         const customerId = customerIdFromSessionCustomer(session.customer);
         const subscriptionId =
-          typeof session.subscription === "string" ? session.subscription : null;
+          typeof session.subscription === "string"
+            ? session.subscription
+            : null;
 
         const tenant = await db.tenant.update({
           where: { id: tenantId },
@@ -306,7 +336,8 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
             data: {
               status: "CONFIRMED",
               paymentStatus: "PAID",
-              stripePaymentIntentId: (session.payment_intent as string) ?? undefined,
+              stripePaymentIntentId:
+                (session.payment_intent as string) ?? undefined,
             },
             include: {
               items: {
@@ -315,6 +346,7 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
                     select: {
                       id: true,
                       allowBackorder: true,
+                      fulfillmentType: true,
                     },
                   },
                 },
@@ -345,8 +377,31 @@ export async function handleWebhookEvent(payload: Buffer, signature: string) {
                 price: item.price,
               })),
             }).catch((err) =>
-              console.error("[stripeService] error sending order confirmation email:", err)
+              console.error(
+                "[stripeService] error sending order confirmation email:",
+                err,
+              ),
             );
+          }
+
+          // Auto-fulfill dropshipping orders
+          const hasDropProducts = order.items.some(
+            (item) => item.product.fulfillmentType === "dropship",
+          );
+          if (hasDropProducts) {
+            // Fire-and-forget — never block payment confirmation
+            setImmediate(async () => {
+              try {
+                const { autoFulfillDropOrder } =
+                  await import("../services/dropshipping/fulfillmentEngine.js");
+                await autoFulfillDropOrder(orderId);
+              } catch (fulfillError) {
+                console.error(
+                  "[stripeService] Dropship auto-fulfillment error:",
+                  fulfillError,
+                );
+              }
+            });
           }
         } catch (e) {
           console.error("[stripeService] market order update error:", e);

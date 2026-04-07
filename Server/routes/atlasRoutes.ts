@@ -1,9 +1,9 @@
 // Phase 4 - Winners Market - ATLAS AI Market Intelligence
 // Product research, pricing strategy, ad copy generation
 
-import { Router, Request, Response } from 'express';
-import Anthropic from '@anthropic-ai/sdk';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { Router, Request, Response } from "express";
+import Anthropic from "@anthropic-ai/sdk";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -16,23 +16,23 @@ Always provide actionable, specific intelligence — never generic advice.
 African market context: Kenya, Nigeria, Ghana, South Africa, diaspora in UK/US/Canada.`;
 
 function writeStreamHeaders(res: Response) {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
 }
 
-router.post('/research', async (req: Request, res: Response) => {
+router.post("/research", async (req: Request, res: Response) => {
   const { niche, platformContext } = req.body;
-  if (!niche) return res.status(400).json({ error: 'niche is required' });
+  if (!niche) return res.status(400).json({ error: "niche is required" });
   if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'ATLAS research is not configured' });
+    return res.status(503).json({ error: "ATLAS research is not configured" });
   }
   try {
     writeStreamHeaders(res);
 
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-20250514',
+      model: "claude-sonnet-4-20250514",
       max_tokens: 1500,
       system: `${ATLAS_SYSTEM}
 Always return structured product research in JSON with:
@@ -42,174 +42,380 @@ Always return structured product research in JSON with:
 - demandForecast
 - atlasConclusion
 Do not wrap the JSON in markdown fences.`,
-      messages: [{ role: 'user', content: `Research this niche: ${niche}\n\nContext: ${JSON.stringify(platformContext || {})}` }],
+      messages: [
+        {
+          role: "user",
+          content: `Research this niche: ${niche}\n\nContext: ${JSON.stringify(platformContext || {})}`,
+        },
+      ],
     });
 
     for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
         res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
       }
     }
-    res.write('data: [DONE]\n\n');
+    res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
-    console.error('[atlas] Research error:', error);
-    if (!res.headersSent) res.status(500).json({ error: 'Research failed' });
+    console.error("[atlas] Research error:", error);
+    if (!res.headersSent) res.status(500).json({ error: "Research failed" });
   }
 });
 
-router.post('/ad-copy', async (req: Request, res: Response) => {
+router.post("/ad-copy", async (req: Request, res: Response) => {
   const { productName, targetAudience, platform, tone } = req.body;
   try {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-6',
+      model: "claude-sonnet-4-6",
       max_tokens: 800,
       system: ATLAS_SYSTEM,
-      messages: [{
-        role: 'user',
-        content: `Write compelling ${platform || 'social media'} ad copy for: ${productName}
-Target audience: ${targetAudience || 'African consumers aged 18-45'}
-Tone: ${tone || 'energetic and aspirational'}
+      messages: [
+        {
+          role: "user",
+          content: `Write compelling ${platform || "social media"} ad copy for: ${productName}
+Target audience: ${targetAudience || "African consumers aged 18-45"}
+Tone: ${tone || "energetic and aspirational"}
 Include: headline, body copy, CTA. Make it culturally resonant for African/diaspora markets.`,
-      }],
+        },
+      ],
     });
 
     for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
         res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
       }
     }
-    res.write('data: [DONE]\n\n');
+    res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
-    console.error('[atlas] Ad copy error:', error);
-    if (!res.headersSent) res.status(500).json({ error: 'Ad copy generation failed' });
+    console.error("[atlas] Ad copy error:", error);
+    if (!res.headersSent)
+      res.status(500).json({ error: "Ad copy generation failed" });
   }
 });
 
-router.post('/pricing', async (req: Request, res: Response) => {
+router.post("/pricing", async (req: Request, res: Response) => {
   const { productName, cost, competitors, market } = req.body;
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: "claude-sonnet-4-6",
       max_tokens: 600,
       system: ATLAS_SYSTEM,
-      messages: [{
-        role: 'user',
-        content: `Analyze pricing for: ${productName}
+      messages: [
+        {
+          role: "user",
+          content: `Analyze pricing for: ${productName}
 Cost price: $${cost}
 Competitors: ${JSON.stringify(competitors || [])}
-Target market: ${market || 'African e-commerce'}
+Target market: ${market || "African e-commerce"}
 Return JSON: { optimal: number, premium: number, anchor: number, breakeven: number, recommendedStrategy: string, reasoning: string }`,
-      }],
+        },
+      ],
     });
-    const text = response.content[0].type === 'text' ? response.content[0].text : '{}';
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "{}";
     const pricing = JSON.parse(text);
     return res.json(pricing);
   } catch (error) {
-    console.error('[atlas] Pricing error:', error);
-    return res.status(500).json({ error: 'Pricing analysis failed' });
+    console.error("[atlas] Pricing error:", error);
+    return res.status(500).json({ error: "Pricing analysis failed" });
   }
 });
 
-router.post('/strategy', async (req: Request, res: Response) => {
+router.post("/strategy", async (req: Request, res: Response) => {
   const { businessType, currentRevenue, goals, timeframe } = req.body;
   try {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-6',
+      model: "claude-sonnet-4-6",
       max_tokens: 1200,
       system: ATLAS_SYSTEM,
-      messages: [{
-        role: 'user',
-        content: `Create a ${timeframe || '90-day'} growth strategy for:
+      messages: [
+        {
+          role: "user",
+          content: `Create a ${timeframe || "90-day"} growth strategy for:
 Business type: ${businessType}
 Current revenue: $${currentRevenue || 0}/month
 Goals: ${goals}
 Include: 3 monthly phases with specific actions, KPIs, and African market opportunities.`,
-      }],
+        },
+      ],
     });
 
     for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
         res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
       }
     }
-    res.write('data: [DONE]\n\n');
+    res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
-    console.error('[atlas] Strategy error:', error);
-    if (!res.headersSent) res.status(500).json({ error: 'Strategy generation failed' });
+    console.error("[atlas] Strategy error:", error);
+    if (!res.headersSent)
+      res.status(500).json({ error: "Strategy generation failed" });
   }
 });
 
-router.post('/product-photo-analysis', async (req: Request, res: Response) => {
+router.post("/product-photo-analysis", async (req: Request, res: Response) => {
   const { imageUrl, productName } = req.body;
-  if (!imageUrl) return res.status(400).json({ error: 'imageUrl is required' });
+  if (!imageUrl) return res.status(400).json({ error: "imageUrl is required" });
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: "claude-sonnet-4-6",
       max_tokens: 600,
       system: ATLAS_SYSTEM,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'url', url: imageUrl },
-          },
-          {
-            type: 'text',
-            text: `Analyze this product photo for ${productName || 'this product'} for e-commerce listing optimization.
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "url", url: imageUrl },
+            },
+            {
+              type: "text",
+              text: `Analyze this product photo for ${productName || "this product"} for e-commerce listing optimization.
 Return JSON: { backgroundScore: number 1-10, lightingScore: number 1-10, overallScore: number 1-10, issues: string[], improvements: string[], verdict: string }`,
-          },
-        ],
-      }],
+            },
+          ],
+        },
+      ],
     });
-    const text = response.content[0].type === 'text' ? response.content[0].text : '{}';
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "{}";
     return res.json(JSON.parse(text));
   } catch (error) {
-    console.error('[atlas] Photo analysis error:', error);
-    return res.status(500).json({ error: 'Photo analysis failed' });
+    console.error("[atlas] Photo analysis error:", error);
+    return res.status(500).json({ error: "Photo analysis failed" });
   }
 });
 
-router.post('/chat', async (req: Request, res: Response) => {
+router.post("/chat", async (req: Request, res: Response) => {
   const { message, history } = req.body;
   try {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
 
     const messages = [
-      ...(history || []).slice(-10).map((m: any) => ({ role: m.role, content: m.content })),
-      { role: 'user' as const, content: message },
+      ...(history || [])
+        .slice(-10)
+        .map((m: any) => ({ role: m.role, content: m.content })),
+      { role: "user" as const, content: message },
     ];
 
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-6',
+      model: "claude-sonnet-4-6",
       max_tokens: 800,
       system: ATLAS_SYSTEM,
       messages,
     });
 
     for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
         res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
       }
     }
-    res.write('data: [DONE]\n\n');
+    res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
-    console.error('[atlas] Chat error:', error);
-    if (!res.headersSent) res.status(500).json({ error: 'Chat failed' });
+    console.error("[atlas] Chat error:", error);
+    if (!res.headersSent) res.status(500).json({ error: "Chat failed" });
+  }
+});
+
+router.post("/dropshipping-research", async (req: Request, res: Response) => {
+  const { niche, platformContext } = req.body;
+  if (!niche) return res.status(400).json({ error: "niche is required" });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: "ATLAS research is not configured" });
+  }
+  try {
+    writeStreamHeaders(res);
+
+    const stream = await anthropic.messages.stream({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1500,
+      system: `${ATLAS_SYSTEM}
+Always return structured dropshipping product research in JSON with:
+- winningProducts: exactly 5 products, each with name, estimatedMargin, supplierRecommendation, targetAudience, africanMarketFit
+- bestSupplier
+- pricingStrategy
+- demandForecast
+- atlasConclusion
+Do not wrap the JSON in markdown fences.`,
+      messages: [
+        {
+          role: "user",
+          content: `Research dropshipping niche: ${niche}\n\nContext: ${JSON.stringify(platformContext || {})}`,
+        },
+      ],
+    });
+
+    for await (const chunk of stream) {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
+        res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
+      }
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (error) {
+    console.error("[atlas] Dropshipping research error:", error);
+    if (!res.headersSent) res.status(500).json({ error: "Research failed" });
+  }
+});
+
+router.post("/description", async (req: Request, res: Response) => {
+  const { productName, features, targetAudience, tone } = req.body;
+  if (!productName)
+    return res.status(400).json({ error: "productName is required" });
+  try {
+    writeStreamHeaders(res);
+
+    const stream = await anthropic.messages.stream({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: `${ATLAS_SYSTEM}
+Generate compelling product descriptions optimized for African e-commerce.
+Focus on cultural resonance, aspirational benefits, and practical value.
+Always include: benefits, features, social proof elements, and clear CTAs.`,
+      messages: [
+        {
+          role: "user",
+          content: `Generate product description for: ${productName}
+Features: ${features || "N/A"}
+Target audience: ${targetAudience || "African consumers"}
+Tone: ${tone || "authentic and aspirational"}`,
+        },
+      ],
+    });
+
+    for await (const chunk of stream) {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
+        res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
+      }
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (error) {
+    console.error("[atlas] Description generation error:", error);
+    if (!res.headersSent)
+      res.status(500).json({ error: "Description generation failed" });
+  }
+});
+
+router.post("/competitor", async (req: Request, res: Response) => {
+  const { productName, competitors, market } = req.body;
+  if (!productName)
+    return res.status(400).json({ error: "productName is required" });
+  try {
+    writeStreamHeaders(res);
+
+    const stream = await anthropic.messages.stream({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1200,
+      system: `${ATLAS_SYSTEM}
+Analyze competitors in African markets with focus on:
+- Pricing strategies
+- Marketing approaches
+- Customer acquisition tactics
+- Market positioning
+- Opportunities for differentiation`,
+      messages: [
+        {
+          role: "user",
+          content: `Analyze competitors for: ${productName}
+Known competitors: ${JSON.stringify(competitors || [])}
+Target market: ${market || "African e-commerce"}`,
+        },
+      ],
+    });
+
+    for await (const chunk of stream) {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
+        res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
+      }
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (error) {
+    console.error("[atlas] Competitor analysis error:", error);
+    if (!res.headersSent)
+      res.status(500).json({ error: "Competitor analysis failed" });
+  }
+});
+
+router.post("/brand", async (req: Request, res: Response) => {
+  const { businessName, industry, targetAudience, values } = req.body;
+  if (!businessName)
+    return res.status(400).json({ error: "businessName is required" });
+  try {
+    writeStreamHeaders(res);
+
+    const stream = await anthropic.messages.stream({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1200,
+      system: `${ATLAS_SYSTEM}
+Create comprehensive brand strategy for African businesses including:
+- Brand positioning
+- Voice and tone guidelines
+- Visual identity concepts
+- Marketing channel recommendations
+- Cultural adaptation strategies`,
+      messages: [
+        {
+          role: "user",
+          content: `Develop brand strategy for: ${businessName}
+Industry: ${industry || "e-commerce"}
+Target audience: ${targetAudience || "African consumers"}
+Core values: ${values || "innovation, authenticity, community"}`,
+        },
+      ],
+    });
+
+    for await (const chunk of stream) {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
+        res.write(`data: ${JSON.stringify({ token: chunk.delta.text })}\n\n`);
+      }
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (error) {
+    console.error("[atlas] Brand strategy error:", error);
+    if (!res.headersSent)
+      res.status(500).json({ error: "Brand strategy failed" });
   }
 });
 

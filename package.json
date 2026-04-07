@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.77.0",
+    "@mux/mux-node": "^12.8.1",
     "@paralleldrive/cuid2": "^3.3.0",
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.2",

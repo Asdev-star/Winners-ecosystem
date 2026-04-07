@@ -15,12 +15,21 @@ import Card from "../../components/ui/Card";
 
 interface MarketAnalysis {
   id: string;
-  title: string;
-  summary: string;
+  tenantId: string;
+  creatorId: string;
+  asset: string;
   sentiment: "bullish" | "bearish" | "neutral";
   confidence: number;
-  assets: string[];
+  analysis: string;
+  indicators: Record<string, any>;
+  tier: string;
   createdAt: string;
+  updatedAt: string;
+  creator: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
 }
 
 interface MarketAnalysisCardProps {
@@ -74,7 +83,7 @@ export function MarketAnalysisCard({ analysis }: MarketAnalysisCardProps) {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-white">
-                  {analysis.title}
+                  ATLAS Analysis: {analysis.asset}
                 </h3>
                 <p className="text-sm text-gray-400 capitalize">
                   {analysis.sentiment} Sentiment
@@ -87,30 +96,20 @@ export function MarketAnalysisCard({ analysis }: MarketAnalysisCardProps) {
             />
           </div>
 
-          {/* Summary */}
+          {/* Analysis */}
           <div className="mb-4">
             <p className="text-sm text-gray-300 leading-relaxed">
-              {analysis.summary}
+              {analysis.analysis}
             </p>
           </div>
 
-          {/* Assets */}
+          {/* Creator */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="w-4 h-4 text-gray-400" />
+              <Brain className="w-4 h-4 text-purple-400" />
               <span className="text-xs text-gray-400 uppercase tracking-wider">
-                Related Assets
+                Created by {analysis.creator.name}
               </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {analysis.assets.map((asset, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-gray-700/50 rounded text-xs text-gray-300 font-medium"
-                >
-                  {asset}
-                </span>
-              ))}
             </div>
           </div>
 

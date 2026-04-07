@@ -12,6 +12,7 @@ interface AuthUser {
   tenantName: string;
   email: string;
   role: "owner" | "admin" | "member" | "viewer";
+  plan?: "FREE" | "PRO" | "ENTERPRISE";
   isImpersonation?: boolean;
   adminId?: string;
   iat?: number;

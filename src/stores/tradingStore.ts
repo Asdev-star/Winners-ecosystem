@@ -28,12 +28,21 @@ export interface PortfolioItem {
 
 export interface MarketAnalysis {
   id: string;
-  title: string;
-  summary: string;
+  tenantId: string;
+  creatorId: string;
+  asset: string;
   sentiment: "bullish" | "bearish" | "neutral";
   confidence: number;
-  assets: string[];
+  analysis: string;
+  indicators: Record<string, any>;
+  tier: string;
   createdAt: string;
+  updatedAt: string;
+  creator: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
 }
 
 interface TradingSignalsResponse {
@@ -79,12 +88,15 @@ export const useTradingStore = create<TradingState>()(
         set({ loading: true, error: null });
         try {
           const token = localStorage.getItem("token");
-          const data = await typedFetch<TradingSignalsResponse>(`${API_BASE}/trading/signals`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
+          const data = await typedFetch<TradingSignalsResponse>(
+            `${API_BASE}/trading/signals`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
             },
-          });
+          );
           set({ signals: data.signals || [], loading: false });
         } catch (error: unknown) {
           set({
@@ -101,12 +113,15 @@ export const useTradingStore = create<TradingState>()(
         set({ loading: true, error: null });
         try {
           const token = localStorage.getItem("token");
-          const data = await typedFetch<TradingPortfolioResponse>(`${API_BASE}/trading/portfolio`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
+          const data = await typedFetch<TradingPortfolioResponse>(
+            `${API_BASE}/trading/portfolio`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
             },
-          });
+          );
           set({ portfolio: data.portfolio || [], loading: false });
         } catch (error: unknown) {
           set({
@@ -123,12 +138,15 @@ export const useTradingStore = create<TradingState>()(
         set({ loading: true, error: null });
         try {
           const token = localStorage.getItem("token");
-          const data = await typedFetch<TradingAnalysesResponse>(`${API_BASE}/trading/analyses`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
+          const data = await typedFetch<TradingAnalysesResponse>(
+            `${API_BASE}/trading/analyses`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
             },
-          });
+          );
           set({ analyses: data.analyses || [], loading: false });
         } catch (error: unknown) {
           set({
